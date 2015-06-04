@@ -1,13 +1,36 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>org.bbop</groupId>
+	<groupId>org.geneontology</groupId>
 	<version>0.2.2-SNAPSHOT</version>
-	<artifactId>Minerva</artifactId>
+	<artifactId>minerva</artifactId>
+	<packaging>pom</packaging>
+	<name>Minerva</name>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<owltools.version>0.2.2-SNAPSHOT</owltools.version>
 	</properties>
+
+	<profiles>
+		<profile>
+			<id>doclint-java8-disable</id>
+			<activation>
+				<jdk>[1.8,)</jdk>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<configuration>
+							<additionalparam>-Xdoclint:none</additionalparam>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 	<build>
 		<plugins>
@@ -65,47 +88,22 @@
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<version>2.5.3</version>
-				<configuration>
-					<finalName>minerva-server</finalName>
-					<appendAssemblyId>false</appendAssemblyId>
-					<attach>false</attach>
-					<outputDirectory>${project.basedir}/bin</outputDirectory>
-					<descriptors>
-						<descriptor>src/main/assembly/minerva-server.xml</descriptor>
-					</descriptors>
-					<archive>
-						<manifest>
-							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-							<mainClass>owltools.gaf.lego.server.StartUpTool</mainClass>
-						</manifest>
-					</archive>
-				</configuration>
-				<executions>
-					<execution>
-						<id>make-assembly</id>
-						<phase>package</phase>
-						<goals>
-							<goal>single</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>2.18.1</version>
 				<configuration>
-					<excludes>
-						<argLine>-Xmx2200M</argLine>
-						<!-- exclude due to use of external servers, which may not be available -->
-						<exclude>**/GolrExternalLookupServiceTest.java</exclude>
-						<exclude>**/SeedHandlerTest.java</exclude>
-					</excludes>
+					<argLine>-Xmx2200M</argLine>
 				</configuration>
 			</plugin>
 		</plugins>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-assembly-plugin</artifactId>
+					<version>2.5.3</version>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 	</build>
 
 	<repositories>
@@ -133,50 +131,64 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>org.bbop</groupId>
-			<artifactId>OWLTools-Annotation</artifactId>
-			<version>0.2.2-SNAPSHOT</version>
-		</dependency>
-		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.11</version>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.bbop</groupId>
-			<artifactId>OWLTools-Core</artifactId>
-			<version>0.2.2-SNAPSHOT</version>
-			<type>test-jar</type>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.bbop</groupId>
-			<artifactId>golr-client</artifactId>
-			<version>0.2.2-SNAPSHOT</version>
-		</dependency>
-		<dependency>
-			<groupId>org.eclipse.jetty</groupId>
-			<artifactId>jetty-server</artifactId>
-			<version>7.5.4.v20111024</version>
-		</dependency>
-		<dependency>
-			<groupId>org.eclipse.jetty</groupId>
-			<artifactId>jetty-servlet</artifactId>
-			<version>7.5.4.v20111024</version>
-		</dependency>
-		<dependency>
-			<groupId>org.glassfish.jersey.containers</groupId>
-			<artifactId>jersey-container-servlet-core</artifactId>
-			<version>2.5</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient</artifactId>
-			<version>4.3.6</version>
-			<scope>test</scope>
-		</dependency>
 	</dependencies>
+	
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.google.code.gson</groupId>
+				<artifactId>gson</artifactId>
+				<version>2.2.4</version>
+			</dependency>
+			<dependency>
+				<groupId>org.bbop</groupId>
+				<artifactId>OWLTools-Annotation</artifactId>
+				<version>${owltools.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.bbop</groupId>
+				<artifactId>OWLTools-Core</artifactId>
+				<version>${owltools.version}</version>
+				<type>test-jar</type>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.bbop</groupId>
+				<artifactId>golr-client</artifactId>
+				<version>${owltools.version}</version>
+			</dependency>
+			<dependency>
+			<groupId>org.bbop</groupId>
+			<artifactId>OWLTools-Runner</artifactId>
+			<version>${owltools.version}</version>
+		</dependency>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-server</artifactId>
+				<version>7.5.4.v20111024</version>
+			</dependency>
+			<dependency>
+				<groupId>org.eclipse.jetty</groupId>
+				<artifactId>jetty-servlet</artifactId>
+				<version>7.5.4.v20111024</version>
+			</dependency>
+			<dependency>
+				<groupId>org.glassfish.jersey.containers</groupId>
+				<artifactId>jersey-container-servlet-core</artifactId>
+				<version>2.5</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.httpcomponents</groupId>
+				<artifactId>httpclient</artifactId>
+				<version>4.3.6</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 	
 	<distributionManagement>
 		<repository>
@@ -190,4 +202,12 @@
 			<url>${bbopsnapshotrepository}</url>
 		</snapshotRepository>
 	</distributionManagement>
+	
+	<modules>
+		<module>minerva-core</module>
+		<module>minerva-json</module>
+		<module>minerva-server</module>
+		<module>minerva-converter</module>
+		<module>minerva-cli</module>
+	</modules>
 </project>
