@@ -378,6 +378,8 @@ abstract class OperationsImpl {
 			values.relevantIndividuals.addAll(pair.getLeft());
 			handleRemovedAnnotationIRIs(pair.getRight(), values.modelId, token);
 			updateModelAnnotations(values.modelId, userId, token, m3);
+			// TODO only render bulk, iff there were additional deletes (i.e. evidence removal)
+			values.renderBulk = true;
 		}
 		// add annotation
 		else if (Operation.addAnnotation == operation){
