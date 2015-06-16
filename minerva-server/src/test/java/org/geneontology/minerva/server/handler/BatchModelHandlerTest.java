@@ -1055,7 +1055,7 @@ public class BatchModelHandlerTest {
 		assertEquals(response2.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response2.messageType);
 		
 		JsonOwlIndividual[] iObjs2 = BatchTestTools.responseIndividuals(response2);
-		assertEquals(2, iObjs2.length); // should return the two individuals affected
+		assertEquals(4, iObjs2.length); // should return the whole model, due to the delete of the evidence!
 		
 		// get the whole model to check global counts
 		checkCounts(modelId, 4, 1);
