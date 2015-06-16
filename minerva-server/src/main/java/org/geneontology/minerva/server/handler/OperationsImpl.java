@@ -376,10 +376,13 @@ abstract class OperationsImpl {
 			Pair<List<OWLNamedIndividual>, Set<IRI>> pair = m3.removeFactNonReasoning(values.modelId,
 					request.arguments.predicate, subject, object, token);
 			values.relevantIndividuals.addAll(pair.getLeft());
-			handleRemovedAnnotationIRIs(pair.getRight(), values.modelId, token);
+			Set<IRI> removedIRIs = pair.getRight();
+			if (removedIRIs != null && removedIRIs.isEmpty() == false) {
+				// only render bulk, iff there were additional deletes (i.e. evidence removal)
+				values.renderBulk = true;
+				handleRemovedAnnotationIRIs(removedIRIs, values.modelId, token);
+			}
 			updateModelAnnotations(values.modelId, userId, token, m3);
-			// TODO only render bulk, iff there were additional deletes (i.e. evidence removal)
-			values.renderBulk = true;
 		}
 		// add annotation
 		else if (Operation.addAnnotation == operation){

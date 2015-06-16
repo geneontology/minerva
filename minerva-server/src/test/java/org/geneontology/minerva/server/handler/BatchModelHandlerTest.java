@@ -541,6 +541,74 @@ public class BatchModelHandlerTest {
 	}
 	
 	@Test
+	public void testDeleteEdge() throws Exception {
+		models.dispose();
+		final String modelId = generateBlankModel();
+		
+		// setup model
+		// simple three individuals (mf, bp, gene) with two facts: bp -p-> mf, mf -enabled_by-> gene 
+		final List<M3Request> batch1 = new ArrayList<M3Request>();
+		
+		// activity/mf
+		M3Request r = BatchTestTools.addIndividual(modelId, "GO:0003674"); // molecular function
+		r.arguments.assignToVariable = "mf";
+		batch1.add(r);
+
+		// process
+		r = BatchTestTools.addIndividual(modelId, "GO:0008150"); // biological process
+		r.arguments.assignToVariable = "bp";
+		batch1.add(r);
+		
+		// gene
+		r = BatchTestTools.addIndividual(modelId, "UniProtKB:P0000"); // gene
+		r.arguments.assignToVariable = "gene";
+		batch1.add(r);
+
+		// activity -> process
+		r = BatchTestTools.addEdge(modelId, "mf", "BFO:0000050", "bp"); // part_of
+		batch1.add(r); // part_of
+
+		// mf -enabled_by-> gene
+		r = BatchTestTools.addEdge(modelId, "mf", "RO:0002333", "gene"); // enabled_by
+		batch1.add(r); // part_of
+		
+		final M3BatchResponse response1 = executeBatch(batch1);
+		JsonOwlIndividual[] iObjs1 = BatchTestTools.responseIndividuals(response1);
+		assertEquals(3, iObjs1.length);
+		
+		String mf = null;
+		String bp = null;
+		for (JsonOwlIndividual iObj : iObjs1) {
+			String id = iObj.id;
+			assertNotNull(id);
+			JsonOwlObject[] types = iObj.type;
+			assertNotNull(types);
+			assertEquals(1, types.length);
+			JsonOwlObject typeObj = types[0];
+			String typeId = typeObj.id;
+			assertNotNull(typeId);
+			if ("GO:0003674".equals(typeId)) {
+				mf = id;
+			}
+			else if ("GO:0008150".equals(typeId)) {
+				bp = id;
+			}
+		}
+		assertNotNull(mf);
+		assertNotNull(bp);
+		
+		
+		final List<M3Request> batch2 = new ArrayList<M3Request>();
+		r = BatchTestTools.deleteEdge(modelId, mf, "BFO:0000050", bp);
+		batch2.add(r);
+		
+		final M3BatchResponse response2 = executeBatch(batch2);
+		assertEquals(M3BatchResponse.SIGNAL_MERGE, response2.signal);
+		JsonOwlIndividual[] iObjs2 = BatchTestTools.responseIndividuals(response2);
+		assertEquals(2, iObjs2.length);
+	}
+	
+	@Test
 	public void testDeleteEvidenceIndividuals() throws Exception {
 		models.dispose();
 		final String modelId = generateBlankModel();
