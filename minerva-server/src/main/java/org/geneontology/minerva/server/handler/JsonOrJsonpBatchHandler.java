@@ -202,15 +202,18 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 
 		// create response.data
 		response.data = new ResponseData();
-		MolecularModelJsonRenderer renderer = createModelRenderer(model, externalLookupService);
+		final MolecularModelJsonRenderer renderer;
+		if (ADD_INFERENCES) {
+			renderer = createModelRenderer(model, externalLookupService, reasoner);
+		}
+		else {
+			renderer = createModelRenderer(model, externalLookupService, null);
+		}
 		if (values.renderBulk) {
 			// render complete model
 			JsonModel jsonModel = renderer.renderModel();
 			initResponseData(jsonModel, response.data);
 			response.signal = M3BatchResponse.SIGNAL_REBUILD;
-			if (ADD_INFERENCES) {
-				response.data.individualsInferred = renderer.renderModelInferences(reasoner);
-			}
 		}
 		else {
 			response.signal = M3BatchResponse.SIGNAL_MERGE;
@@ -219,9 +222,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 				Pair<JsonOwlIndividual[],JsonOwlFact[]> pair = renderer.renderIndividuals(values.relevantIndividuals);
 				response.data.individuals = pair.getLeft();
 				response.data.facts = pair.getRight();
-				if (ADD_INFERENCES) {
-					response.data.individualsInferred = renderer.renderInferences(values.relevantIndividuals, reasoner);
-				}
 			}
 			// add model annotations
 			if (values.renderModelAnnotations) {

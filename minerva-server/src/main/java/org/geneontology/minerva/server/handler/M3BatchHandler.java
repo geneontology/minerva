@@ -149,8 +149,6 @@ public interface M3BatchHandler {
 			public JsonOwlIndividual[] individuals;
 			
 			public JsonOwlObject[] properties;
-			@SerializedName("individuals-i")
-			public JsonOwlIndividual[] individualsInferred;
 			
 			public Object undo;
 			public Object redo;

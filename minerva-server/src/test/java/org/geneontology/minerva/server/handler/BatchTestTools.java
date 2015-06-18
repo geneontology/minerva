@@ -138,12 +138,6 @@ public class BatchTestTools {
 		return response.data.properties;
 	}
 	
-	static JsonOwlIndividual[] responseInferences(M3BatchResponse response) {
-		assertNotNull(response);
-		assertNotNull(response.data);
-		return response.data.individualsInferred;
-	}
-	
 	static JsonAnnotation[] responseAnnotations(M3BatchResponse response) {
 		assertNotNull(response);
 		assertNotNull(response.data);

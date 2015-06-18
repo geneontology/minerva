@@ -332,7 +332,7 @@ public class BatchModelHandlerTest {
 	 */
 	private JsonModel renderModel(final String modelId) {
 		final ModelContainer model = models.getModel(modelId);
-		final MolecularModelJsonRenderer renderer = OperationsTools.createModelRenderer(model, lookupService);
+		final MolecularModelJsonRenderer renderer = OperationsTools.createModelRenderer(model, lookupService, null);
 		JsonModel data = renderer.renderModel();
 		return data;
 	}
@@ -789,11 +789,11 @@ public class BatchModelHandlerTest {
 		assertEquals(intention, response1.intention);
 		assertEquals(response1.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response1.messageType);
 		assertNull("Model should not be inconsistent", BatchTestTools.responseInconsistent(response1));
-		JsonOwlIndividual[] inferred = BatchTestTools.responseInferences(response1);
+		JsonOwlIndividual[] inferred = BatchTestTools.responseIndividuals(response1);
 		assertNotNull(inferred);
 		assertEquals(1, inferred.length);
 		JsonOwlIndividual inferredData = inferred[0];
-		JsonOwlObject[] types = inferredData.type;
+		JsonOwlObject[] types = inferredData.inferredType;
 		assertEquals(1, types.length);
 		JsonOwlObject type = types[0];
 		assertEquals(JsonOwlObjectType.Class, type.type);
@@ -820,11 +820,11 @@ public class BatchModelHandlerTest {
 		assertEquals(intention, response1.intention);
 		assertEquals(response1.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response1.messageType);
 		assertNull("Model should not be inconsistent", BatchTestTools.responseInconsistent(response1));
-		JsonOwlIndividual[] inferred = BatchTestTools.responseInferences(response1);
+		JsonOwlIndividual[] inferred = BatchTestTools.responseIndividuals(response1);
 		assertNotNull(inferred);
 		assertEquals(1, inferred.length);
 		JsonOwlIndividual inferredData = inferred[0];
-		JsonOwlObject[] types = inferredData.type;
+		JsonOwlObject[] types = inferredData.inferredType;
 		assertEquals(1, types.length);
 		JsonOwlObject type = types[0];
 		assertEquals(JsonOwlObjectType.Class, type.type);

@@ -101,7 +101,7 @@ public class MolecularModelJsonRendererTest {
 		// declare type
 		m.addAxiom(o, f.getOWLClassAssertionAxiom(g.getOWLClassByIdentifier("GO:0000003"), ni1));
 		
-		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(o);
+		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(o, null);
 		
 		JsonOwlIndividual jsonOwlIndividualOriginal = r.renderObject(ni1);
 		assertEquals(2, jsonOwlIndividualOriginal.annotations.length);
@@ -129,7 +129,7 @@ public class MolecularModelJsonRendererTest {
 		m.addAxiom(o, f.getOWLClassAssertionAxiom(ce, ni1));
 		
 		
-		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(o);
+		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(o, null);
 		
 		JsonOwlIndividual jsonOwlIndividualOriginal = r.renderObject(ni1);
 		

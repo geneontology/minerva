@@ -68,6 +68,7 @@ public class MolecularModelJsonRenderer {
 
 	private final OWLOntology ont;
 	private final OWLGraphWrapper graph;
+	private final OWLReasoner reasoner;
 	
 //	private boolean includeObjectPropertyValues = true;
 
@@ -79,32 +80,36 @@ public class MolecularModelJsonRenderer {
 		}
 		
 	};
-	
+
 	/**
 	 * @param model
+	 * @param reasoner
 	 */
-	public MolecularModelJsonRenderer(ModelContainer model) {
-		this(model.getAboxOntology(), new OWLGraphWrapper(model.getAboxOntology()));
+	public MolecularModelJsonRenderer(ModelContainer model, OWLReasoner reasoner) {
+		this(model.getAboxOntology(), new OWLGraphWrapper(model.getAboxOntology()), reasoner);
 	}
 	
 	/**
 	 * @param ontology
+	 * @param reasoner
 	 */
-	public MolecularModelJsonRenderer(OWLOntology ontology) {
-		this(ontology, new OWLGraphWrapper(ontology));
+	public MolecularModelJsonRenderer(OWLOntology ontology, OWLReasoner reasoner) {
+		this(ontology, new OWLGraphWrapper(ontology), reasoner);
 	}
 	
 	/**
 	 * @param graph
+	 * @param reasoner
 	 */
-	public MolecularModelJsonRenderer(OWLGraphWrapper graph) {
-		this(graph.getSourceOntology(), graph);
+	public MolecularModelJsonRenderer(OWLGraphWrapper graph, OWLReasoner reasoner) {
+		this(graph.getSourceOntology(), graph, reasoner);
 	}
 
-	private MolecularModelJsonRenderer(OWLOntology ont, OWLGraphWrapper graph) {
+	private MolecularModelJsonRenderer(OWLOntology ont, OWLGraphWrapper graph, OWLReasoner reasoner) {
 		super();
 		this.ont = ont;
 		this.graph = graph;
+		this.reasoner = reasoner;
 	}
 	
 	/**
@@ -147,21 +152,6 @@ public class MolecularModelJsonRenderer {
 		
 		return json;
 		
-	}
-	
-	/**
-	 * Add the available inferences to the given JSON map.
-	 * 
-	 * @param reasoner
-	 * @return inferences or null
-	 */
-	public JsonOwlIndividual[] renderModelInferences(OWLReasoner reasoner) {
-		JsonOwlIndividual[] inferences = null;
-		if (reasoner.isConsistent()) {
-			Set<OWLNamedIndividual> individuals = ont.getIndividualsInSignature();
-			inferences = renderInferences(individuals, reasoner);
-		}
-		return inferences;
 	}
 	
 	public static JsonAnnotation[] renderModelAnnotations(OWLOntology ont) {
@@ -212,35 +202,6 @@ public class MolecularModelJsonRenderer {
 	}
 	
 	/**
-	 * Retrieve the inferences for the given individuals.
-	 * 
-	 * @param individuals
-	 * @param reasoner
-	 * @return individual inferences or null
-	 */
-	public JsonOwlIndividual[] renderInferences(Collection<OWLNamedIndividual> individuals, OWLReasoner reasoner) {
-		if (individuals != null && reasoner.isConsistent()) {
-			List<JsonOwlIndividual> iObjs = new ArrayList<JsonOwlIndividual>(individuals.size());
-			for (OWLNamedIndividual i : individuals) {
-				JsonOwlIndividual json = new JsonOwlIndividual();
-				json.id = IdStringManager.getId(i, graph);
-				Set<OWLClass> types = reasoner.getTypes(i, true).getFlattened();
-				List<JsonOwlObject> typeObjs = new ArrayList<JsonOwlObject>(types.size());
-				for (OWLClass x : types) {
-					if (x.isBuiltIn()) {
-						continue;
-					}
-					typeObjs.add(renderObject(x));
-				}
-				json.type = typeObjs.toArray(new JsonOwlObject[typeObjs.size()]);
-				iObjs.add(json);
-			}
-			return iObjs.toArray(new JsonOwlIndividual[iObjs.size()]);
-		}
-		return null;
-	}
-	
-	/**
 	 * @param i
 	 * @return Map to be passed to Gson
 	 */
@@ -253,19 +214,16 @@ public class MolecularModelJsonRenderer {
 		for (OWLClassExpression x : i.getTypes(ont)) {
 			typeObjs.add(renderObject(x));
 		}
-//		if (includeObjectPropertyValues) {
-//			Map<OWLObjectPropertyExpression, Set<OWLIndividual>> pvs = i.getObjectPropertyValues(ont);
-//			for (OWLObjectPropertyExpression p : pvs.keySet()) {
-//				List<Object> valObjs = new ArrayList<Object>();
-//				for (OWLIndividual v : pvs.get(p)) {
-//					if (v.isNamed()) {
-//						valObjs.add(renderObject(v.asOWLNamedIndividual()));
-//					}
-//				}
-//				iObj.put(getId((OWLNamedObject) p, graph), valObjs);
-//			}
-//		}
 		json.type = typeObjs.toArray(new JsonOwlObject[typeObjs.size()]);
+		
+		if (reasoner != null && reasoner.isConsistent()) {
+			List<JsonOwlObject> inferredTypeObjs = new ArrayList<JsonOwlObject>();
+			for(OWLClass c : reasoner.getTypes(i, true).getFlattened()) {
+				inferredTypeObjs.add(renderObject(c));
+			}
+			json.inferredType = inferredTypeObjs.toArray(new JsonOwlObject[inferredTypeObjs.size()]);
+		}
+		
 		final List<JsonAnnotation> anObjs = new ArrayList<JsonAnnotation>();
 		Set<OWLAnnotationAssertionAxiom> annotationAxioms = ont.getAnnotationAssertionAxioms(i.getIRI());
 		for (OWLAnnotationAssertionAxiom ax : annotationAxioms) {
@@ -493,19 +451,12 @@ public class MolecularModelJsonRenderer {
 		return relList;
 	}
 	
-	public static String renderToJson(OWLOntology ont) {
-		return renderToJson(ont, false);
+	public static String renderToJson(OWLOntology ont, OWLReasoner reasoner) {
+		return renderToJson(ont, reasoner, false);
 	}
 	
-	public static String renderToJson(OWLOntology ont, boolean allIndividuals) {
-		return renderToJson(ont, allIndividuals, false);
-	}
-	
-	public static String renderToJson(OWLOntology ont, boolean allIndividuals, boolean prettyPrint) {
-		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(ont);
-//		if (allIndividuals) {
-//			r.includeObjectPropertyValues = false;
-//		}
+	public static String renderToJson(OWLOntology ont, OWLReasoner reasoner, boolean prettyPrint) {
+		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(ont, reasoner);
 		JsonModel model = r.renderModel();
 		return renderToJson(model, prettyPrint);
 	}

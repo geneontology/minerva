@@ -48,7 +48,7 @@ public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
 		m3.addType(modelId, bindingId.getKey(), "BFO:0000066", "GO:0005654", new UndoMetadata(userId));
 		
 		ModelContainer model = m3.getModel(modelId);
-		MolecularModelJsonRenderer renderer = new MolecularModelJsonRenderer(model);
+		MolecularModelJsonRenderer renderer = new MolecularModelJsonRenderer(model, null);
 		JsonOwlIndividual render1 = renderer.renderObject(bindingId.getRight());
 		assertEquals(2, render1.type.length);
 		

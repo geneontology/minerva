@@ -38,7 +38,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	private String renderJSON(String modelId) throws UnknownIdentifierException {
 
 		ModelContainer model = mmm.getModel(modelId);
-		String js = MolecularModelJsonRenderer.renderToJson(model.getAboxOntology(), true, true);
+		String js = MolecularModelJsonRenderer.renderToJson(model.getAboxOntology(), null, true);
 		return js;
 	}
 

@@ -67,7 +67,7 @@ public class LegoModelVersionConverterTest {
 	}
 
 	static String rendertoJson(ModelContainer model) {
-		return MolecularModelJsonRenderer.renderToJson(model.getAboxOntology(), true, true);
+		return MolecularModelJsonRenderer.renderToJson(model.getAboxOntology(), null, true);
 	}
 	
 	static String renderModel(ModelContainer model) throws Exception {

@@ -86,7 +86,7 @@ public class DataPropertyTest {
 		final OWLNamedIndividual individual = m3.createIndividual(modelId, model, cls, metadata);
 		m3.addDataProperty(modelId, model, individual, prop, f.getOWLLiteral(10), false, metadata);
 		
-		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(model);
+		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(model, null);
 		final JsonModel jsonModel = r.renderModel();
 		assertEquals(1, jsonModel.individuals.length);
 		assertEquals(1, jsonModel.individuals[0].annotations.length);

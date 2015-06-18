@@ -143,13 +143,12 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 		reasoner.flush();
 		response.data.inconsistentFlag = reasoner.isConsistent();
 		
-		MolecularModelJsonRenderer renderer = createModelRenderer(model, externalLookupService);
+		MolecularModelJsonRenderer renderer = createModelRenderer(model, externalLookupService, null);
 		// render complete model
 		JsonModel jsonModel = renderer.renderModel();
 		response.data.individuals = jsonModel.individuals;
 		response.data.facts = jsonModel.facts;
 		response.data.properties = jsonModel.properties;
-		response.data.individualsInferred = renderer.renderModelInferences(reasoner);
 		
 		return response;
 	}

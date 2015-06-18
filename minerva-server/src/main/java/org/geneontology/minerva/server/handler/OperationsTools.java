@@ -8,6 +8,7 @@ import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.external.ExternalLookupService.LookupEntry;
 import org.semanticweb.owlapi.model.OWLNamedObject;
+import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 class OperationsTools {
 
@@ -51,15 +52,17 @@ class OperationsTools {
 	/**
 	 * @param model
 	 * @param externalLookupService
+	 * @param reasoner
 	 * @return renderer
 	 */
 	static MolecularModelJsonRenderer createModelRenderer(
 			final ModelContainer model, 
-			final ExternalLookupService externalLookupService) {
+			final ExternalLookupService externalLookupService,
+			final OWLReasoner reasoner) {
 		
 		MolecularModelJsonRenderer renderer;
 		if (externalLookupService != null) {
-			renderer = new MolecularModelJsonRenderer(model.getAboxOntology()) {
+			renderer = new MolecularModelJsonRenderer(model.getAboxOntology(), reasoner) {
 
 				@Override
 				protected String getLabel(OWLNamedObject i, String id) {
@@ -79,7 +82,7 @@ class OperationsTools {
 			};
 		}
 		else {
-			renderer = new MolecularModelJsonRenderer(model.getAboxOntology());
+			renderer = new MolecularModelJsonRenderer(model.getAboxOntology(), reasoner);
 		}
 		return renderer;
 	}
