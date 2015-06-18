@@ -801,6 +801,27 @@ public class BatchModelHandlerTest {
 	}
 	
 	@Test
+	public void testTrivialInferences() throws Exception {
+		models.dispose();
+		
+		final String modelId = generateBlankModel();
+		// create
+		M3Request[] batch1 = new M3Request[1];
+		batch1[0] = BatchTestTools.addIndividual(modelId, "GO:0051231"); // spindle elongation
+
+		M3BatchResponse response1 = handler.m3Batch(uid, intention, packetId, batch1, true);
+		assertEquals(uid, response1.uid);
+		assertEquals(intention, response1.intention);
+		assertEquals(response1.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response1.messageType);
+		assertNull("Model should not be inconsistent", BatchTestTools.responseInconsistent(response1));
+		JsonOwlIndividual[] inferred = BatchTestTools.responseIndividuals(response1);
+		assertNotNull(inferred);
+		assertEquals(1, inferred.length);
+		JsonOwlIndividual inferredData = inferred[0];
+		assertNull(inferredData.inferredType);
+	}
+	
+	@Test
 	public void testInferencesAdditional() throws Exception {
 		models.dispose();
 		

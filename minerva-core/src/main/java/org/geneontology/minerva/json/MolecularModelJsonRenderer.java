@@ -211,16 +211,21 @@ public class MolecularModelJsonRenderer {
 		json.label = getLabel(i, json.id);
 		
 		List<JsonOwlObject> typeObjs = new ArrayList<JsonOwlObject>();
-		for (OWLClassExpression x : i.getTypes(ont)) {
+		Set<OWLClassExpression> assertedTypes = i.getTypes(ont);
+		for (OWLClassExpression x : assertedTypes) {
 			typeObjs.add(renderObject(x));
 		}
 		json.type = typeObjs.toArray(new JsonOwlObject[typeObjs.size()]);
 		
 		if (reasoner != null && reasoner.isConsistent()) {
 			List<JsonOwlObject> inferredTypeObjs = new ArrayList<JsonOwlObject>();
-			for(OWLClass c : reasoner.getTypes(i, true).getFlattened()) {
-				if (c.isBuiltIn() == false) {
-					inferredTypeObjs.add(renderObject(c));
+			Set<OWLClass> inferredTypes = reasoner.getTypes(i, true).getFlattened();
+			// optimization, do not render inferences, if they are equal to the asserted ones
+			if (assertedTypes.equals(inferredTypes) == false) {
+				for(OWLClass c : inferredTypes) {
+					if (c.isBuiltIn() == false) {
+						inferredTypeObjs.add(renderObject(c));
+					}
 				}
 			}
 			if (inferredTypeObjs.isEmpty() == false) {
