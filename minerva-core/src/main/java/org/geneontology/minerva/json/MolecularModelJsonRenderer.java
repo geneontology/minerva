@@ -219,9 +219,13 @@ public class MolecularModelJsonRenderer {
 		if (reasoner != null && reasoner.isConsistent()) {
 			List<JsonOwlObject> inferredTypeObjs = new ArrayList<JsonOwlObject>();
 			for(OWLClass c : reasoner.getTypes(i, true).getFlattened()) {
-				inferredTypeObjs.add(renderObject(c));
+				if (c.isBuiltIn() == false) {
+					inferredTypeObjs.add(renderObject(c));
+				}
 			}
-			json.inferredType = inferredTypeObjs.toArray(new JsonOwlObject[inferredTypeObjs.size()]);
+			if (inferredTypeObjs.isEmpty() == false) {
+				json.inferredType = inferredTypeObjs.toArray(new JsonOwlObject[inferredTypeObjs.size()]);
+			}
 		}
 		
 		final List<JsonAnnotation> anObjs = new ArrayList<JsonAnnotation>();
