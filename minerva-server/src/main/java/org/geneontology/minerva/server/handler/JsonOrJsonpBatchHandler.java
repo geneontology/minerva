@@ -203,7 +203,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		// create response.data
 		response.data = new ResponseData();
 		final MolecularModelJsonRenderer renderer;
-		if (ADD_INFERENCES) {
+		if (ADD_INFERENCES && isConsistent) {
 			renderer = createModelRenderer(model, externalLookupService, reasoner);
 		}
 		else {
