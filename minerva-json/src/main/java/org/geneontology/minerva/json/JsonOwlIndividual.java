@@ -7,7 +7,6 @@ import com.google.gson.annotations.SerializedName;
 
 public class JsonOwlIndividual extends JsonAnnotatedObject {
 	public String id;
-	public String label; //  TODO why do we have this? an individual should never have a label, right?
 	public JsonOwlObject[] type;
 
 	@SerializedName("inferred-type")
@@ -19,7 +18,6 @@ public class JsonOwlIndividual extends JsonAnnotatedObject {
 		int result = super.hashCode();
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + Arrays.hashCode(inferredType);
-		result = prime * result + ((label == null) ? 0 : label.hashCode());
 		result = prime * result + Arrays.hashCode(type);
 		return result;
 	}
@@ -39,11 +37,6 @@ public class JsonOwlIndividual extends JsonAnnotatedObject {
 		} else if (!id.equals(other.id))
 			return false;
 		if (!Arrays.equals(inferredType, other.inferredType))
-			return false;
-		if (label == null) {
-			if (other.label != null)
-				return false;
-		} else if (!label.equals(other.label))
 			return false;
 		if (!Arrays.equals(type, other.type))
 			return false;

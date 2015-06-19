@@ -209,7 +209,6 @@ public class MolecularModelJsonRenderer {
 	public JsonOwlIndividual renderObject(OWLNamedIndividual i) {
 		JsonOwlIndividual json = new JsonOwlIndividual();
 		json.id = IdStringManager.getId(i, graph);
-		json.label = getLabel(i, json.id);
 		
 		List<JsonOwlObject> typeObjs = new ArrayList<JsonOwlObject>();
 		Set<OWLClassExpression> assertedTypes = i.getTypes(ont);
