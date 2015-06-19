@@ -9,18 +9,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.json.JsonEvidenceInfo;
-import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.JsonOwlFact;
 import org.geneontology.minerva.json.JsonOwlIndividual;
 import org.geneontology.minerva.json.JsonOwlObject;
 import org.geneontology.minerva.json.JsonOwlObject.JsonOwlObjectType;
 import org.geneontology.minerva.json.JsonRelationInfo;
 import org.geneontology.minerva.json.JsonTools;
-import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.external.CombinedExternalLookupService;
 import org.geneontology.minerva.server.external.ExternalLookupService;
@@ -273,11 +270,10 @@ public class BatchModelHandlerTest {
 		
 		final String modelId = generateBlankModel();
 		
-		JsonModel data1 = renderModel(modelId);
-		assertNotNull(data1.annotations);
+		final JsonAnnotation[] annotations1 = getModelAnnotations(modelId);
 		// creation date
 		// user id
-		assertEquals(2, data1.annotations.length);
+		assertEquals(2, annotations1.length);
 		
 		// create annotations
 		M3Request[] batch1 = new M3Request[1];
@@ -299,9 +295,9 @@ public class BatchModelHandlerTest {
 		assertEquals(resp1.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, resp1.messageType);
 		
 		
-		JsonModel data2 = renderModel(modelId);
-		assertNotNull(data2.annotations);
-		assertEquals(4, data2.annotations.length);
+		final JsonAnnotation[] annotations2 = getModelAnnotations(modelId);
+		assertNotNull(annotations2);
+		assertEquals(4, annotations2.length);
 		
 		
 		// remove one annotation
@@ -320,21 +316,9 @@ public class BatchModelHandlerTest {
 		M3BatchResponse resp2 = handler.m3Batch(uid, intention, packetId, batch2, true);
 		assertEquals(resp2.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, resp2.messageType);
 		
-		JsonModel data3 = renderModel(modelId);
-		JsonAnnotation[] annotations3 = data3.annotations;
+		final JsonAnnotation[] annotations3 = getModelAnnotations(modelId);
 		assertNotNull(annotations3);
 		assertEquals(3, annotations3.length);
-	}
-
-	/**
-	 * @param modelId
-	 * @return data
-	 */
-	private JsonModel renderModel(final String modelId) {
-		final ModelContainer model = models.getModel(modelId);
-		final MolecularModelJsonRenderer renderer = OperationsTools.createModelRenderer(model, lookupService, null);
-		JsonModel data = renderer.renderModel();
-		return data;
 	}
 
 	@Test
@@ -1181,6 +1165,19 @@ public class BatchModelHandlerTest {
 		JsonOwlFact[] factsObjs = BatchTestTools.responseFacts(response);
 		assertEquals(facts, factsObjs.length);
 		return response;
+	}
+	
+	private JsonAnnotation[] getModelAnnotations(String modelId) {
+		M3Request r = new M3Request();
+		r.entity = Entity.model;
+		r.operation = Operation.get;
+		r.arguments = new M3Argument();
+		r.arguments.modelId = modelId;
+		final M3BatchResponse response = handler.m3Batch(uid, intention, packetId, new M3Request[]{r }, true);
+		assertEquals(uid, response.uid);
+		assertEquals(intention, response.intention);
+		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
+		return response.data.annotations;
 	}
 	
 	@Test
