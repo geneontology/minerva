@@ -105,6 +105,13 @@ public class M3ExpressionParser {
 		else if (JsonOwlObjectType.UnionOf == expression.type) {
 			return parse(g, expression.expressions, externalLookupService, JsonOwlObjectType.UnionOf);
 		}
+		else if (JsonOwlObjectType.ComplementOf == expression.type) {
+			if (expression.filler == null) {
+				throw new MissingParameterException("Missing filler for expression of type 'complement'");
+			}
+			OWLClassExpression filler = parse(g, expression.filler, externalLookupService);
+			return g.getDataFactory().getOWLObjectComplementOf(filler);
+		}
 		else {
 			throw new UnknownIdentifierException("Unknown expression type: "+expression.type);
 		}

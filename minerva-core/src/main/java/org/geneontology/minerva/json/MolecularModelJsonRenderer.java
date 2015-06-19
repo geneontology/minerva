@@ -30,6 +30,7 @@ import org.semanticweb.owlapi.model.OWLIndividual;
 import org.semanticweb.owlapi.model.OWLIndividualAxiom;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLNamedObject;
+import org.semanticweb.owlapi.model.OWLObjectComplementOf;
 import org.semanticweb.owlapi.model.OWLObjectIntersectionOf;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectPropertyAssertionAxiom;
@@ -324,6 +325,14 @@ public class MolecularModelJsonRenderer {
 				JsonOwlObject filler = renderObject(svf.getFiller());
 				if (prop != null && filler != null) {
 					json = JsonOwlObject.createSvf(prop, filler);
+				}
+			}
+			else if (x instanceof OWLObjectComplementOf) {
+				OWLObjectComplementOf comp = (OWLObjectComplementOf) x;
+				OWLClassExpression operand = comp.getOperand();
+				JsonOwlObject operandJson = renderObject(operand);
+				if (operandJson != null) {
+					json = JsonOwlObject.createComplement(operandJson);
 				}
 			}
 			else {

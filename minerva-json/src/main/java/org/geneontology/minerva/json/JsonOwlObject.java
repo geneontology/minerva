@@ -21,7 +21,10 @@ public final class JsonOwlObject extends JsonAnnotatedObject {
 		IntersectionOf,
 		
 		@SerializedName("union")
-		UnionOf
+		UnionOf,
+		
+		@SerializedName("complement")
+		ComplementOf
 		
 	}
 	
@@ -70,6 +73,13 @@ public final class JsonOwlObject extends JsonAnnotatedObject {
 		JsonOwlObject json = new JsonOwlObject();
 		json.type = JsonOwlObjectType.SomeValueFrom;
 		json.property = prop;
+		json.filler = filler;
+		return json;
+	}
+	
+	public static JsonOwlObject createComplement(JsonOwlObject filler) {
+		JsonOwlObject json = new JsonOwlObject();
+		json.type = JsonOwlObjectType.ComplementOf;
 		json.filler = filler;
 		return json;
 	}
