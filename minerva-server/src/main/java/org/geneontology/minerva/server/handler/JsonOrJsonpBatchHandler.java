@@ -33,6 +33,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	
 	
 	public static boolean USE_USER_ID = true;
+	public static boolean USE_REASONER = true;
 	public static boolean ADD_INFERENCES = true;
 	public static boolean VALIDATE_BEFORE_SAVE = true;
 	public static boolean ENFORCE_EXTERNAL_VALIDATE = false;
@@ -196,14 +197,22 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		}
 		// update reasoner
 		// report state
-		final OWLReasoner reasoner = model.getReasoner();
-		reasoner.flush();
-		final boolean isConsistent = reasoner.isConsistent();
+		final OWLReasoner reasoner;
+		final boolean isConsistent;
+		if (USE_REASONER) {
+			reasoner = model.getReasoner();
+			reasoner.flush();
+			isConsistent = reasoner.isConsistent();
+		}
+		else {
+			reasoner = null;
+			isConsistent = true;
+		}
 
 		// create response.data
 		response.data = new ResponseData();
 		final MolecularModelJsonRenderer renderer;
-		if (ADD_INFERENCES && isConsistent) {
+		if (USE_REASONER && ADD_INFERENCES && isConsistent) {
 			renderer = createModelRenderer(model, externalLookupService, reasoner);
 		}
 		else {

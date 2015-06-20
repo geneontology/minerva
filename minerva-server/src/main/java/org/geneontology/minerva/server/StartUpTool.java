@@ -118,6 +118,9 @@ public class StartUpTool {
 				String golrUrl = opts.nextOpt();
 				lookupService = new GolrExternalLookupService(golrUrl);
 			}
+			else if (opts.nextEq("--no-reasoning")) {
+				JsonOrJsonpBatchHandler.USE_REASONER = false;
+			}
 			else {
 				break;
 			}
