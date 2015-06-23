@@ -33,7 +33,11 @@ public class ModelContainer {
 	private static Logger LOG = Logger.getLogger(ModelContainer.class);
 	
 	private OWLReasonerFactory reasonerFactory = null;
-	private OWLReasoner reasoner = null;
+	
+	private volatile OWLReasoner reasoner = null;
+	private final Object reasonerMutex = new Object();
+	
+	private final String modelId;
 	private OWLOntology aboxOntology = null;
 	private OWLOntology tboxOntology = null;
 	private OWLOntology queryOntology = null;
@@ -45,12 +49,13 @@ public class ModelContainer {
 	 * automatically.
 	 * 
 	 * A default reasoner factory will be selected (Elk)
-	 * 
+	 * @param modelId 
 	 * @param tbox
 	 * @throws OWLOntologyCreationException
 	 */
-	public ModelContainer(OWLOntology tbox) throws OWLOntologyCreationException {
+	public ModelContainer(String modelId, OWLOntology tbox) throws OWLOntologyCreationException {
 		tboxOntology = tbox;
+		this.modelId = modelId;
 		reasonerFactory = new ElkReasonerFactory();
 		init();
 	}
@@ -61,13 +66,15 @@ public class ModelContainer {
 	 * The abox may be identical to the tbox, in which case individuals are added to
 	 * the same ontology
 	 * 
+	 * @param modelId 
 	 * @param tbox
 	 * @param abox
 	 * @throws OWLOntologyCreationException
 	 */
-	public ModelContainer(OWLOntology tbox, OWLOntology abox) throws OWLOntologyCreationException {
+	public ModelContainer(String modelId, OWLOntology tbox, OWLOntology abox) throws OWLOntologyCreationException {
 		tboxOntology = tbox;
 		aboxOntology = abox;
+		this.modelId = modelId;
 		reasonerFactory = new ElkReasonerFactory();
 		init();
 	}
@@ -76,13 +83,15 @@ public class ModelContainer {
 	 * The container is seeded with a tbox (i.e. ontology). An abox will be created
 	 * automatically.
 	 * 
+	 * @param modelId 
 	 * @param tbox
 	 * @param reasonerFactory
 	 * @throws OWLOntologyCreationException
 	 */
-	public ModelContainer(OWLOntology tbox,
+	public ModelContainer(String modelId, OWLOntology tbox,
 			OWLReasonerFactory reasonerFactory) throws OWLOntologyCreationException {
 		tboxOntology = tbox;
+		this.modelId = modelId;
 		this.reasonerFactory = reasonerFactory;
 		init();
 	}
@@ -94,15 +103,17 @@ public class ModelContainer {
 	 * The abox may be identical to the tbox, in which case individuals are added to
 	 * the same ontology
 	 * 
+	 * @param modelId
 	 * @param tbox
 	 * @param abox
 	 * @param rf
 	 * @throws OWLOntologyCreationException
 	 */
-	public ModelContainer(OWLOntology tbox, OWLOntology abox,
+	public ModelContainer(String modelId, OWLOntology tbox, OWLOntology abox,
 			OWLReasonerFactory rf) throws OWLOntologyCreationException {
 		tboxOntology = tbox;
 		aboxOntology = abox;
+		this.modelId = modelId;
 		reasonerFactory = rf;
 		init();
 	}
@@ -147,13 +158,17 @@ public class ModelContainer {
 			getOWLOntologyManager().applyChange(ai);
 		}
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("manager(T) = "+tboxOntology.getOWLOntologyManager());
-			LOG.debug("manager(A) = "+aboxOntology.getOWLOntologyManager());
-			LOG.debug("manager(Q) = "+queryOntology.getOWLOntologyManager());
-			LOG.debug("id(T) = "+tboxOntology.getOntologyID().getOntologyIRI());
-			LOG.debug("id(A) = "+aboxOntology.getOntologyID().getOntologyIRI());
-			LOG.debug("id(Q) = "+queryOntology.getOntologyID().getOntologyIRI());
+			LOG.debug(modelId+" manager(T) = "+tboxOntology.getOWLOntologyManager());
+			LOG.debug(modelId+" manager(A) = "+aboxOntology.getOWLOntologyManager());
+			LOG.debug(modelId+" manager(Q) = "+queryOntology.getOWLOntologyManager());
+			LOG.debug(modelId+" id(T) = "+tboxOntology.getOntologyID().getOntologyIRI());
+			LOG.debug(modelId+" id(A) = "+aboxOntology.getOntologyID().getOntologyIRI());
+			LOG.debug(modelId+" id(Q) = "+queryOntology.getOntologyID().getOntologyIRI());
 		}
+	}
+
+	public String getModelId() {
+		return modelId;
 	}
 
 	/**
@@ -175,12 +190,14 @@ public class ModelContainer {
 	 * 
 	 */
 	public void disposeReasoner() {
-		if (reasoner != null) {
-			reasoner.dispose();
-			reasoner = null;
+		synchronized (reasonerMutex) {
+			if (reasoner != null) {
+				reasoner.dispose();
+				reasoner = null;
+			}
 		}
 	}
-
+	
 	public void dispose() {
 		disposeReasoner();
 		final OWLOntologyManager m = getOWLOntologyManager();
@@ -205,14 +222,16 @@ public class ModelContainer {
 	/**
 	 * @return current reasoner, operating over abox
 	 */
-	public synchronized OWLReasoner getReasoner() {
-		if (reasoner == null) {
-			// reasoner -> query -> abox -> tbox
-			if (LOG.isDebugEnabled()) {
-				LOG.debug("Creating reasoner on "+queryOntology+" ImportsClosure="+
-					queryOntology.getImportsClosure());
+	public OWLReasoner getReasoner() {
+		synchronized (reasonerMutex) {
+			if (reasoner == null) {
+				// reasoner -> query -> abox -> tbox
+				if (LOG.isDebugEnabled()) {
+					LOG.debug("Creating reasoner on "+queryOntology+" ImportsClosure="+
+						queryOntology.getImportsClosure());
+				}
+				reasoner = reasonerFactory.createReasoner(queryOntology);
 			}
-			reasoner = reasonerFactory.createReasoner(queryOntology);
 		}
 		return reasoner;
 	}
@@ -222,6 +241,7 @@ public class ModelContainer {
 	public void setReasoner(OWLReasoner reasoner) {
 		this.reasoner = reasoner;
 	}
+	
 	/**
 	 * The tbox ontology should contain class axioms used to generate minimal models in the
 	 * abox ontology.

@@ -39,6 +39,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	public static boolean ENFORCE_EXTERNAL_VALIDATE = false;
 	public boolean CHECK_LITERAL_IDENTIFIERS = true; // TODO remove the temp work-around
 	
+	
 	private static final Logger logger = Logger.getLogger(JsonOrJsonpBatchHandler.class);
 	
 	public JsonOrJsonpBatchHandler(UndoAwareMolecularModelManager models, 

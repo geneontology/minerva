@@ -83,8 +83,8 @@ public class DataPropertyTest {
 		
 		final String modelId = m3.generateBlankModelWithTaxon(null, metadata);
 		final ModelContainer model = m3.getModel(modelId);
-		final OWLNamedIndividual individual = m3.createIndividual(modelId, model, cls, metadata);
-		m3.addDataProperty(modelId, model, individual, prop, f.getOWLLiteral(10), false, metadata);
+		final OWLNamedIndividual individual = m3.createIndividual(model, cls, metadata);
+		m3.addDataProperty(model, individual, prop, f.getOWLLiteral(10), false, metadata);
 		
 		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(model, null);
 		final JsonModel jsonModel = r.renderModel();

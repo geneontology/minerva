@@ -198,7 +198,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 			createImports(abox, tbox.getOntologyID(), metadata);
 			
 			// create generator
-			model = new ModelContainer(tbox, abox);
+			model = new ModelContainer(modelId, tbox, abox);
 			LegoModelGenerator generator = new LegoModelGenerator(model);
 			
 			generator.setPrecomputePropertyClassCombinations(isPrecomputePropertyClassCombinations);
@@ -305,7 +305,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 			createImports(abox, tbox.getOntologyID(), metadata);
 			
 			// generate model
-			model = new ModelContainer(tbox, abox);
+			model = new ModelContainer(modelId, tbox, abox);
 		}
 		catch (OWLOntologyCreationException exception) {
 			if (abox != null) {
@@ -357,7 +357,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 			createImports(abox, tbox.getOntologyID(), metadata);
 			
 			// generate model
-			model = new ModelContainer(tbox, abox);
+			model = new ModelContainer(modelId, tbox, abox);
 		}
 		catch (OWLOntologyCreationException exception) {
 			if (abox != null) {
@@ -480,31 +480,29 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	/**
 	 * Export the ABox for the given modelId in the default {@link OWLOntologyFormat}.
 	 * 
-	 * @param modelId
 	 * @param model
 	 * @return modelContent
 	 * @throws OWLOntologyStorageException
 	 */
-	public String exportModel(String modelId, ModelContainer model) throws OWLOntologyStorageException {
-		return exportModel(modelId, model, ontologyFormat);
+	public String exportModel(ModelContainer model) throws OWLOntologyStorageException {
+		return exportModel(model, ontologyFormat);
 	}
 	
 	/**
 	 * Export the ABox for the given modelId in the given ontology format.<br>
 	 * Warning: The mapping from String to {@link OWLOntologyFormat} does not map every format!
 	 * 
-	 * @param modelId
 	 * @param model
 	 * @param format
 	 * @return modelContent
 	 * @throws OWLOntologyStorageException
 	 */
-	public String exportModel(String modelId, ModelContainer model, String format) throws OWLOntologyStorageException {
+	public String exportModel(ModelContainer model, String format) throws OWLOntologyStorageException {
 		OWLOntologyFormat ontologyFormat = getOWLOntologyFormat(format);
 		if (ontologyFormat == null) {
 			ontologyFormat = this.ontologyFormat;
 		}
-		return exportModel(modelId, model, ontologyFormat);
+		return exportModel(model, ontologyFormat);
 	}
 	
 	private OWLOntologyFormat getOWLOntologyFormat(String fmt) {

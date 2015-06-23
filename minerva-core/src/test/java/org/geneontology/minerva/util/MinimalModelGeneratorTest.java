@@ -57,7 +57,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 		m = OWLManager.createOWLOntologyManager();
 		m.addIRIMapper(new CatalogXmlIRIMapper(getResource("mmg/catalog-v001.xml")));
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/basic-tbox-importer.omn"));
-		mc = new ModelContainer(tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
+		mc = new ModelContainer("1", tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
 		mmg = new MinimalModelGenerator(mc);
 		mmg.setAssertInverses(false);  // NOT NECESSARY FOR A DL REASONER
 		int aboxImportsSize = mc.getAboxOntology().getImportsClosure().size();
@@ -118,7 +118,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	public void testGenerateAnatomyUsingElk() throws OWLOntologyCreationException, OWLOntologyStorageException, IOException {
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/basic-tbox.omn"));
-		mc = new ModelContainer(tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
+		mc = new ModelContainer("1", tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
 		mmg = new MinimalModelGenerator(mc);
 		mmg.setAssertInverses(true); // NECESSARY FOR ELK
 		int aboxImportsSize = mc.getAboxOntology().getImportsClosure().size();
@@ -195,7 +195,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	public void testGenerateAnatomyNoCollapse() throws OWLOntologyCreationException, OWLOntologyStorageException, IOException {
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/basic-tbox.omn"));
-		mc = new ModelContainer(tbox, new ElkReasonerFactory());
+		mc = new ModelContainer("1", tbox, new ElkReasonerFactory());
 		mmg = new MinimalModelGenerator(mc);
 		mmg.setAssertInverses(true); // NECESSARY FOR ELK
 		int aboxImportsSize = mc.getAboxOntology().getImportsClosure().size();
@@ -251,7 +251,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	public void testGeneratePrototypicalHuman() throws OWLOntologyCreationException, OWLOntologyStorageException, IOException {
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/basic-tbox.omn"));
-		mc = new ModelContainer(tbox, new ElkReasonerFactory());
+		mc = new ModelContainer("1", tbox, new ElkReasonerFactory());
 		mmg = new MinimalModelGenerator(mc);
 		mmg.setAssertInverses(true);
 		int aboxImportsSize = mc.getAboxOntology().getImportsClosure().size();
@@ -315,7 +315,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/basic-tbox.omn"));
 		//OWLReasoner reasoner = new org.semanticweb.HermiT.Reasoner.ReasonerFactory().createReasoner(tbox);
-		mc = new ModelContainer(tbox, tbox, new ElkReasonerFactory());
+		mc = new ModelContainer("1", tbox, tbox, new ElkReasonerFactory());
 		mmg = new MinimalModelGenerator(mc);
 		OWLClass c = getClass("hand");
 		mmg.generateNecessaryIndividuals(c);
@@ -347,7 +347,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 				m.getOWLDataFactory().getOWLImportsDeclaration(
 						tbox.getOntologyID().getOntologyIRI()));
 		m.applyChange(ai);
-		mc = new ModelContainer(abox, abox, new ElkReasonerFactory());
+		mc = new ModelContainer("1", abox, abox, new ElkReasonerFactory());
 		mmg = new MinimalModelGenerator(mc);
 		OWLClass c = getClass("hand");
 		mmg.generateNecessaryIndividuals(c);
@@ -384,7 +384,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	public void testGenerateGlycolysis() throws OWLOntologyCreationException, OWLOntologyStorageException, IOException {
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/glycolysis-tbox.omn"));
-		mc = new ModelContainer(tbox, tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
+		mc = new ModelContainer("1", tbox, tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
 		mmg = new MinimalModelGenerator(mc);
 		OWLClass c = 
 				tbox.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create("http://purl.obolibrary.org/obo/GO_0006096"));
@@ -411,7 +411,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	public void testGenerateDNAReplication() throws OWLOntologyCreationException, OWLOntologyStorageException, IOException {
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/dna-replication-tbox.owl"));
-		mc = new ModelContainer(tbox, tbox, new ElkReasonerFactory());
+		mc = new ModelContainer("1", tbox, tbox, new ElkReasonerFactory());
 		mmg = new MinimalModelGenerator(mc);
 		LOG.info("MMG = "+mmg);
 		OWLClass c = 
@@ -441,7 +441,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	public void testGeneratePathway() throws OWLOntologyCreationException, OWLOntologyStorageException, IOException {
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/basic-tbox.omn"));
-		mc = new ModelContainer(tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
+		mc = new ModelContainer("1", tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
 		mmg = new MinimalModelGenerator(mc);
 		//mmg.setPrecomputePropertyClassCombinations(false);
 		OWLClass c = getClass("bar_response_pathway");
@@ -483,7 +483,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	public void testGeneratePathwayWithInclusionSets() throws OWLOntologyCreationException, OWLOntologyStorageException, IOException {
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/basic-tbox.omn"));
-		mc = new ModelContainer(tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
+		mc = new ModelContainer("1", tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
 		mmg = new MinimalModelGenerator(mc);
 		
 		Set<OWLClass> occs = new HashSet<OWLClass>();
@@ -520,7 +520,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	public void testMSC() throws OWLOntologyCreationException, OWLOntologyStorageException, IOException {
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/pathway-abox.omn"));
-		mc = new ModelContainer(tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
+		mc = new ModelContainer("1", tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
 		mmg = new MinimalModelGenerator(mc);
 		OWLNamedIndividual i = getIndividual("pathway1");
 		OWLClassExpression x = mmg.getMostSpecificClassExpression(i, null);
@@ -544,7 +544,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	public void testMSCGlycolysis() throws OWLOntologyCreationException, OWLOntologyStorageException, IOException {
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/glycolysis-abox.omn"));
-		mc = new ModelContainer(tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
+		mc = new ModelContainer("1", tbox, new org.semanticweb.HermiT.Reasoner.ReasonerFactory());
 		mmg = new MinimalModelGenerator(mc);
 		OWLNamedIndividual i = 
 				tbox.getOWLOntologyManager().getOWLDataFactory().getOWLNamedIndividual(IRI.create("http://purl.obolibrary.org/obo/GLY_TEST_0000001"));
@@ -565,7 +565,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	public void testAllIndividuals() throws OWLOntologyCreationException, OWLOntologyStorageException, IOException {
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/anonClassAssertions.owl"));
-		mc = new ModelContainer(tbox);
+		mc = new ModelContainer("1", tbox);
 		mmg = new MinimalModelGenerator(mc);
 		mmg.isStrict = true;
 		mmg.generateAllNecessaryIndividuals();
@@ -592,7 +592,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	public void testTransitiveCycle2() throws OWLOntologyCreationException, OWLOntologyStorageException, IOException {
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/cycle.omn"));
-		mc = new ModelContainer(tbox);
+		mc = new ModelContainer("1", tbox);
 		mmg = new MinimalModelGenerator(mc);
 		mmg.setAssertInverses(true); // NECESSARY FOR ELK
 

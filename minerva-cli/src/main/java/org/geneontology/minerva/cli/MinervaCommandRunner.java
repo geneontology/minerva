@@ -60,16 +60,16 @@ public class MinervaCommandRunner extends JsCommandRunner {
 	private volatile MinimalModelGenerator mmg = null;
 	
 	
-	private synchronized MinimalModelGenerator getMinimalModelGenerator(boolean isCreateNewAbox) throws OWLOntologyCreationException {
+	private synchronized MinimalModelGenerator getMinimalModelGenerator(String modelId, boolean isCreateNewAbox) throws OWLOntologyCreationException {
 
 		if (mmg == null) {
 			OWLReasonerFactory rf = new ElkReasonerFactory();
 			if (isCreateNewAbox) {
-				ModelContainer model = new ModelContainer(g.getSourceOntology(), rf);
+				ModelContainer model = new ModelContainer(modelId, g.getSourceOntology(), rf);
 				mmg = new MinimalModelGenerator(model);
 			}
 			else {
-				ModelContainer model = new ModelContainer(g.getSourceOntology(), g.getSourceOntology(), rf);
+				ModelContainer model = new ModelContainer(modelId, g.getSourceOntology(), g.getSourceOntology(), rf);
 				mmg = new MinimalModelGenerator(model);
 			}
 		}
@@ -130,7 +130,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				break;
 			}
 		}
-		mmg = getMinimalModelGenerator(isCreateNewAbox);
+		mmg = getMinimalModelGenerator("1", isCreateNewAbox);
 		if (isStrict) {
 			mmg.isStrict = true;
 		}
@@ -158,7 +158,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 	@CLIMethod("--most-specific-class-expression|--msce")
 	public void msce(Opts opts) throws Exception {
 		opts.info("[-c CLASS] INDIVIDUAL", "Generates MSCE for an individual using MinimalModelGenerator");
-		mmg = getMinimalModelGenerator(false);
+		mmg = getMinimalModelGenerator("1", false);
 		OWLNamedIndividual ind;
 		OWLClass c = null;
 		while (opts.hasOpts()) {
@@ -185,7 +185,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 	@CLIMethod("--modalize")
 	public void modalize(Opts opts) throws Exception {
 		opts.info("CLASS", "Take all instances of CLASS and make a generalized statement about them");
-		mmg = getMinimalModelGenerator(false);
+		mmg = getMinimalModelGenerator("1", false);
 		OWLClass qc = null;
 		OWLObjectProperty p = null;
 		OWLDataFactory df = g.getDataFactory();
@@ -401,7 +401,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				break;
 			}
 		}
-		ModelContainer model = new ModelContainer(g.getSourceOntology(), new ElkReasonerFactory());
+		ModelContainer model = new ModelContainer("1", g.getSourceOntology(), new ElkReasonerFactory());
 		LegoModelGenerator ni = new LegoModelGenerator(model);
 		ni.setPrecomputePropertyClassCombinations(isPrecomputePropertyClassCombinations);
 		ni.initialize(gafdoc, g);
@@ -457,7 +457,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		OWLClass disease = this.resolveClass(opts.nextOpt());
 
 		OWLPrettyPrinter owlpp = new OWLPrettyPrinter(g);
-		ModelContainer model = new ModelContainer(g.getSourceOntology(), new ElkReasonerFactory());
+		ModelContainer model = new ModelContainer("1", g.getSourceOntology(), new ElkReasonerFactory());
 		LegoModelGenerator ni = new LegoModelGenerator(model);
 		ni.setPrecomputePropertyClassCombinations(false);
 
@@ -508,7 +508,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		}
 		OWLClass rc1 = this.resolveClass(opts.nextOpt());
 		OWLClass rc2 = this.resolveClass(opts.nextOpt());
-		ModelContainer model = new ModelContainer(g.getSourceOntology(), new ElkReasonerFactory());
+		ModelContainer model = new ModelContainer("1", g.getSourceOntology(), new ElkReasonerFactory());
 		LegoModelGenerator ni = new LegoModelGenerator(model);
 
 		ni.initialize(gafdoc, g);

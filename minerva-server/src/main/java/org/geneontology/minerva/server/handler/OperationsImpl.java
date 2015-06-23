@@ -484,6 +484,7 @@ abstract class OperationsImpl {
 			}
 			updateModelAnnotations(values.modelId, userId, token, m3);
 			values.renderModelAnnotations = true;
+			values.renderBulk = true;
 		}
 		else if (Operation.exportModel == operation) {
 			if (values.nonMeta) {

@@ -70,7 +70,7 @@ public class ModelSeeding<METADATA> {
 			// explicitly create OWL class for gene product
 			final IRI gpIRI = IdStringManager.getIRI(gp.getId(), modelGraph);
 			final OWLClass gpClass = modelGraph.getDataFactory().getOWLClass(gpIRI);
-			manager.addAxiom(modelId, model, modelGraph.getDataFactory().getOWLDeclarationAxiom(gpClass), false, metadata);
+			manager.addAxiom(model, modelGraph.getDataFactory().getOWLDeclarationAxiom(gpClass), false, metadata);
 			
 			Set<OWLAnnotation> gpAnnotations = generateAnnotations(source, f);
 			Pair<String, OWLNamedIndividual> gpIndividual = manager.createIndividualNonReasoning(modelId, gp.getId(), gpAnnotations, metadata);
