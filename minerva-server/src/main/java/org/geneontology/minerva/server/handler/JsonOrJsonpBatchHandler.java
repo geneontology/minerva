@@ -39,6 +39,16 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	public static boolean ENFORCE_EXTERNAL_VALIDATE = false;
 	public boolean CHECK_LITERAL_IDENTIFIERS = true; // TODO remove the temp work-around
 	
+	/*
+	 * If set to TRUE, this will use a different approach for the reasoner: It will create
+	 * a module from the abox using the individuals as seeds and only create a reasoner for
+	 * this new ontology.
+	 * 
+	 * This reduced set of axioms should consume less memory for each reasoner. 
+	 * The drawback is the additional CPU time (sequential) to generate the relevant 
+	 * subset. During tests this tripled the runtime of the test cases. 
+	 */
+	public static boolean USE_MODULE_REASONER = false;
 	
 	private static final Logger logger = Logger.getLogger(JsonOrJsonpBatchHandler.class);
 	
@@ -201,8 +211,13 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		final OWLReasoner reasoner;
 		final boolean isConsistent;
 		if (USE_REASONER) {
-			reasoner = model.getReasoner();
-			reasoner.flush();
+			if (USE_MODULE_REASONER) {
+				reasoner = model.getModuleReasoner();
+			}
+			else {
+				reasoner = model.getReasoner();
+				reasoner.flush();
+			}
 			isConsistent = reasoner.isConsistent();
 		}
 		else {

@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAxiom;
@@ -17,16 +18,21 @@ import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLEntity;
+import org.semanticweb.owlapi.model.OWLException;
 import org.semanticweb.owlapi.model.OWLNamedObject;
 import org.semanticweb.owlapi.model.OWLObject;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
+import org.semanticweb.owlapi.model.OWLOntologyChangeListener;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
+
+import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
+import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
 
 public class ModelContainer {
 
@@ -36,6 +42,10 @@ public class ModelContainer {
 	
 	private volatile OWLReasoner reasoner = null;
 	private final Object reasonerMutex = new Object();
+	
+	private volatile OWLReasoner moduleReasoner = null;
+	private volatile OWLOntologyChangeListener moduleListener = null;
+	private final Object moduleReasonerMutex = new Object();
 	
 	private final String modelId;
 	private OWLOntology aboxOntology = null;
@@ -198,8 +208,29 @@ public class ModelContainer {
 		}
 	}
 	
+	public void disposeModuleReasoner() {
+		synchronized (moduleReasonerMutex) {
+			_internalDisposeModuleReasonerAndListener();
+		}
+	}
+	
+	/**
+	 * Only call within a {@link #moduleReasonerMutex} synchronized block!!
+	 */
+	private void _internalDisposeModuleReasonerAndListener() {
+		if (moduleReasoner != null) {
+			moduleReasoner.dispose();
+			moduleReasoner = null;
+		}
+		if (moduleListener != null) {
+			aboxOntology.getOWLOntologyManager().removeOntologyChangeListener(moduleListener);
+			moduleListener = null;
+		}
+	}
+
 	public void dispose() {
 		disposeReasoner();
+		disposeModuleReasoner();
 		final OWLOntologyManager m = getOWLOntologyManager();
 		if (queryOntology != null) {
 			m.removeOntology(queryOntology);
@@ -240,6 +271,57 @@ public class ModelContainer {
 	 */
 	public void setReasoner(OWLReasoner reasoner) {
 		this.reasoner = reasoner;
+	}
+	
+	public OWLReasoner getModuleReasoner() throws OWLOntologyCreationException {
+		synchronized (moduleReasonerMutex) {
+			if (moduleReasoner == null) {
+				moduleReasoner = createModuleReasoner();
+			}
+			if (moduleListener == null) {
+				moduleListener = createModuleChangeListener();
+				aboxOntology.getOWLOntologyManager().addOntologyChangeListener(moduleListener);
+			}
+		}
+		return moduleReasoner;
+	}
+	
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private OWLReasoner createModuleReasoner() throws OWLOntologyCreationException {
+		LOG.info("Creating module reasoner for module: "+modelId);
+		ModuleType mtype = ModuleType.BOT;
+		OWLOntologyManager m = OWLManager.createOWLOntologyManager(aboxOntology.getOWLOntologyManager().getOWLDataFactory());
+		SyntacticLocalityModuleExtractor sme = new SyntacticLocalityModuleExtractor(m, aboxOntology, mtype);
+		Set<OWLEntity> seeds = (Set) aboxOntology.getIndividualsInSignature();
+		OWLOntology module = sme.extractAsOntology(seeds, IRI.generateDocumentIRI());
+		OWLReasoner reasoner = reasonerFactory.createReasoner(module);
+		LOG.info("Done creating module reasoner module: "+modelId);
+		return reasoner;
+	}
+	
+	private OWLOntologyChangeListener createModuleChangeListener() {
+		return new OWLOntologyChangeListener() {
+			
+			@Override
+			public void ontologiesChanged(List<? extends OWLOntologyChange> changes)
+					throws OWLException {
+				if (moduleReasoner != null) { // warning this only works because of the volatile keyword
+					for (OWLOntologyChange change : changes) {
+						boolean dispose = false;
+						if (aboxOntology.equals(change.getOntology())) {
+							dispose = change.isAxiomChange() || change.isImportChange();
+						}
+						if (dispose) {
+							synchronized (moduleReasonerMutex) {
+								_internalDisposeModuleReasonerAndListener();
+								LOG.info("Disposing module reasoner due to ontology change for model: "+modelId);
+							}
+							break;
+						}
+					}
+				}
+			}
+		};
 	}
 	
 	/**
