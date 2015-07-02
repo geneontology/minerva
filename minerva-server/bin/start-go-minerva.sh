@@ -8,15 +8,16 @@ MINERVA_MEMORY="4G"
 MINERVA_PORT=6800
 
 ## Check that exactly one command-line argument is set
-if [ $# -eq 0 ]
+if [ $# -ne 2 ]
   then
-    echo "Exactly one argument: GO_SVN root is required"
+    echo "Exactly two arguments required: GO_SVN NOCTUA_MODELS"
     exit 1
 fi
 
 ## Use command-line input as the location of the GO_SVN
 ## Remove trailing slash
 GO_SVN=${1%/}
+NOCTUA_MODELS=$2
 
 ## start Minerva
 # use catalog xml and PURLs
@@ -24,5 +25,5 @@ java "-Xmx$MINERVA_MEMORY" -jar minerva-server.jar \
 -c "$GO_SVN"/ontology/extensions/catalog-v001.xml \
 -g http://purl.obolibrary.org/obo/go/extensions/go-lego.owl \
 --set-important-relation-parent http://purl.obolibrary.org/obo/LEGOREL_0000000 \
--f "$GO_SVN"/experimental/lego/server/owl-models \
+-f "$NOCTUA_MODELS" \
 --port $MINERVA_PORT
