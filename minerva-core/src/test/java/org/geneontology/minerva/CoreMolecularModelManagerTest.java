@@ -26,15 +26,6 @@ public class CoreMolecularModelManagerTest {
 		final IRI other = IRI.generateDocumentIRI();
 		m.createOntology(other);
 		
-		// setup obsolete
-		final IRI obs1 = IRI.generateDocumentIRI();
-		final IRI obs2 = IRI.generateDocumentIRI();
-		final IRI obs3 = IRI.generateDocumentIRI();
-		final Set<IRI> obsoletes = new HashSet<IRI>();
-		obsoletes.add(obs1); m.createOntology(obs1);
-		obsoletes.add(obs2); m.createOntology(obs2);
-		obsoletes.add(obs3); m.createOntology(obs3);
-		
 		// setup additional
 		final IRI add1 = IRI.generateDocumentIRI();
 		m.createOntology(add1);
@@ -52,12 +43,9 @@ public class CoreMolecularModelManagerTest {
 		final OWLOntology abox = m.createOntology(IRI.generateDocumentIRI());
 		// add initial imports to abox
 		m.applyChange(new AddImport(abox, f.getOWLImportsDeclaration(other)));
-		m.applyChange(new AddImport(abox, f.getOWLImportsDeclaration(obs1)));
-		m.applyChange(new AddImport(abox, f.getOWLImportsDeclaration(obs2)));
-		m.applyChange(new AddImport(abox, f.getOWLImportsDeclaration(obs3)));
 		
 		// update imports
-		CoreMolecularModelManager.updateImports(abox, tboxIRI, additional, obsoletes);
+		CoreMolecularModelManager.updateImports(abox, tboxIRI, additional);
 		
 		// check the resulting imports
 		Set<OWLImportsDeclaration> declarations = abox.getImportsDeclarations();

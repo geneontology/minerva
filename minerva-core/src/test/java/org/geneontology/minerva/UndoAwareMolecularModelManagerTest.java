@@ -28,7 +28,7 @@ public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
 	public static void beforeClass() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
 		g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
-		m3 = new UndoAwareMolecularModelManager(g);
+		m3 = new UndoAwareMolecularModelManager(g, "http://testmodel.geneontology.org/");
 	}
 	
 	@AfterClass
@@ -41,7 +41,7 @@ public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
 	@Test
 	public void testUndoRedo() throws Exception {
 		String userId = "test-user-id";
-		String modelId = m3.generateBlankModel(null, null);
+		String modelId = m3.generateBlankModel(null);
 		// GO:0001158 ! enhancer sequence-specific DNA binding
 		Pair<String, OWLNamedIndividual> bindingId = m3.createIndividual(modelId, "GO:0001158", null, new UndoMetadata(userId));
 		// BFO:0000066 GO:0005654 ! occurs_in nucleoplasm

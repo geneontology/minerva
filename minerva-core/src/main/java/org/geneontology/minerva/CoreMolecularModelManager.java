@@ -55,7 +55,6 @@ import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.model.RemoveAxiom;
-import org.semanticweb.owlapi.model.RemoveImport;
 import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
 import org.semanticweb.owlapi.model.SetOntologyID;
 
@@ -82,28 +81,70 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	private final IRI tboxIRI;
 	final Map<String, ModelContainer> modelMap = new HashMap<String, ModelContainer>();
 	Set<IRI> additionalImports;
-	final Map<IRI, OWLOntology> obsoleteOntologies = new HashMap<IRI, OWLOntology>();
-	final Set<IRI> obsoleteImports = new HashSet<IRI>();
-	
 
-	// TODO: Temporarily for keeping instances unique (search for "unique" below).
-	static String uniqueTop = Long.toHexString((System.currentTimeMillis()/1000));
+	/**
+	 * Use start up time to create a unique prefix for id generation
+	 */
+	static String uniqueTop = Long.toHexString(Math.abs((System.currentTimeMillis()/1000)));
 	static long instanceCounter = 0;
 	
+	/**
+	 * Generate a new id from the unique server prefix and a global counter
+	 * 
+	 * @return id
+	 */
 	private static String localUnique(){
 		instanceCounter++;
-		String unique = uniqueTop + String.format("%07d", instanceCounter);
+		String unique = uniqueTop + String.format("%08d", instanceCounter);
 		return unique;		
 	}
 	
+	/**
+	 * Check that the given string looks similar to a local unique id
+	 * 
+	 * @param s
+	 * @return true if the string looks like a generated id
+	 */
+	static boolean isLocalUnique(String s) {
+		boolean result = false;
+		if (s != null && s.length() > 8) {
+			result = true;
+			for (int i = 0; i < s.length(); i++) {
+				char c = s.charAt(i);
+				if (isHex(c) == false) {
+					result = false;
+					break;
+				}
+			}
+		}
+		return result;
+	}
+	
+	private static boolean isHex(char c) {
+		// check that char is a digit or a-e
+		boolean result = false;
+		if (Character.isDigit(c)) {
+			result = true;
+		}
+		else if (c == 'a' || c == 'b' || c == 'c' || c == 'd' || c == 'e') {
+			result = true;
+		}
+		return result;
+	}
+	
+	/**
+	 * Generate an id and prepend the given prefixes.
+	 * 
+	 * This method must should be used for model identifiers and individual identifiers.
+	 * 
+	 * @param prefixes
+	 * @return id
+	 */
 	static String generateId(CharSequence...prefixes) {
 		StringBuilder sb = new StringBuilder();
 		for (CharSequence prefix : prefixes) {
 			sb.append(prefix);
 		}
-		/*
-		 * TODO finalize identifier policy
-		 */
 		sb.append(localUnique());
 		return sb.toString();
 	}
@@ -175,51 +216,6 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		}
 	}
 	
-	/**
-	 * Mark the given imports as obsolete.
-	 * 
-	 * @param obsoletes
-	 */
-	public void addObsoleteImports(Iterable<String> obsoletes) {
-		if (obsoletes != null) {
-			for (String obsolete : obsoletes) {
-				addObsoleteImport(IRI.create(obsolete));
-			}
-		}
-	}
-	
-	/**
-	 * Mark the given imports as obsolete.
-	 * 
-	 * @param obsoleteImports
-	 */
-	public void addObsoleteImportIRIs(Collection<IRI> obsoleteImports) {
-		if (obsoleteImports != null) {
-			for (IRI obsoleteImport : obsoleteImports) {
-				addObsoleteImport(obsoleteImport);
-			}
-		}
-	}
-	
-	private void addObsoleteImport(IRI obsoleteImport) {
-		// complete list
-		obsoleteImports.add(obsoleteImport);
-		
-		// check if we need to create an empty importer
-		final OWLOntologyManager m = graph.getManager();
-		OWLOntology obsoleteOntology = m.getOntology(obsoleteImport);
-		if (obsoleteOntology == null) {
-			try {
-				// add mapper to provide empty ontologies for obsolete imports
-				OWLOntology empty = m.createOntology(obsoleteImport);
-				obsoleteOntologies.put(obsoleteImport, empty);
-			} catch (OWLOntologyCreationException e) {
-				// ignore for now, just log as warning
-				LOG.warn("Could not create empty dummy ontology for obsolete import: "+obsoleteImport, e);
-			}
-		}
-	}
-	
 	public Collection<IRI> getImports() {
 		Set<IRI> allImports = new HashSet<IRI>();
 		allImports.add(tboxIRI);
@@ -268,16 +264,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	
 	public static Pair<OWLNamedIndividual, Set<OWLAxiom>> createIndividual(String modelId, OWLOntology abox, OWLClassExpression ce, Set<OWLAnnotation> annotations) {
 		OWLGraphWrapper graph = new OWLGraphWrapper(abox);
-		String iid;
-		if (ce instanceof OWLClass) {
-			String cid = graph.getIdentifier(ce).replaceAll(":","-"); // e.g. GO-0123456
-			// Make something unique to tag onto the generated IDs.
-			iid = generateId(modelId, "-", cid, "-");
-		}
-		else {
-			iid = generateId(modelId, "-");
-		}
-
+		String iid = generateId(modelId, "/");
 		IRI iri = IdStringManager.getIRI(iid, graph);
 		OWLDataFactory f = graph.getDataFactory();
 		OWLNamedIndividual i = f.getOWLNamedIndividual(iri);
@@ -1323,18 +1310,16 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 * @param model
 	 * @see #additionalImports
 	 * @see #addImports(Iterable)
-	 * @see #obsoleteOntologies
-	 * @see #addObsoleteImports(Iterable)
 	 */
 	public void updateImports(String modelId, ModelContainer model) {
 		updateImports(model);
 	}
 	
 	private void updateImports(ModelContainer model) {
-		updateImports(model.getAboxOntology(), tboxIRI, additionalImports, obsoleteImports);
+		updateImports(model.getAboxOntology(), tboxIRI, additionalImports);
 	}
 	
-	static void updateImports(final OWLOntology aboxOntology, IRI tboxIRI, Set<IRI> additionalImports, Set<IRI> obsoleteImports) {
+	static void updateImports(final OWLOntology aboxOntology, IRI tboxIRI, Set<IRI> additionalImports) {
 		List<OWLOntologyChange> changes = new ArrayList<OWLOntologyChange>();
 		
 		Set<IRI> missingImports = new HashSet<IRI>();
@@ -1343,12 +1328,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		Set<OWLImportsDeclaration> importsDeclarations = aboxOntology.getImportsDeclarations();
 		for (OWLImportsDeclaration decl : importsDeclarations) {
 			IRI iri = decl.getIRI();
-			if (obsoleteImports.contains(iri)) {
-				changes.add(new RemoveImport(aboxOntology, decl));
-			}
-			else {
-				missingImports.remove(iri);
-			}
+			missingImports.remove(iri);
 		}
 		final OWLOntologyManager m = aboxOntology.getOWLOntologyManager();
 		if (!missingImports.isEmpty()) {

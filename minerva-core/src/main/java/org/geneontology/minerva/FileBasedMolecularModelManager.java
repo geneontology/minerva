@@ -3,19 +3,14 @@ package org.geneontology.minerva;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.Logger;
 import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxOntologyFormat;
-import org.geneontology.minerva.generate.LegoModelGenerator;
 import org.geneontology.minerva.util.IdStringManager;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
@@ -25,7 +20,6 @@ import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAxiom;
-import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLImportsDeclaration;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -38,7 +32,6 @@ import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 
-import owltools.gaf.GafDocument;
 import owltools.gaf.parser.GafObjectsBuilder;
 import owltools.graph.OWLGraphWrapper;
 
@@ -54,13 +47,9 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 
 	boolean isPrecomputePropertyClassCombinations = false;
 	
-	@Deprecated
-	Map<String, GafDocument> dbToGafdoc = new HashMap<String, GafDocument>();
-	
-	@Deprecated
-	String pathToGafs = "gene-associations";
-	
 	String pathToOWLFiles = "owl-models";
+	
+	private final String modelIdPrefix;
 	
 	GafObjectsBuilder builder = new GafObjectsBuilder();
 	// WARNING: Do *NOT* switch to functional syntax until the OWL-API has fixed a bug.
@@ -68,29 +57,14 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 
 	/**
 	 * @param graph
+	 * @param modelIdPrefix
 	 * @throws OWLOntologyCreationException
 	 */
-	public FileBasedMolecularModelManager(OWLGraphWrapper graph) throws OWLOntologyCreationException {
+	public FileBasedMolecularModelManager(OWLGraphWrapper graph, String modelIdPrefix) throws OWLOntologyCreationException {
 		super(graph);
+		this.modelIdPrefix = modelIdPrefix;
 	}
 
-	/**
-	 * @return path to gafs direcory
-	 */
-	@Deprecated
-	public String getPathToGafs() {
-		return pathToGafs;
-	}
-	/**
-	 * Can either be an HTTP prefix, or an absolute file path
-	 * 
-	 * @param pathToGafs
-	 */
-	@Deprecated
-	public void setPathToGafs(String pathToGafs) {
-		this.pathToGafs = pathToGafs;
-	}
-	
 	/**
 	 * Note this may move to an implementation-specific subclass in future
 	 * 
@@ -106,135 +80,6 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		this.pathToOWLFiles = pathToOWLFiles;
 	}
 	
-	/**
-	 * loads/register a Gaf document
-	 * 
-	 * @param db
-	 * @return Gaf document
-	 * @throws IOException
-	 * @throws URISyntaxException
-	 */
-	@Deprecated
-	public GafDocument loadGaf(String db) throws IOException, URISyntaxException {
-		if (!dbToGafdoc.containsKey(db)) {
-			LOG.info("Loading GAF for db: "+db);
-			GafDocument gafdoc = builder.buildDocument(pathToGafs + "/gene_association." + db + ".gz");
-			dbToGafdoc.put(db, gafdoc);
-		}
-		return dbToGafdoc.get(db);
-	}
-
-	/**
-	 * Loads and caches a GAF document from a specified location
-	 * 
-	 * @param db
-	 * @param gafFile
-	 * @return Gaf document
-	 * @throws IOException
-	 * @throws URISyntaxException
-	 */
-	@Deprecated
-	public GafDocument loadGaf(String db, File gafFile) throws IOException, URISyntaxException {
-		if (!dbToGafdoc.containsKey(db)) {
-
-			GafDocument gafdoc = builder.buildDocument(gafFile);
-			dbToGafdoc.put(db, gafdoc);
-		}
-		return dbToGafdoc.get(db);
-	}
-
-
-	/**
-	 * @param db
-	 * @return Gaf document for db
-	 * @throws IOException
-	 * @throws URISyntaxException
-	 */
-	@Deprecated
-	public GafDocument getGaf(String db) throws IOException, URISyntaxException {
-		return loadGaf(db);
-	}
-
-	/**
-	 * Generates a new model taking as input a biological process P and a database D.
-	 * The axioms from P and annotations to P from D are used to seed a new model
-	 * 
-	 * See {@link LegoModelGenerator#buildNetwork(OWLClass, java.util.Collection)}
-	 * And also https://docs.google.com/document/d/1TV8Eb9sSvFY-weVZaIfzCxF1qbnmkUaiUhTm9Bs3gRE/edit
-	 * 
-	 * Note the resulting model is uniquely identified by the modeId, which is currently constructed
-	 * as a concatenation of the db and the P id. This means that if there is an existing model by
-	 * this ID it will be overwritten
-	 * 
-	 * @param processCls
-	 * @param db
-	 * @param metadata
-	 * @return modelId
-	 * @throws OWLOntologyCreationException
-	 * @throws URISyntaxException 
-	 * @throws IOException 
-	 */
-	@Deprecated
-	public String generateModel(OWLClass processCls, String db, METADATA metadata) throws OWLOntologyCreationException, IOException, URISyntaxException {
-		// quick check, only generate a model if it does not already exists.
-		final String p = graph.getIdentifier(processCls);
-		String modelId = getModelId(p, db);
-		if (modelMap.containsKey(modelId)) {
-			throw new OWLOntologyCreationException("A model already exists for this process and db: "+modelId);
-		}
-		LOG.info("Generating model for Class: "+p+" and db: "+db);
-		OWLOntology tbox = graph.getSourceOntology();
-		OWLOntology abox = null;
-		ModelContainer model = null;
-		
-		// create empty ontology
-		// use model id as ontology IRI
-		OWLOntologyManager m = graph.getManager();
-		IRI iri = IdStringManager.getIRI(modelId, graph);
-		try {
-			abox = m.createOntology(iri);
-			
-			// setup model ontology to import the source ontology and other imports
-			createImports(abox, tbox.getOntologyID(), metadata);
-			
-			// create generator
-			model = new ModelContainer(modelId, tbox, abox);
-			LegoModelGenerator generator = new LegoModelGenerator(model);
-			
-			generator.setPrecomputePropertyClassCombinations(isPrecomputePropertyClassCombinations);
-			Set<String> seedGenes = new HashSet<String>();
-			// only look for genes if a GAF is available
-			if (db != null) {
-				GafDocument gafdoc = getGaf(db);
-				generator.initialize(gafdoc, graph);
-				seedGenes.addAll(generator.getGenes(processCls));
-			}
-			generator.setContextualizingSuffix(db);
-			generator.buildNetwork(p, seedGenes);
-		}
-		catch (OWLOntologyCreationException exception) {
-			if (model != null) {
-				model.dispose();
-			} else if (abox != null) {
-				m.removeOntology(abox);
-			}
-			throw exception;
-		}
-		catch (IOException exception) {
-			if (model != null) {
-				model.dispose();
-			}
-			throw exception;
-		}
-		catch (URISyntaxException exception) {
-			if (model != null) {
-				model.dispose();
-			}
-			throw exception;
-		}
-		modelMap.put(modelId, model);
-		return modelId;
-	}
 
 	private void createImports(OWLOntology ont, OWLOntologyID tboxId, METADATA metadata) throws OWLOntologyCreationException {
 		OWLOntologyManager m = ont.getOWLOntologyManager();
@@ -264,29 +109,16 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	}
 	
 	/**
-	 * Generates a new model taking as input a database D.
+	 * Generates a blank model
 	 * 
-	 * Note that the resulting model is uniquely identified by the modeId, which is currently constructed
-	 * as a concatenation of the db and a hidden UUID state. This means that in the unlikely case that
-	 * there is an existing model by this ID, it will be overwritten,
-	 * 
-	 * @param db
 	 * @param metadata
 	 * @return modelId
 	 * @throws OWLOntologyCreationException
-	 * @throws URISyntaxException 
-	 * @throws IOException 
 	 */
-	public String generateBlankModel(String db, METADATA metadata) throws OWLOntologyCreationException, IOException, URISyntaxException {
+	public String generateBlankModel(METADATA metadata) throws OWLOntologyCreationException {
 
 		// Create an arbitrary unique ID and add it to the system.
-		String modelId;
-		if (db != null) {
-			modelId = generateId("gomodel:", db, "-");
-		}
-		else{
-			modelId = generateId("gomodel:");
-		}
+		String modelId = generateId(modelIdPrefix);
 		if (modelMap.containsKey(modelId)) {
 			throw new OWLOntologyCreationException("A model already exists for this db: "+modelId);
 		}
@@ -318,70 +150,6 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		return modelId;
 	}
 	
-	/**
-	 * Generates a new blank model, add protein label for the given as import.
-	 * 
-	 * @param taxonId
-	 * @param metadata
-	 * @return modelId
-	 * @throws OWLOntologyCreationException
-	 * @throws URISyntaxException 
-	 * @throws IOException 
-	 */
-	public String generateBlankModelWithTaxon(String taxonId, METADATA metadata) throws OWLOntologyCreationException, IOException, URISyntaxException {
-
-		// Create an arbitrary unique ID and add it to the system.
-		String modelId;
-		if (taxonId != null) {
-			taxonId = normalizeTaxonId(taxonId);
-			modelId = generateId("gomodel:taxon_", taxonId, "-");
-		}
-		else{
-			modelId = generateId("gomodel:");
-		}
-		if (modelMap.containsKey(modelId)) {
-			throw new OWLOntologyCreationException("A model already exists for this db: "+modelId);
-		}
-		LOG.info("Generating blank model for new modelId: "+modelId);
-
-		// create empty ontology, use model id as ontology IRI
-		final OWLOntologyManager m = graph.getManager();
-		IRI aBoxIRI = IdStringManager.getIRI(modelId, graph);
-		final OWLOntology tbox = graph.getSourceOntology();
-		OWLOntology abox = null;
-		ModelContainer model = null;
-		try {
-			abox = m.createOntology(aBoxIRI);
-	
-			// add imports to T-Box and additional ontologies via IRI
-			createImports(abox, tbox.getOntologyID(), metadata);
-			
-			// generate model
-			model = new ModelContainer(modelId, tbox, abox);
-		}
-		catch (OWLOntologyCreationException exception) {
-			if (abox != null) {
-				m.removeOntology(abox);
-			}
-			throw exception;
-		}
-		// add to internal map
-		modelMap.put(modelId, model);
-		return modelId;
-	}
-	
-	private String normalizeTaxonId(String taxonId) {
-		// only take the numeric part
-		StringBuilder sb = new StringBuilder();
-		for (int i = 0; i < taxonId.length(); i++) {
-			char c = taxonId.charAt(i);
-			if (Character.isDigit(c)) {
-				sb.append(c);
-			}
-		}
-		return sb.toString();
-	}
-
 	/**
 	 * Save all models to disk. The optional annotations may be used to set saved_by and other meta data. 
 	 * 
@@ -526,7 +294,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	}
 	
 	/*
-	 * look for all owl files in the give model folder.
+	 * look for all files in the give model folder.
 	 */
 	private Set<String> getOWLFilesFromPath(String pathTo) {
 		Set<String> allModelIds = new HashSet<String>();
@@ -535,20 +303,17 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 			
 			@Override
 			public boolean accept(File dir, String name) {
-				if (name.endsWith(".owl")) {
-					return true;
-				}
-				return false;
+				return isLocalUnique(name);
 			}
 		});
 		for (File modelFile : modelFiles) {
 			String modelFileName = modelFile.getName();
-			String modelId = FilenameUtils.removeExtension(modelFileName);
+			String modelId = modelIdPrefix + modelFileName;
 			allModelIds.add(modelId);
 		}
 		return allModelIds;
 	}
-		
+	
 	/**
 	 * Retrieve a collection of all file/stored model ids found in the repo.<br>
 	 * Note: Models may not be loaded at this point.
@@ -612,7 +377,8 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	}
 
 	private File getOwlModelFile(String modelId) {
-		return new File(pathToOWLFiles, modelId + ".owl").getAbsoluteFile();
+		String fileName = modelId.replace(modelIdPrefix, "");
+		return new File(pathToOWLFiles, fileName).getAbsoluteFile();
 	}
 
 	/**

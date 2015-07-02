@@ -1,7 +1,6 @@
 package org.geneontology.minerva.format;
 
 import java.io.File;
-import java.io.FileFilter;
 
 import org.apache.commons.io.FilenameUtils;
 import org.semanticweb.owlapi.model.IRI;
@@ -42,19 +41,9 @@ public class LegeModelVersionConverterMain {
 		File input = new File(inputFolder).getCanonicalFile();
 		File output = new File(outputFolder).getCanonicalFile();
 		
-		File[] owlFiles = input.listFiles(new FileFilter() {
-			
-			@Override
-			public boolean accept(File pathname) {
-				String extension = FilenameUtils.getExtension(pathname.getName());
-				if (extension != null) {
-					return "owl".equalsIgnoreCase(extension);
-				}
-				return false;
-			}
-		});
+		File[] owlFiles = input.listFiles();
 		if (owlFiles.length == 0) {
-			throw new Exception("No owl files found in input folder: "+inputFolder);
+			throw new Exception("No files found in input folder: "+inputFolder);
 		}
 		
 		LegoModelVersionConverter converter = new LegoModelVersionConverter();

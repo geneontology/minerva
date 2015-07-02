@@ -33,7 +33,7 @@ public class SeedHandlerTest {
 	static void init(ParserWrapper pw, String golr) throws Exception {
 		final OWLGraphWrapper graph = pw.parseToOWLGraph("http://purl.obolibrary.org/obo/go/extensions/go-lego.owl");
 		
-		models = new UndoAwareMolecularModelManager(graph);
+		models = new UndoAwareMolecularModelManager(graph, "http://model.geneontology.org/");
 		handler = new JsonOrJsonpSeedHandler(models, golr, null);
 	}
 	
@@ -77,7 +77,7 @@ public class SeedHandlerTest {
 	
 	private String generateBlankModel() throws Exception {
 		UndoMetadata metadata = new UndoMetadata(uid);
-		String modelId = models.generateBlankModel(null, metadata);
+		String modelId = models.generateBlankModel(metadata);
 		return modelId;
 	}
 	

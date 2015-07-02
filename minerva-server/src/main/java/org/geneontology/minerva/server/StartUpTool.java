@@ -1,22 +1,16 @@
 package org.geneontology.minerva.server;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.server.external.CachingExternalLookupService;
-import org.geneontology.minerva.server.external.CombinedExternalLookupService;
 import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.external.GolrExternalLookupService;
-import org.geneontology.minerva.server.external.ProteinToolService;
 import org.geneontology.minerva.server.handler.JsonOrJsonpBatchHandler;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
@@ -44,9 +38,7 @@ public class StartUpTool {
 		String ontology = null;
 		String catalog = null;
 		String modelFolder = null;
-		String gafFolder = null; // optional
-		String proteinOntologyFolder = null; // optional, should be replaced by external lookup service
-		List<String> obsoleteImports = new ArrayList<String>();
+		String modelIdPrefix = "http://model.geneontology.org/";
 		int golrCacheSize = 100000;
 		ExternalLookupService lookupService = null;
 		boolean checkLiteralIds = true;
@@ -54,10 +46,6 @@ public class StartUpTool {
 		// The subset of highly relevant relations is configured using super property
 		// all direct children (asserted) are considered important
 		String importantRelationParent = null;
-		
-		// provide a map from db name to taxonId
-		// used to resolve a protain ontology (if available)
-		// Map<String, String> dbToTaxon = ProteinTools.getDefaultDbToTaxon();
 		
 		// server configuration
 		int port = 6800; 
@@ -73,11 +61,16 @@ public class StartUpTool {
 			else if (opts.nextEq("-f|--model-folder")) {
 				modelFolder = opts.nextOpt();
 			}
+			else if (opts.nextEq("--model-id-prefix")) {
+				modelIdPrefix = opts.nextOpt();
+			}
 			else if (opts.nextEq("-p|--protein-folder")) {
-				proteinOntologyFolder = opts.nextOpt();
+				System.err.println("specific protein ontologies are no longer supported");
+				System.exit(-1);
 			}
 			else if (opts.nextEq("--gaf-folder")) {
-				gafFolder = opts.nextOpt();
+				System.err.println("--gaf-folder is not longer supported");
+				System.exit(-1);
 			}
 			else if (opts.nextEq("--context-prefix")) {
 				contextPrefix = opts.nextOpt();
@@ -90,7 +83,8 @@ public class StartUpTool {
 				System.exit(-1);
 			}
 			else if (opts.nextEq("--obsolete-import")) {
-				obsoleteImports.add(StringUtils.trim(opts.nextOpt()));
+				System.err.println("--obsolete-import is no longer supported");
+				System.exit(-1);
 			}
 			else if (opts.nextEq("--set-relevant-relations")) {
 				System.err.println("--set-relevant-relations is no longer supported, use '--set-important-relation-parent' instead");
@@ -143,8 +137,8 @@ public class StartUpTool {
 			lookupService = new CachingExternalLookupService(lookupService, golrCacheSize);
 		}
 		
-		startUp(ontology, catalog, modelFolder, gafFolder, proteinOntologyFolder, 
-				port, contextString, obsoleteImports, importantRelationParent,
+		startUp(ontology, catalog, modelFolder, modelIdPrefix,
+				port, contextString, importantRelationParent,
 				lookupService, checkLiteralIds);
 	}
 	
@@ -197,8 +191,8 @@ public class StartUpTool {
 	}
 
 	public static void startUp(String ontology, String catalog, String modelFolder, 
-			String gafFolder, String proteinOntologyFolder, int port, String contextString, 
-			List<String> obsoleteImports, String importantRelationParent,
+			String modelIdPrefix, int port, String contextString, 
+			String importantRelationParent,
 			ExternalLookupService lookupService, boolean checkLiteralIds) 
 			throws Exception {
 		// load ontology
@@ -228,32 +222,10 @@ public class StartUpTool {
 		}
 
 		// create model manager
-		LOGGER.info("Start initializing MMM");
-		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph);
+		LOGGER.info("Start initializing Minerva");
+		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph, modelIdPrefix);
 		// set folder to  models
 		models.setPathToOWLFiles(modelFolder);
-		
-		// optional: set folder to GAFs for seeding models
-		if (gafFolder != null) {
-			models.setPathToGafs(gafFolder);
-		}
-		// configure obsolete imports for clean up of existing models
-		models.addObsoleteImports(obsoleteImports);
-		
-		// configure protein name lookup using the deprecated organism specific protein ontologies
-		if (proteinOntologyFolder != null) {
-			ProteinToolService proteinService = new ProteinToolService(proteinOntologyFolder);
-			if (lookupService != null) {
-				lookupService = new CombinedExternalLookupService(Arrays.<ExternalLookupService>asList(lookupService));
-			}
-			else {
-				lookupService = proteinService;
-			}
-			Set<IRI> additionalObsoletes = proteinService.getOntologyIRIs();
-			if (additionalObsoletes != null) {
-				models.addObsoleteImportIRIs(additionalObsoletes);
-			}
-		}
 		
 		// start server
 		Server server = startUp(models, port, contextString, importantRelations, lookupService, checkLiteralIds);

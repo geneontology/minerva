@@ -10,6 +10,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<owltools.version>0.2.2-SNAPSHOT</owltools.version>
+		<owlapi.version>3.5.1</owlapi.version>
 	</properties>
 
 	<profiles>
@@ -163,10 +164,10 @@
 				<version>${owltools.version}</version>
 			</dependency>
 			<dependency>
-			<groupId>org.bbop</groupId>
-			<artifactId>OWLTools-Runner</artifactId>
-			<version>${owltools.version}</version>
-		</dependency>
+				<groupId>org.bbop</groupId>
+				<artifactId>OWLTools-Runner</artifactId>
+				<version>${owltools.version}</version>
+			</dependency>
 			<dependency>
 				<groupId>org.eclipse.jetty</groupId>
 				<artifactId>jetty-server</artifactId>
@@ -186,6 +187,41 @@
 				<groupId>org.apache.httpcomponents</groupId>
 				<artifactId>httpclient</artifactId>
 				<version>4.3.6</version>
+			</dependency>
+			<dependency>
+				<groupId>net.sourceforge.owlapi</groupId>
+				<artifactId>owlapi-apibinding</artifactId>
+				<version>${owlapi.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>net.sourceforge.owlapi</groupId>
+				<artifactId>owlapi-api</artifactId>
+				<version>${owlapi.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>net.sourceforge.owlapi</groupId>
+				<artifactId>owlapi-contract</artifactId>
+				<version>${owlapi.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>net.sourceforge.owlapi</groupId>
+				<artifactId>owlapi-distribution</artifactId>
+				<version>${owlapi.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>net.sourceforge.owlapi</groupId>
+				<artifactId>owlapi-impl</artifactId>
+				<version>${owlapi.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>net.sourceforge.owlapi</groupId>
+				<artifactId>owlapi-parsers</artifactId>
+				<version>${owlapi.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>net.sourceforge.owlapi</groupId>
+				<artifactId>owlapi-tools</artifactId>
+				<version>${owlapi.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

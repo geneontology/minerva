@@ -43,7 +43,7 @@ public class ModelSeeding<METADATA> {
 	}
 
 	public Pair<String,ModelContainer> seedModel(MolecularModelManager<METADATA> manager, String bp, final METADATA metadata) throws Exception {
-		String modelId = manager.generateBlankModelWithTaxon(null, metadata);
+		String modelId = manager.generateBlankModel(metadata);
 		ModelContainer model = manager.getModel(modelId);
 		return Pair.of(modelId, model);
 	}

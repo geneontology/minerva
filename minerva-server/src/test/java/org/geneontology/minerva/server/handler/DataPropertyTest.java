@@ -53,7 +53,7 @@ public class DataPropertyTest {
 			m.addAxiom(ontology, f.getOWLAnnotationAssertionAxiom(propIRI, f.getOWLAnnotation(f.getRDFSLabel(), f.getOWLLiteral("fake-data-property"))));
 		}
 		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
-		MolecularModelManager<?> mmm = new MolecularModelManager<Object>(graph);
+		MolecularModelManager<?> mmm = new MolecularModelManager<Object>(graph, "http://model.geneontology.org/");
 		Pair<List<JsonRelationInfo>,List<JsonRelationInfo>> pair = MolecularModelJsonRenderer.renderProperties(mmm, null);
 		List<JsonRelationInfo> dataProperties = pair.getRight();
 		assertEquals(1, dataProperties.size());
@@ -79,9 +79,9 @@ public class DataPropertyTest {
 		// graph and m3
 		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
 		final Object metadata = new Object();
-		MolecularModelManager<Object> m3 = new MolecularModelManager<Object>(graph);
+		MolecularModelManager<Object> m3 = new MolecularModelManager<Object>(graph, "http://model.geneontology.org/");
 		
-		final String modelId = m3.generateBlankModelWithTaxon(null, metadata);
+		final String modelId = m3.generateBlankModel(metadata);
 		final ModelContainer model = m3.getModel(modelId);
 		final OWLNamedIndividual individual = m3.createIndividual(model, cls, metadata);
 		m3.addDataProperty(model, individual, prop, f.getOWLLiteral(10), false, metadata);
@@ -117,13 +117,13 @@ public class DataPropertyTest {
 		
 		// graph and m3
 		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
-		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(graph);
+		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(graph, "http://model.geneontology.org/");
 		
 		// handler
 		JsonOrJsonpBatchHandler handler = new JsonOrJsonpBatchHandler(m3, null, null);
 		
 		// empty model
-		final String modelId = m3.generateBlankModelWithTaxon(null, new UndoMetadata("foo-user"));
+		final String modelId = m3.generateBlankModel(new UndoMetadata("foo-user"));
 		
 		// create individual with annotations, including one data property
 		M3Request r1 = BatchTestTools.addIndividual(modelId, "CLS:0001");

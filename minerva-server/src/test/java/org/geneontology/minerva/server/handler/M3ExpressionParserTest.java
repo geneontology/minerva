@@ -7,7 +7,6 @@ import java.io.IOException;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.json.JsonOwlObject;
 import org.geneontology.minerva.json.JsonOwlObject.JsonOwlObjectType;
-import org.geneontology.minerva.server.external.ProteinToolService;
 import org.geneontology.minerva.server.handler.M3ExpressionParser;
 import org.geneontology.minerva.server.handler.OperationsTools.MissingParameterException;
 import org.junit.BeforeClass;
@@ -20,7 +19,6 @@ import owltools.io.ParserWrapper;
 
 public class M3ExpressionParserTest {
 
-	private static ProteinToolService proteinService;
 	private static OWLGraphWrapper graph;
 	
 	@BeforeClass
@@ -31,26 +29,25 @@ public class M3ExpressionParserTest {
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
 		graph = pw.parseToOWLGraph("http://purl.obolibrary.org/obo/go.owl");
 		graph.mergeOntology(pw.parse("http://purl.obolibrary.org/obo/ro.owl"));
-		proteinService = new ProteinToolService("src/test/resources/ontology/protein/subset");
 	}
 
 	@Test(expected=MissingParameterException.class)
 	public void testMissing0() throws Exception {
 		JsonOwlObject expression = null;
-		new M3ExpressionParser().parse(graph, expression, proteinService);
+		new M3ExpressionParser().parse(graph, expression, null);
 	}
 	
 	@Test(expected=MissingParameterException.class)
 	public void testMissing1() throws Exception {
 		JsonOwlObject expression = new JsonOwlObject();
-		new M3ExpressionParser().parse(graph, expression, proteinService);
+		new M3ExpressionParser().parse(graph, expression, null);
 	}
 	
 	@Test(expected=MissingParameterException.class)
 	public void testMissing2() throws Exception {
 		JsonOwlObject expression = new JsonOwlObject();
 		expression.type = JsonOwlObjectType.Class;
-		new M3ExpressionParser().parse(graph, expression, proteinService);
+		new M3ExpressionParser().parse(graph, expression, null);
 	}
 	
 	@Test(expected=MissingParameterException.class)
@@ -60,7 +57,7 @@ public class M3ExpressionParserTest {
 		expression.property = new JsonOwlObject();
 		expression.property.type = JsonOwlObjectType.ObjectProperty;
 		expression.property.id = "BFO:0000066"; // occurs_in
-		new M3ExpressionParser().parse(graph, expression, proteinService);
+		new M3ExpressionParser().parse(graph, expression, null);
 	}
 	
 	@Test(expected=MissingParameterException.class)
@@ -71,7 +68,7 @@ public class M3ExpressionParserTest {
 		expression.property.type = JsonOwlObjectType.ObjectProperty;
 		expression.property.id = "BFO:0000066"; // occurs_in
 		expression.filler = new JsonOwlObject();
-		new M3ExpressionParser().parse(graph, expression, proteinService);
+		new M3ExpressionParser().parse(graph, expression, null);
 	}
 	
 	@Test(expected=MissingParameterException.class)
@@ -83,7 +80,7 @@ public class M3ExpressionParserTest {
 		expression.property.id = "BFO:0000066"; // occurs_in
 		expression.filler = new JsonOwlObject();
 		expression.filler.type = JsonOwlObjectType.Class;
-		new M3ExpressionParser().parse(graph, expression, proteinService);
+		new M3ExpressionParser().parse(graph, expression, null);
 	}
 	
 	@Test(expected=MissingParameterException.class)
@@ -95,7 +92,7 @@ public class M3ExpressionParserTest {
 		expression.property.id = "BFO:0000066"; // occurs_in
 		expression.filler = new JsonOwlObject();
 		expression.filler.id = "GO:0006915";
-		new M3ExpressionParser().parse(graph, expression, proteinService);
+		new M3ExpressionParser().parse(graph, expression, null);
 	}
 	
 	@Test
@@ -105,7 +102,7 @@ public class M3ExpressionParserTest {
 		expression.type = JsonOwlObjectType.Class;
 		expression.id = "GO:0006915";
 		
-		OWLClassExpression ce = new M3ExpressionParser().parse(graph, expression, proteinService);
+		OWLClassExpression ce = new M3ExpressionParser().parse(graph, expression, null);
 		assertEquals(graph.getOWLClassByIdentifier("GO:0006915"), ce);
 	}
 	
@@ -116,7 +113,7 @@ public class M3ExpressionParserTest {
 		expression.type = JsonOwlObjectType.Class;
 		expression.id = "FO:0006915";
 		
-		new M3ExpressionParser().parse(graph, expression, proteinService);
+		new M3ExpressionParser().parse(graph, expression, null);
 	}
 	
 	@Test
@@ -131,7 +128,7 @@ public class M3ExpressionParserTest {
 		expression.filler.type = JsonOwlObjectType.Class;
 		expression.filler.id = "GO:0005623"; // cell
 		
-		OWLClassExpression ce = new M3ExpressionParser().parse(graph, expression, proteinService);
+		OWLClassExpression ce = new M3ExpressionParser().parse(graph, expression, null);
 		assertNotNull(ce);
 	}
 	
@@ -147,7 +144,7 @@ public class M3ExpressionParserTest {
 		expression.filler.type = JsonOwlObjectType.Class;
 		expression.filler.id = "FO:0005623"; // error
 		
-		new M3ExpressionParser().parse(graph, expression, proteinService);
+		new M3ExpressionParser().parse(graph, expression, null);
 	}
 	
 	@Test(expected=UnknownIdentifierException.class)
@@ -162,7 +159,7 @@ public class M3ExpressionParserTest {
 		expression.filler.type = JsonOwlObjectType.Class;
 		expression.filler.id = "GO:0005623"; // cell
 		
-		new M3ExpressionParser().parse(graph, expression, proteinService);
+		new M3ExpressionParser().parse(graph, expression, null);
 	}
 	
 }

@@ -18,11 +18,10 @@ import org.geneontology.minerva.json.JsonOwlObject;
 import org.geneontology.minerva.json.JsonOwlObject.JsonOwlObjectType;
 import org.geneontology.minerva.json.JsonRelationInfo;
 import org.geneontology.minerva.json.JsonTools;
+import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.StartUpTool;
-import org.geneontology.minerva.server.external.CombinedExternalLookupService;
 import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.external.ExternalLookupService.LookupEntry;
-import org.geneontology.minerva.server.external.ProteinToolService;
 import org.geneontology.minerva.server.external.TableLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Entity;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
@@ -71,11 +70,8 @@ public class BatchModelHandlerTest {
 		importantRelations = StartUpTool.getAssertedSubProperties(legorelParent, graph);
 		assertFalse(importantRelations.isEmpty());
 		
-		models = new UndoAwareMolecularModelManager(graph);
-		models.setPathToGafs("src/test/resources/gaf");
-		ProteinToolService proteinService = new ProteinToolService("src/test/resources/ontology/protein/subset");
-		models.addObsoleteImportIRIs(proteinService.getOntologyIRIs());
-		lookupService = new CombinedExternalLookupService(proteinService, createTestProteins());
+		models = new UndoAwareMolecularModelManager(graph, "http://model.geneontology.org/");
+		lookupService = createTestProteins();
 		handler = new JsonOrJsonpBatchHandler(models, importantRelations, lookupService) {
 
 			@Override
@@ -163,13 +159,13 @@ public class BatchModelHandlerTest {
 		JsonOwlIndividual[] iObjs = BatchTestTools.responseIndividuals(resp2);
 		assertEquals(2, iObjs.length);
 		for(JsonOwlIndividual iObj : iObjs) {
-			String id = iObj.id;
+			String id = iObj.type[0].id;
 			if (id.contains("6915")) {
-				individual1 = id;
+				individual1 = iObj.id;
 				assertEquals(3, iObj.type.length);
 			}
 			else {
-				individual2 = id;
+				individual2 = iObj.id;
 				assertEquals(2, iObj.type.length);
 			}
 		}
@@ -358,63 +354,6 @@ public class BatchModelHandlerTest {
 		
 		final Set<String> modelIds = BatchTestTools.responseModelsIds(response);
 		assertEquals(0, modelIds.size());
-	}
-
-	@Test
-	public void testProteinNames() throws Exception {
-		
-		M3Request[] batch1 = new M3Request[1];
-		batch1[0] = new M3Request();
-		batch1[0].entity = Entity.model;
-		batch1[0].operation = Operation.add;
-		batch1[0].arguments = new M3Argument();
-		
-		M3BatchResponse response1 = handler.m3Batch(uid, intention, packetId, batch1, true);
-		assertEquals(uid, response1.uid);
-		assertEquals(intention, response1.intention);
-		assertEquals(M3BatchResponse.MESSAGE_TYPE_SUCCESS, response1.messageType);
-		final String modelId = BatchTestTools.responseId(response1);
-		
-		// check that protein id resolves to the expected label
-		final String proteinId = "UniProtKB:F1NGQ9";
-		final String proteinLabel = "FZD1";
-		final String taxonId = "9031"; // TODO
-		LookupEntry entry = lookupService.lookup(proteinId, taxonId);
-		assertEquals(proteinLabel, entry.label);
-		
-		// try to generate a model with a protein and protein label
-		M3Request[] batch2 = new M3Request[2];
-		batch2[0] = BatchTestTools.addIndividual(modelId, "GO:0006915");
-		batch2[0].arguments.assignToVariable = "i1";
-		
-		batch2[1] = new M3Request();
-		batch2[1].entity = Entity.individual;
-		batch2[1].operation = Operation.addType;
-		batch2[1].arguments = new M3Argument();
-		batch2[1].arguments.modelId = modelId;
-		batch2[1].arguments.individual = "i1";
-		batch2[1].arguments.expressions = new JsonOwlObject[1];
-		batch2[1].arguments.expressions[0] = BatchTestTools.createSvf("RO:0002333", proteinId); // enabled_by
-		
-		M3BatchResponse response2 = handler.m3Batch(uid, intention, packetId, batch2, true);
-		assertEquals(uid, response2.uid);
-		assertEquals(intention, response2.intention);
-		assertEquals(response2.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response2.messageType);
-		JsonOwlIndividual[] iObjs = BatchTestTools.responseIndividuals(response2);
-		assertEquals(1, iObjs.length);
-		JsonOwlIndividual individual = iObjs[0];
-		JsonOwlObject[] typeObjs = individual.type;
-		assertEquals(2, typeObjs.length);
-		boolean found = false;
-		for (JsonOwlObject typeObj : typeObjs) {
-			if (JsonOwlObjectType.SomeValueFrom == typeObj.type) {
-				found = true;
-				JsonOwlObject filler = typeObj.filler;
-				assertEquals(proteinId, filler.id);
-				assertEquals(proteinLabel, filler.label);
-			}
-		}
-		assertTrue(found);
 	}
 
 	@Test
@@ -1073,6 +1012,7 @@ public class BatchModelHandlerTest {
 		batch1.add(r);
 		
 		final M3BatchResponse response1 = executeBatch(batch1);
+		System.out.println(MolecularModelJsonRenderer.renderToJson(response1, true));
 		
 		// find individuals
 		JsonOwlIndividual[] iObjs1 = BatchTestTools.responseIndividuals(response1);

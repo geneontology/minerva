@@ -1,7 +1,6 @@
 package org.geneontology.minerva;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -70,31 +69,11 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 	
 	/**
 	 * @param graph
+	 * @param modelIdPrefix
 	 * @throws OWLOntologyCreationException
 	 */
-	public MolecularModelManager(OWLGraphWrapper graph) throws OWLOntologyCreationException {
-		super(graph);
-	}
-
-	/**
-	 * wrapper for {@link #generateModel(OWLClass, String, Object)}
-	 * 
-	 * @param pid
-	 * @param db
-	 * @param metadata 
-	 * @return modelId
-	 * @throws OWLOntologyCreationException
-	 * @throws IOException
-	 * @throws URISyntaxException
-	 * @throws UnknownIdentifierException
-	 */
-	@Deprecated
-	public String generateModel(String pid, String db, METADATA metadata) throws OWLOntologyCreationException, IOException, URISyntaxException, UnknownIdentifierException {
-		OWLClass cls = getClass(pid, graph);
-		if (cls == null) {
-			throw new UnknownIdentifierException("Could not find a class for id: "+pid);
-		}
-		return generateModel(cls, db, metadata);
+	public MolecularModelManager(OWLGraphWrapper graph, String modelIdPrefix) throws OWLOntologyCreationException {
+		super(graph, modelIdPrefix);
 	}
 
 	/**
@@ -986,8 +965,6 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 	 * @throws UnknownIdentifierException
 	 * @see #additionalImports
 	 * @see #addImports(Iterable)
-	 * @see #obsoleteImports
-	 * @see #addObsoleteImports(Iterable)
 	 */
 	public void updateImports(String modelId) throws UnknownIdentifierException {
 		ModelContainer model = checkModelId(modelId);

@@ -40,7 +40,7 @@ public class LegoAllIndividualToGeneAnnotationTranslatorTest extends OWLToolsTes
 	public static void setUpBeforeClass() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
 		OWLGraphWrapper go = pw.parseToOWLGraph("http://purl.obolibrary.org/obo/go.owl");
-		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(go);
+		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(go, "http://model.geneontology.org/");
 		m3.setPathToOWLFiles(new File("src/test/resources/lego-conversion").getCanonicalPath());
 		
 		Set<String> modelIds = m3.getAvailableModelIds();

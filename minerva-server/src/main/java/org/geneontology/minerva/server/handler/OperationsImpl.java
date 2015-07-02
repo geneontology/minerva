@@ -447,15 +447,19 @@ abstract class OperationsImpl {
 			values.renderBulk = true;
 			
 			Set<OWLAnnotation> annotations = null;
-			if (request.arguments != null && request.arguments.taxonId != null) {
-				values.modelId = m3.generateBlankModelWithTaxon(request.arguments.taxonId, token);
+//			if (request.arguments != null && request.arguments.taxonId != null) {
+//				values.modelId = m3.generateBlankModelWithTaxon(request.arguments.taxonId, token);
+//			}
+//			else {
+				values.modelId = m3.generateBlankModel(token);
+//			}
+			
+			if (request.arguments != null) {
 				annotations = extract(request.arguments.values, userId, values, values.modelId);
 			}
 			else {
-				values.modelId = m3.generateBlankModel(null, token);
 				annotations = extract(null, userId, values, values.modelId);
 			}
-			
 			if (annotations != null) {
 				m3.addAnnotations(values.modelId, annotations, token);
 			}

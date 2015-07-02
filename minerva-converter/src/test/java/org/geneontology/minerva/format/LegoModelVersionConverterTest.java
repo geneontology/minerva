@@ -28,7 +28,7 @@ public class LegoModelVersionConverterTest {
 	public void testConvertLegoModelToAllIndividuals() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
 		OWLGraphWrapper graph = new OWLGraphWrapper(pw.parse("http://purl.obolibrary.org/obo/go.owl"));
-		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(graph);
+		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(graph, "http://model.geneontology.org/");
 		m3.setPathToOWLFiles("src/test/resources/lego-conversion");
 		Set<String> modelIds = m3.getAvailableModelIds();
 		assertEquals(1, modelIds.size());
