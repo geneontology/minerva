@@ -38,7 +38,8 @@ public class StartUpTool {
 		String ontology = null;
 		String catalog = null;
 		String modelFolder = null;
-		String modelIdPrefix = "http://model.geneontology.org/";
+		String modelIdLongFormPrefix = "http://model.geneontology.org/";
+		String modelIdShortFormPrefix = "gomodel:";
 		int golrCacheSize = 100000;
 		ExternalLookupService lookupService = null;
 		boolean checkLiteralIds = true;
@@ -61,8 +62,11 @@ public class StartUpTool {
 			else if (opts.nextEq("-f|--model-folder")) {
 				modelFolder = opts.nextOpt();
 			}
-			else if (opts.nextEq("--model-id-prefix")) {
-				modelIdPrefix = opts.nextOpt();
+			else if (opts.nextEq("--model-id-long-prefix")) {
+				modelIdLongFormPrefix = opts.nextOpt();
+			}
+			else if (opts.nextEq("--model-id-short-prefix")) {
+				modelIdShortFormPrefix = opts.nextOpt();
 			}
 			else if (opts.nextEq("-p|--protein-folder")) {
 				System.err.println("specific protein ontologies are no longer supported");
@@ -137,9 +141,8 @@ public class StartUpTool {
 			lookupService = new CachingExternalLookupService(lookupService, golrCacheSize);
 		}
 		
-		startUp(ontology, catalog, modelFolder, modelIdPrefix,
-				port, contextString, importantRelationParent,
-				lookupService, checkLiteralIds);
+		startUp(ontology, catalog, modelFolder, modelIdLongFormPrefix, modelIdShortFormPrefix,
+				port, contextString, importantRelationParent, lookupService, checkLiteralIds);
 	}
 	
 	/**
@@ -191,7 +194,7 @@ public class StartUpTool {
 	}
 
 	public static void startUp(String ontology, String catalog, String modelFolder, 
-			String modelIdPrefix, int port, String contextString, 
+			String modelIdLongFormPrefix, String modelIdShortFormPrefix, int port, String contextString, 
 			String importantRelationParent,
 			ExternalLookupService lookupService, boolean checkLiteralIds) 
 			throws Exception {
@@ -223,7 +226,7 @@ public class StartUpTool {
 
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
-		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph, modelIdPrefix);
+		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph, modelIdLongFormPrefix, modelIdShortFormPrefix);
 		// set folder to  models
 		models.setPathToOWLFiles(modelFolder);
 		

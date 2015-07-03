@@ -1,9 +1,15 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +76,7 @@ public class BatchModelHandlerTest {
 		importantRelations = StartUpTool.getAssertedSubProperties(legorelParent, graph);
 		assertFalse(importantRelations.isEmpty());
 		
-		models = new UndoAwareMolecularModelManager(graph, "http://model.geneontology.org/");
+		models = new UndoAwareMolecularModelManager(graph, "http://model.geneontology.org/", "gomodel:");
 		lookupService = createTestProteins();
 		handler = new JsonOrJsonpBatchHandler(models, importantRelations, lookupService) {
 
@@ -352,7 +358,7 @@ public class BatchModelHandlerTest {
 		final JsonEvidenceInfo[] evidences = BatchTestTools.responseEvidences(response);
 		assertTrue(evidences.length > 100);
 		
-		final Set<String> modelIds = BatchTestTools.responseModelsIds(response);
+		final Collection<String> modelIds = BatchTestTools.responseModelsIds(response);
 		assertEquals(0, modelIds.size());
 	}
 

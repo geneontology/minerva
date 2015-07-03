@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -50,7 +51,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity
 
-		mmm = new MolecularModelManager<Void>(g, "http://testmodel.geneontology.org/");
+		mmm = new MolecularModelManager<Void>(g, "http://testmodel.geneontology.org/", "testmodel:");
 
 		String modelId = mmm.generateBlankModel(null);
 		String i1 = mmm.createIndividual(modelId, "GO:0038024", null, null).getKey();
@@ -84,7 +85,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		// GO:0042803 ! protein homodimerization activity
 		// GO:0008233 ! peptidase activity
 
-		mmm = new MolecularModelManager<Void>(g, "http://testmodel.geneontology.org/");
+		mmm = new MolecularModelManager<Void>(g, "http://testmodel.geneontology.org/", "testmodel:");
 
 		final String modelId = mmm.generateBlankModel(null);
 		final Pair<String,OWLNamedIndividual> i1 = mmm.createIndividual(modelId, "GO:0038024", null, null);
@@ -124,7 +125,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		final ParserWrapper pw1 = new ParserWrapper();
 		OWLGraphWrapper g = pw1.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
 
-		mmm = new MolecularModelManager<Void>(g, "http://testmodel.geneontology.org/");
+		mmm = new MolecularModelManager<Void>(g, "http://testmodel.geneontology.org/", "testmodel:");
 		mmm.setPathToOWLFiles(saveFolder.getCanonicalPath());
 		
 		// GO:0038024 ! cargo receptor activity
@@ -153,11 +154,11 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		g = pw2.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
 		
 		
-		mmm = new MolecularModelManager<Void>(g, "http://testmodel.geneontology.org/");
+		mmm = new MolecularModelManager<Void>(g, "http://testmodel.geneontology.org/", "testmodel:");
 		mmm.setPathToOWLFiles(saveFolder.getCanonicalPath());
 		
-		Set<String> availableModelIds = mmm.getAvailableModelIds();
-		assertTrue(availableModelIds.contains(modelId));
+		Map<String, String> availableModelIds = mmm.getAvailableModelIds();
+		assertTrue(availableModelIds.containsKey(modelId));
 		
 		final ModelContainer model = mmm.getModel(modelId);
 		assertNotNull(model);
@@ -180,7 +181,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity
 
-		mmm = new MolecularModelManager<Void>(g, "http://testmodel.geneontology.org/");
+		mmm = new MolecularModelManager<Void>(g, "http://testmodel.geneontology.org/", "testmodel:");
 
 		String modelId = mmm.generateBlankModel(null);
 		String cc = mmm.createIndividual(modelId, "GO:0004872", null, null).getKey(); // receptor activity

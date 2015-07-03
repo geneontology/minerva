@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayOutputStream;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
@@ -28,12 +29,12 @@ public class LegoModelVersionConverterTest {
 	public void testConvertLegoModelToAllIndividuals() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
 		OWLGraphWrapper graph = new OWLGraphWrapper(pw.parse("http://purl.obolibrary.org/obo/go.owl"));
-		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(graph, "http://model.geneontology.org/");
+		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(graph, "http://model.geneontology.org/", "gomodel:");
 		m3.setPathToOWLFiles("src/test/resources/lego-conversion");
-		Set<String> modelIds = m3.getAvailableModelIds();
+		Map<String, String> modelIds = m3.getAvailableModelIds();
 		assertEquals(1, modelIds.size());
 		
-		final String modelId = modelIds.iterator().next();
+		final String modelId = modelIds.keySet().iterator().next();
 		final ModelContainer model = m3.getModel(modelId);
 		assertNotNull(model);
 		OWLOntology aboxOntology = model.getAboxOntology();

@@ -3,6 +3,7 @@ package org.geneontology.minerva;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -69,11 +70,12 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 	
 	/**
 	 * @param graph
-	 * @param modelIdPrefix
+	 * @param modelIdLongFormPrefix 
+	 * @param modelIdShortFormPrefix 
 	 * @throws OWLOntologyCreationException
 	 */
-	public MolecularModelManager(OWLGraphWrapper graph, String modelIdPrefix) throws OWLOntologyCreationException {
-		super(graph, modelIdPrefix);
+	public MolecularModelManager(OWLGraphWrapper graph, String modelIdLongFormPrefix, String modelIdShortFormPrefix) throws OWLOntologyCreationException {
+		super(graph, modelIdLongFormPrefix, modelIdShortFormPrefix);
 	}
 
 	/**
@@ -293,8 +295,8 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 		modelMap.remove(id);
 	}
 	
-	public Set<String> searchModels(Collection<String> ids) throws IOException {
-		final Set<String> resultSet = new HashSet<String>();
+	public  Map<String, String> searchModels(Collection<String> ids) throws IOException {
+		final Map<String, String> resultSet = new HashMap<String, String>();
 		// create IRIs
 		Set<IRI> searchIRIs = new HashSet<IRI>();
 		for(String id : ids) {
@@ -303,14 +305,14 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 		
 		if (!searchIRIs.isEmpty()) {
 			// search for IRI usage in models
-			final Set<String> allModelIds = getAvailableModelIds();
-			for (final String modelId : allModelIds) {
-				final ModelContainer model = getModel(modelId);
+			final Map<String, String> allModelIds = getAvailableModelIds();
+			for (final Entry<String, String> entry : allModelIds.entrySet()) {
+				final ModelContainer model = getModel(entry.getKey());
 				final OWLOntology aboxOntology = model.getAboxOntology();
 				Set<OWLEntity> signature = aboxOntology.getSignature();
 				for (OWLEntity entity : signature) {
 					if (searchIRIs.contains(entity.getIRI())) {
-						resultSet.add(modelId);
+						resultSet.put(entry.getKey(), entry.getValue());
 						break;
 					}
 				}

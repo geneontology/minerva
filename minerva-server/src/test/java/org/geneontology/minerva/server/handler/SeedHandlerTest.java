@@ -33,7 +33,7 @@ public class SeedHandlerTest {
 	static void init(ParserWrapper pw, String golr) throws Exception {
 		final OWLGraphWrapper graph = pw.parseToOWLGraph("http://purl.obolibrary.org/obo/go/extensions/go-lego.owl");
 		
-		models = new UndoAwareMolecularModelManager(graph, "http://model.geneontology.org/");
+		models = new UndoAwareMolecularModelManager(graph, "http://model.geneontology.org/", "gomodel:");
 		handler = new JsonOrJsonpSeedHandler(models, golr, null);
 	}
 	

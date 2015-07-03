@@ -1,7 +1,6 @@
 package org.geneontology.minerva;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -766,19 +765,6 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		updateImports(newModel);
 		
 		return modelId;
-	}
-	
-	/**
-	 * Retrieve a collection of all model ids currently in memory.<br>
-	 * 
-	 * @return set of modelids.
-	 * @throws IOException
-	 */
-	public Set<String> getCurrentModelIds() throws IOException {
-		Set<String> allModelIds = new HashSet<String>();
-		// add all model ids currently in memory
-		allModelIds.addAll(modelMap.keySet());
-		return allModelIds;
 	}
 	
 	protected abstract void loadModel(String modelId, boolean isOverride) throws OWLOntologyCreationException;

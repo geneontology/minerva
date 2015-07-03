@@ -3,12 +3,15 @@ package org.geneontology.minerva;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxOntologyFormat;
 import org.geneontology.minerva.util.IdStringManager;
@@ -49,7 +52,8 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	
 	String pathToOWLFiles = "owl-models";
 	
-	private final String modelIdPrefix;
+	private final String modelIdLongFormPrefix;
+	private final String modelIdShortFormPrefix;
 	
 	GafObjectsBuilder builder = new GafObjectsBuilder();
 	// WARNING: Do *NOT* switch to functional syntax until the OWL-API has fixed a bug.
@@ -57,12 +61,14 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 
 	/**
 	 * @param graph
-	 * @param modelIdPrefix
+	 * @param modelIdLongFormPrefix
+	 * @param modelIdShortFormPrefix 
 	 * @throws OWLOntologyCreationException
 	 */
-	public FileBasedMolecularModelManager(OWLGraphWrapper graph, String modelIdPrefix) throws OWLOntologyCreationException {
+	public FileBasedMolecularModelManager(OWLGraphWrapper graph, String modelIdLongFormPrefix, String modelIdShortFormPrefix) throws OWLOntologyCreationException {
 		super(graph);
-		this.modelIdPrefix = modelIdPrefix;
+		this.modelIdLongFormPrefix = modelIdLongFormPrefix;
+		this.modelIdShortFormPrefix = modelIdShortFormPrefix;
 	}
 
 	/**
@@ -118,7 +124,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	public String generateBlankModel(METADATA metadata) throws OWLOntologyCreationException {
 
 		// Create an arbitrary unique ID and add it to the system.
-		String modelId = generateId(modelIdPrefix);
+		String modelId = generateId(modelIdLongFormPrefix);
 		if (modelMap.containsKey(modelId)) {
 			throw new OWLOntologyCreationException("A model already exists for this db: "+modelId);
 		}
@@ -296,8 +302,8 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	/*
 	 * look for all files in the give model folder.
 	 */
-	private Set<String> getOWLFilesFromPath(String pathTo) {
-		Set<String> allModelIds = new HashSet<String>();
+	private Map<String, String> getModelIdsFromPath(String pathTo) {
+		Map<String, String> allModelIds = new HashMap<String, String>();
 		File modelFolder = new File(pathTo);
 		File[] modelFiles = modelFolder.listFiles(new FilenameFilter() {
 			
@@ -308,10 +314,25 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		});
 		for (File modelFile : modelFiles) {
 			String modelFileName = modelFile.getName();
-			String modelId = modelIdPrefix + modelFileName;
-			allModelIds.add(modelId);
+			String modelIdShort = modelIdShortFormPrefix + modelFileName;
+			String modelIdLong = modelIdLongFormPrefix + modelFileName;
+			allModelIds.put(modelIdLong, modelIdShort);
 		}
 		return allModelIds;
+	}
+	
+	public String getLongFormModelId(String id) {
+		if (id != null) {
+			id = StringUtils.replaceOnce(id, modelIdShortFormPrefix, modelIdLongFormPrefix);
+		}
+		return id;
+	}
+	
+	public String getShortFormModelId(String id) {
+		if (id != null) {
+			id = StringUtils.replaceOnce(id, modelIdLongFormPrefix, modelIdShortFormPrefix);
+		}
+		return id;
 	}
 	
 	/**
@@ -321,20 +342,22 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	 * @return set of modelids.
 	 * @throws IOException
 	 */
-	public Set<String> getStoredModelIds() throws IOException {
-		return getOWLFilesFromPath(this.pathToOWLFiles);
+	public Map<String, String> getStoredModelIds() throws IOException {
+		return getModelIdsFromPath(this.pathToOWLFiles);
 	}
 	
 	/**
-	 * Retrieve a collection of all model ids currently in memory.<br>
+	 * Retrieve all model ids currently in memory in long and short form.<br>
 	 * 
 	 * @return set of modelids.
 	 * @throws IOException
 	 */
-	public Set<String> getCurrentModelIds() throws IOException {
-		Set<String> allModelIds = new HashSet<String>();
+	public Map<String, String> getCurrentModelIds() throws IOException {
+		Map<String,String> allModelIds = new HashMap<String,String>();
 		// add all model ids currently in memory
-		allModelIds.addAll(modelMap.keySet());
+		for(String id : modelMap.keySet()) {
+			allModelIds.put(id, StringUtils.replaceOnce(id, modelIdLongFormPrefix, modelIdShortFormPrefix));
+		}
 		return allModelIds;
 	}
 
@@ -345,10 +368,10 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	 * @return set of modelids.
 	 * @throws IOException
 	 */
-	public Set<String> getAvailableModelIds() throws IOException {
-		Set<String> allModelIds = new HashSet<String>();
-		allModelIds.addAll(this.getStoredModelIds());
-		allModelIds.addAll(this.getCurrentModelIds());
+	public Map<String, String> getAvailableModelIds() throws IOException {
+		Map<String, String> allModelIds = new HashMap<String, String>();
+		allModelIds.putAll(this.getStoredModelIds());
+		allModelIds.putAll(this.getCurrentModelIds());
 		return allModelIds;
 	}
 
@@ -377,7 +400,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	}
 
 	private File getOwlModelFile(String modelId) {
-		String fileName = modelId.replace(modelIdPrefix, "");
+		String fileName = StringUtils.replaceOnce(modelId, modelIdLongFormPrefix, "");
 		return new File(pathToOWLFiles, fileName).getAbsoluteFile();
 	}
 

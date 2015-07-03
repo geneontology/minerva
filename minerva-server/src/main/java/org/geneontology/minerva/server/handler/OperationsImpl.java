@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -639,19 +640,19 @@ abstract class OperationsImpl {
 		}
 		
 		// model ids
-		final Set<String> allModelIds = m3.getAvailableModelIds();
-		response.data.meta.modelIds = allModelIds;
+		final Map<String, String> allModelIds = m3.getAvailableModelIds();
+		response.data.meta.modelIds = allModelIds.values(); // short form model ids
 		
 		Map<String,Map<String,String>> retMap = new HashMap<String, Map<String,String>>();
 		
 		// get model annotations
-		for( String mid : allModelIds ){
+		for( Entry<String, String> entry : allModelIds.entrySet() ){
 
-			retMap.put(mid, new HashMap<String,String>());
-			Map<String, String> modelMap = retMap.get(mid);
+			retMap.put(entry.getValue(), new HashMap<String,String>());
+			Map<String, String> modelMap = retMap.get(entry.getValue());
 			
 			// Iterate through the model's a.
-			OWLOntology o = m3.getModelAbox(mid);
+			OWLOntology o = m3.getModelAbox(entry.getKey());
 			Set<OWLAnnotation> annotations = o.getAnnotations();
 			for( OWLAnnotation an : annotations ){
 				Pair<String,String> pair = JsonTools.createSimplePair(an);

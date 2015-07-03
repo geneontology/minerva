@@ -1,20 +1,19 @@
 package org.geneontology.minerva.legacy;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
 import org.geneontology.minerva.format.LegoModelVersionConverter;
-import org.geneontology.minerva.legacy.LegoAllIndividualToGeneAnnotationTranslator;
-import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -40,12 +39,12 @@ public class LegoAllIndividualToGeneAnnotationTranslatorTest extends OWLToolsTes
 	public static void setUpBeforeClass() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
 		OWLGraphWrapper go = pw.parseToOWLGraph("http://purl.obolibrary.org/obo/go.owl");
-		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(go, "http://model.geneontology.org/");
+		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(go, "http://model.geneontology.org/", "gomodel:");
 		m3.setPathToOWLFiles(new File("src/test/resources/lego-conversion").getCanonicalPath());
 		
-		Set<String> modelIds = m3.getAvailableModelIds();
+		Map<String, String> modelIds = m3.getAvailableModelIds();
 		assertEquals(1, modelIds.size());
-		modelId = modelIds.iterator().next();
+		modelId = modelIds.keySet().iterator().next();
 		model = m3.getModel(modelId);
 		mapper = EcoMapperFactory.createSimple();
 	}

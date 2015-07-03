@@ -1,7 +1,9 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -186,11 +188,11 @@ public class BatchTestTools {
 	}
 	
 	@SuppressWarnings("unchecked")
-	static Set<String> responseModelsIds(M3BatchResponse response) {
+	static Collection<String> responseModelsIds(M3BatchResponse response) {
 		assertNotNull(response);
 		assertNotNull(response.data);
 		assertNotNull(response.data.meta);
-		return (Set<String>) response.data.meta.modelIds;
+		return (Collection<String>) response.data.meta.modelIds;
 	}
 	
 	static String responseExport(M3BatchResponse response) {

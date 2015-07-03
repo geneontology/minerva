@@ -1,6 +1,8 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.geneontology.minerva.server.handler.OperationsTools.*;
+import static org.geneontology.minerva.server.handler.OperationsTools.createModelRenderer;
+import static org.geneontology.minerva.server.handler.OperationsTools.normalizeUserId;
+import static org.geneontology.minerva.server.handler.OperationsTools.requireNotNull;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -10,8 +12,8 @@ import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.ModelContainer;
-import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
+import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
 import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.json.JsonModel;
@@ -51,7 +53,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	public static boolean USE_MODULE_REASONER = false;
 	
 	private static final Logger logger = Logger.getLogger(JsonOrJsonpBatchHandler.class);
-	
+
 	public JsonOrJsonpBatchHandler(UndoAwareMolecularModelManager models, 
 			Set<OWLObjectProperty> importantRelations,
 			ExternalLookupService externalLookupService) {
@@ -144,6 +146,12 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		}
 	}
 	
+	private void checkShortFormModelId(M3Request request) {
+		if (request.arguments != null) {
+			request.arguments.modelId = m3.getLongFormModelId(request.arguments.modelId);
+		}
+	}
+	
 	private M3BatchResponse m3Batch(M3BatchResponse response, M3Request[] requests, String userId, boolean isPrivileged) throws InsufficientPermissionsException, Exception {
 		userId = normalizeUserId(userId);
 		UndoMetadata token = new UndoMetadata(userId);
@@ -156,6 +164,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			final Entity entity = request.entity;
 			final Operation operation = request.operation;
 			checkPermissions(entity, operation, isPrivileged);
+			checkShortFormModelId(request);
 
 			// individual
 			if (Entity.individual == entity) {
@@ -256,7 +265,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		}
 		
 		// add other infos to data
-		response.data.id = values.modelId;
+		response.data.id = m3.getShortFormModelId(values.modelId);
 		if (!isConsistent) {
 			response.data.inconsistentFlag =  Boolean.TRUE;
 		}
