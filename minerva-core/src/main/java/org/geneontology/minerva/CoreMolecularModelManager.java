@@ -125,7 +125,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		if (Character.isDigit(c)) {
 			result = true;
 		}
-		else if (c == 'a' || c == 'b' || c == 'c' || c == 'd' || c == 'e') {
+		else if (c == 'a' || c == 'b' || c == 'c' || c == 'd' || c == 'e' || c == 'f') {
 			result = true;
 		}
 		return result;
