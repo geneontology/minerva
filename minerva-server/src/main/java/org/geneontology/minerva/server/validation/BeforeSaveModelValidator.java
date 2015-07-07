@@ -62,7 +62,7 @@ public class BeforeSaveModelValidator {
 		// require at least one declared instance
 		Set<OWLNamedIndividual> individuals = aboxOntology.getIndividualsInSignature();
 		if (individuals.isEmpty()) {
-			errors.add("The model has no individuals/annotations. Empty models should not be saved.");
+			errors.add("The model has no individuals. Empty models should not be saved.");
 		}
 		
 		// avoid returning empty list

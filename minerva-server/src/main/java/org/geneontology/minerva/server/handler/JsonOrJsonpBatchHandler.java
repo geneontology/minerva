@@ -170,7 +170,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			if (Entity.individual == entity) {
 				String error = handleRequestForIndividual(request, operation, userId, token, values);
 				if (error != null) {
-					return error(response, "Unknown operation: "+operation, null);
+					return error(response, error, null);
 				}
 			}
 			// edge
@@ -184,7 +184,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			else if (Entity.model == entity) {
 				String error = handleRequestForModel(request, response, operation, userId, token, values);
 				if (error != null) {
-					return error(response, "Unknown operation: "+operation, null);
+					return error(response, error, null);
 				}
 			}
 			// meta (e.g. relations, model ids, evidence)

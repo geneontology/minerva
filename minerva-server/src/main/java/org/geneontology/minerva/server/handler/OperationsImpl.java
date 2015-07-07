@@ -538,7 +538,7 @@ abstract class OperationsImpl {
 						}
 					}
 					response.commentary = commentary.toString();
-					return "Save model failed due to a failed validation of the model";			
+					return "Save model failed: validation error(s) before save";
 				}
 			}
 			save(response, values.modelId, annotations, userId, token);
