@@ -3,16 +3,19 @@ package org.geneontology.minerva.json;
 import static org.junit.Assert.*;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.json.JsonOwlIndividual;
 import org.geneontology.minerva.json.JsonOwlObject;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.json.JsonOwlObject.JsonOwlObjectType;
+import org.geneontology.minerva.util.IdStringManager;
 import org.geneontology.minerva.util.IdStringManager.AnnotationShorthand;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -37,6 +40,7 @@ public class MolecularModelJsonRendererTest {
 	private static OWLGraphWrapper g = null;
 	private static OWLOntologyManager m = null;
 	private static OWLDataFactory f = null;
+	private static OWLObjectProperty partOf = null;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -46,6 +50,7 @@ public class MolecularModelJsonRendererTest {
 		g = new OWLGraphWrapper(ont);
 		f = g.getDataFactory();
 		m = g.getManager();
+		partOf = g.getOWLObjectPropertyByIdentifier("BFO:0000050"); 
 	}
 
 	@AfterClass
@@ -145,7 +150,69 @@ public class MolecularModelJsonRendererTest {
 		assertEquals(1, ces.size());
 		assertEquals(ce, ces.iterator().next());
 	}
+	
+	@Test
+	public void testPartialRenderer() throws Exception {
+		OWLOntology o = m.createOntology();
+		OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(g.getSourceOntology().getOntologyID().getOntologyIRI());
+		m.applyChange(new AddImport(o, importDeclaration));
+		
+		// individuals
+		final OWLNamedIndividual a = addIndividual(o, "A", null);
+		final OWLNamedIndividual b = addIndividual(o, "B", null);
+		final OWLNamedIndividual c = addIndividual(o, "C", null);
+		final OWLNamedIndividual d = addIndividual(o, "D", null);
+		final OWLNamedIndividual e = addIndividual(o, "E", null);
+		final OWLNamedIndividual f = addIndividual(o, "F", null);
+		
+		// links
+		addFact(o, a, b, partOf);
+		addFact(o, b, a, partOf);
+		
+		addFact(o, b, c, partOf);
+		addFact(o, d, b, partOf);
+		addFact(o, e, a, partOf);
+		addFact(o, a, f, partOf);
+		
+		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(o, null);
+		
+		final String aId = IdStringManager.getId(a, g);
+		final String bId = IdStringManager.getId(b, g);
+		
+		Pair<JsonOwlIndividual[],JsonOwlFact[]> pair = r.renderIndividuals(Arrays.asList(a, b));
+		assertEquals(2, pair.getLeft().length);
+		assertEquals(2, pair.getRight().length);
+		boolean foundAB = false;
+		boolean foundBA = false;
+		for(JsonOwlFact fact : pair.getRight()) {
+			if (aId.equals(fact.subject) && bId.equals(fact.object)) {
+				foundAB = true;
+			}
+			if (bId.equals(fact.subject) && aId.equals(fact.object)) {
+				foundBA = true;
+			}
+		}
+		assertTrue(foundAB);
+		assertTrue(foundBA);
+	}
+	
 
+	private static OWLNamedIndividual addIndividual(OWLOntology o, String name, OWLClass typeCls) {
+		final IRI iri = IRI.generateDocumentIRI();
+		final OWLNamedIndividual ni = f.getOWLNamedIndividual(iri);
+		// declare individual
+		m.addAxiom(o, f.getOWLDeclarationAxiom(ni));
+		if (typeCls != null) {
+			m.addAxiom(o, f.getOWLClassAssertionAxiom(typeCls, ni));	
+		}
+		m.addAxiom(o, f.getOWLAnnotationAssertionAxiom(iri, f.getOWLAnnotation(f.getRDFSLabel(), f.getOWLLiteral(name))));
+		
+		return ni;
+	}
+	
+	private static void addFact(OWLOntology o, OWLNamedIndividual source, OWLNamedIndividual target, OWLObjectProperty property) {
+		m.addAxiom(o, f.getOWLObjectPropertyAssertionAxiom(property, source, target));
+	}
 	
 	static class TestJsonOwlObjectParser {
 		static OWLClassExpression parse(OWLGraphWrapper g, JsonOwlObject expression)

@@ -27,7 +27,6 @@ import org.semanticweb.owlapi.model.OWLDataProperty;
 import org.semanticweb.owlapi.model.OWLDataPropertyAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLException;
 import org.semanticweb.owlapi.model.OWLIndividual;
-import org.semanticweb.owlapi.model.OWLIndividualAxiom;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLNamedObject;
 import org.semanticweb.owlapi.model.OWLObjectComplementOf;
@@ -174,19 +173,22 @@ public class MolecularModelJsonRenderer {
 	public Pair<JsonOwlIndividual[], JsonOwlFact[]> renderIndividuals(Collection<OWLNamedIndividual> individuals) {
 		OWLOntology ont = graph.getSourceOntology();
 		List<JsonOwlIndividual> iObjs = new ArrayList<JsonOwlIndividual>();
-		List<OWLNamedIndividual> individualIds = new ArrayList<OWLNamedIndividual>();
-		Set<OWLObjectPropertyAssertionAxiom> opAxioms = new HashSet<OWLObjectPropertyAssertionAxiom>();
+		Set<OWLNamedIndividual> individualIds = new HashSet<OWLNamedIndividual>();
+		final Set<OWLObjectPropertyAssertionAxiom> opAxioms = new HashSet<OWLObjectPropertyAssertionAxiom>();
 		for (OWLIndividual i : individuals) {
 			if (i instanceof OWLNamedIndividual) {
 				OWLNamedIndividual named = (OWLNamedIndividual)i;
 				iObjs.add(renderObject(named));
 				individualIds.add(named);
-				
-				Set<OWLIndividualAxiom> iAxioms = ont.getAxioms(i);
-				for (OWLIndividualAxiom owlIndividualAxiom : iAxioms) {
-					if (owlIndividualAxiom instanceof OWLObjectPropertyAssertionAxiom) {
-						opAxioms.add((OWLObjectPropertyAssertionAxiom) owlIndividualAxiom);
-					}
+			}
+		}
+		// filter object property axioms. Only retain axioms which use individuals from the given subset
+		for (OWLNamedIndividual i : individualIds) {
+			Set<OWLObjectPropertyAssertionAxiom> axioms = ont.getObjectPropertyAssertionAxioms(i);
+			for (OWLObjectPropertyAssertionAxiom opa : axioms) {
+				OWLIndividual object = opa.getObject();
+				if (individualIds.contains(object)) {
+					opAxioms.add(opa);
 				}
 			}
 		}
