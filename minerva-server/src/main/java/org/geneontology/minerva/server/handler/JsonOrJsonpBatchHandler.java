@@ -258,10 +258,10 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 				response.data.facts = pair.getRight();
 			}
 			// add model annotations
-			if (values.renderModelAnnotations) {
+			//if (values.renderModelAnnotations) {
 				JsonAnnotation[] anObjs = MolecularModelJsonRenderer.renderModelAnnotations(model.getAboxOntology());
 				response.data.annotations = anObjs;
-			}
+			//}
 		}
 		
 		// add other infos to data
