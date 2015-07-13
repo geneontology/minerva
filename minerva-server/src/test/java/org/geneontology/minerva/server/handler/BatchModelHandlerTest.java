@@ -24,7 +24,6 @@ import org.geneontology.minerva.json.JsonOwlObject;
 import org.geneontology.minerva.json.JsonOwlObject.JsonOwlObjectType;
 import org.geneontology.minerva.json.JsonRelationInfo;
 import org.geneontology.minerva.json.JsonTools;
-import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.external.ExternalLookupService.LookupEntry;
@@ -360,6 +359,58 @@ public class BatchModelHandlerTest {
 		
 		final Collection<String> modelIds = BatchTestTools.responseModelsIds(response);
 		assertEquals(0, modelIds.size());
+	}
+	
+	@Test
+	public void testFailOnMetaAndChange1() throws Exception {
+		models.dispose();
+		
+		final String modelId = generateBlankModel();
+		
+		final List<M3Request> batch1 = new ArrayList<M3Request>();
+		batch1.add(BatchTestTools.addIndividual(modelId, "GO:0008150")); // biological process
+		
+		M3Request r = new M3Request();
+		r.entity = Entity.meta;
+		r.operation = Operation.get;
+		batch1.add(r);
+		
+		M3BatchResponse response = handler.m3Batch(uid, intention, packetId, batch1.toArray(new M3Request[batch1.size()]), true);
+		assertEquals(uid, response.uid);
+		assertEquals(intention, response.intention);
+		
+		assertEquals(M3BatchResponse.MESSAGE_TYPE_ERROR, response.messageType);
+	}
+	
+	@Test
+	public void testSaveAsNonMeta() throws Exception {
+		models.dispose();
+		models.setPathToOWLFiles(folder.newFolder().getCanonicalPath());
+		
+		final String modelId = generateBlankModel();
+		
+		final List<M3Request> batch1 = new ArrayList<M3Request>();
+		batch1.add(BatchTestTools.addIndividual(modelId, "GO:0008150")); // biological process
+		
+		
+		M3Request r = new M3Request();
+		r.entity = Entity.model;
+		r.operation = Operation.addAnnotation;
+		r.arguments = new M3Argument();
+		r.arguments.modelId = modelId;
+		r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.title, "foo");
+		batch1.add(r);
+		
+		r = new M3Request();
+		r.entity = Entity.model;
+		r.operation = Operation.storeModel;
+		r.arguments = new M3Argument();
+		r.arguments.modelId = modelId;
+		batch1.add(r);
+		
+		M3BatchResponse response = executeBatch(batch1);
+		JsonOwlIndividual[] responseIndividuals = BatchTestTools.responseIndividuals(response);
+		assertEquals(1, responseIndividuals.length);
 	}
 
 	@Test
@@ -1018,7 +1069,6 @@ public class BatchModelHandlerTest {
 		batch1.add(r);
 		
 		final M3BatchResponse response1 = executeBatch(batch1);
-		System.out.println(MolecularModelJsonRenderer.renderToJson(response1, true));
 		
 		// find individuals
 		JsonOwlIndividual[] iObjs1 = BatchTestTools.responseIndividuals(response1);

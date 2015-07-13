@@ -523,6 +523,7 @@ abstract class OperationsImpl {
 			values.renderBulk = true;
 		}
 		else if (Operation.storeModel == operation) {
+			values.nonMeta = true;
 			requireNotNull(request.arguments, "request.arguments");
 			values.modelId = checkModelId(values.modelId, request);
 			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, values, values.modelId);
@@ -541,7 +542,8 @@ abstract class OperationsImpl {
 					return "Save model failed: validation error(s) before save";
 				}
 			}
-			save(response, values.modelId, annotations, userId, token);
+			m3.saveModel(values.modelId, annotations, token);
+			values.renderBulk = true;
 		}
 		else if (Operation.undo == operation) {
 			values.nonMeta = true;
@@ -680,11 +682,6 @@ abstract class OperationsImpl {
 		String exportModel = exportTool.exportModelLegacy(modelId, model, format);
 		initMetaResponse(response);
 		response.data.exportModel = exportModel;
-	}
-	
-	private void save(M3BatchResponse response, String modelId, Set<OWLAnnotation> annotations, String userId, UndoMetadata token) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException, UnknownIdentifierException {
-		m3.saveModel(modelId, annotations, token);
-		initMetaResponse(response);
 	}
 	
 	private static OWLAnnotation create(OWLDataFactory f, AnnotationShorthand s, String literal) {
