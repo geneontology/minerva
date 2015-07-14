@@ -23,7 +23,7 @@ public class JsonTools {
 		AnnotationShorthand annotationShorthand = AnnotationShorthand.getShorthand(p.getIRI());
 		if (annotationShorthand != null) {
 			// try to shorten IRIs for shorthand annotations
-			return create(annotationShorthand.name(), value, true);
+			return create(annotationShorthand.getShorthand(), value, true);
 		}
 		// use full IRI strings for non-shorthand annotations
 		return create(p.getIRI().toString(), value, false);
