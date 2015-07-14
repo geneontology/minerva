@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -362,7 +363,7 @@ public class BatchModelHandlerTest {
 	}
 	
 	@Test
-	public void testFailOnMetaAndChange1() throws Exception {
+	public void testFailOnMetaAndChange() throws Exception {
 		models.dispose();
 		
 		final String modelId = generateBlankModel();
@@ -1943,6 +1944,71 @@ public class BatchModelHandlerTest {
 		finally {
 			dateGenerator.useCounter = false;
 		}
+	}
+	
+	@Test
+	public void testCoordinateRoundTrip() throws Exception {
+		models.dispose();
+		models.setPathToOWLFiles(folder.newFolder().getCanonicalPath());
+		
+		String modelId = generateBlankModel();
+		
+		M3Request r;
+		final List<M3Request> batch1 = new ArrayList<M3Request>();
+		r = BatchTestTools.addIndividual(modelId, "GO:0008150"); // biological process
+		r.arguments.values = new JsonAnnotation[2];
+		r.arguments.values[0] = JsonTools.create(AnnotationShorthand.x, "100");
+		r.arguments.values[1] = JsonTools.create(AnnotationShorthand.y, "200");
+		batch1.add(r);
+		
+		
+		r = new M3Request();
+		r.entity = Entity.model;
+		r.operation = Operation.addAnnotation;
+		r.arguments = new M3Argument();
+		r.arguments.modelId = modelId;
+		r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.title, "foo");
+		batch1.add(r);
+		
+		r = new M3Request();
+		r.entity = Entity.model;
+		r.operation = Operation.storeModel;
+		r.arguments = new M3Argument();
+		r.arguments.modelId = modelId;
+		batch1.add(r);
+		
+		M3BatchResponse response = executeBatch(batch1);
+		JsonOwlIndividual[] responseIndividuals = BatchTestTools.responseIndividuals(response);
+		assertEquals(1, responseIndividuals.length);
+		
+		models.dispose();
+		assertTrue(models.getCurrentModelIds().isEmpty());
+		
+		Map<String, String> availableModelIds = models.getAvailableModelIds();
+		assertEquals(1, availableModelIds.size());
+		
+		r =  new M3Request();
+		r.arguments = new M3Argument();
+		r.arguments.modelId = modelId;
+		r.entity = Entity.model;
+		r.operation = Operation.get;
+		
+		final M3BatchResponse response2 = executeBatch(Collections.singletonList(r));
+		JsonOwlIndividual[] responseIndividuals2 = BatchTestTools.responseIndividuals(response2);
+		assertEquals(1, responseIndividuals2.length);
+		JsonOwlIndividual ind = responseIndividuals2[0];
+		boolean foundX  = false;
+		boolean foundY = false;
+		for(JsonAnnotation ann : ind.annotations) {
+			if (ann.key.equals(AnnotationShorthand.x.name())) {
+				foundX = "100".equals(ann.value);
+			}
+			else if (ann.key.equals(AnnotationShorthand.y.name())) {
+				foundY = "200".equals(ann.value);
+			}
+		}
+		assertTrue(foundX);
+		assertTrue(foundY);
 	}
 
 	private M3BatchResponse executeBatch(List<M3Request> batch) {
