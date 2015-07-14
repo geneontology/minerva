@@ -132,7 +132,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 
 		// create empty ontology, use model id as ontology IRI
 		final OWLOntologyManager m = graph.getManager();
-		IRI aBoxIRI = IdStringManager.getIRI(modelId, graph);
+		IRI aBoxIRI = IRI.create(modelId); // model id is already a long form IRI
 		final OWLOntology tbox = graph.getSourceOntology();
 		OWLOntology abox = null;
 		ModelContainer model = null;
