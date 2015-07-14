@@ -15,7 +15,6 @@ import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
-import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.JsonOwlFact;
 import org.geneontology.minerva.json.JsonOwlIndividual;
@@ -258,10 +257,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 				response.data.facts = pair.getRight();
 			}
 			// add model annotations
-			//if (values.renderModelAnnotations) {
-				JsonAnnotation[] anObjs = MolecularModelJsonRenderer.renderModelAnnotations(model.getAboxOntology());
-				response.data.annotations = anObjs;
-			//}
+			response.data.annotations = MolecularModelJsonRenderer.renderModelAnnotations(model.getAboxOntology());
 		}
 		
 		// add other infos to data

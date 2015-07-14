@@ -52,7 +52,6 @@ import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectPropertyAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 
 /**
@@ -96,7 +95,6 @@ abstract class OperationsImpl {
 		
 		final Set<OWLNamedIndividual> relevantIndividuals = new HashSet<OWLNamedIndividual>();
 		boolean renderBulk = false;
-		boolean renderModelAnnotations = false;
 		boolean nonMeta = false;
 		String modelId = null;
 		Map<String, Pair<String, OWLNamedIndividual>> individualVariables = new HashMap<String, Pair<String, OWLNamedIndividual>>();
@@ -476,7 +474,6 @@ abstract class OperationsImpl {
 				m3.addAnnotations(values.modelId, annotations, token);
 			}
 			updateModelAnnotations(values.modelId, userId, token, m3);
-			values.renderModelAnnotations = true;
 		}
 		else if (Operation.removeAnnotation == operation) {
 			values.nonMeta = true;
@@ -488,7 +485,6 @@ abstract class OperationsImpl {
 				m3.removeAnnotations(values.modelId, annotations, token);
 			}
 			updateModelAnnotations(values.modelId, userId, token, m3);
-			values.renderModelAnnotations = true;
 			values.renderBulk = true;
 		}
 		else if (Operation.exportModel == operation) {
