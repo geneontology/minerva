@@ -93,11 +93,11 @@ public class IdStringManager {
 	
 	public enum AnnotationShorthand {
 		
-		@SerializedName("layout-hint-x")
-		x(IRI.create("http://geneontology.org/lego/layout/hint/x")),
+		@SerializedName("hint-layout-x")
+		x(IRI.create("http://geneontology.org/lego/hint/layout/x")),
 		
-		@SerializedName("layout-hint-y")
-		y(IRI.create("http://geneontology.org/lego/layout/hint/y")),
+		@SerializedName("hint-layout-y")
+		y(IRI.create("http://geneontology.org/lego/hint/layout/y")),
 		comment(OWLRDFVocabulary.RDFS_COMMENT.getIRI()), // arbitrary String
 		evidence(IRI.create("http://geneontology.org/lego/evidence")), // eco class iri
 		date(IRI.create("http://purl.org/dc/elements/1.1/date")), // arbitrary string at the moment, define date format?
