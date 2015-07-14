@@ -94,10 +94,10 @@ public class IdStringManager {
 	public enum AnnotationShorthand {
 		
 		@SerializedName("hint-layout-x")
-		x(IRI.create("http://geneontology.org/lego/hint/layout/x")),
+		x(IRI.create("http://geneontology.org/lego/hint/layout/x"), "hint-layout-x"),
 		
 		@SerializedName("hint-layout-y")
-		y(IRI.create("http://geneontology.org/lego/hint/layout/y")),
+		y(IRI.create("http://geneontology.org/lego/hint/layout/y"), "hint-layout-y"),
 		comment(OWLRDFVocabulary.RDFS_COMMENT.getIRI()), // arbitrary String
 		evidence(IRI.create("http://geneontology.org/lego/evidence")), // eco class iri
 		date(IRI.create("http://purl.org/dc/elements/1.1/date")), // arbitrary string at the moment, define date format?
@@ -109,9 +109,15 @@ public class IdStringManager {
 		
 		
 		private final IRI annotationProperty;
+		private final String othername;
 		
 		AnnotationShorthand(IRI annotationProperty) {
+			this(annotationProperty, null);
+		}
+		
+		AnnotationShorthand(IRI annotationProperty, String othername) {
 			this.annotationProperty = annotationProperty;
+			this.othername = othername;
 		}
 		
 		public IRI getAnnotationProperty() {
@@ -129,9 +135,11 @@ public class IdStringManager {
 		}
 		
 		public static AnnotationShorthand getShorthand(String name) {
-			for (AnnotationShorthand type : AnnotationShorthand.values()) {
-				if (type.name().equals(name)) {
-					return type;
+			if (name != null) {
+				for (AnnotationShorthand type : AnnotationShorthand.values()) {
+					if (type.name().equals(name) || (type.othername != null && type.othername.equals(name))) {
+						return type;
+					}
 				}
 			}
 			return null;
