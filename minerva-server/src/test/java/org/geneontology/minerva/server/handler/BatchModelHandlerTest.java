@@ -41,8 +41,10 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
@@ -75,10 +77,15 @@ public class BatchModelHandlerTest {
 		assertNotNull(legorelParent);
 		importantRelations = StartUpTool.getAssertedSubProperties(legorelParent, graph);
 		assertFalse(importantRelations.isEmpty());
-		
-		models = new UndoAwareMolecularModelManager(graph, "http://model.geneontology.org/", "gomodel:");
+		OWLReasonerFactory rf = new ElkReasonerFactory();
+//		rf = new org.semanticweb.HermiT.Reasoner.ReasonerFactory();
+		models = new UndoAwareMolecularModelManager(graph, rf,
+				"http://model.geneontology.org/", "gomodel:");
 		lookupService = createTestProteins();
-		handler = new JsonOrJsonpBatchHandler(models, importantRelations, lookupService) {
+		boolean useReasoner = true;
+		boolean useModelReasoner = false;
+//		useModelReasoner = true;
+		handler = new JsonOrJsonpBatchHandler(models, useReasoner, useModelReasoner, importantRelations, lookupService) {
 
 			@Override
 			protected String generateDateString() {

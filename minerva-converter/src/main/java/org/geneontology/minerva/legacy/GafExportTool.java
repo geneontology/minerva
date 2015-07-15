@@ -9,6 +9,8 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.ModelContainer;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 import owltools.gaf.BioentityDocument;
 import owltools.gaf.GafDocument;
@@ -40,13 +42,23 @@ public class GafExportTool {
 	 * 
 	 * @param modelId
 	 * @param model
+	 * @param useModuleReasoner
 	 * @param format format name or null for default
 	 * @return modelContent
 	 * @throws IOException
+	 * @throws OWLOntologyCreationException
 	 */
-	public String exportModelLegacy(String modelId, ModelContainer model, String format) throws IOException {
+	public String exportModelLegacy(String modelId, ModelContainer model, boolean useModuleReasoner, String format) throws IOException, OWLOntologyCreationException {
 		final OWLOntology aBox = model.getAboxOntology();
-		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(new OWLGraphWrapper(model.getTboxOntology()), model.getReasoner(), ecoMapper);
+		OWLReasoner r;
+		if (useModuleReasoner) {
+			r = model.getModuleReasoner();
+		}
+		else {
+			r = model.getReasoner();
+		}
+		
+		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(new OWLGraphWrapper(model.getTboxOntology()), r, ecoMapper);
 		Pair<GafDocument,BioentityDocument> pair = translator.translate(modelId, aBox, null);
 		ByteArrayOutputStream outputStream = null;
 		try {

@@ -33,6 +33,7 @@ import org.semanticweb.owlapi.model.OWLOntologyFormat;
 import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
+import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.gaf.parser.GafObjectsBuilder;
 import owltools.graph.OWLGraphWrapper;
@@ -60,12 +61,14 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 
 	/**
 	 * @param graph
+	 * @param rf
 	 * @param modelIdLongFormPrefix
 	 * @param modelIdShortFormPrefix 
 	 * @throws OWLOntologyCreationException
 	 */
-	public FileBasedMolecularModelManager(OWLGraphWrapper graph, String modelIdLongFormPrefix, String modelIdShortFormPrefix) throws OWLOntologyCreationException {
-		super(graph);
+	public FileBasedMolecularModelManager(OWLGraphWrapper graph, OWLReasonerFactory rf,
+			String modelIdLongFormPrefix, String modelIdShortFormPrefix) throws OWLOntologyCreationException {
+		super(graph, rf);
 		this.modelIdLongFormPrefix = modelIdLongFormPrefix;
 		this.modelIdShortFormPrefix = modelIdShortFormPrefix;
 	}
@@ -142,7 +145,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 			createImports(abox, tbox.getOntologyID(), metadata);
 			
 			// generate model
-			model = new ModelContainer(modelId, tbox, abox);
+			model = new ModelContainer(modelId, tbox, abox, rf);
 		}
 		catch (OWLOntologyCreationException exception) {
 			if (abox != null) {

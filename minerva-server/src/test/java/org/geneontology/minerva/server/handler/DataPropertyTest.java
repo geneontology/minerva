@@ -24,6 +24,7 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.util.IdStringManager.AnnotationShorthand;
 import org.junit.Test;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
@@ -53,7 +54,8 @@ public class DataPropertyTest {
 			m.addAxiom(ontology, f.getOWLAnnotationAssertionAxiom(propIRI, f.getOWLAnnotation(f.getRDFSLabel(), f.getOWLLiteral("fake-data-property"))));
 		}
 		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
-		MolecularModelManager<?> mmm = new MolecularModelManager<Object>(graph, "http://model.geneontology.org/", "gomodel:");
+		MolecularModelManager<?> mmm = new MolecularModelManager<Object>(graph, new ElkReasonerFactory(),
+				"http://model.geneontology.org/", "gomodel:");
 		Pair<List<JsonRelationInfo>,List<JsonRelationInfo>> pair = MolecularModelJsonRenderer.renderProperties(mmm, null);
 		List<JsonRelationInfo> dataProperties = pair.getRight();
 		assertEquals(1, dataProperties.size());
@@ -79,7 +81,8 @@ public class DataPropertyTest {
 		// graph and m3
 		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
 		final Object metadata = new Object();
-		MolecularModelManager<Object> m3 = new MolecularModelManager<Object>(graph, "http://model.geneontology.org/", "gomodel:");
+		MolecularModelManager<Object> m3 = new MolecularModelManager<Object>(graph, new ElkReasonerFactory(),
+				"http://model.geneontology.org/", "gomodel:");
 		
 		final String modelId = m3.generateBlankModel(metadata);
 		final ModelContainer model = m3.getModel(modelId);
@@ -117,10 +120,13 @@ public class DataPropertyTest {
 		
 		// graph and m3
 		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
-		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(graph, "http://model.geneontology.org/", "gomodel:");
+		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(graph, new ElkReasonerFactory(),
+				"http://model.geneontology.org/", "gomodel:");
 		
 		// handler
-		JsonOrJsonpBatchHandler handler = new JsonOrJsonpBatchHandler(m3, null, null);
+		boolean useReasoner = false;
+		boolean useModelReasoner = false;
+		JsonOrJsonpBatchHandler handler = new JsonOrJsonpBatchHandler(m3, useReasoner, useModelReasoner, null, null);
 		
 		// empty model
 		final String modelId = m3.generateBlankModel(new UndoMetadata("foo-user"));
