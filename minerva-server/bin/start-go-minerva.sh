@@ -22,6 +22,7 @@ NOCTUA_MODELS=$2
 ## start Minerva
 # use catalog xml and PURLs
 java "-Xmx$MINERVA_MEMORY" -jar minerva-server.jar \
+--skip-class-id-validation \
 -c "$GO_SVN"/ontology/extensions/catalog-v001.xml \
 -g http://purl.obolibrary.org/obo/go/extensions/go-lego.owl \
 --set-important-relation-parent http://purl.obolibrary.org/obo/LEGOREL_0000000 \
