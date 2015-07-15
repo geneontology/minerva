@@ -17,6 +17,7 @@ import org.geneontology.minerva.format.LegoModelVersionConverter;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 
 import owltools.OWLToolsTestBasics;
 import owltools.gaf.BioentityDocument;
@@ -39,7 +40,8 @@ public class LegoAllIndividualToGeneAnnotationTranslatorTest extends OWLToolsTes
 	public static void setUpBeforeClass() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
 		OWLGraphWrapper go = pw.parseToOWLGraph("http://purl.obolibrary.org/obo/go.owl");
-		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(go, "http://model.geneontology.org/", "gomodel:");
+		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(go, new ElkReasonerFactory(),
+				"http://model.geneontology.org/", "gomodel:");
 		m3.setPathToOWLFiles(new File("src/test/resources/lego-conversion").getCanonicalPath());
 		
 		Map<String, String> modelIds = m3.getAvailableModelIds();

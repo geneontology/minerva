@@ -34,29 +34,21 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	
 	
 	public static boolean USE_USER_ID = true;
-	public static boolean USE_REASONER = true;
 	public static boolean ADD_INFERENCES = true;
 	public static boolean VALIDATE_BEFORE_SAVE = true;
 	public static boolean ENFORCE_EXTERNAL_VALIDATE = false;
 	public boolean CHECK_LITERAL_IDENTIFIERS = true; // TODO remove the temp work-around
 	
-	/*
-	 * If set to TRUE, this will use a different approach for the reasoner: It will create
-	 * a module from the abox using the individuals as seeds and only create a reasoner for
-	 * this new ontology.
-	 * 
-	 * This reduced set of axioms should consume less memory for each reasoner. 
-	 * The drawback is the additional CPU time (sequential) to generate the relevant 
-	 * subset. During tests this tripled the runtime of the test cases. 
-	 */
-	public static boolean USE_MODULE_REASONER = false;
-	
 	private static final Logger logger = Logger.getLogger(JsonOrJsonpBatchHandler.class);
-
-	public JsonOrJsonpBatchHandler(UndoAwareMolecularModelManager models, 
+	
+	private final boolean useReasoner;
+	
+	public JsonOrJsonpBatchHandler(UndoAwareMolecularModelManager models,
+			boolean useReasoner, boolean useModuleReasoner,
 			Set<OWLObjectProperty> importantRelations,
 			ExternalLookupService externalLookupService) {
-		super(models, importantRelations, externalLookupService);
+		super(models, importantRelations, externalLookupService, useModuleReasoner);
+		this.useReasoner = useReasoner;
 	}
 
 	private final Type requestType = new TypeToken<M3Request[]>(){
@@ -218,8 +210,8 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		// report state
 		final OWLReasoner reasoner;
 		final boolean isConsistent;
-		if (USE_REASONER) {
-			if (USE_MODULE_REASONER) {
+		if (useReasoner) {
+			if (useModuleReasoner) {
 				reasoner = model.getModuleReasoner();
 			}
 			else {
@@ -236,7 +228,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		// create response.data
 		response.data = new ResponseData();
 		final MolecularModelJsonRenderer renderer;
-		if (USE_REASONER && ADD_INFERENCES && isConsistent) {
+		if (useReasoner && ADD_INFERENCES && isConsistent) {
 			renderer = createModelRenderer(model, externalLookupService, reasoner);
 		}
 		else {

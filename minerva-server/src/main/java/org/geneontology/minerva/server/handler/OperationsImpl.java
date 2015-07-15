@@ -52,6 +52,7 @@ import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectPropertyAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 
 /**
@@ -67,12 +68,15 @@ abstract class OperationsImpl {
 	final BeforeSaveModelValidator beforeSaveValidator;
 	final ExternalLookupService externalLookupService;
 	final Set<IRI> dataPropertyIRIs;
+	final boolean useModuleReasoner;
 	
 	OperationsImpl(UndoAwareMolecularModelManager models, 
 			Set<OWLObjectProperty> importantRelations,
-			ExternalLookupService externalLookupService) {
+			ExternalLookupService externalLookupService,
+			boolean useModuleReasoner) {
 		super();
 		this.m3 = models;
+		this.useModuleReasoner = useModuleReasoner;
 		this.importantRelations = importantRelations;
 		this.externalLookupService = externalLookupService;
 		this.beforeSaveValidator = new BeforeSaveModelValidator();
@@ -205,7 +209,7 @@ abstract class OperationsImpl {
 			requireNotNull(request.arguments.individual, "request.arguments.individual");
 			String individual = values.getVariableValueId(request.arguments.individual);
 			
-			DeleteInformation dInfo = m3.deleteIndividual(values.modelId, individual, token);
+			DeleteInformation dInfo = m3.deleteIndividualNonReasoning(values.modelId, individual, token);
 			handleRemovedAnnotationIRIs(dInfo.usedIRIs, values.modelId, token);
 			updateAnnotationsForDelete(dInfo, values.modelId, userId, token, m3);
 			updateModelAnnotations(values.modelId, userId, token, m3);
@@ -524,7 +528,7 @@ abstract class OperationsImpl {
 			values.modelId = checkModelId(values.modelId, request);
 			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, values, values.modelId);
 			if (validateBeforeSave()) {
-				List<String> issues = beforeSaveValidator.validateBeforeSave(values.modelId, m3);
+				List<String> issues = beforeSaveValidator.validateBeforeSave(values.modelId, m3, useModuleReasoner);
 				if (issues != null && !issues.isEmpty()) {
 					StringBuilder commentary = new StringBuilder();
 					for (Iterator<String> it = issues.iterator(); it.hasNext();) {
@@ -669,13 +673,13 @@ abstract class OperationsImpl {
 		response.data.exportModel = exportModel;
 	}
 	
-	private void exportLegacy(M3BatchResponse response, String modelId, String format, String userId) throws UnknownIdentifierException, IOException {
+	private void exportLegacy(M3BatchResponse response, String modelId, String format, String userId) throws UnknownIdentifierException, IOException, OWLOntologyCreationException {
 		ModelContainer model = m3.getModel(modelId);
 		if (model == null) {
 			throw new UnknownIdentifierException("Could not find a model for id: "+modelId);
 		}
 		final GafExportTool exportTool = GafExportTool.getInstance();
-		String exportModel = exportTool.exportModelLegacy(modelId, model, format);
+		String exportModel = exportTool.exportModelLegacy(modelId, model, useModuleReasoner, format);
 		initMetaResponse(response);
 		response.data.exportModel = exportModel;
 	}

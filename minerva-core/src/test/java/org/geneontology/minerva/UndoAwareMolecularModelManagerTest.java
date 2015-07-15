@@ -13,6 +13,7 @@ import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 
 import owltools.OWLToolsTestBasics;
@@ -28,7 +29,8 @@ public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
 	public static void beforeClass() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
 		g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
-		m3 = new UndoAwareMolecularModelManager(g, "http://testmodel.geneontology.org/", "testmodel:");
+		m3 = new UndoAwareMolecularModelManager(g, new ElkReasonerFactory(),
+				"http://testmodel.geneontology.org/", "testmodel:");
 	}
 	
 	@AfterClass

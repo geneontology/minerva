@@ -15,6 +15,7 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.graph.OWLGraphWrapper;
 
@@ -166,8 +167,9 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 		}
 	}
 
-	public UndoAwareMolecularModelManager(OWLGraphWrapper graph, String modelIdLongFormPrefix, String modelIdShortFormPrefix) throws OWLOntologyCreationException {
-		super(graph, modelIdLongFormPrefix, modelIdShortFormPrefix);
+	public UndoAwareMolecularModelManager(OWLGraphWrapper graph, OWLReasonerFactory rf,
+			String modelIdLongFormPrefix, String modelIdShortFormPrefix) throws OWLOntologyCreationException {
+		super(graph, rf, modelIdLongFormPrefix, modelIdShortFormPrefix);
 	}
 
 	@Override

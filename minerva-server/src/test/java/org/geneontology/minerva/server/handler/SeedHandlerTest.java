@@ -12,6 +12,7 @@ import org.geneontology.minerva.server.handler.M3SeedHandler.SeedResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
@@ -33,7 +34,8 @@ public class SeedHandlerTest {
 	static void init(ParserWrapper pw, String golr) throws Exception {
 		final OWLGraphWrapper graph = pw.parseToOWLGraph("http://purl.obolibrary.org/obo/go/extensions/go-lego.owl");
 		
-		models = new UndoAwareMolecularModelManager(graph, "http://model.geneontology.org/", "gomodel:");
+		models = new UndoAwareMolecularModelManager(graph, new ElkReasonerFactory(),
+				"http://model.geneontology.org/", "gomodel:");
 		handler = new JsonOrJsonpSeedHandler(models, golr, null);
 	}
 	

@@ -13,6 +13,7 @@ import org.geneontology.minerva.MolecularModelManager;
 import org.geneontology.minerva.format.LegoModelVersionConverter;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.junit.Test;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -29,7 +30,8 @@ public class LegoModelVersionConverterTest {
 	public void testConvertLegoModelToAllIndividuals() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
 		OWLGraphWrapper graph = new OWLGraphWrapper(pw.parse("http://purl.obolibrary.org/obo/go.owl"));
-		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(graph, "http://model.geneontology.org/", "gomodel:");
+		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(graph, new ElkReasonerFactory(),
+				"http://model.geneontology.org/", "gomodel:");
 		m3.setPathToOWLFiles("src/test/resources/lego-conversion");
 		Map<String, String> modelIds = m3.getAvailableModelIds();
 		assertEquals(1, modelIds.size());

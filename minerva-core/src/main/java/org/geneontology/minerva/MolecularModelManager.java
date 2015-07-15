@@ -30,6 +30,7 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyFormat;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
+import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.vocab.OBOUpperVocabulary;
@@ -70,12 +71,14 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 	
 	/**
 	 * @param graph
+	 * @param rf
 	 * @param modelIdLongFormPrefix 
 	 * @param modelIdShortFormPrefix 
 	 * @throws OWLOntologyCreationException
 	 */
-	public MolecularModelManager(OWLGraphWrapper graph, String modelIdLongFormPrefix, String modelIdShortFormPrefix) throws OWLOntologyCreationException {
-		super(graph, modelIdLongFormPrefix, modelIdShortFormPrefix);
+	public MolecularModelManager(OWLGraphWrapper graph, OWLReasonerFactory rf,
+			String modelIdLongFormPrefix, String modelIdShortFormPrefix) throws OWLOntologyCreationException {
+		super(graph, rf, modelIdLongFormPrefix, modelIdShortFormPrefix);
 	}
 
 	/**

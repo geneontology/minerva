@@ -56,6 +56,7 @@ import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.model.RemoveAxiom;
 import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
 import org.semanticweb.owlapi.model.SetOntologyID;
+import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.vocab.OBOUpperVocabulary;
@@ -77,6 +78,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	private static Logger LOG = Logger.getLogger(CoreMolecularModelManager.class);
 
 	final OWLGraphWrapper graph;
+	final OWLReasonerFactory rf;
 	private final IRI tboxIRI;
 	final Map<String, ModelContainer> modelMap = new HashMap<String, ModelContainer>();
 	Set<IRI> additionalImports;
@@ -150,11 +152,13 @@ public abstract class CoreMolecularModelManager<METADATA> {
 
 	/**
 	 * @param graph
+	 * @param rf
 	 * @throws OWLOntologyCreationException
 	 */
-	public CoreMolecularModelManager(OWLGraphWrapper graph) throws OWLOntologyCreationException {
+	public CoreMolecularModelManager(OWLGraphWrapper graph, OWLReasonerFactory rf) throws OWLOntologyCreationException {
 		super();
 		this.graph = graph;
+		this.rf = rf;
 		tboxIRI = getTboxIRI(graph);
 		init();
 	}
@@ -771,26 +775,12 @@ public abstract class CoreMolecularModelManager<METADATA> {
 
 	ModelContainer addModel(String modelId, OWLOntology abox) throws OWLOntologyCreationException {
 		OWLOntology tbox = graph.getSourceOntology();
-		ModelContainer m = new ModelContainer(modelId, tbox, abox);
+		ModelContainer m = new ModelContainer(modelId, tbox, abox, rf);
 		modelMap.put(modelId, m);
 		return m;
 	}
 
 	
-	/**
-	 * 
-	 * @param modelId
-	 * @return true if the ontology formed by the specified model is inconsistent
-	 */
-	public boolean isConsistent(String modelId) {
-		ModelContainer model = getModel(modelId);
-		// TODO - is it scalable to have each model have its own reasoner?
-		// may make more sense to have a single reasoner instance operating over entire kb;
-		// this would mean the entire kb should be kept consistent - an inconsistency in one
-		// model would mean the entire kb is inconsistent
-		return model.getReasoner().isConsistent();
-	}
-
 	/**
 	 * @param modelId
 	 * @return data factory for the specified model

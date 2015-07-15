@@ -14,12 +14,14 @@ import org.geneontology.minerva.server.external.GolrExternalLookupService;
 import org.geneontology.minerva.server.handler.JsonOrJsonpBatchHandler;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObject;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectPropertyExpression;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLSubObjectPropertyOfAxiom;
+import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.cli.Opts;
 import owltools.graph.OWLGraphWrapper;
@@ -31,9 +33,7 @@ public class StartUpTool {
 	
 	private static final Logger LOGGER = Logger.getLogger(StartUpTool.class);
 
-	public static void main(String[] args) throws Exception {
-		Opts opts = new Opts(args);
-		
+	static class MinervaStartUpConfig {
 		// data configuration
 		String ontology = null;
 		String catalog = null;
@@ -44,29 +44,52 @@ public class StartUpTool {
 		ExternalLookupService lookupService = null;
 		boolean checkLiteralIds = true;
 
+		// reasoner settings
+		boolean useReasoner = true;
+		
+		/*
+		 * If set to TRUE, this will use a different approach for the reasoner: It will create
+		 * a module from the abox using the individuals as seeds and only create a reasoner for
+		 * this new ontology.
+		 * 
+		 * This reduced set of axioms should consume less memory for each reasoner. 
+		 * The drawback is the additional CPU time (sequential) to generate the relevant 
+		 * subset. During tests this tripled the runtime of the test cases. 
+		 */
+		boolean useModuleReasoner = false;
+		OWLReasonerFactory rf = new ElkReasonerFactory();
+
 		// The subset of highly relevant relations is configured using super property
 		// all direct children (asserted) are considered important
 		String importantRelationParent = null;
-		
+		Set<OWLObjectProperty> importantRelations = null;
+
 		// server configuration
 		int port = 6800; 
 		String contextPrefix = null; // root context by default
+		String contextString = null;
+	}
+	
+	public static void main(String[] args) throws Exception {
+		Opts opts = new Opts(args);
+		MinervaStartUpConfig conf = new MinervaStartUpConfig();
+		
 		
 		while (opts.hasArgs()) {
 			if (opts.nextEq("-g|--graph")) {
-				ontology = opts.nextOpt();
+				conf.ontology = opts.nextOpt();
 			}
 			else if (opts.nextEq("-c|--catalog")) {
-				catalog = opts.nextOpt();
+				conf.catalog = opts.nextOpt();
 			}
 			else if (opts.nextEq("-f|--model-folder")) {
-				modelFolder = opts.nextOpt();
+				conf.modelFolder = opts.nextOpt();
 			}
 			else if (opts.nextEq("--model-id-long-prefix")) {
-				modelIdLongFormPrefix = opts.nextOpt();
+				conf.modelIdLongFormPrefix = opts.nextOpt();
 			}
 			else if (opts.nextEq("--model-id-short-prefix")) {
-				modelIdShortFormPrefix = opts.nextOpt();
+				conf.modelIdShortFormPrefix = opts.nextOpt();
 			}
 			else if (opts.nextEq("-p|--protein-folder")) {
 				System.err.println("specific protein ontologies are no longer supported");
@@ -77,10 +100,10 @@ public class StartUpTool {
 				System.exit(-1);
 			}
 			else if (opts.nextEq("--context-prefix")) {
-				contextPrefix = opts.nextOpt();
+				conf.contextPrefix = opts.nextOpt();
 			}
 			else if (opts.nextEq("--port")) {
-				port = Integer.parseInt(opts.nextOpt());
+				conf.port = Integer.parseInt(opts.nextOpt());
 			}
 			else if (opts.nextEq("-i|--import|--additional-import")) {
 				System.err.println("-i|--import|--additional-import is no longer supported, all imports are expected to be in the source ontology '-g|--graph'");
@@ -103,46 +126,57 @@ public class StartUpTool {
 				System.exit(-1);
 			}
 			else if (opts.nextEq("--set-important-relation-parent")) {
-				importantRelationParent = opts.nextOpt();
+				conf.importantRelationParent = opts.nextOpt();
 			}
 			else if (opts.nextEq("--skip-class-id-validation")) {
-				checkLiteralIds = false;
+				conf.checkLiteralIds = false;
 			}
 			else if (opts.nextEq("--golr-cache-size")) {
 				String sizeString = opts.nextOpt();
-				golrCacheSize = Integer.parseInt(sizeString);
+				conf.golrCacheSize = Integer.parseInt(sizeString);
 			}
 			else if (opts.nextEq("--golr-labels")) {
 				String golrUrl = opts.nextOpt();
-				lookupService = new GolrExternalLookupService(golrUrl);
+				conf.lookupService = new GolrExternalLookupService(golrUrl);
 			}
 			else if (opts.nextEq("--no-reasoning|--no-reasoner")) {
-				JsonOrJsonpBatchHandler.USE_REASONER = false;
+				conf.useReasoner = false;
+			}
+			else if (opts.nextEq("--slme-hermit")) {
+				conf.rf = new org.semanticweb.HermiT.Reasoner.ReasonerFactory();
+				conf.useModuleReasoner = true;
+			}
+			else if (opts.nextEq("--slme-elk")) {
+				conf.rf = new ElkReasonerFactory();
+				conf.useModuleReasoner = true;
+			}
+			else if (opts.nextEq("--elk")) {
+				conf.rf = new ElkReasonerFactory();
+				conf.useModuleReasoner = false;
 			}
 			else {
 				break;
 			}
 		}
-		if (ontology == null) {
+		if (conf.ontology == null) {
 			System.err.println("No ontology graph available");
 			System.exit(-1);
 		}
-		if (modelFolder == null) {
+		if (conf.modelFolder == null) {
 			System.err.println("No model folder available");
 			System.exit(-1);
 		} 
-		String contextString = "/";
-		if (contextPrefix != null) {
-			contextString = "/"+contextPrefix;
+		conf.contextString = "/";
+		if (conf.contextPrefix != null) {
+			conf.contextString = "/"+conf.contextPrefix;
 		}
 
 		// wrap the Golr service with a cache
-		if (lookupService != null) {
-			lookupService = new CachingExternalLookupService(lookupService, golrCacheSize);
+		if (conf.lookupService != null) {
+			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize);
 		}
 		
-		startUp(ontology, catalog, modelFolder, modelIdLongFormPrefix, modelIdShortFormPrefix,
-				port, contextString, importantRelationParent, lookupService, checkLiteralIds);
+		startUp(conf);
 	}
 	
 	/**
@@ -193,50 +227,46 @@ public class StartUpTool {
 		return properties;
 	}
 
-	public static void startUp(String ontology, String catalog, String modelFolder, 
-			String modelIdLongFormPrefix, String modelIdShortFormPrefix, int port, String contextString, 
-			String importantRelationParent,
-			ExternalLookupService lookupService, boolean checkLiteralIds) 
+	public static void startUp(MinervaStartUpConfig conf) 
 			throws Exception {
 		// load ontology
-		LOGGER.info("Start loading ontology: "+ontology);
+		LOGGER.info("Start loading ontology: "+conf.ontology);
 		ParserWrapper pw = new ParserWrapper();
 		// if available, set catalog
-		if (catalog != null) {
-			pw.addIRIMapper(new CatalogXmlIRIMapper(catalog));
+		if (conf.catalog != null) {
+			pw.addIRIMapper(new CatalogXmlIRIMapper(conf.catalog));
 		}
-		OWLGraphWrapper graph = pw.parseToOWLGraph(ontology);
+		OWLGraphWrapper graph = pw.parseToOWLGraph(conf.ontology);
 		
 		// try to get important relations
-		Set<OWLObjectProperty> importantRelations = null;
-		if (importantRelationParent != null) {
+		if (conf.importantRelationParent != null) {
 			// try to find parent property
-			OWLObjectProperty parentProperty = getRelation(importantRelationParent, graph);
+			OWLObjectProperty parentProperty = getRelation(conf.importantRelationParent, graph);
 			if (parentProperty != null) {
 				// find all asserted direct sub properties of the parent property
-				importantRelations = getAssertedSubProperties(parentProperty, graph);
-				if (importantRelations.isEmpty()) {
-					LOGGER.warn("Could not find any asserted sub properties for parent: "+importantRelationParent);
+				conf.importantRelations = getAssertedSubProperties(parentProperty, graph);
+				if (conf.importantRelations.isEmpty()) {
+					LOGGER.warn("Could not find any asserted sub properties for parent: "+conf.importantRelationParent);
 				}
 			}
 			else {
-				LOGGER.warn("Could not find a property for rel: "+importantRelationParent);
+				LOGGER.warn("Could not find a property for rel: "+conf.importantRelationParent);
 			}
 		}
 
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
-		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph, modelIdLongFormPrefix, modelIdShortFormPrefix);
+		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph, conf.rf,
+				conf.modelIdLongFormPrefix, conf.modelIdShortFormPrefix);
 		// set folder to  models
-		models.setPathToOWLFiles(modelFolder);
+		models.setPathToOWLFiles(conf.modelFolder);
 		
 		// start server
-		Server server = startUp(models, port, contextString, importantRelations, lookupService, checkLiteralIds);
+		Server server = startUp(models, conf);
 		server.join();
 	}
 	
-	public static Server startUp(UndoAwareMolecularModelManager models, int port, String contextString, 
-			Set<OWLObjectProperty> relevantRelations, ExternalLookupService lookupService, boolean checkLiteralIds)
+	public static Server startUp(UndoAwareMolecularModelManager models, MinervaStartUpConfig conf)
 			throws Exception {
 		LOGGER.info("Setup Jetty config.");
 		// Configuration: Use an already existing handler instance
@@ -245,21 +275,22 @@ public class StartUpTool {
 		resourceConfig.register(GsonMessageBodyHandler.class);
 		resourceConfig.register(RequireJsonpFilter.class);
 		//resourceConfig.register(AuthorizationRequestFilter.class);
-		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, relevantRelations, lookupService);
-		batchHandler.CHECK_LITERAL_IDENTIFIERS = checkLiteralIds;
+		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.useReasoner, 
+				conf.useModuleReasoner, conf.importantRelations, conf.lookupService);
+		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
 		resourceConfig = resourceConfig.registerInstances(batchHandler);
 
 		// setup jetty server port and context path
-		Server server = new Server(port);
+		Server server = new Server(conf.port);
 
 		ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
-		context.setContextPath(contextString);
+		context.setContextPath(conf.contextString);
 		server.setHandler(context);
 		ServletHolder h = new ServletHolder(new ServletContainer(resourceConfig));
 		context.addServlet(h, "/*");
 
 		// start jetty server
-		LOGGER.info("Start server on port: "+port);
+		LOGGER.info("Start server on port: "+conf.port);
 		server.start();
 		return server;
 	}

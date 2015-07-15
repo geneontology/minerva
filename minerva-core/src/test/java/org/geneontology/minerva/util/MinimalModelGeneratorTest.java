@@ -24,6 +24,7 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
+import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.io.CatalogXmlIRIMapper;
 import owltools.vocab.OBOUpperVocabulary;
@@ -37,6 +38,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	private static Logger LOG = Logger.getLogger(MinimalModelGeneratorTest.class);
 
 	OWLOntologyManager m;
+	final OWLReasonerFactory rf = new ElkReasonerFactory();
 
 	/**
 	 * Basic test of minimal model generation. Takes an existential model of
@@ -565,7 +567,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	public void testAllIndividuals() throws OWLOntologyCreationException, OWLOntologyStorageException, IOException {
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/anonClassAssertions.owl"));
-		mc = new ModelContainer("1", tbox);
+		mc = new ModelContainer("1", tbox, rf);
 		mmg = new MinimalModelGenerator(mc);
 		mmg.isStrict = true;
 		mmg.generateAllNecessaryIndividuals();
@@ -592,7 +594,7 @@ public class MinimalModelGeneratorTest extends AbstractMinimalModelGeneratorTest
 	public void testTransitiveCycle2() throws OWLOntologyCreationException, OWLOntologyStorageException, IOException {
 		m = OWLManager.createOWLOntologyManager();
 		OWLOntology tbox = m.loadOntologyFromOntologyDocument(getResource("mmg/cycle.omn"));
-		mc = new ModelContainer("1", tbox);
+		mc = new ModelContainer("1", tbox, rf);
 		mmg = new MinimalModelGenerator(mc);
 		mmg.setAssertInverses(true); // NECESSARY FOR ELK
 
