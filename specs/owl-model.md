@@ -72,6 +72,8 @@ ClassAssertion. Additional constructs from the OWL2 spec can be added,
 but this requires extension of the [bbop-class-expression
 library](https://github.com/berkeleybop/class-expression/).
 
+## Modeling Conventions
+
 ### Axiom Annotations and Evidence
 
 Evidence and provenance is handled by convention using
@@ -100,17 +102,48 @@ Individual: <p>
   Type: IAO:nnnnnn
 ```
 
-
-
 ## LEGO Models
 
-A LEGO Model (LM) is a NM that consists of individuals instantiating
-GO activity classes, making use of a set of LEGO relations, in addition to classes in other ontologies. The
-core information in a LM is conveyed by these acitivity individuals.
+A LEGO Model (LM) is a NM that consists of at least one individual
+instantiating a *GO activity class* (ie SubClassOf GO:0003674). A LEGO
+model makes use of the LEGO subset of RO, which includes relations
+such as:
+
+ * [RO:0002333](http://purl.obolibrary.org/obo/RO_0002333) ! enabled by
+ * [BFO:0000066](http://purl.obolibrary.org/obo/BFO_0000066) ! occurs in
+ * [RO:0002406](http://purl.obolibrary.org/obo/RO_0002406) ! directly activates
+
+Standard uses include but are not limited to:
+
+ * `<MF> enabled_by <GeneProduct>`
+ * `<MF> {directly_activates,directly_inhibits} <MF>`
+ * `<{MF,BP}> part_of <BP>`
+ * `<{MF,BP}> occurs_in <CC>`
+
+Here `<MF>` denotes an OWL individual that instantiates a GO molecular
+function classes. Similarly `<GeneProduct>` denotes an instance of a
+class or protein or RNA. Here the class would be something like
+UniProtKB:Pnnnnn, and the individual would have an IRI that is
+specific to the model.
+
+Biological constraints on the structure of models are specified within
+the GO, RO and any related ontologies, and are enforced by standard
+OWL reasoners.
+
+Evidence follows the standard evidence model
 
 ## Phenotype Models
 
-TODO
+A Phenotype Model (PM) is a NM that consists of at least one
+individual instantiating a *disease* or *phenotype* class (e.g. MP or
+HP). The set of PMs and the set of LMs are not disjoint. A Phenotype
+LEGO model incorporates aspects of both; for example, an allele to
+phenotype link that serves as evidence for a GO IMP.
+
+A Causal Phenotype Model (CPM) is a PM in which there exists at least
+one OPA that uses a subrelation of
+[RO:0002410](http://purl.obolibrary.org/obo/RO_0002410) *causally
+related to* to connect two phenotype instances.
 
 
 
