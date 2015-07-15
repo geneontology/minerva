@@ -8,9 +8,9 @@ MINERVA_MEMORY="4G"
 MINERVA_PORT=6800
 
 ## Check that exactly one command-line argument is set
-if [ $# -ne 2 ]
+if [ $# -ne 3 ]
   then
-    echo "Exactly two arguments required: GO_SVN NOCTUA_MODELS"
+    echo "Exactly three arguments required: GO_SVN NOCTUA_MODELS MINERVA_LABEL_RESOLUTION"
     exit 1
 fi
 
@@ -18,11 +18,13 @@ fi
 ## Remove trailing slash
 GO_SVN=${1%/}
 NOCTUA_MODELS=$2
+MINERVA_LABEL_RESOLUTION=$3
 
 ## start Minerva
 # use catalog xml and PURLs
 java "-Xmx$MINERVA_MEMORY" -jar minerva-server.jar \
 --skip-class-id-validation \
+--golr-labels $MINERVA_LABEL_RESOLUTION \
 -c "$GO_SVN"/ontology/extensions/catalog-v001.xml \
 -g http://purl.obolibrary.org/obo/go/extensions/go-lego.owl \
 --set-important-relation-parent http://purl.obolibrary.org/obo/LEGOREL_0000000 \
