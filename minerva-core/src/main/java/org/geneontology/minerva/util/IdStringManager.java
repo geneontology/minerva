@@ -6,8 +6,6 @@ import org.semanticweb.owlapi.model.OWLNamedObject;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
 
-import com.google.gson.annotations.SerializedName;
-
 import owltools.graph.OWLGraphWrapper;
 import owltools.vocab.OBOUpperVocabulary;
 

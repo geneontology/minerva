@@ -69,7 +69,7 @@ public class JsonTools {
 				}
 			});
 			if (value != null) {
-				result = Pair.of(shorthand.name(), value);
+				result = Pair.of(shorthand.getShorthand(), value);
 			}
 		}
 		return result;
@@ -103,7 +103,7 @@ public class JsonTools {
 	}
 	
 	public static JsonAnnotation create(AnnotationShorthand key, String value) {
-		return JsonAnnotation.create(key.name(), value, null);
+		return JsonAnnotation.create(key.getShorthand(), value, null);
 	}
 	
 	private static boolean isIRIValue(JsonAnnotation ann) {
