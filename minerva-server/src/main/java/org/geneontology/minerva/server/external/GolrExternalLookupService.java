@@ -28,6 +28,7 @@ public class GolrExternalLookupService implements ExternalLookupService {
 			}
 			
 		});
+		LOG.info("Creating Golr lookup service for minerva: "+golrUrl);
 		this.golrUrl = golrUrl;
 	}
 	
@@ -37,6 +38,9 @@ public class GolrExternalLookupService implements ExternalLookupService {
 
 	@Override
 	public List<LookupEntry> lookup(String id) {
+		if (LOG.isDebugEnabled()) {
+			LOG.debug("Golr look up for id: "+id);
+		}
 		List<LookupEntry> result = new ArrayList<LookupEntry>();
 		try {
 			List<GolrBioentityDocument> bioentites = client.getGolrBioentites(id);
