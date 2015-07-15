@@ -2,12 +2,64 @@
 ## Noctua Models in OWL
 
 A Noctua Model (NM) is a collection of OWL axioms that fit within a
-defined subset of OWL, and follow a set of conventions for describing evidential 
+defined subset of OWL, and follow a set of conventions for modeling
+biological knowledge and associated evidence.
+
+Please read the [OWL2 Primer](http://www.w3.org/TR/owl2-primer/) and
+other documentation prior to this.
+
+By convention we use OWL2 syntax - this is normative. In some cases we
+provide the corresponding RDF syntax - this is informative.
+
+### Notes on OWL2 terminology
+
+Some OWL2 terminology can be confusing as terms may mean different
+things to non computer scientists. When we use terms that appear
+ambiguous in this document, we always mean the OWL2 sense of the
+term. Please refer to the official OWL2 documentation for
+clarification. Some problematic terms include:
+
+ * `Annotation` - a tuple consisting of a property and a value that
+   can be associated with either an object (Entity Annotation) or an
+   axiom (Axiom Annotation). Annotations are non-logical (they are
+   ignored by reasoners, and are intended primarily for humans). When
+   we say Annotation, we always mean it in the OWL2 sense and never in
+   the Gene Ontology sense.
+
+ * `Ontology` - any collection of OWL axioms. In conventional usage,
+   an Ontology is typically a collection of *class* axioms. A Noctua
+   model is an OWL Ontology that is a collection of *instance*
+   axioms. To avoid confusion we use the term 'model', but it should
+   be understood that this is nothing more than an OWL ontology that
+   can be manipulated by Minerva.
+
+### Models
+
+A Noctua Model is an OWL ontology that can be manipulated by Minerva
+
+Each model can be annotated with multiple Annotations. Any annotation
+properties can be used, but by convention we recommend the following:
+
+ * `dc:title` - used as the default display label for a model
+ * `dc:creator` - automatically added by system for the person who initiated the model
+ * `dc:contributor` - automatically added by system for anyone that edits
 
 ### Core Axiom Types
 
- * ClassAssertion (rdf:type)
- * ObjectPropertyAssertion (triples)
+ * ClassAssertion (rdf:type) -- determines the type of a Node in the model.
+ * ObjectPropertyAssertion (triples, aka Facts) -- connects two nodes
+
+These are the basic building blocks that are required for any
+non-degenerate model.
+
+By convention, individuals in the model are assumed by default to have
+non-meaningful IRIs (e.g. UUIDs) and to lack rdfs:label
+annotations. They are typically displayed to the user using the
+rdfs:label of the Class they instantiate.
+
+ObjectPropertyAssertions can use any OWL ObjectProperty. By
+convention, the RO is assumed. Particular Noctua instances may be
+configured with different lists, see below.
 
 ### Class Constructs
 
@@ -15,7 +67,40 @@ defined subset of OWL, and follow a set of conventions for describing evidential
  * IntersectionOf
  * UnionOf
 
-### Axiom Annotations
+These are typically used to construct a class expression for use in a
+ClassAssertion. Additional constructs from the OWL2 spec can be added,
+but this requires extension of the [bbop-class-expression
+library](https://github.com/berkeleybop/class-expression/).
+
+### Axiom Annotations and Evidence
+
+Evidence and provenance is handled by convention using
+AxiomAnnotations, typically AxiomAnnotations on
+ObjectPropertyAssertions.
+
+For example, consider a triple `i r j` which has some evidence of type
+E, supported by publication p. This would be written (in Manchester
+syntax) as:
+
+```
+Prefix: has-evidence: IAO:nnnn
+...
+
+Individual: <i>
+Facts:
+  Annotation: has-evidence: <e>
+  <r> <j>
+
+Individual: <e>
+  Type: E
+  Facts:
+   dc:source <p>
+
+Individual: <p>
+  Type: IAO:nnnnnn
+```
+
+
 
 ## LEGO Models
 
@@ -23,6 +108,9 @@ A LEGO Model (LM) is a NM that consists of individuals instantiating
 GO activity classes, making use of a set of LEGO relations, in addition to classes in other ontologies. The
 core information in a LM is conveyed by these acitivity individuals.
 
+## Phenotype Models
+
+TODO
 
 
 
