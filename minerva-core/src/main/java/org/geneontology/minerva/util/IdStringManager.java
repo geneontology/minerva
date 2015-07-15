@@ -6,8 +6,6 @@ import org.semanticweb.owlapi.model.OWLNamedObject;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
 
-import com.google.gson.annotations.SerializedName;
-
 import owltools.graph.OWLGraphWrapper;
 import owltools.vocab.OBOUpperVocabulary;
 
@@ -93,10 +91,7 @@ public class IdStringManager {
 	
 	public enum AnnotationShorthand {
 		
-		@SerializedName("hint-layout-x")
 		x(IRI.create("http://geneontology.org/lego/hint/layout/x"), "hint-layout-x"),
-		
-		@SerializedName("hint-layout-y")
 		y(IRI.create("http://geneontology.org/lego/hint/layout/y"), "hint-layout-y"),
 		comment(OWLRDFVocabulary.RDFS_COMMENT.getIRI()), // arbitrary String
 		evidence(IRI.create("http://geneontology.org/lego/evidence")), // eco class iri
@@ -124,6 +119,9 @@ public class IdStringManager {
 			return annotationProperty;
 		}
 		
+		public String getShorthand() {
+			return othername != null ? othername : name(); 
+		}
 		
 		public static AnnotationShorthand getShorthand(IRI iri) {
 			for (AnnotationShorthand type : AnnotationShorthand.values()) {

@@ -23,7 +23,7 @@ public class JsonTools {
 		AnnotationShorthand annotationShorthand = AnnotationShorthand.getShorthand(p.getIRI());
 		if (annotationShorthand != null) {
 			// try to shorten IRIs for shorthand annotations
-			return create(annotationShorthand.name(), value, true);
+			return create(annotationShorthand.getShorthand(), value, true);
 		}
 		// use full IRI strings for non-shorthand annotations
 		return create(p.getIRI().toString(), value, false);
@@ -69,7 +69,7 @@ public class JsonTools {
 				}
 			});
 			if (value != null) {
-				result = Pair.of(shorthand.name(), value);
+				result = Pair.of(shorthand.getShorthand(), value);
 			}
 		}
 		return result;
@@ -103,7 +103,7 @@ public class JsonTools {
 	}
 	
 	public static JsonAnnotation create(AnnotationShorthand key, String value) {
-		return JsonAnnotation.create(key.name(), value, null);
+		return JsonAnnotation.create(key.getShorthand(), value, null);
 	}
 	
 	private static boolean isIRIValue(JsonAnnotation ann) {
