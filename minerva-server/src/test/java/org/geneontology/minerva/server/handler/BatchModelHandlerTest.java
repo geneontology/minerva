@@ -2000,10 +2000,10 @@ public class BatchModelHandlerTest {
 		boolean foundX  = false;
 		boolean foundY = false;
 		for(JsonAnnotation ann : ind.annotations) {
-			if (ann.key.equals(AnnotationShorthand.x.name())) {
+			if (ann.key.equals(AnnotationShorthand.x.getShorthand())) {
 				foundX = "100".equals(ann.value);
 			}
-			else if (ann.key.equals(AnnotationShorthand.y.name())) {
+			else if (ann.key.equals(AnnotationShorthand.y.getShorthand())) {
 				foundY = "200".equals(ann.value);
 			}
 		}
