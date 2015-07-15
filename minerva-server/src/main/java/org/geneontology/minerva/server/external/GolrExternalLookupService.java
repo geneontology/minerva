@@ -57,6 +57,10 @@ public class GolrExternalLookupService implements ExternalLookupService {
 			}
 			return null;
 		}
+		catch (Throwable exception) {
+			LOG.warn("Unexpected problem during Golr lookup for id: "+id, exception);
+			throw exception;
+		}
 		return result;
 	}
 
