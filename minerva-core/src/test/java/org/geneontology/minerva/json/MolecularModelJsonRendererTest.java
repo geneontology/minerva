@@ -176,8 +176,8 @@ public class MolecularModelJsonRendererTest {
 		
 		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(o, null);
 		
-		final String aId = IdStringManager.getId(a, g);
-		final String bId = IdStringManager.getId(b, g);
+		final String aId = IdStringManager.getId(a);
+		final String bId = IdStringManager.getId(b);
 		
 		Pair<JsonOwlIndividual[],JsonOwlFact[]> pair = r.renderIndividuals(Arrays.asList(a, b));
 		assertEquals(2, pair.getLeft().length);

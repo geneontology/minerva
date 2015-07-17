@@ -210,7 +210,7 @@ public class MolecularModelJsonRenderer {
 	 */
 	public JsonOwlIndividual renderObject(OWLNamedIndividual i) {
 		JsonOwlIndividual json = new JsonOwlIndividual();
-		json.id = IdStringManager.getId(i, graph);
+		json.id = IdStringManager.getId(i);
 		
 		List<JsonOwlObject> typeObjs = new ArrayList<JsonOwlObject>();
 		Set<OWLClassExpression> assertedTypes = i.getTypes(ont);
@@ -274,9 +274,9 @@ public class MolecularModelJsonRenderer {
 			object = (OWLNamedIndividual) opa.getObject();
 	
 			fact = new JsonOwlFact();
-			fact.subject = IdStringManager.getId(subject, graph);
+			fact.subject = IdStringManager.getId(subject);
 			fact.property = IdStringManager.getId(property, graph);
-			fact.object = IdStringManager.getId(object, graph);
+			fact.object = IdStringManager.getId(object);
 			
 			JsonAnnotation[] anObjs = renderAnnotations(opa.getAnnotations());
 			if (anObjs != null && anObjs.length > 0) {
@@ -347,7 +347,7 @@ public class MolecularModelJsonRenderer {
 	}
 
 	private JsonOwlObject renderObject(OWLClass cls) {
-		String id = IdStringManager.getId(cls, graph);
+		String id = IdStringManager.getId(cls);
 		JsonOwlObject json = JsonOwlObject.createCls(id, getLabel(cls, id));
 		return json;
 	}
@@ -459,7 +459,7 @@ public class MolecularModelJsonRenderer {
 				continue;
 			}
 			JsonEvidenceInfo json = new JsonEvidenceInfo();
-			json.id = IdStringManager.getId(ecoClass, graph);
+			json.id = IdStringManager.getId(ecoClass);
 			json.label = graph.getLabel(ecoClass);
 			String code = codesForEcoClasses.get(ecoClass);
 			if (code != null) {

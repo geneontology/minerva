@@ -111,7 +111,7 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 			throw new UnknownIdentifierException("Could not find a class for id: "+cid);
 		}
 		OWLNamedIndividual individual = createIndividual(model, cls, annotations , true, metadata);
-		return Pair.of(IdStringManager.getId(individual.getIRI()), individual);
+		return Pair.of(IdStringManager.getId(individual), individual);
 	}
 	
 	
@@ -147,7 +147,7 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 	public Pair<String, OWLNamedIndividual> createIndividualNonReasoning(String modelId, OWLClassExpression ce, Set<OWLAnnotation> annotations, METADATA metadata) throws UnknownIdentifierException {
 		ModelContainer model = checkModelId(modelId);
 		OWLNamedIndividual i = createIndividual(model, ce, annotations, false, metadata);
-		return Pair.of(IdStringManager.getId(i.getIRI()), i);
+		return Pair.of(IdStringManager.getId(i), i);
 	}
 
 	public OWLNamedIndividual getNamedIndividual(String modelId, String iid) throws UnknownIdentifierException {
@@ -356,8 +356,7 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 	}
 	
 	private OWLNamedIndividual getIndividual(String indId, ModelContainer model) {
-		OWLGraphWrapper graph = new OWLGraphWrapper(model.getAboxOntology());
-		IRI iri = IdStringManager.getIRI(indId, graph);
+		IRI iri = IRI.create(indId);
 		return getIndividual(iri, model);
 	}
 	private OWLNamedIndividual getIndividual(IRI iri, ModelContainer model) {
