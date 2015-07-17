@@ -55,7 +55,7 @@ public class JsonTools {
 
 				@Override
 				public String visit(IRI iri) {
-					return IdStringManager.getId(iri);
+					return iri.toString();
 				}
 
 				@Override

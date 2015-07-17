@@ -359,7 +359,7 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 		IRI iri = IRI.create(indId);
 		return getIndividual(iri, model);
 	}
-	private OWLNamedIndividual getIndividual(IRI iri, ModelContainer model) {
+	public OWLNamedIndividual getIndividual(IRI iri, ModelContainer model) {
 		// check that individual is actually declared
 		boolean containsIRI = model.getAboxOntology().containsEntityInSignature(iri);
 		if (containsIRI == false) {

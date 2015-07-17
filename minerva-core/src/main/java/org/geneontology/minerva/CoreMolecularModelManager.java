@@ -12,7 +12,6 @@ import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
-import org.geneontology.minerva.util.IdStringManager;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.io.IRIDocumentSource;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentSource;
@@ -266,10 +265,9 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	}
 	
 	public static Pair<OWLNamedIndividual, Set<OWLAxiom>> createIndividual(String modelId, OWLOntology abox, OWLClassExpression ce, Set<OWLAnnotation> annotations) {
-		OWLGraphWrapper graph = new OWLGraphWrapper(abox);
 		String iid = generateId(modelId, "/");
-		IRI iri = IdStringManager.getIRI(iid, graph);
-		OWLDataFactory f = graph.getDataFactory();
+		IRI iri = IRI.create(iid);
+		OWLDataFactory f = abox.getOWLOntologyManager().getOWLDataFactory();
 		OWLNamedIndividual i = f.getOWLNamedIndividual(iri);
 		
 		// create axioms
@@ -321,7 +319,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 * @param metadata
 	 * @return set of IRIs used in annotations
 	 */
-	DeleteInformation deleteIndividual(ModelContainer model, OWLNamedIndividual i, boolean flushReasoner, METADATA metadata) {
+	public DeleteInformation deleteIndividual(ModelContainer model, OWLNamedIndividual i, boolean flushReasoner, METADATA metadata) {
 		Set<OWLAxiom> toRemoveAxioms = new HashSet<OWLAxiom>();
 		final DeleteInformation deleteInformation = new DeleteInformation();
 		
@@ -684,7 +682,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		final OWLOntologyManager manager = aBox.getOWLOntologyManager();
 		
 		// make sure the exported ontology has an ontologyId and that it maps to the modelId
-		final IRI expectedABoxIRI = IdStringManager.getIRI(model.getModelId(), graph);
+		final IRI expectedABoxIRI = IRI.create(model.getModelId());
 		OWLOntologyID ontologyID = aBox.getOntologyID();
 		if (ontologyID == null) {
 			manager.applyChange(new SetOntologyID(aBox, expectedABoxIRI));
@@ -735,7 +733,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		catch (OWLOntologyAlreadyExistsException e) {
 			// exception is thrown if there is an ontology with the same ID already in memory 
 			OWLOntologyID id = e.getOntologyID();
-			String existingModelId = IdStringManager.getId(id.getOntologyIRI());
+			String existingModelId = id.getOntologyIRI().toString();
 
 			// remove the existing memory model
 			unlinkModel(existingModelId);
@@ -750,7 +748,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		if (ontologyId != null) {
 			IRI iri = ontologyId.getOntologyIRI();
 			if (iri != null) {
-				modelId = IdStringManager.getId(iri);
+				modelId = iri.toString();
 			}
 		}
 		if (modelId == null) {

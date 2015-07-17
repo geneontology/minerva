@@ -37,7 +37,6 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.Me
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
 import org.geneontology.minerva.server.handler.OperationsTools.MissingParameterException;
 import org.geneontology.minerva.server.validation.BeforeSaveModelValidator;
-import org.geneontology.minerva.util.IdStringManager;
 import org.geneontology.minerva.util.IdStringManager.AnnotationShorthand;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
@@ -324,8 +323,13 @@ abstract class OperationsImpl {
 	
 	private void handleRemovedAnnotationIRIs(Set<IRI> iriSets, String modelId, UndoMetadata token) throws UnknownIdentifierException {
 		if (iriSets != null) {
+			ModelContainer model = m3.checkModelId(modelId);
 			for (IRI iri : iriSets) {
-				m3.deleteIndividualNonReasoning(modelId, iri, token);
+				OWLNamedIndividual i = m3.getIndividual(iri, model);
+				if (i != null) {
+					m3.deleteIndividual(model, i, token);
+				}
+				// ignoring undefined IRIs
 			}
 		}
 	}
@@ -736,7 +740,7 @@ abstract class OperationsImpl {
 								evidenceValue = pair.getRight().getIRI();
 							}
 							else {
-								evidenceValue = IdStringManager.getIRI(jsonAnn.value);
+								evidenceValue = IRI.create(jsonAnn.value);
 							}
 							result.add(create(f, shorthand, evidenceValue));
 						}
