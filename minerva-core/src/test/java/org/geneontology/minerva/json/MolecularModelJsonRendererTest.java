@@ -22,6 +22,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
@@ -56,6 +58,18 @@ public class MolecularModelJsonRendererTest {
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		IOUtils.closeQuietly(g);
+	}
+
+	@Test
+	public void testIRIConversion() throws Exception {
+		IRI evidenceIRI = AnnotationShorthand.evidence.getAnnotationProperty();
+		OWLAnnotationProperty p = f.getOWLAnnotationProperty(evidenceIRI);
+		IRI iriValue = IRI.generateDocumentIRI();
+		OWLAnnotation owlAnnotation = f.getOWLAnnotation(p, iriValue);
+		JsonAnnotation json = JsonTools.create(p, owlAnnotation.getValue());
+		assertEquals(AnnotationShorthand.evidence.name(), json.key);
+		assertEquals(iriValue.toString(), json.value);
+		assertEquals("IRI", json.valueType);
 	}
 
 	@Test
