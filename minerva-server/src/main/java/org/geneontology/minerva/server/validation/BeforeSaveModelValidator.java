@@ -7,7 +7,7 @@ import java.util.Set;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
-import org.geneontology.minerva.util.IdStringManager.AnnotationShorthand;
+import org.geneontology.minerva.util.AnnotationShorthand;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;

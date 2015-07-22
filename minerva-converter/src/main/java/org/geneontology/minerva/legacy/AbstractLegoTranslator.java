@@ -10,7 +10,7 @@ import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.geneontology.minerva.util.IdStringManager.AnnotationShorthand;
+import org.geneontology.minerva.util.AnnotationShorthand;
 import org.obolibrary.obo2owl.Owl2Obo;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLClass;

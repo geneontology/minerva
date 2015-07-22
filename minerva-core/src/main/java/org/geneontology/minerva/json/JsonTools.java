@@ -1,7 +1,7 @@
 package org.geneontology.minerva.json;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.geneontology.minerva.util.IdStringManager.AnnotationShorthand;
+import org.geneontology.minerva.util.AnnotationShorthand;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;

@@ -7,7 +7,7 @@ import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.CoreMolecularModelManager;
-import org.geneontology.minerva.util.IdStringManager.AnnotationShorthand;
+import org.geneontology.minerva.util.AnnotationShorthand;
 import org.semanticweb.owlapi.model.AddAxiom;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;

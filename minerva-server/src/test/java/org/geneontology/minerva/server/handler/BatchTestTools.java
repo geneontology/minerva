@@ -20,7 +20,7 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
-import org.geneontology.minerva.util.IdStringManager.AnnotationShorthand;
+import org.geneontology.minerva.util.AnnotationShorthand;
 
 public class BatchTestTools {
 
