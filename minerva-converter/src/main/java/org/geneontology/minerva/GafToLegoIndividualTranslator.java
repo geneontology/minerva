@@ -355,7 +355,7 @@ public class GafToLegoIndividualTranslator {
 	private IRI generateNewIRI(String type, OWLClassExpression ce) {
 		if( ce.isAnonymous() == false) {
 			OWLClass c = ce.asOWLClass();
-			String id = StringUtils.replaceOnce(IdStringManager.getId(c.getIRI()), ":", "_");
+			String id = StringUtils.replaceOnce(IdStringManager.getId(c), ":", "_");
 			type = type + "-" + id;
 		}
 		return IRI.create("http://geneontology.org/lego/"+type+"-"+UUID.randomUUID().toString());

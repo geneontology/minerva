@@ -1,7 +1,6 @@
 package org.geneontology.minerva.json;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.geneontology.minerva.util.IdStringManager;
 import org.geneontology.minerva.util.IdStringManager.AnnotationShorthand;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
@@ -23,10 +22,10 @@ public class JsonTools {
 		AnnotationShorthand annotationShorthand = AnnotationShorthand.getShorthand(p.getIRI());
 		if (annotationShorthand != null) {
 			// try to shorten IRIs for shorthand annotations
-			return create(annotationShorthand.getShorthand(), value, true);
+			return create(annotationShorthand.getShorthand(), value);
 		}
 		// use full IRI strings for non-shorthand annotations
-		return create(p.getIRI().toString(), value, false);
+		return create(p.getIRI().toString(), value);
 	}
 	
 	public static JsonAnnotation create(OWLDataProperty p, OWLLiteral value) {
@@ -75,18 +74,12 @@ public class JsonTools {
 		return result;
 	}
 	
-	private static JsonAnnotation create(final String key, OWLAnnotationValue value, final boolean useShortId) {
+	private static JsonAnnotation create(final String key, OWLAnnotationValue value) {
 		return value.accept(new OWLAnnotationValueVisitorEx<JsonAnnotation>() {
 
 			@Override
 			public JsonAnnotation visit(IRI iri) {
-				String iriString;
-				if (useShortId) {
-					iriString = IdStringManager.getId(iri);
-				}
-				else {
-					iriString = iri.toString();
-				}
+				String iriString = iri.toString();
 				return JsonAnnotation.create(key, iriString, VALUE_TYPE_IRI);
 			}
 

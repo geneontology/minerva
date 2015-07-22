@@ -63,7 +63,7 @@ public class IdStringManager {
 	 * @return id
 	 */
 	@Deprecated
-	public static String getId(IRI iri) {
+	private static String getId(IRI iri) {
 		String iriString = iri.toString();
 		// remove obo prefix from IRI
 		String full = StringUtils.removeStart(iriString, OBOUpperVocabulary.OBO);
