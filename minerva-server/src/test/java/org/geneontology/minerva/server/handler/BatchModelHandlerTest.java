@@ -2044,18 +2044,34 @@ public class BatchModelHandlerTest {
 		
 		// de-activate check as "IAO:0000311" is currently not in the import chain
 		boolean defaultIdPolicy = handler.CHECK_LITERAL_IDENTIFIERS;
-		M3BatchResponse response;
+		M3BatchResponse response1;
 		try {
 			handler.CHECK_LITERAL_IDENTIFIERS = false;
-			response = executeBatch(batch1);
+			response1 = executeBatch(batch1);
 		}
 		finally {
 			handler.CHECK_LITERAL_IDENTIFIERS = defaultIdPolicy;
 		}
 		
-		JsonOwlIndividual[] individuals = BatchTestTools.responseIndividuals(response);
-		assertEquals(1, individuals.length);
-		assertEquals("PMID:0000", individuals[0].id);
+		JsonOwlIndividual[] individuals1 = BatchTestTools.responseIndividuals(response1);
+		assertEquals(1, individuals1.length);
+		assertEquals("PMID:0000", individuals1[0].id);
+		
+		// de-activate check as "IAO:0000311" is currently not in the import chain
+		// execute second request to test behavior for multiple adds with the same PMID
+		defaultIdPolicy = handler.CHECK_LITERAL_IDENTIFIERS;
+		M3BatchResponse response2;
+		try {
+			handler.CHECK_LITERAL_IDENTIFIERS = false;
+			response2 = executeBatch(batch1);
+		}
+		finally {
+			handler.CHECK_LITERAL_IDENTIFIERS = defaultIdPolicy;
+		}
+
+		JsonOwlIndividual[] individuals2 = BatchTestTools.responseIndividuals(response2);
+		assertEquals(1, individuals2.length);
+		assertEquals("PMID:0000", individuals2[0].id);
 	}
 	
 	private M3BatchResponse executeBatch(List<M3Request> batch) {
