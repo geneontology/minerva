@@ -43,7 +43,8 @@ public class ModelSeeding<METADATA> {
 		reasoner.setIncludeImports(true);
 	}
 
-	public void seedModel(String modelId, ModelContainer model, MolecularModelManager<METADATA> manager, String bp, final METADATA metadata) throws Exception {
+	public void seedModel(ModelContainer model, MolecularModelManager<METADATA> manager, String bp, final METADATA metadata) throws Exception {
+		final IRI modelId = model.getModelId();
 		final Map<Bioentity, List<GeneAnnotation>> geneProducts = dataProvider.getGeneProducts(bp);
 		if (geneProducts.isEmpty()) {
 			throw new Exception("No gene products found for the given process id: "+bp);

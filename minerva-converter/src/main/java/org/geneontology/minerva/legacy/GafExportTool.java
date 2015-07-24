@@ -58,7 +58,7 @@ public class GafExportTool {
 		}
 		
 		LegoAllIndividualToGeneAnnotationTranslator translator = new LegoAllIndividualToGeneAnnotationTranslator(new OWLGraphWrapper(model.getTboxOntology()), r, ecoMapper);
-		Pair<GafDocument,BioentityDocument> pair = translator.translate(model.getModelId(), aBox, null);
+		Pair<GafDocument,BioentityDocument> pair = translator.translate(model.getModelId().toString(), aBox, null);
 		ByteArrayOutputStream outputStream = null;
 		try {
 			outputStream = new ByteArrayOutputStream();

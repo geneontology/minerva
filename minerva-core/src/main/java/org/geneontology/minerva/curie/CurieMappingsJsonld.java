@@ -2,7 +2,6 @@ package org.geneontology.minerva.curie;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -13,24 +12,14 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
-public class CurieMappingsJsonld implements CurieMappings {
+public final class CurieMappingsJsonld {
 
 	private static final Logger LOG = Logger.getLogger(CurieMappingsJsonld.class);
 	
-	private final Map<String, String> mappings;
-	
-	private static final CurieMappings EMPTY = new CurieMappingsJsonld(Collections.<String, String>emptyMap());
-	
-	private CurieMappingsJsonld(Map<String, String> mappings) {
-		super();
-		this.mappings = Collections.unmodifiableMap(mappings);
+	private CurieMappingsJsonld() {
+		// no instance
 	}
-
-	@Override
-	public Map<String, String> getMappings() {
-		return mappings;
-	}
-
+	
 	public static CurieMappings loadJsonLdContext(InputStream inputStream) {
 		try {
 			String jsonld = IOUtils.toString(inputStream);
@@ -38,7 +27,7 @@ public class CurieMappingsJsonld implements CurieMappings {
 		} catch (IOException e) {
 			LOG.error("Could not load JsonLD from input stream.", e);
 		}
-		return EMPTY;
+		return CurieMappings.EMPTY;
 	}
 	
 	
@@ -55,11 +44,11 @@ public class CurieMappingsJsonld implements CurieMappings {
 				}
 			}
 			parseEntries(topLevelMap, parseMappings);
-			return new CurieMappingsJsonld(parseMappings);
+			return new CurieMappings.SimpleCurieMappings(parseMappings);
 		} catch (JsonSyntaxException e) {
 			LOG.error("Could not parse JsonLD due to a JSON syntax problem.", e);
 		}
-		return EMPTY;
+		return CurieMappings.EMPTY;
 	}
 	
 	private static void parseEntries(Map<Object, Object> json, Map<String, String> parsedMappings) {

@@ -21,7 +21,7 @@ import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.generate.LegoModelGenerator;
-import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
+import org.geneontology.minerva.legacy.LegoAllIndividualToGeneAnnotationTranslator;
 import org.geneontology.minerva.util.MinimalModelGenerator;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
@@ -65,13 +65,14 @@ public class MinervaCommandRunner extends JsCommandRunner {
 	private synchronized MinimalModelGenerator getMinimalModelGenerator(String modelId, boolean isCreateNewAbox) throws OWLOntologyCreationException {
 
 		if (mmg == null) {
+			IRI modelIRI = IRI.create("foo://bar/"+modelId);
 			OWLReasonerFactory rf = new ElkReasonerFactory();
 			if (isCreateNewAbox) {
-				ModelContainer model = new ModelContainer(modelId, g.getSourceOntology(), rf);
+				ModelContainer model = new ModelContainer(modelIRI, g.getSourceOntology(), rf);
 				mmg = new MinimalModelGenerator(model);
 			}
 			else {
-				ModelContainer model = new ModelContainer(modelId, g.getSourceOntology(), g.getSourceOntology(), rf);
+				ModelContainer model = new ModelContainer(modelIRI, g.getSourceOntology(), g.getSourceOntology(), rf);
 				mmg = new MinimalModelGenerator(model);
 			}
 		}
@@ -404,7 +405,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				break;
 			}
 		}
-		ModelContainer model = new ModelContainer("1", g.getSourceOntology(), new ElkReasonerFactory());
+		ModelContainer model = new ModelContainer(IRI.create("foo://bar/1"), g.getSourceOntology(), new ElkReasonerFactory());
 		LegoModelGenerator ni = new LegoModelGenerator(model);
 		ni.setPrecomputePropertyClassCombinations(isPrecomputePropertyClassCombinations);
 		ni.initialize(gafdoc, g);
@@ -460,7 +461,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		OWLClass disease = this.resolveClass(opts.nextOpt());
 
 		OWLPrettyPrinter owlpp = new OWLPrettyPrinter(g);
-		ModelContainer model = new ModelContainer("1", g.getSourceOntology(), new ElkReasonerFactory());
+		ModelContainer model = new ModelContainer(IRI.create("foo://bar/1"), g.getSourceOntology(), new ElkReasonerFactory());
 		LegoModelGenerator ni = new LegoModelGenerator(model);
 		ni.setPrecomputePropertyClassCombinations(false);
 
@@ -511,7 +512,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		}
 		OWLClass rc1 = this.resolveClass(opts.nextOpt());
 		OWLClass rc2 = this.resolveClass(opts.nextOpt());
-		ModelContainer model = new ModelContainer("1", g.getSourceOntology(), new ElkReasonerFactory());
+		ModelContainer model = new ModelContainer(IRI.create("foo://bar/1"), g.getSourceOntology(), new ElkReasonerFactory());
 		LegoModelGenerator ni = new LegoModelGenerator(model);
 
 		ni.initialize(gafdoc, g);
@@ -589,7 +590,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		}
 
 		SimpleEcoMapper mapper = EcoMapperFactory.createSimple();
-		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(g, reasoner, mapper);
+		LegoAllIndividualToGeneAnnotationTranslator translator = new LegoAllIndividualToGeneAnnotationTranslator(g, reasoner, mapper);
 		GafDocument annotations = new GafDocument(null, null);
 		BioentityDocument entities = new BioentityDocument(null);
 

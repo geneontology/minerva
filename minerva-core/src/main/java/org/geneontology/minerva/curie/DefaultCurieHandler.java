@@ -14,20 +14,28 @@ public class DefaultCurieHandler {
 		// no instances
 	}
 	
-	private static volatile CurieHandler CURI_HANDLER = null;
+	private static volatile CurieHandler DEFAULT_CURI_HANDLER = null;
+	private static volatile CurieMappings DEFAULT_CURI_MAPPINGS = null;
 	
 	public static synchronized CurieHandler getDefaultHandler() {
-		if (CURI_HANDLER == null) {
-			CURI_HANDLER = loadDefaultHandler();
+		if (DEFAULT_CURI_HANDLER == null) {
+			DEFAULT_CURI_HANDLER = new MappedCurieHandler(getMappings());
 		}
-		return CURI_HANDLER;
+		return DEFAULT_CURI_HANDLER;
 	}
 	
-	static CurieHandler loadDefaultHandler() {
-		Map<String, String> curieMap = new HashMap<String, String>();
+	public static synchronized CurieMappings getMappings() {
+		if (DEFAULT_CURI_MAPPINGS == null) {
+			DEFAULT_CURI_MAPPINGS = loadDefaultMappings();
+		}
+		return DEFAULT_CURI_MAPPINGS;
+	}
+	
+	static CurieMappings loadDefaultMappings() {
+		final Map<String, String> curieMap = new HashMap<String, String>();
 		loadJsonldResource("obo_context.jsonld", curieMap);
 		loadJsonldResource("monarch_context.jsonld", curieMap);
-		return new MappedCurieHandler(curieMap);
+		return new CurieMappings.SimpleCurieMappings(curieMap);
 	}
 	
 	private static void loadJsonldResource(String resource, Map<String, String> curieMap) {

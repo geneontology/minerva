@@ -46,7 +46,7 @@ public class ModelContainer {
 	private volatile OWLOntologyChangeListener moduleListener = null;
 	private final Object moduleReasonerMutex = new Object();
 	
-	private final String modelId;
+	private final IRI modelId;
 	private OWLOntology aboxOntology = null;
 	private OWLOntology tboxOntology = null;
 	private OWLOntology queryOntology = null;
@@ -64,7 +64,7 @@ public class ModelContainer {
 	 * @param reasonerFactory
 	 * @throws OWLOntologyCreationException
 	 */
-	public ModelContainer(String modelId, OWLOntology tbox,
+	public ModelContainer(IRI modelId, OWLOntology tbox,
 			OWLReasonerFactory reasonerFactory) throws OWLOntologyCreationException {
 		tboxOntology = tbox;
 		this.modelId = modelId;
@@ -85,7 +85,7 @@ public class ModelContainer {
 	 * @param rf
 	 * @throws OWLOntologyCreationException
 	 */
-	public ModelContainer(String modelId, OWLOntology tbox, OWLOntology abox,
+	public ModelContainer(IRI modelId, OWLOntology tbox, OWLOntology abox,
 			OWLReasonerFactory rf) throws OWLOntologyCreationException {
 		tboxOntology = tbox;
 		aboxOntology = abox;
@@ -143,7 +143,7 @@ public class ModelContainer {
 		}
 	}
 
-	public String getModelId() {
+	public IRI getModelId() {
 		return modelId;
 	}
 

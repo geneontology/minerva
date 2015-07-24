@@ -18,7 +18,9 @@ import java.util.Set;
 
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.json.JsonEvidenceInfo;
 import org.geneontology.minerva.json.JsonOwlFact;
@@ -43,6 +45,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
+import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
@@ -56,6 +59,7 @@ public class BatchModelHandlerTest {
 	@Rule
 	public TemporaryFolder folder = new TemporaryFolder();
 
+	private static CurieHandler curieHandler = null;
 	private static JsonOrJsonpBatchHandler handler = null;
 	private static UndoAwareMolecularModelManager models = null;
 	private static Set<OWLObjectProperty> importantRelations = null;
@@ -78,11 +82,14 @@ public class BatchModelHandlerTest {
 		assertNotNull(legorelParent);
 		importantRelations = StartUpTool.getAssertedSubProperties(legorelParent, graph);
 		assertFalse(importantRelations.isEmpty());
-		CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
+		// curie handler
+		final String modelIdcurie = "gomodel";
+		final String modelIdPrefix = "http://model.geneontology.org/";
+		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
+		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
 		OWLReasonerFactory rf = new ElkReasonerFactory();
 //		rf = new org.semanticweb.HermiT.Reasoner.ReasonerFactory();
-		models = new UndoAwareMolecularModelManager(graph, rf, curieHandler,
-				"http://model.geneontology.org/", "gomodel:");
+		models = new UndoAwareMolecularModelManager(graph, rf, curieHandler, modelIdPrefix);
 		lookupService = createTestProteins();
 		boolean useReasoner = true;
 		boolean useModelReasoner = false;
@@ -1993,7 +2000,7 @@ public class BatchModelHandlerTest {
 		models.dispose();
 		assertTrue(models.getCurrentModelIds().isEmpty());
 		
-		Map<String, String> availableModelIds = models.getAvailableModelIds();
+		Set<IRI> availableModelIds = models.getAvailableModelIds();
 		assertEquals(1, availableModelIds.size());
 		
 		r =  new M3Request();

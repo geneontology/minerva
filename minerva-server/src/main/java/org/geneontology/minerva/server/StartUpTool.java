@@ -1,5 +1,6 @@
 package org.geneontology.minerva.server;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -9,7 +10,9 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.server.external.CachingExternalLookupService;
 import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.external.GolrExternalLookupService;
@@ -40,8 +43,8 @@ public class StartUpTool {
 		String ontology = null;
 		String catalog = null;
 		String modelFolder = null;
-		String modelIdLongFormPrefix = "http://model.geneontology.org/";
-		String modelIdShortFormPrefix = "gomodel:";
+		String modelIdPrefix = "http://model.geneontology.org/";
+		String modelIdcurie = "gomodel";
 		int golrCacheSize = 100000;
 		ExternalLookupService lookupService = null;
 		boolean checkLiteralIds = true;
@@ -61,7 +64,7 @@ public class StartUpTool {
 		boolean useModuleReasoner = false;
 		OWLReasonerFactory rf = new ElkReasonerFactory();
 		
-		CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
+		CurieHandler curieHandler;
 
 		// The subset of highly relevant relations is configured using super property
 		// all direct children (asserted) are considered important
@@ -89,11 +92,11 @@ public class StartUpTool {
 			else if (opts.nextEq("-f|--model-folder")) {
 				conf.modelFolder = opts.nextOpt();
 			}
-			else if (opts.nextEq("--model-id-long-prefix")) {
-				conf.modelIdLongFormPrefix = opts.nextOpt();
+			else if (opts.nextEq("--model-id-prefix")) {
+				conf.modelIdPrefix = opts.nextOpt();
 			}
-			else if (opts.nextEq("--model-id-short-prefix")) {
-				conf.modelIdShortFormPrefix = opts.nextOpt();
+			else if (opts.nextEq("--model-id-curie")) {
+				conf.modelIdcurie = opts.nextOpt();
 			}
 			else if (opts.nextEq("-p|--protein-folder")) {
 				System.err.println("specific protein ontologies are no longer supported");
@@ -180,6 +183,12 @@ public class StartUpTool {
 			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize);
 		}
 		
+		// set curie handler
+		CurieMappings defaultMappings = DefaultCurieHandler.getMappings();
+		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(conf.modelIdcurie, conf.modelIdPrefix));
+		// TODO make the modules configurable
+		conf.curieHandler = new MappedCurieHandler(defaultMappings, localMappings);
+		
 		startUp(conf);
 	}
 	
@@ -261,7 +270,7 @@ public class StartUpTool {
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph, conf.rf,
-				conf.curieHandler, conf.modelIdLongFormPrefix, conf.modelIdShortFormPrefix);
+				conf.curieHandler, conf.modelIdPrefix);
 		// set folder to  models
 		models.setPathToOWLFiles(conf.modelFolder);
 		

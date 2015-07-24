@@ -33,7 +33,7 @@ public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
 		ParserWrapper pw = new ParserWrapper();
 		g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
 		m3 = new UndoAwareMolecularModelManager(g, new ElkReasonerFactory(), curieHandler,
-				"http://testmodel.geneontology.org/", "testmodel:");
+				"http://testmodel.geneontology.org/");
 	}
 	
 	@AfterClass

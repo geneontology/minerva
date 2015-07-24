@@ -135,12 +135,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		}
 	}
 	
-	private void checkShortFormModelId(M3Request request) {
-		if (request.arguments != null) {
-			request.arguments.modelId = m3.getLongFormModelId(request.arguments.modelId);
-		}
-	}
-	
 	private M3BatchResponse m3Batch(M3BatchResponse response, M3Request[] requests, String userId, boolean isPrivileged) throws InsufficientPermissionsException, Exception {
 		userId = normalizeUserId(userId);
 		UndoMetadata token = new UndoMetadata(userId);
@@ -153,7 +147,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			final Entity entity = request.entity;
 			final Operation operation = request.operation;
 			checkPermissions(entity, operation, isPrivileged);
-			checkShortFormModelId(request);
 
 			// individual
 			if (Entity.individual == entity) {
@@ -251,7 +244,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		}
 		
 		// add other infos to data
-		response.data.id = m3.getShortFormModelId(values.model.getModelId());
+		response.data.id = curieHandler.getCuri(values.model.getModelId());
 		if (!isConsistent) {
 			response.data.inconsistentFlag =  Boolean.TRUE;
 		}

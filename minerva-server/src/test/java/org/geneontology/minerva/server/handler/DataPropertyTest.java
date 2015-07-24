@@ -48,7 +48,7 @@ public class DataPropertyTest {
 	
 	private UndoAwareMolecularModelManager createM3(OWLGraphWrapper g) throws OWLOntologyCreationException {
 		UndoAwareMolecularModelManager mmm = new UndoAwareMolecularModelManager(g, new ElkReasonerFactory(), curieHandler,
-				"http://model.geneontology.org/", "gomodel:");
+				"http://model.geneontology.org/");
 		return mmm;
 	}
 
@@ -139,7 +139,7 @@ public class DataPropertyTest {
 		final ModelContainer model = m3.generateBlankModel(new UndoMetadata("foo-user"));
 		
 		// create individual with annotations, including one data property
-		M3Request r1 = BatchTestTools.addIndividual(model.getModelId(), "CLS:0001");
+		M3Request r1 = BatchTestTools.addIndividual(curieHandler.getCuri(model.getModelId()), "CLS:0001");
 		r1.arguments.values = new JsonAnnotation[2];
 		r1.arguments.values[0] = new JsonAnnotation();
 		r1.arguments.values[0].key = AnnotationShorthand.comment.name();
@@ -184,7 +184,7 @@ public class DataPropertyTest {
 		r2.operation = Operation.removeAnnotation;
 		r2.arguments = new M3Argument();
 		r2.arguments.individual = individualsId;
-		r2.arguments.modelId = model.getModelId();
+		r2.arguments.modelId = curieHandler.getCuri(model.getModelId());
 		r2.arguments.values = new JsonAnnotation[1];
 		r2.arguments.values[0] = new JsonAnnotation();
 		r2.arguments.values[0].key = propIRI.toString();

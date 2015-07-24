@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Level;
@@ -44,7 +43,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	}
 	
 	private MolecularModelManager<Void> createM3(OWLGraphWrapper g) throws OWLOntologyCreationException {
-		return new MolecularModelManager<Void>(g, rf, curieHandler, "http://testmodel.geneontology.org/", "testmodel:");
+		return new MolecularModelManager<Void>(g, rf, curieHandler, "http://testmodel.geneontology.org/");
 	}
 
 	@Test
@@ -161,8 +160,8 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		mmm = createM3(g);
 		mmm.setPathToOWLFiles(saveFolder.getCanonicalPath());
 		
-		Map<String, String> availableModelIds = mmm.getAvailableModelIds();
-		assertTrue(availableModelIds.containsKey(model.getModelId()));
+		Set<IRI> availableModelIds = mmm.getAvailableModelIds();
+		assertTrue(availableModelIds.contains(model.getModelId()));
 		
 		final ModelContainer model2 = mmm.getModel(model.getModelId());
 		assertNotNull(model2);

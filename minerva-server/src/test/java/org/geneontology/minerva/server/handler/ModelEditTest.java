@@ -1,6 +1,8 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,7 +13,9 @@ import java.util.Set;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
@@ -19,6 +23,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
+import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
@@ -29,7 +34,7 @@ import owltools.io.ParserWrapper;
 
 public class ModelEditTest {
 
-	private final static CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
+	private static CurieHandler curieHandler = null;
 	private static JsonOrJsonpBatchHandler handler = null;
 	private static UndoAwareMolecularModelManager models = null;
 	
@@ -40,9 +45,15 @@ public class ModelEditTest {
 	
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
 		final OWLGraphWrapper graph = pw.parseToOWLGraph("http://purl.obolibrary.org/obo/go/extensions/go-lego.owl");
+		
+		// curie handler
+		final String modelIdcurie = "gomodel";
+		final String modelIdPrefix = "http://model.geneontology.org/";
+		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
+		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
+		
 		OWLReasonerFactory rf = new ElkReasonerFactory();
-		models = new UndoAwareMolecularModelManager(graph, rf, curieHandler,
-				"http://model.geneontology.org/", "gomodel:");
+		models = new UndoAwareMolecularModelManager(graph, rf, curieHandler, modelIdPrefix);
 		boolean useReasoner = false;
 		boolean useModelReasoner = false;
 		handler = new JsonOrJsonpBatchHandler(models, useReasoner, useModelReasoner,
@@ -67,7 +78,7 @@ public class ModelEditTest {
 		
 		final String individualId = "http://model.geneontology.org/5437882f00000024/5437882f0000032";
 		final String modelId = "http://model.geneontology.org/5437882f00000024";
-		final ModelContainer model = models.getModel(modelId);
+		final ModelContainer model = models.getModel(IRI.create(modelId));
 		assertNotNull(model);
 		boolean found = false;
 		Set<OWLNamedIndividual> individuals = model.getAboxOntology().getIndividualsInSignature();

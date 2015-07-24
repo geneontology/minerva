@@ -1,5 +1,6 @@
 package org.geneontology.minerva.util;
 
+import org.geneontology.minerva.curie.CurieHandler;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
 
@@ -53,10 +54,14 @@ public enum AnnotationShorthand {
 		return null;
 	}
 	
-	public static AnnotationShorthand getShorthand(String name) {
+	public static AnnotationShorthand getShorthand(String name, CurieHandler curieHandler) {
 		if (name != null) {
+			IRI iri = curieHandler.getIRI(name);
 			for (AnnotationShorthand type : AnnotationShorthand.values()) {
 				if (type.name().equals(name) || (type.othername != null && type.othername.equals(name))) {
+					return type;
+				}
+				else if (iri.equals(type.annotationProperty)) {
 					return type;
 				}
 			}

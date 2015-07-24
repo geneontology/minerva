@@ -1,6 +1,6 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.geneontology.minerva.server.handler.OperationsTools.*;
+import static org.geneontology.minerva.server.handler.OperationsTools.requireNotNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -12,15 +12,14 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.geneontology.minerva.CoreMolecularModelManager.DeleteInformation;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
-import org.geneontology.minerva.UndoAwareMolecularModelManager;
-import org.geneontology.minerva.CoreMolecularModelManager.DeleteInformation;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
+import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.ChangeEvent;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -33,10 +32,10 @@ import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.legacy.GafExportTool;
 import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
-import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
-import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.MetaResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
+import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
+import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.handler.OperationsTools.MissingParameterException;
 import org.geneontology.minerva.server.validation.BeforeSaveModelValidator;
 import org.geneontology.minerva.util.AnnotationShorthand;
@@ -566,7 +565,7 @@ abstract class OperationsImpl {
 		return null;
 	}
 
-	private void getCurrentUndoRedoForModel(M3BatchResponse response, String modelId, String userId) {
+	private void getCurrentUndoRedoForModel(M3BatchResponse response, IRI modelId, String userId) {
 		Pair<List<ChangeEvent>,List<ChangeEvent>> undoRedoEvents = m3.getUndoRedoEvents(modelId);
 		initMetaResponse(response);
 		List<Map<Object, Object>> undos = new ArrayList<Map<Object,Object>>();
@@ -634,28 +633,26 @@ abstract class OperationsImpl {
 		}
 		
 		// model ids
-		final Map<String, String> allModelIds = m3.getAvailableModelIds();
-		response.data.meta.modelIds = allModelIds.values(); // short form model ids
-		
-		Map<String,Map<String,String>> retMap = new HashMap<String, Map<String,String>>();
-		
-		// get model annotations
-		for( Entry<String, String> entry : allModelIds.entrySet() ){
-
-			retMap.put(entry.getValue(), new HashMap<String,String>());
-			Map<String, String> modelMap = retMap.get(entry.getValue());
+		// and model annotations
+		final Set<IRI> allModelIds = m3.getAvailableModelIds();
+		Map<String,Map<String,String>> allModelAnnotations = new HashMap<>();
+		for (IRI modelId : allModelIds) {
+			String curie = curieHandler.getCuri(modelId);
+			Map<String, String> modelAnnotations = new HashMap<>();
+			allModelAnnotations.put(curie, modelAnnotations);
 			
 			// Iterate through the model's a.
-			OWLOntology o = m3.getModelAbox(entry.getKey());
+			OWLOntology o = m3.getModelAbox(modelId);
 			Set<OWLAnnotation> annotations = o.getAnnotations();
 			for( OWLAnnotation an : annotations ){
 				Pair<String,String> pair = JsonTools.createSimplePair(an, curieHandler);
 				if (pair != null) {
-					modelMap.put(pair.getKey(), pair.getValue());
+					modelAnnotations.put(pair.getKey(), pair.getValue());
 				}
 			}
 		}
-		response.data.meta.modelsMeta = retMap;
+		response.data.meta.modelIds = allModelAnnotations.keySet(); // curies
+		response.data.meta.modelsMeta = allModelAnnotations;
 	}
 	
 	
@@ -696,12 +693,15 @@ abstract class OperationsImpl {
 		if (model == null) {
 			final String currentModelId = request.arguments.modelId;
 			requireNotNull(currentModelId, "request.arguments.modelId");
-			model = m3.checkModelId(currentModelId);
+			model = m3.checkModelId(curieHandler.getIRI(currentModelId));
 		}
 		else {
 			final String currentModelId = request.arguments.modelId;
-			if (currentModelId != null && model.getModelId().equals(currentModelId) == false) {
-				throw new MultipleModelIdsParameterException("Using multiple modelIds in one batch call is not supported.");
+			if (currentModelId != null) {
+				IRI modelId = curieHandler.getIRI(currentModelId);
+				if (model.getModelId().equals(modelId) == false) {
+					throw new MultipleModelIdsParameterException("Using multiple modelIds in one batch call is not supported.");
+				}
 			}
 		}
 		return model;
@@ -713,7 +713,7 @@ abstract class OperationsImpl {
 		if (values != null) {
 			for (JsonAnnotation jsonAnn : values) {
 				if (jsonAnn.key != null && jsonAnn.value != null) {
-					AnnotationShorthand shorthand = AnnotationShorthand.getShorthand(jsonAnn.key);
+					AnnotationShorthand shorthand = AnnotationShorthand.getShorthand(jsonAnn.key, curieHandler);
 					if (shorthand != null) {
 						if (AnnotationShorthand.evidence == shorthand) {
 							IRI evidenceIRI;
@@ -750,7 +750,7 @@ abstract class OperationsImpl {
 			OWLDataFactory f = model.getOWLDataFactory();
 			for (JsonAnnotation jsonAnn : values) {
 				if (jsonAnn.key != null && jsonAnn.value != null) {
-					AnnotationShorthand shorthand = AnnotationShorthand.getShorthand(jsonAnn.key);
+					AnnotationShorthand shorthand = AnnotationShorthand.getShorthand(jsonAnn.key, curieHandler);
 					if (shorthand == null) {
 						IRI pIRI = curieHandler.getIRI(jsonAnn.key);
 						if (dataPropertyIRIs.contains(pIRI)) {
