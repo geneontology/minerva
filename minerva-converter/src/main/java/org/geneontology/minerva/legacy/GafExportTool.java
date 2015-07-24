@@ -40,7 +40,6 @@ public class GafExportTool {
 	/**
 	 * Export the model (ABox) in a legacy format, such as GAF or GPAD.
 	 * 
-	 * @param modelId
 	 * @param model
 	 * @param useModuleReasoner
 	 * @param format format name or null for default
@@ -48,7 +47,7 @@ public class GafExportTool {
 	 * @throws IOException
 	 * @throws OWLOntologyCreationException
 	 */
-	public String exportModelLegacy(String modelId, ModelContainer model, boolean useModuleReasoner, String format) throws IOException, OWLOntologyCreationException {
+	public String exportModelLegacy(ModelContainer model, boolean useModuleReasoner, String format) throws IOException, OWLOntologyCreationException {
 		final OWLOntology aBox = model.getAboxOntology();
 		OWLReasoner r;
 		if (useModuleReasoner) {
@@ -59,7 +58,7 @@ public class GafExportTool {
 		}
 		
 		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(new OWLGraphWrapper(model.getTboxOntology()), r, ecoMapper);
-		Pair<GafDocument,BioentityDocument> pair = translator.translate(modelId, aBox, null);
+		Pair<GafDocument,BioentityDocument> pair = translator.translate(model.getModelId(), aBox, null);
 		ByteArrayOutputStream outputStream = null;
 		try {
 			outputStream = new ByteArrayOutputStream();

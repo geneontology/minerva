@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
+import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.json.JsonEvidenceInfo;
 import org.geneontology.minerva.json.JsonOwlFact;
@@ -35,7 +37,6 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.util.AnnotationShorthand;
-import org.geneontology.minerva.util.IdStringManager;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -77,9 +78,10 @@ public class BatchModelHandlerTest {
 		assertNotNull(legorelParent);
 		importantRelations = StartUpTool.getAssertedSubProperties(legorelParent, graph);
 		assertFalse(importantRelations.isEmpty());
+		CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 		OWLReasonerFactory rf = new ElkReasonerFactory();
 //		rf = new org.semanticweb.HermiT.Reasoner.ReasonerFactory();
-		models = new UndoAwareMolecularModelManager(graph, rf,
+		models = new UndoAwareMolecularModelManager(graph, rf, curieHandler,
 				"http://model.geneontology.org/", "gomodel:");
 		lookupService = createTestProteins();
 		boolean useReasoner = true;
@@ -349,7 +351,7 @@ public class BatchModelHandlerTest {
 		final OWLGraphWrapper tbox = models.getGraph();
 		final OWLObjectProperty part_of = tbox.getOWLObjectPropertyByIdentifier("part_of");
 		assertNotNull(part_of);
-		final String partOfJsonId = IdStringManager.getId(part_of, tbox);
+		final String partOfJsonId = models.getCuriHandler().getCuri(part_of);
 		boolean hasPartOf = false;
 		for (JsonRelationInfo info : relations) {
 			String id = info.id;
@@ -2018,6 +2020,37 @@ public class BatchModelHandlerTest {
 		assertTrue(foundY);
 	}
 
+	@Test
+	public void testPmidIRIIndividual() throws Exception {
+		String modelId = generateBlankModel();
+		
+		M3Request r;
+		final List<M3Request> batch1 = new ArrayList<M3Request>();
+		r = new M3Request();
+		r.entity = Entity.individual;
+		r.operation = Operation.add;
+		r.arguments = new M3Argument();
+		r.arguments.modelId = modelId;
+		r.arguments.individualIRI = "PMID:0000";
+		BatchTestTools.setExpressionClass(r.arguments, "IAO:0000311");
+		batch1.add(r);
+		
+		// de-activate check as "IAO:0000311" is currently not in the import chain
+		boolean defaultIdPolicy = handler.CHECK_LITERAL_IDENTIFIERS;
+		M3BatchResponse response;
+		try {
+			handler.CHECK_LITERAL_IDENTIFIERS = false;
+			response = executeBatch(batch1);
+		}
+		finally {
+			handler.CHECK_LITERAL_IDENTIFIERS = defaultIdPolicy;
+		}
+		
+		JsonOwlIndividual[] individuals = BatchTestTools.responseIndividuals(response);
+		assertEquals(1, individuals.length);
+		assertEquals("PMID:0000", individuals[0].id);
+	}
+	
 	private M3BatchResponse executeBatch(List<M3Request> batch) {
 		return executeBatch(batch, uid);
 	}

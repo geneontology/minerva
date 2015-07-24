@@ -8,11 +8,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.util.AnnotationShorthand;
-import org.geneontology.minerva.util.IdStringManager;
 import org.geneontology.reasoner.ExpressionMaterializingReasoner;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
@@ -35,19 +34,15 @@ public class ModelSeeding<METADATA> {
 	
 	private final ExpressionMaterializingReasoner reasoner;
 	private final SeedingDataProvider dataProvider;
+	private final CurieHandler curieHandler;
 	
-	public ModelSeeding(ExpressionMaterializingReasoner reasoner, SeedingDataProvider dataProvider) {
+	public ModelSeeding(ExpressionMaterializingReasoner reasoner, SeedingDataProvider dataProvider, CurieHandler curieHandler) {
 		this.reasoner = reasoner;
 		this.dataProvider = dataProvider;
+		this.curieHandler = curieHandler;
 		reasoner.setIncludeImports(true);
 	}
 
-	public Pair<String,ModelContainer> seedModel(MolecularModelManager<METADATA> manager, String bp, final METADATA metadata) throws Exception {
-		String modelId = manager.generateBlankModel(metadata);
-		ModelContainer model = manager.getModel(modelId);
-		return Pair.of(modelId, model);
-	}
-	
 	public void seedModel(String modelId, ModelContainer model, MolecularModelManager<METADATA> manager, String bp, final METADATA metadata) throws Exception {
 		final Map<Bioentity, List<GeneAnnotation>> geneProducts = dataProvider.getGeneProducts(bp);
 		if (geneProducts.isEmpty()) {
@@ -60,30 +55,30 @@ public class ModelSeeding<METADATA> {
 		
 		// create bp
 		Set<OWLAnnotation> bpAnnotations = null;
-		final Pair<String, OWLNamedIndividual> bpIndividual = manager.createIndividualNonReasoning(modelId, bp, bpAnnotations , metadata);
+		final OWLNamedIndividual bpIndividual = manager.createIndividualNonReasoning(modelId, bp, bpAnnotations , metadata);
 		
 		// create gene products
-		final Map<Bioentity, Pair<String, OWLNamedIndividual>> gpIndividuals = new HashMap<Bioentity, Pair<String,OWLNamedIndividual>>();
+		final Map<Bioentity, OWLNamedIndividual> gpIndividuals = new HashMap<>();
 		for(Bioentity gp : geneProducts.keySet()) {
 			List<GeneAnnotation> source = geneProducts.get(gp);
 			
 			// explicitly create OWL class for gene product
-			final IRI gpIRI = IdStringManager.getIRI(gp.getId(), modelGraph);
+			final IRI gpIRI = curieHandler.getIRI(gp.getId());
 			final OWLClass gpClass = modelGraph.getDataFactory().getOWLClass(gpIRI);
 			manager.addAxiom(model, modelGraph.getDataFactory().getOWLDeclarationAxiom(gpClass), false, metadata);
 			
 			Set<OWLAnnotation> gpAnnotations = generateAnnotations(source, f);
-			Pair<String, OWLNamedIndividual> gpIndividual = manager.createIndividualNonReasoning(modelId, gp.getId(), gpAnnotations, metadata);
+			OWLNamedIndividual gpIndividual = manager.createIndividualNonReasoning(modelId, gp.getId(), gpAnnotations, metadata);
 			gpIndividuals.put(gp, gpIndividual);
 		}
 		
-		Map<Bioentity, List<Pair<String, OWLNamedIndividual>>> mfIndividuals = new HashMap<Bioentity, List<Pair<String,OWLNamedIndividual>>>();
+		Map<Bioentity, List<OWLNamedIndividual>> mfIndividuals = new HashMap<>();
 		// add functions
 		Map<Bioentity, List<GeneAnnotation>> functions = dataProvider.getFunctions(geneProducts.keySet());
 		for(Bioentity gp : functions.keySet()) {
 			List<GeneAnnotation> functionAnnotations = functions.get(gp);
-			Pair<String, OWLNamedIndividual> gpIndividual = gpIndividuals.get(gp);
-			List<Pair<String, OWLNamedIndividual>> mfIndividualList = new ArrayList<Pair<String,OWLNamedIndividual>>(functionAnnotations.size());
+			OWLNamedIndividual gpIndividual = gpIndividuals.get(gp);
+			List<OWLNamedIndividual> mfIndividualList = new ArrayList<OWLNamedIndividual>(functionAnnotations.size());
 			mfIndividuals.put(gp, mfIndividualList);
 			
 			// TODO choose one representative and preserve others as choice!
@@ -92,10 +87,10 @@ public class ModelSeeding<METADATA> {
 			for(Entry<String, List<GeneAnnotation>> mfGroup : mfGroups.entrySet()) {
 				String mf = mfGroup.getKey();
 				Set<OWLAnnotation> mfAnnotations = generateAnnotations(mfGroup.getValue(), f);
-				Pair<String, OWLNamedIndividual> mfIndividual = manager.createIndividualNonReasoning(modelId, mf, mfAnnotations , metadata);
+				OWLNamedIndividual mfIndividual = manager.createIndividualNonReasoning(modelId, mf, mfAnnotations , metadata);
 				mfIndividualList.add(mfIndividual);
-				manager.addFactNonReasoning(modelId, relations.enabled_by_id, mfIndividual.getKey(), gpIndividual.getKey(), mfAnnotations, metadata);
-				manager.addFactNonReasoning(modelId, relations.part_of_id, mfIndividual.getKey(), bpIndividual.getKey(), null, metadata);
+				manager.addFactNonReasoning(model, relations.enabled_by, mfIndividual, gpIndividual, mfAnnotations, metadata);
+				manager.addFactNonReasoning(model, relations.part_of, mfIndividual, bpIndividual, null, metadata);
 				
 				// TODO check c16 for 'occurs in'
 			}
@@ -113,14 +108,14 @@ public class ModelSeeding<METADATA> {
 		// remove individuals for gp with unknown function
 		Set<Bioentity> unused = Sets.difference(geneProducts.keySet(), functions.keySet());
 		for(Bioentity gp : unused) {
-			Pair<String, OWLNamedIndividual> gpIndividual = gpIndividuals.remove(gp);
-			manager.deleteIndividualNonReasoning(modelId, gpIndividual.getKey(), metadata);
+			OWLNamedIndividual gpIndividual = gpIndividuals.remove(gp);
+			manager.deleteIndividualNonReasoning(modelId, gpIndividual, metadata);
 		}
 		
 		// add locations
 		Map<Bioentity, List<GeneAnnotation>> locations = dataProvider.getLocations(functions.keySet());
 		for(Bioentity gp : locations.keySet()) {
-			List<Pair<String, OWLNamedIndividual>> relevantMfIndividuals = mfIndividuals.get(gp);
+			List<OWLNamedIndividual> relevantMfIndividuals = mfIndividuals.get(gp);
 			if (relevantMfIndividuals == null) {
 				continue;
 			}
@@ -129,9 +124,9 @@ public class ModelSeeding<METADATA> {
 			for(Entry<String, List<GeneAnnotation>> locationGroup : locationGroups.entrySet()) {
 				String location = locationGroup.getKey();
 				Set<OWLAnnotation> source = generateAnnotations(locationGroup.getValue(), f);
-				Pair<String, OWLNamedIndividual> locationIndividual = manager.createIndividualNonReasoning(modelId, location, source, metadata);
-				for(Pair<String, OWLNamedIndividual> relevantMfIndividual : relevantMfIndividuals) {
-					manager.addFactNonReasoning(modelId, relations.occurs_in_id, relevantMfIndividual.getKey(), locationIndividual.getKey(), source, metadata);
+				OWLNamedIndividual locationIndividual = manager.createIndividualNonReasoning(modelId, location, source, metadata);
+				for(OWLNamedIndividual relevantMfIndividual : relevantMfIndividuals) {
+					manager.addFactNonReasoning(model, relations.occurs_in, relevantMfIndividual, locationIndividual, source, metadata);
 				}
 			}
 			

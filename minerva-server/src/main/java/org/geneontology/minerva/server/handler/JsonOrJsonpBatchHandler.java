@@ -11,8 +11,6 @@ import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
-import org.geneontology.minerva.ModelContainer;
-import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
 import org.geneontology.minerva.json.JsonModel;
@@ -198,24 +196,24 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		if (M3BatchResponse.SIGNAL_META.equals(response.signal)) {
 			return response;
 		}
-		if (values.modelId == null) {
+		if (values.model == null) {
 			return error(response, "Empty batch calls are not supported, at least one request is required.", null);
 		}
-		// get model
-		final ModelContainer model = m3.getModel(values.modelId);
-		if (model == null) {
-			throw new UnknownIdentifierException("Could not retrieve a model for id: "+values.modelId);
-		}
+//		// get model
+//		final ModelContainer model = m3.getModel(values.modelId);
+//		if (model == null) {
+//			throw new UnknownIdentifierException("Could not retrieve a model for id: "+values.modelId);
+//		}
 		// update reasoner
 		// report state
 		final OWLReasoner reasoner;
 		final boolean isConsistent;
 		if (useReasoner) {
 			if (useModuleReasoner) {
-				reasoner = model.getModuleReasoner();
+				reasoner = values.model.getModuleReasoner();
 			}
 			else {
-				reasoner = model.getReasoner();
+				reasoner = values.model.getReasoner();
 				reasoner.flush();
 			}
 			isConsistent = reasoner.isConsistent();
@@ -229,10 +227,10 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		response.data = new ResponseData();
 		final MolecularModelJsonRenderer renderer;
 		if (useReasoner && ADD_INFERENCES && isConsistent) {
-			renderer = createModelRenderer(model, externalLookupService, reasoner);
+			renderer = createModelRenderer(values.model, externalLookupService, reasoner, curieHandler);
 		}
 		else {
-			renderer = createModelRenderer(model, externalLookupService, null);
+			renderer = createModelRenderer(values.model, externalLookupService, null, curieHandler);
 		}
 		if (values.renderBulk) {
 			// render complete model
@@ -249,11 +247,11 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 				response.data.facts = pair.getRight();
 			}
 			// add model annotations
-			response.data.annotations = MolecularModelJsonRenderer.renderModelAnnotations(model.getAboxOntology());
+			response.data.annotations = MolecularModelJsonRenderer.renderModelAnnotations(values.model.getAboxOntology(), curieHandler);
 		}
 		
 		// add other infos to data
-		response.data.id = m3.getShortFormModelId(values.modelId);
+		response.data.id = m3.getShortFormModelId(values.model.getModelId());
 		if (!isConsistent) {
 			response.data.inconsistentFlag =  Boolean.TRUE;
 		}

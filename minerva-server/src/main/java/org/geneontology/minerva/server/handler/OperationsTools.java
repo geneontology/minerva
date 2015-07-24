@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.geneontology.minerva.ModelContainer;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.external.ExternalLookupService.LookupEntry;
@@ -53,16 +54,18 @@ class OperationsTools {
 	 * @param model
 	 * @param externalLookupService
 	 * @param reasoner
+	 * @param curieHandler
 	 * @return renderer
 	 */
 	static MolecularModelJsonRenderer createModelRenderer(
 			final ModelContainer model, 
 			final ExternalLookupService externalLookupService,
-			final OWLReasoner reasoner) {
+			final OWLReasoner reasoner,
+			final CurieHandler curieHandler) {
 		
 		MolecularModelJsonRenderer renderer;
 		if (externalLookupService != null) {
-			renderer = new MolecularModelJsonRenderer(model.getAboxOntology(), reasoner) {
+			renderer = new MolecularModelJsonRenderer(model.getAboxOntology(), reasoner, curieHandler) {
 
 				@Override
 				protected String getLabel(OWLNamedObject i, String id) {
@@ -82,7 +85,7 @@ class OperationsTools {
 			};
 		}
 		else {
-			renderer = new MolecularModelJsonRenderer(model.getAboxOntology(), reasoner);
+			renderer = new MolecularModelJsonRenderer(model.getAboxOntology(), reasoner, curieHandler);
 		}
 		return renderer;
 	}

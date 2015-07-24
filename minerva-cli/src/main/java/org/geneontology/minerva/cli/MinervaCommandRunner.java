@@ -18,6 +18,8 @@ import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxOntologyFormat;
 import org.geneontology.minerva.GafToLegoIndividualTranslator;
 import org.geneontology.minerva.GafToLegoTranslator;
 import org.geneontology.minerva.ModelContainer;
+import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.generate.LegoModelGenerator;
 import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
 import org.geneontology.minerva.util.MinimalModelGenerator;
@@ -294,6 +296,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		boolean merge = true;
 		boolean minimize = false;
 		String output = null;
+		CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 		OWLOntologyFormat format = new RDFXMLOntologyFormat();
 		while (opts.hasOpts()) {
 			if (opts.nextEq("-o|--output")) {
@@ -322,7 +325,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			}
 		}
 		if (g != null && gafdoc != null && output != null) {
-			GafToLegoIndividualTranslator tr = new GafToLegoIndividualTranslator(g, addLineNumber);
+			GafToLegoIndividualTranslator tr = new GafToLegoIndividualTranslator(g, curieHandler, addLineNumber);
 			OWLOntology lego = tr.translate(gafdoc);
 			
 			if (merge) {

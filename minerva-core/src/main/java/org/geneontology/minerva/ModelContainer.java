@@ -458,7 +458,6 @@ public class ModelContainer {
 	}
 
 	private IRI getSkolemIRI(Set<OWLEntity> objs) {
-		// TODO Auto-generated method stub
 		IRI iri;
 		StringBuffer sb = new StringBuffer();
 		for (OWLEntity obj : objs) {

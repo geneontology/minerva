@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
@@ -167,9 +168,9 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 		}
 	}
 
-	public UndoAwareMolecularModelManager(OWLGraphWrapper graph, OWLReasonerFactory rf,
+	public UndoAwareMolecularModelManager(OWLGraphWrapper graph, OWLReasonerFactory rf, CurieHandler curieHandler,
 			String modelIdLongFormPrefix, String modelIdShortFormPrefix) throws OWLOntologyCreationException {
-		super(graph, rf, modelIdLongFormPrefix, modelIdShortFormPrefix);
+		super(graph, rf, curieHandler, modelIdLongFormPrefix, modelIdShortFormPrefix);
 	}
 
 	@Override
@@ -198,28 +199,14 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 	/**
 	 * Undo latest change for the given model.
 	 * 
-	 * @param modelId
-	 * @param userId
-	 * @return true if the undo was successful
-	 * @throws UnknownIdentifierException
-	 */
-	public boolean undo(String modelId, String userId) throws UnknownIdentifierException {
-		ModelContainer model = checkModelId(modelId);
-		return undo(modelId, model, userId);
-	}
-
-	/**
-	 * Undo latest change for the given model.
-	 * 
-	 * @param modelId
 	 * @param model
 	 * @param userId
 	 * @return true if the undo was successful
 	 */
-	public boolean undo(String modelId, ModelContainer model, String userId) {
+	public boolean undo(ModelContainer model, String userId) {
 		UndoRedo undoRedo;
 		synchronized (allChanges) {
-			undoRedo = allChanges.get(modelId);
+			undoRedo = allChanges.get(model.getModelId());
 		}
 		if (undoRedo != null) {
 			final OWLOntology abox = model.getAboxOntology();
@@ -251,28 +238,14 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 	/**
 	 * Redo latest change for the given model.
 	 * 
-	 * @param modelId
-	 * @param userId
-	 * @return true if the redo was successful
-	 * @throws UnknownIdentifierException
-	 */
-	public boolean redo(String modelId, String userId) throws UnknownIdentifierException {
-		ModelContainer model = checkModelId(modelId);
-		return redo(modelId, model, userId);
-	}
-	
-	/**
-	 * Redo latest change for the given model.
-	 * 
-	 * @param modelId
 	 * @param model
 	 * @param userId
 	 * @return true if the redo was successful
 	 */
-	public boolean redo(String modelId, ModelContainer model, String userId) {
+	public boolean redo(ModelContainer model, String userId) {
 		UndoRedo undoRedo;
 		synchronized (allChanges) {
-			undoRedo = allChanges.get(modelId);
+			undoRedo = allChanges.get(model.getModelId());
 		}
 		if (undoRedo != null) {
 			final OWLOntology abox = model.getAboxOntology();

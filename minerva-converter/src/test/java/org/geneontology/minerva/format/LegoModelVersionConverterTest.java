@@ -10,6 +10,8 @@ import java.util.Set;
 import org.apache.commons.io.IOUtils;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
+import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.format.LegoModelVersionConverter;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.junit.Test;
@@ -25,13 +27,15 @@ import owltools.io.ParserWrapper;
 import com.google.common.collect.Sets;
 
 public class LegoModelVersionConverterTest {
+	
+	private static final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler(); 
 
 	@Test
 	public void testConvertLegoModelToAllIndividuals() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
 		OWLGraphWrapper graph = new OWLGraphWrapper(pw.parse("http://purl.obolibrary.org/obo/go.owl"));
 		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(graph, new ElkReasonerFactory(),
-				"http://model.geneontology.org/", "gomodel:");
+				curieHandler, "http://model.geneontology.org/", "gomodel:");
 		m3.setPathToOWLFiles("src/test/resources/lego-conversion");
 		Map<String, String> modelIds = m3.getAvailableModelIds();
 		assertEquals(1, modelIds.size());
@@ -70,7 +74,7 @@ public class LegoModelVersionConverterTest {
 	}
 
 	static String rendertoJson(ModelContainer model) {
-		return MolecularModelJsonRenderer.renderToJson(model.getAboxOntology(), null, true);
+		return MolecularModelJsonRenderer.renderToJson(model.getAboxOntology(), null, curieHandler, true);
 	}
 	
 	static String renderModel(ModelContainer model) throws Exception {

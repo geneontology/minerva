@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.geneontology.minerva.ModelContainer;
-import org.geneontology.minerva.MolecularModelManager;
-import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
@@ -19,9 +17,8 @@ public class BeforeSaveModelValidator {
 	
 	static boolean USE_CONSISTENCY_CHECKS = false;
 
-	public List<String> validateBeforeSave(String modelId, MolecularModelManager<?> modelManager, boolean useModuleReasoner) throws UnknownIdentifierException, OWLOntologyCreationException {
+	public List<String> validateBeforeSave(ModelContainer model, boolean useModuleReasoner) throws OWLOntologyCreationException {
 		// get model
-		ModelContainer model = modelManager.checkModelId(modelId);
 		List<String> errors = new ArrayList<String>(3);
 		// check that model has required meta data
 		OWLOntology aboxOntology = model.getAboxOntology();

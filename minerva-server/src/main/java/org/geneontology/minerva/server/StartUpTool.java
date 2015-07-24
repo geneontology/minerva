@@ -8,6 +8,8 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
+import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.server.external.CachingExternalLookupService;
 import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.external.GolrExternalLookupService;
@@ -58,6 +60,8 @@ public class StartUpTool {
 		 */
 		boolean useModuleReasoner = false;
 		OWLReasonerFactory rf = new ElkReasonerFactory();
+		
+		CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 
 		// The subset of highly relevant relations is configured using super property
 		// all direct children (asserted) are considered important
@@ -257,7 +261,7 @@ public class StartUpTool {
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph, conf.rf,
-				conf.modelIdLongFormPrefix, conf.modelIdShortFormPrefix);
+				conf.curieHandler, conf.modelIdLongFormPrefix, conf.modelIdShortFormPrefix);
 		// set folder to  models
 		models.setPathToOWLFiles(conf.modelFolder);
 		

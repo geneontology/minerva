@@ -13,6 +13,8 @@ import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
+import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.format.LegoModelVersionConverter;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -35,13 +37,14 @@ public class LegoAllIndividualToGeneAnnotationTranslatorTest extends OWLToolsTes
 	static ModelContainer model = null;
 	static String modelId = null;
 	static MolecularModelManager<?> m3 = null;
+	static final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
 		OWLGraphWrapper go = pw.parseToOWLGraph("http://purl.obolibrary.org/obo/go.owl");
 		MolecularModelManager<?> m3 = new MolecularModelManager<Object>(go, new ElkReasonerFactory(),
-				"http://model.geneontology.org/", "gomodel:");
+				curieHandler, "http://model.geneontology.org/", "gomodel:");
 		m3.setPathToOWLFiles(new File("src/test/resources/lego-conversion").getCanonicalPath());
 		
 		Map<String, String> modelIds = m3.getAvailableModelIds();

@@ -6,7 +6,6 @@ import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.geneontology.minerva.ModelContainer;
-import org.geneontology.minerva.MolecularModelManager;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.json.JsonOwlObject;
 import org.geneontology.minerva.json.JsonOwlObject.JsonOwlObjectType;
@@ -33,11 +32,9 @@ public class M3ExpressionParser {
 		this(true);
 	}
 
-	OWLClassExpression parse(String modelId, JsonOwlObject expression, 
-			MolecularModelManager<?> m3,
+	OWLClassExpression parse(ModelContainer model, JsonOwlObject expression, 
 			ExternalLookupService externalLookupService)
 			throws MissingParameterException, UnknownIdentifierException, OWLException {
-		ModelContainer model = m3.checkModelId(modelId);
 		OWLGraphWrapper g = new OWLGraphWrapper(model.getAboxOntology());
 		return parse(g, expression, externalLookupService);
 	}

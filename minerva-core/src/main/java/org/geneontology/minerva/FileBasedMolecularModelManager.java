@@ -123,7 +123,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	 * @return modelId
 	 * @throws OWLOntologyCreationException
 	 */
-	public String generateBlankModel(METADATA metadata) throws OWLOntologyCreationException {
+	public ModelContainer generateBlankModel(METADATA metadata) throws OWLOntologyCreationException {
 
 		// Create an arbitrary unique ID and add it to the system.
 		String modelId = generateId(modelIdLongFormPrefix);
@@ -155,7 +155,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		}
 		// add to internal map
 		modelMap.put(modelId, model);
-		return modelId;
+		return model;
 	}
 	
 	/**
@@ -170,14 +170,13 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	 */
 	public void saveAllModels(Set<OWLAnnotation> annotations, METADATA metadata) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
 		for (Entry<String, ModelContainer> entry : modelMap.entrySet()) {
-			saveModel(entry.getKey(), entry.getValue(), annotations, metadata);
+			saveModel(entry.getValue(), annotations, metadata);
 		}
 	}
 	
 	/**
 	 * Save a model to disk.
 	 * 
-	 * @param modelId 
 	 * @param m 
 	 * @param annotations 
 	 * @param metadata
@@ -186,7 +185,8 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	 * @throws OWLOntologyCreationException 
 	 * @throws IOException
 	 */
-	public void saveModel(String modelId, ModelContainer m, Set<OWLAnnotation> annotations, METADATA metadata) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
+	public void saveModel(ModelContainer m, Set<OWLAnnotation> annotations, METADATA metadata) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
+		String modelId = m.getModelId();
 		final OWLOntology ont = m.getAboxOntology();
 		final OWLOntologyManager manager = ont.getOWLOntologyManager();
 		
@@ -390,7 +390,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		IRI sourceIRI = IRI.create(modelFile);
 		OWLOntology abox = loadOntologyIRI(sourceIRI, false);
 		ModelContainer model = addModel(modelId, abox);
-		updateImports(modelId, model);
+		updateImports(model);
 	}
 
 	@Override
@@ -405,16 +405,4 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		String fileName = StringUtils.replaceOnce(modelId, modelIdLongFormPrefix, "");
 		return new File(pathToOWLFiles, fileName).getAbsoluteFile();
 	}
-
-	/**
-	 * TODO decide identifier policy for models
-	 * 
-	 * @param p
-	 * @param db
-	 * @return identifier
-	 */
-	String getModelId(String p, String db) {
-		return "gomodel:" + db + "-"+ p.replaceAll(":", "-");
-	}
-	
 }

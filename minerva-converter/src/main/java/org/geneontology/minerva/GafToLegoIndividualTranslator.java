@@ -10,7 +10,7 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
-import org.geneontology.minerva.util.IdStringManager;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
@@ -45,6 +45,7 @@ public class GafToLegoIndividualTranslator {
 	private static Logger logger = Logger.getLogger(GafToLegoIndividualTranslator.class);
 	
 	private final OWLGraphWrapper graph;
+	private final CurieHandler curieHandler;
 	private final OWLObjectProperty partOf;
 	private final OWLObjectProperty occursIn;
 	private final OWLObjectProperty inTaxon;
@@ -55,8 +56,9 @@ public class GafToLegoIndividualTranslator {
 
 	private final boolean addLineNumber;
 
-	public GafToLegoIndividualTranslator(OWLGraphWrapper graph, boolean addLineNumber) {
+	public GafToLegoIndividualTranslator(OWLGraphWrapper graph, CurieHandler curieHandler, boolean addLineNumber) {
 		this.graph = graph;
+		this.curieHandler = curieHandler;
 		this.addLineNumber = addLineNumber;
 		allOWLObjectsByAltId = graph.getAllOWLObjectsByAltId();
 		OWLDataFactory df = graph.getDataFactory();
@@ -159,7 +161,7 @@ public class GafToLegoIndividualTranslator {
 					final String extensionRelationString = extension.getRelation();
 					OWLClass extensionCls = getOwlClass(extensionClsString);
 					if (extensionCls == null) {
-						IRI extensionIRI = IdStringManager.getIRI(extensionClsString);
+						IRI extensionIRI = curieHandler.getIRI(extensionClsString);
 						extensionCls = f.getOWLClass(extensionIRI);
 					}
 					final OWLObjectProperty extensionRelation = graph.getOWLObjectPropertyByIdentifier(extensionRelationString);
@@ -311,14 +313,14 @@ public class GafToLegoIndividualTranslator {
 	}
 
 	private OWLClass addBioentityCls(String id, String lbl, String taxon, Set<OWLAxiom> axioms, OWLDataFactory f) {
-		IRI iri = IdStringManager.getIRI(id);
+		IRI iri = curieHandler.getIRI(id);
 		OWLClass cls = f.getOWLClass(iri);
 		boolean add = axioms.add(f.getOWLDeclarationAxiom(cls));
 		if (add) {
 			OWLAnnotation annotation = f.getOWLAnnotation(f.getRDFSLabel(), f.getOWLLiteral(lbl));
 			axioms.add(f.getOWLAnnotationAssertionAxiom(iri, annotation));
 			if (taxon != null) {
-				OWLClass taxonClass = f.getOWLClass(IdStringManager.getIRI(taxon));
+				OWLClass taxonClass = f.getOWLClass(curieHandler.getIRI(taxon));
 				axioms.add(f.getOWLDeclarationAxiom(taxonClass));
 				axioms.add(f.getOWLSubClassOfAxiom(cls,
 						f.getOWLObjectSomeValuesFrom(inTaxon, taxonClass)));
@@ -355,7 +357,7 @@ public class GafToLegoIndividualTranslator {
 	private IRI generateNewIRI(String type, OWLClassExpression ce) {
 		if( ce.isAnonymous() == false) {
 			OWLClass c = ce.asOWLClass();
-			String id = StringUtils.replaceOnce(IdStringManager.getId(c), ":", "_");
+			String id = StringUtils.replace(curieHandler.getCuri(c), ":", "_");
 			type = type + "-" + id;
 		}
 		return IRI.create("http://geneontology.org/lego/"+type+"-"+UUID.randomUUID().toString());

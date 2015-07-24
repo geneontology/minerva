@@ -10,6 +10,8 @@ import java.util.Set;
 
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
+import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
@@ -17,7 +19,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
-import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
@@ -28,6 +29,7 @@ import owltools.io.ParserWrapper;
 
 public class ModelEditTest {
 
+	private final static CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	private static JsonOrJsonpBatchHandler handler = null;
 	private static UndoAwareMolecularModelManager models = null;
 	
@@ -39,7 +41,7 @@ public class ModelEditTest {
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
 		final OWLGraphWrapper graph = pw.parseToOWLGraph("http://purl.obolibrary.org/obo/go/extensions/go-lego.owl");
 		OWLReasonerFactory rf = new ElkReasonerFactory();
-		models = new UndoAwareMolecularModelManager(graph, rf,
+		models = new UndoAwareMolecularModelManager(graph, rf, curieHandler,
 				"http://model.geneontology.org/", "gomodel:");
 		boolean useReasoner = false;
 		boolean useModelReasoner = false;
@@ -70,10 +72,9 @@ public class ModelEditTest {
 		boolean found = false;
 		Set<OWLNamedIndividual> individuals = model.getAboxOntology().getIndividualsInSignature();
 		for (OWLNamedIndividual individual : individuals) {
-			IRI iri = individual.getIRI();
-			if (iri.toString().equals(individualId)) {
+			String curi = curieHandler.getCuri(individual);
+			if (curi.equals(individualId)) {
 				found = true;
-				System.out.println(iri.toString());
 			}
 		}
 		assertTrue(found);

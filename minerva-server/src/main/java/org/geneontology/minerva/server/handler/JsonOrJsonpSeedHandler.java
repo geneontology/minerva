@@ -14,6 +14,7 @@ import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.generate.GolrSeedingDataProvider;
 import org.geneontology.minerva.generate.ModelSeeding;
 import org.geneontology.minerva.json.JsonModel;
@@ -40,11 +41,14 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 	private final String golrUrl;
 	private final OWLExtendedReasonerFactory<ExpressionMaterializingReasoner> factory;
 	private final ExternalLookupService externalLookupService;
+	private final CurieHandler curieHandler;
 	
-	public JsonOrJsonpSeedHandler(UndoAwareMolecularModelManager m3, String golr, ExternalLookupService externalLookupService) {
+	public JsonOrJsonpSeedHandler(UndoAwareMolecularModelManager m3, String golr, 
+			ExternalLookupService externalLookupService) {
 		this.m3 = m3;
 		this.golrUrl = golr;
 		this.externalLookupService = externalLookupService;
+		this.curieHandler = m3.getCuriHandler();
 		factory = new ExpressionMaterializingReasonerFactory(new ElkReasonerFactory());
 	}
 
@@ -131,7 +135,7 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 		reasoner.setIncludeImports(true);
 		GolrSeedingDataProvider provider = new GolrSeedingDataProvider(golrUrl, graph, 
 				reasoner, locationRoots, evidenceRestriction, taxonRestriction, blackList);
-		ModelSeeding<UndoMetadata> seeder = new ModelSeeding<UndoMetadata>(reasoner, provider);
+		ModelSeeding<UndoMetadata> seeder = new ModelSeeding<UndoMetadata>(reasoner, provider, curieHandler);
 
 		// seed
 		seeder.seedModel(modelId, model, m3, request.process, token);
@@ -143,7 +147,7 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 		reasoner.flush();
 		response.data.inconsistentFlag = reasoner.isConsistent();
 		
-		MolecularModelJsonRenderer renderer = createModelRenderer(model, externalLookupService, null);
+		MolecularModelJsonRenderer renderer = createModelRenderer(model, externalLookupService, null, curieHandler);
 		// render complete model
 		JsonModel jsonModel = renderer.renderModel();
 		response.data.individuals = jsonModel.individuals;

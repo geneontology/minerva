@@ -2,8 +2,11 @@ package org.geneontology.minerva.server.handler;
 
 import static org.junit.Assert.*;
 
+import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
+import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.handler.JsonOrJsonpSeedHandler;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
@@ -19,6 +22,7 @@ import owltools.io.ParserWrapper;
 
 public class SeedHandlerTest {
 
+	private final static CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	private static JsonOrJsonpSeedHandler handler = null;
 	private static UndoAwareMolecularModelManager models = null;
 	
@@ -34,7 +38,7 @@ public class SeedHandlerTest {
 	static void init(ParserWrapper pw, String golr) throws Exception {
 		final OWLGraphWrapper graph = pw.parseToOWLGraph("http://purl.obolibrary.org/obo/go/extensions/go-lego.owl");
 		
-		models = new UndoAwareMolecularModelManager(graph, new ElkReasonerFactory(),
+		models = new UndoAwareMolecularModelManager(graph, new ElkReasonerFactory(), curieHandler,
 				"http://model.geneontology.org/", "gomodel:");
 		handler = new JsonOrJsonpSeedHandler(models, golr, null);
 	}
@@ -79,8 +83,8 @@ public class SeedHandlerTest {
 	
 	private String generateBlankModel() throws Exception {
 		UndoMetadata metadata = new UndoMetadata(uid);
-		String modelId = models.generateBlankModel(metadata);
-		return modelId;
+		ModelContainer model = models.generateBlankModel(metadata);
+		return model.getModelId();
 	}
 	
 	private String toJson(Object data) {
