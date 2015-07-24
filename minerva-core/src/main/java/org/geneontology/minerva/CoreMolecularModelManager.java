@@ -626,58 +626,6 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		}
 	}
 
-//	private synchronized SimpleEcoMapper getSimpleEcoMapper() throws IOException {
-//		if (simpleEcoMapper == null) {
-//			simpleEcoMapper = EcoMapperFactory.createSimple();
-//		}
-//		return simpleEcoMapper;
-//	}
-//	
-//	/**
-//	 * Export the model (ABox) in a legacy format, such as GAF or GPAD.
-//	 * 
-//	 * @param modelId
-//	 * @param model
-//	 * @param format format name or null for default
-//	 * @return modelContent
-//	 * @throws IOException
-//	 */
-//	public String exportModelLegacy(String modelId, ModelContainer model, String format) throws IOException {
-//		final OWLOntology aBox = model.getAboxOntology();
-//		SimpleEcoMapper ecoMapper = getSimpleEcoMapper();
-//		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(graph, model.getReasoner(), ecoMapper);
-//		Pair<GafDocument,BioentityDocument> pair = translator.translate(modelId, aBox, null);
-//		ByteArrayOutputStream outputStream = null;
-//		try {
-//			outputStream = new ByteArrayOutputStream();
-//			if (format == null || "gaf".equalsIgnoreCase(format)) {
-//				// GAF
-//				GafWriter writer = new GafWriter();
-//				try {
-//					writer.setStream(new PrintStream(outputStream));
-//					GafDocument gafdoc = pair.getLeft();
-//					writer.write(gafdoc);
-//				}
-//				finally {
-//					writer.close();
-//				}
-//
-//			}
-//			else if ("gpad".equalsIgnoreCase(format)) {
-//				// GPAD version 1.2
-//				GpadWriter writer = new GpadWriter(new PrintWriter(outputStream) , 1.2);
-//				writer.write(pair.getLeft());
-//			}
-//			else {
-//				throw new IOException("Unknown legacy format: "+format);
-//			}
-//			return outputStream.toString();
-//		}
-//		finally {
-//			IOUtils.closeQuietly(outputStream);
-//		}
-//	}
-	
 	/**
 	 * Export the ABox, will try to set the ontologyID to the given modelId (to
 	 * ensure import assumptions are met)
