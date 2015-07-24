@@ -77,18 +77,22 @@ public class ModelEditTest {
 		M3Request r;
 		
 		final String individualId = "http://model.geneontology.org/5437882f00000024/5437882f0000032";
+		final IRI individualIRI = IRI.create(individualId);
+		final String individualIdCurie = curieHandler.getCuri(individualIRI);
 		final String modelId = "http://model.geneontology.org/5437882f00000024";
 		final ModelContainer model = models.getModel(IRI.create(modelId));
 		assertNotNull(model);
 		boolean found = false;
+		boolean foundCurie = false;
 		Set<OWLNamedIndividual> individuals = model.getAboxOntology().getIndividualsInSignature();
 		for (OWLNamedIndividual individual : individuals) {
-			String curi = curieHandler.getCuri(individual);
-			if (curi.equals(individualId)) {
+			if (individualIRI.equals(individual.getIRI())) {
 				found = true;
+				foundCurie = individualIdCurie.equals(curieHandler.getCuri(individual.getIRI()));
 			}
 		}
 		assertTrue(found);
+		assertTrue(foundCurie);
 		
 		
 		// create new individual
