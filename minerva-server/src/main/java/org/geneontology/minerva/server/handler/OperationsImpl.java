@@ -320,7 +320,7 @@ abstract class OperationsImpl {
 
 	private OWLClassExpression parseM3Expression(JsonOwlObject expression, BatchHandlerValues values)
 			throws MissingParameterException, UnknownIdentifierException, OWLException {
-		M3ExpressionParser p = new M3ExpressionParser(checkLiteralIdentifiers());
+		M3ExpressionParser p = new M3ExpressionParser(checkLiteralIdentifiers(), curieHandler);
 		if (enforceExternalValidate()) {
 			return p.parse(values.model, expression, externalLookupService);
 		}

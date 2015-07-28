@@ -45,6 +45,8 @@ public class StartUpTool {
 		String modelFolder = null;
 		String modelIdPrefix = "http://model.geneontology.org/";
 		String modelIdcurie = "gomodel";
+		
+		String golrUrl = null;
 		int golrCacheSize = 100000;
 		ExternalLookupService lookupService = null;
 		boolean checkLiteralIds = true;
@@ -143,8 +145,7 @@ public class StartUpTool {
 				conf.golrCacheSize = Integer.parseInt(sizeString);
 			}
 			else if (opts.nextEq("--golr-labels")) {
-				String golrUrl = opts.nextOpt();
-				conf.lookupService = new GolrExternalLookupService(golrUrl);
+				conf.golrUrl = opts.nextOpt();
 			}
 			else if (opts.nextEq("--no-reasoning|--no-reasoner")) {
 				conf.useReasoner = false;
@@ -177,17 +178,19 @@ public class StartUpTool {
 		if (conf.contextPrefix != null) {
 			conf.contextString = "/"+conf.contextPrefix;
 		}
-
-		// wrap the Golr service with a cache
-		if (conf.lookupService != null) {
-			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize);
-		}
 		
 		// set curie handler
 		CurieMappings defaultMappings = DefaultCurieHandler.getMappings();
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(conf.modelIdcurie, conf.modelIdPrefix));
+		
 		// TODO make the modules configurable
 		conf.curieHandler = new MappedCurieHandler(defaultMappings, localMappings);
+
+		// wrap the Golr service with a cache
+		if (conf.golrUrl != null) {
+			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler);
+			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize);
+		}
 		
 		startUp(conf);
 	}

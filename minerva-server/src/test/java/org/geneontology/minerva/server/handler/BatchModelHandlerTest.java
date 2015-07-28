@@ -90,7 +90,7 @@ public class BatchModelHandlerTest {
 		OWLReasonerFactory rf = new ElkReasonerFactory();
 //		rf = new org.semanticweb.HermiT.Reasoner.ReasonerFactory();
 		models = new UndoAwareMolecularModelManager(graph, rf, curieHandler, modelIdPrefix);
-		lookupService = createTestProteins();
+		lookupService = createTestProteins(curieHandler);
 		boolean useReasoner = true;
 		boolean useModelReasoner = false;
 //		useModelReasoner = true;
@@ -111,12 +111,16 @@ public class BatchModelHandlerTest {
 		JsonOrJsonpBatchHandler.ENFORCE_EXTERNAL_VALIDATE = true;
 	}
 
-	private static ExternalLookupService createTestProteins() {
+	private static ExternalLookupService createTestProteins(CurieHandler curieHandler) {
 		List<LookupEntry> testEntries = new ArrayList<LookupEntry>();
-		testEntries.add(new LookupEntry("UniProtKB:P0000", "P0000", "protein", "fake-taxon-id"));
-		testEntries.add(new LookupEntry("UniProtKB:P0001", "P0001", "protein", "fake-taxon-id"));
-		testEntries.add(new LookupEntry("UniProtKB:P0002", "P0002", "protein", "fake-taxon-id"));
-		testEntries.add(new LookupEntry("UniProtKB:P0003", "P0003", "protein", "fake-taxon-id"));
+		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0000"),
+				"P0000", "protein", "fake-taxon-id"));
+		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0001"),
+				"P0001", "protein", "fake-taxon-id"));
+		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0002"),
+				"P0002", "protein", "fake-taxon-id"));
+		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0003"),
+				"P0003", "protein", "fake-taxon-id"));
 		return new TableLookupService(testEntries);
 	}
 

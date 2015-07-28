@@ -113,8 +113,8 @@ public class DataPropertyTest {
 	public void testDataPropertyBatch() throws Exception {
 		OWLOntologyManager m = OWLManager.createOWLOntologyManager();
 		OWLOntology ontology = m.createOntology(IRI.generateDocumentIRI());
-		final IRI clsIRI = IRI.create("http://purl.obolibrary.org/obo/CLS_0001");
-		final IRI propIRI = IRI.create("http://purl.obolibrary.org/obo/PROP_0001");
+		final IRI clsIRI = IRI.create("http://purl.obolibrary.org/obo/GO_0001");
+		final IRI propIRI = IRI.create("http://purl.obolibrary.org/obo/RO_0001");
 		
 		// create a test ontology with one data property and one class
 		OWLDataFactory f = m.getOWLDataFactory();
@@ -139,7 +139,7 @@ public class DataPropertyTest {
 		final ModelContainer model = m3.generateBlankModel(new UndoMetadata("foo-user"));
 		
 		// create individual with annotations, including one data property
-		M3Request r1 = BatchTestTools.addIndividual(curieHandler.getCuri(model.getModelId()), "CLS:0001");
+		M3Request r1 = BatchTestTools.addIndividual(curieHandler.getCuri(model.getModelId()), "GO:0001");
 		r1.arguments.values = new JsonAnnotation[2];
 		r1.arguments.values[0] = new JsonAnnotation();
 		r1.arguments.values[0].key = AnnotationShorthand.comment.name();

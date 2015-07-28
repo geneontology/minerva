@@ -73,7 +73,7 @@ class OperationsTools {
 					if (label == null ) {
 						// TODO get taxon for now take the first one
 						// externalLookupService.lookup(id, taxon);
-						List<LookupEntry> lookup = externalLookupService.lookup(id);
+						List<LookupEntry> lookup = externalLookupService.lookup(i.getIRI());
 						if (lookup != null && !lookup.isEmpty()) {
 							LookupEntry entry = lookup.iterator().next();
 							label = entry.label;

@@ -6,12 +6,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.semanticweb.owlapi.model.IRI;
+
 public class TableLookupService implements ExternalLookupService {
 	
-	private final Map<String, List<LookupEntry>> entries;
+	private final Map<IRI, List<LookupEntry>> entries;
 	
 	public TableLookupService(Iterable<LookupEntry> dataProvider) {
-		entries = new HashMap<String, List<LookupEntry>>();
+		entries = new HashMap<>();
 		for (LookupEntry entry : dataProvider) {
 			List<LookupEntry> list = entries.get(entry.id);
 			if (list == null) {
@@ -23,7 +25,7 @@ public class TableLookupService implements ExternalLookupService {
 	}
 	
 	@Override
-	public List<LookupEntry> lookup(String id) {
+	public List<LookupEntry> lookup(IRI id) {
 		List<LookupEntry> list = entries.get(id);
 		if (list == null) {
 			list = Collections.emptyList();
@@ -32,7 +34,7 @@ public class TableLookupService implements ExternalLookupService {
 	}
 
 	@Override
-	public LookupEntry lookup(String id, String taxon) {
+	public LookupEntry lookup(IRI id, String taxon) {
 		LookupEntry entry = null;
 		List<LookupEntry> list = entries.get(id);
 		if (list != null) {

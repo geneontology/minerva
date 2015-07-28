@@ -8,6 +8,8 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.bbop.golr.java.RetrieveGolrBioentities;
 import org.bbop.golr.java.RetrieveGolrBioentities.GolrBioentityDocument;
+import org.geneontology.minerva.curie.CurieHandler;
+import org.semanticweb.owlapi.model.IRI;
 
 public class GolrExternalLookupService implements ExternalLookupService {
 	
@@ -15,10 +17,12 @@ public class GolrExternalLookupService implements ExternalLookupService {
 	
 	private final RetrieveGolrBioentities client;
 
-	private String golrUrl;
+	private final String golrUrl;
+
+	private final CurieHandler curieHandler;
 	
-	public GolrExternalLookupService(String golrUrl) {
-		this(new RetrieveGolrBioentities(golrUrl, 2){
+	public GolrExternalLookupService(String golrUrl, CurieHandler curieHandler) {
+		this(golrUrl, new RetrieveGolrBioentities(golrUrl, 2){
 
 			@Override
 			protected void logRequest(URI uri) {
@@ -27,27 +31,29 @@ public class GolrExternalLookupService implements ExternalLookupService {
 				}
 			}
 			
-		});
+		}, curieHandler);
 		LOG.info("Creating Golr lookup service for minerva: "+golrUrl);
-		this.golrUrl = golrUrl;
 	}
 	
-	protected GolrExternalLookupService(RetrieveGolrBioentities client) {
+	protected GolrExternalLookupService(String golrUrl, RetrieveGolrBioentities client, CurieHandler curieHandler) {
 		this.client = client;
+		this.golrUrl = golrUrl;
+		this.curieHandler = curieHandler;
 	}
-
+	
 	@Override
-	public List<LookupEntry> lookup(String id) {
+	public List<LookupEntry> lookup(IRI id) {
+		String curie = curieHandler.getCuri(id);
 		if (LOG.isDebugEnabled()) {
-			LOG.debug("Golr look up for id: "+id);
+			LOG.debug("Golr look up for id: "+id+" curie: "+curie);
 		}
 		List<LookupEntry> result = new ArrayList<LookupEntry>();
 		try {
-			List<GolrBioentityDocument> bioentites = client.getGolrBioentites(id);
+			List<GolrBioentityDocument> bioentites = client.getGolrBioentites(curie);
 			if (bioentites != null && !bioentites.isEmpty()) {
 				result = new ArrayList<ExternalLookupService.LookupEntry>(bioentites.size());
 				for(GolrBioentityDocument doc : bioentites) {
-					result.add(new LookupEntry(doc.bioentity, doc.bioentity_label, doc.type, doc.taxon));
+					result.add(new LookupEntry(id, doc.bioentity_label, doc.type, doc.taxon));
 				}
 			}
 		}
@@ -65,7 +71,7 @@ public class GolrExternalLookupService implements ExternalLookupService {
 	}
 
 	@Override
-	public LookupEntry lookup(String id, String taxon) {
+	public LookupEntry lookup(IRI id, String taxon) {
 		throw new RuntimeException("This method is not implemented.");
 	}
 

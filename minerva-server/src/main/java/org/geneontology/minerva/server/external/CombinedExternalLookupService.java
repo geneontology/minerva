@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.semanticweb.owlapi.model.IRI;
 
 public class CombinedExternalLookupService implements ExternalLookupService {
 	
@@ -25,7 +26,7 @@ public class CombinedExternalLookupService implements ExternalLookupService {
 	}
 
 	@Override
-	public List<LookupEntry> lookup(String id) {
+	public List<LookupEntry> lookup(IRI id) {
 		List<LookupEntry> result = new ArrayList<LookupEntry>();
 		for (ExternalLookupService service : services) {
 			List<LookupEntry> cResult = service.lookup(id);
@@ -37,7 +38,7 @@ public class CombinedExternalLookupService implements ExternalLookupService {
 	}
 
 	@Override
-	public LookupEntry lookup(String id, String taxon) {
+	public LookupEntry lookup(IRI id, String taxon) {
 		LookupEntry result = null;
 		for (ExternalLookupService service : services) {
 			result = service.lookup(id, taxon);
