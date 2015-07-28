@@ -1,0 +1,7 @@
+{
+  "@context": {
+    "FB": "http://flybase.org/reports/",
+    "WB": "http://www.wormbase.org/db/gene/gene?name=",
+    "SGD" : "http://identifiers.org/sgd/"
+  }
+}

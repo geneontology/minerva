@@ -35,6 +35,7 @@ public class DefaultCurieHandler {
 		final Map<String, String> curieMap = new HashMap<String, String>();
 		loadJsonldResource("obo_context.jsonld", curieMap);
 		loadJsonldResource("monarch_context.jsonld", curieMap);
+		loadJsonldResource("amigo_context.jsonld", curieMap);
 		return new CurieMappings.SimpleCurieMappings(curieMap);
 	}
 	
