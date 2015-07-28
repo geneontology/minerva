@@ -66,4 +66,11 @@ public class CachingExternalLookupService implements ExternalLookupService {
 		return entry;
 	}
 
+	@Override
+	public String toString() {
+		return "Caching("+service.toString()+")";
+	}
+	
+	
+
 }

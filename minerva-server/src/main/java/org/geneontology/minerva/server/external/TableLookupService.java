@@ -46,4 +46,9 @@ public class TableLookupService implements ExternalLookupService {
 		return entry;
 	}
 
+	@Override
+	public String toString() {
+		return "table: "+entries.size();
+	}
+
 }

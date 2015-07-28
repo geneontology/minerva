@@ -247,6 +247,7 @@ public class StartUpTool {
 		ParserWrapper pw = new ParserWrapper();
 		// if available, set catalog
 		if (conf.catalog != null) {
+			LOGGER.info("Adding catalog xml: "+conf.catalog);
 			pw.addIRIMapper(new CatalogXmlIRIMapper(conf.catalog));
 		}
 		OWLGraphWrapper graph = pw.parseToOWLGraph(conf.ontology);
@@ -272,6 +273,7 @@ public class StartUpTool {
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph, conf.rf,
 				conf.curieHandler, conf.modelIdPrefix);
 		// set folder to  models
+		LOGGER.info("Model path: "+conf.modelFolder);
 		models.setPathToOWLFiles(conf.modelFolder);
 		
 		// start server
@@ -288,6 +290,13 @@ public class StartUpTool {
 		resourceConfig.register(GsonMessageBodyHandler.class);
 		resourceConfig.register(RequireJsonpFilter.class);
 		//resourceConfig.register(AuthorizationRequestFilter.class);
+		
+		LOGGER.info("BatchHandler config useReasoner: "+conf.useReasoner);
+		LOGGER.info("BatchHandler config useModuleReasoner: "+conf.useModuleReasoner);
+		LOGGER.info("BatchHandler config importantRelations: "+conf.importantRelations);
+		LOGGER.info("BatchHandler config lookupService: "+conf.lookupService);
+		LOGGER.info("BatchHandler config checkLiteralIds: "+conf.checkLiteralIds);
+		
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.useReasoner, 
 				conf.useModuleReasoner, conf.importantRelations, conf.lookupService);
 		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
@@ -303,7 +312,7 @@ public class StartUpTool {
 		context.addServlet(h, "/*");
 
 		// start jetty server
-		LOGGER.info("Start server on port: "+conf.port);
+		LOGGER.info("Start server on port: "+conf.port+" context: "+conf.contextString);
 		server.start();
 		return server;
 	}

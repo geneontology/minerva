@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 public class CombinedExternalLookupService implements ExternalLookupService {
 	
 	private final Iterable<ExternalLookupService> services;
@@ -46,4 +48,10 @@ public class CombinedExternalLookupService implements ExternalLookupService {
 		return result;
 	}
 
+	@Override
+	public String toString() {
+		return "["+StringUtils.join(services, "|")+"]";
+	}
+
+	
 }

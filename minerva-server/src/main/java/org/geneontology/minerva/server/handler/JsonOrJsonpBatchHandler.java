@@ -31,8 +31,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	public static final String JSONP_DEFAULT_OVERWRITE = "json.wrf";
 	
 	
-	public static boolean USE_USER_ID = true;
-	public static boolean ADD_INFERENCES = true;
 	public static boolean VALIDATE_BEFORE_SAVE = true;
 	public static boolean ENFORCE_EXTERNAL_VALIDATE = false;
 	public boolean CHECK_LITERAL_IDENTIFIERS = true; // TODO remove the temp work-around
@@ -71,9 +69,8 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		return VALIDATE_BEFORE_SAVE;
 	}
 
-	@Override
-	boolean useUserId() {
-		return USE_USER_ID;
+	boolean isUseReasoner() {
+		return useReasoner;
 	}
 
 	@Override
@@ -219,7 +216,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		// create response.data
 		response.data = new ResponseData();
 		final MolecularModelJsonRenderer renderer;
-		if (useReasoner && ADD_INFERENCES && isConsistent) {
+		if (useReasoner && isConsistent) {
 			renderer = createModelRenderer(values.model, externalLookupService, reasoner, curieHandler);
 		}
 		else {

@@ -69,4 +69,10 @@ public class GolrExternalLookupService implements ExternalLookupService {
 		throw new RuntimeException("This method is not implemented.");
 	}
 
+	@Override
+	public String toString() {
+		return "Golr: "+golrUrl;
+	}
+
+	
 }

@@ -107,8 +107,6 @@ public class BatchModelHandlerTest {
 				return super.generateDateString();
 			}
 		};
-		JsonOrJsonpBatchHandler.ADD_INFERENCES = true;
-		JsonOrJsonpBatchHandler.USE_USER_ID = true;
 		JsonOrJsonpBatchHandler.VALIDATE_BEFORE_SAVE = true;
 		JsonOrJsonpBatchHandler.ENFORCE_EXTERNAL_VALIDATE = true;
 	}
@@ -284,8 +282,6 @@ public class BatchModelHandlerTest {
 	
 	@Test
 	public void testModelAnnotations() throws Exception {
-		assertTrue(JsonOrJsonpBatchHandler.USE_USER_ID);
-		
 		final String modelId = generateBlankModel();
 		
 		final JsonAnnotation[] annotations1 = getModelAnnotations(modelId);
@@ -767,7 +763,7 @@ public class BatchModelHandlerTest {
 	@Test
 	public void testInferencesRedundant() throws Exception {
 		models.dispose();
-		assertTrue(JsonOrJsonpBatchHandler.ADD_INFERENCES);
+		assertTrue(handler.isUseReasoner());
 		
 		final String modelId = generateBlankModel();
 		

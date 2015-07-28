@@ -95,8 +95,6 @@ abstract class OperationsImpl {
 	
 	abstract boolean validateBeforeSave();
 	
-	abstract boolean useUserId();
-	
 	static class BatchHandlerValues {
 		
 		final Set<OWLNamedIndividual> relevantIndividuals = new HashSet<>();
@@ -774,7 +772,7 @@ abstract class OperationsImpl {
 	}
 	
 	private void addGeneratedAnnotations(String userId, Set<OWLAnnotation> annotations, OWLDataFactory f) {
-		if (useUserId() && userId != null) {
+		if (userId != null) {
 			annotations.add(create(f, AnnotationShorthand.contributor, userId));
 		}
 	}
@@ -815,7 +813,7 @@ abstract class OperationsImpl {
 	
 	private void updateModelAnnotations(ModelContainer model, String userId, UndoMetadata token, MolecularModelManager<UndoMetadata> m3) throws UnknownIdentifierException {
 		final OWLDataFactory f = model.getOWLDataFactory();
-		if (useUserId() && userId != null) {
+		if (userId != null) {
 			Set<OWLAnnotation> annotations = new HashSet<OWLAnnotation>();
 			annotations.add(create(f, AnnotationShorthand.contributor, userId));
 			m3.addModelAnnotations(model, annotations, token);
