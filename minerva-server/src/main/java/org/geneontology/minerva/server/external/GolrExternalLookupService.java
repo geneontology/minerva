@@ -7,7 +7,9 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.bbop.golr.java.RetrieveGolrBioentities;
+import org.bbop.golr.java.RetrieveGolrOntologyClass;
 import org.bbop.golr.java.RetrieveGolrBioentities.GolrBioentityDocument;
+import org.bbop.golr.java.RetrieveGolrOntologyClass.GolrOntologyClassDocument;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.semanticweb.owlapi.model.IRI;
 
@@ -15,7 +17,8 @@ public class GolrExternalLookupService implements ExternalLookupService {
 	
 	private final static Logger LOG = Logger.getLogger(GolrExternalLookupService.class);
 	
-	private final RetrieveGolrBioentities client;
+	private final RetrieveGolrBioentities bioentityClient;
+	private final RetrieveGolrOntologyClass ontologyClient;
 
 	private final String golrUrl;
 
@@ -31,12 +34,23 @@ public class GolrExternalLookupService implements ExternalLookupService {
 				}
 			}
 			
+		}, new RetrieveGolrOntologyClass(golrUrl, 2) {
+
+			@Override
+			protected void logRequest(URI uri) {
+				if(LOG.isDebugEnabled()) {
+					LOG.debug("Golr request: "+uri);
+				}
+			}
+			
 		}, curieHandler);
 		LOG.info("Creating Golr lookup service for minerva: "+golrUrl);
 	}
 	
-	protected GolrExternalLookupService(String golrUrl, RetrieveGolrBioentities client, CurieHandler curieHandler) {
-		this.client = client;
+	protected GolrExternalLookupService(String golrUrl, RetrieveGolrBioentities bioentityClient,
+			RetrieveGolrOntologyClass ontologyClient, CurieHandler curieHandler) {
+		this.bioentityClient = bioentityClient;
+		this.ontologyClient = ontologyClient;
 		this.golrUrl = golrUrl;
 		this.curieHandler = curieHandler;
 	}
@@ -49,11 +63,20 @@ public class GolrExternalLookupService implements ExternalLookupService {
 		}
 		List<LookupEntry> result = new ArrayList<LookupEntry>();
 		try {
-			List<GolrBioentityDocument> bioentites = client.getGolrBioentites(curie);
+			List<GolrBioentityDocument> bioentites = bioentityClient.getGolrBioentites(curie);
 			if (bioentites != null && !bioentites.isEmpty()) {
 				result = new ArrayList<ExternalLookupService.LookupEntry>(bioentites.size());
 				for(GolrBioentityDocument doc : bioentites) {
 					result.add(new LookupEntry(id, doc.bioentity_label, doc.type, doc.taxon));
+				}
+			}
+			else if (ontologyClient != null){
+				List<GolrOntologyClassDocument> ontologyEntities = ontologyClient.getGolrOntologyCls(curie);
+				if (ontologyEntities != null && !ontologyEntities.isEmpty()) {
+					result = new ArrayList<ExternalLookupService.LookupEntry>(ontologyEntities.size());
+					for(GolrOntologyClassDocument doc : ontologyEntities) {
+						result.add(new LookupEntry(id, doc.annotation_class_label, "ontology_class", null));
+					}
 				}
 			}
 		}

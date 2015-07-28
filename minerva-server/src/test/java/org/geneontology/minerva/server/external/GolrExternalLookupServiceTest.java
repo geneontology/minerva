@@ -1,17 +1,15 @@
 package org.geneontology.minerva.server.external;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.bbop.golr.java.RetrieveGolrBioentities;
+import org.bbop.golr.java.RetrieveGolrOntologyClass;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
-import org.geneontology.minerva.server.external.CachingExternalLookupService;
-import org.geneontology.minerva.server.external.ExternalLookupService;
-import org.geneontology.minerva.server.external.GolrExternalLookupService;
 import org.geneontology.minerva.server.external.ExternalLookupService.LookupEntry;
 import org.junit.Test;
 import org.semanticweb.owlapi.model.IRI;
@@ -39,15 +37,29 @@ public class GolrExternalLookupServiceTest {
 	}
 	
 	@Test
+	public void testLookupStringCls() throws Exception {
+		GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler);
+		List<LookupEntry> lookup = s.lookup(handler.getIRI("PO:0001040"));
+		assertEquals(1, lookup.size());
+		assertEquals("dry seed stage", lookup.get(0).label);
+	}
+	
+	@Test
 	public void testCachedGolrLookup() throws Exception {
 		final List<URI> requests = new ArrayList<URI>();
-		GolrExternalLookupService golr = new GolrExternalLookupService(golrUrl, new RetrieveGolrBioentities(golrUrl, 2){
+		GolrExternalLookupService golr = new GolrExternalLookupService(golrUrl, 
+		new RetrieveGolrBioentities(golrUrl, 2){
 
 			@Override
 			protected void logRequest(URI uri) {
 				requests.add(uri);
 			}
 			
+		}, new RetrieveGolrOntologyClass(golrUrl, 2){
+			@Override
+			protected void logRequest(URI uri) {
+				requests.add(uri);
+			}
 		}, handler);
 		ExternalLookupService s = new CachingExternalLookupService(golr, 1000);
 		
