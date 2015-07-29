@@ -51,7 +51,12 @@ public class AmigoContextGenerator {
 							if (url_syntax != null) {
 								int pos = url_syntax.indexOf("[example_id]");
 								if (pos > 0) {
-									extracted.put(database, url_syntax.substring(0, pos));
+									String longPrefix = url_syntax.substring(0, pos);
+									if (existing.containsValue(longPrefix)) {
+										System.out.println("Skipping: '"+database+"' conflicting longPrefix: "+longPrefix);
+										continue;
+									}
+									extracted.put(database, longPrefix);
 								}
 							}
 							else {

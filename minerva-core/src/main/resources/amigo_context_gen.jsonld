@@ -134,7 +134,6 @@
     "WB_REF" : "http://www.wormbase.org/db/misc/paper?name=",
     "Wikipedia" : "http://en.wikipedia.org/wiki/",
     "dictyBase_REF" : "http://dictybase.org/db/cgi-bin/dictyBase/reference/reference.pl?refNo=",
-    "dictyBase_gene_name" : "http://dictybase.org/gene/",
     "taxon" : "http://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id="
   }
 }
