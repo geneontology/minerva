@@ -1,0 +1,10 @@
+{
+  "@context": {
+    "IntAct" : "http://www.ebi.ac.uk/intact/search/do/search?searchString=",
+    "JCVI_CMR" : "http://cmr.jcvi.org/cgi-bin/CMR/shared/GenePage.cgi?locus=",
+    "Pfam" : "http://www.sanger.ac.uk/cgi-bin/Pfam/getacc?",
+    "SUBTILIST" : "http://genolist.pasteur.fr/SubtiList/",
+    "WB": "http://www.wormbase.org/db/gene/gene?name=",
+    "SGD" : "http://identifiers.org/sgd/"
+  }
+}

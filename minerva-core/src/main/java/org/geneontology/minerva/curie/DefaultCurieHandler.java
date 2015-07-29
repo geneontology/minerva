@@ -35,11 +35,12 @@ public class DefaultCurieHandler {
 		final Map<String, String> curieMap = new HashMap<String, String>();
 		loadJsonldResource("obo_context.jsonld", curieMap);
 		loadJsonldResource("monarch_context.jsonld", curieMap);
-		loadJsonldResource("amigo_context.jsonld", curieMap);
+		loadJsonldResource("amigo_context_gen.jsonld", curieMap);
+		loadJsonldResource("amigo_context_manual.jsonld", curieMap);
 		return new CurieMappings.SimpleCurieMappings(curieMap);
 	}
 	
-	private static void loadJsonldResource(String resource, Map<String, String> curieMap) {
+	public static void loadJsonldResource(String resource, Map<String, String> curieMap) {
 		InputStream stream = loadResourceAsStream(resource);
 		if (stream != null) {
 			CurieMappings jsonldContext = CurieMappingsJsonld.loadJsonLdContext(stream);
