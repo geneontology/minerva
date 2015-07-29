@@ -56,6 +56,10 @@ public class AmigoContextGenerator {
 										System.out.println("Skipping: '"+database+"' conflicting longPrefix: "+longPrefix);
 										continue;
 									}
+									if (extracted.containsValue(longPrefix)) {
+										System.out.println("Skipping: '"+database+"' conflicting longPrefix: "+longPrefix);
+										continue;
+									}
 									extracted.put(database, longPrefix);
 								}
 							}

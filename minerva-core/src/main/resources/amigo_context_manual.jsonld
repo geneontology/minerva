@@ -5,6 +5,10 @@
     "Pfam" : "http://www.sanger.ac.uk/cgi-bin/Pfam/getacc?",
     "SUBTILIST" : "http://genolist.pasteur.fr/SubtiList/",
     "WB": "http://www.wormbase.org/db/gene/gene?name=",
+    "ENSEMBL_GeneID" : "http://www.ensembl.org/id/geneid/",
+    "ENSEMBL_ProteinID" : "http://www.ensembl.org/id/proteinid/",
+    "ENSEMBL_TranscriptID" : "http://www.ensembl.org/id/transcriptid/",
+    "GONUTS" : "http://gowiki.tamu.edu/wiki/index.php/gonuts/",
     "SGD" : "http://identifiers.org/sgd/"
   }
 }
