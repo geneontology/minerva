@@ -10,11 +10,14 @@ import java.util.Map;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
+import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.graph.OWLGraphWrapper;
 
@@ -23,11 +26,11 @@ import owltools.graph.OWLGraphWrapper;
  */
 public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMetadata> {
 	
-	private final Map<String, UndoRedo> allChanges = new HashMap<String, UndoRedo>();
+	private final Map<IRI, UndoRedo> allChanges = new HashMap<>();
 	
 	private static class UndoRedo {
-		final Deque<ChangeEvent> undoBuffer = new LinkedList<ChangeEvent>();
-		final Deque<ChangeEvent> redoBuffer = new LinkedList<ChangeEvent>();
+		final Deque<ChangeEvent> undoBuffer = new LinkedList<>();
+		final Deque<ChangeEvent> redoBuffer = new LinkedList<>();
 		private UndoMetadata token  = null;
 		
 		void addUndo(List<OWLOntologyChange> changes, UndoMetadata metadata) {
@@ -166,8 +169,9 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 		}
 	}
 
-	public UndoAwareMolecularModelManager(OWLGraphWrapper graph, String modelIdLongFormPrefix, String modelIdShortFormPrefix) throws OWLOntologyCreationException {
-		super(graph, modelIdLongFormPrefix, modelIdShortFormPrefix);
+	public UndoAwareMolecularModelManager(OWLGraphWrapper graph, OWLReasonerFactory rf,
+			CurieHandler curieHandler, String modelIdLongFormPrefix) throws OWLOntologyCreationException {
+		super(graph, rf, curieHandler, modelIdLongFormPrefix);
 	}
 
 	@Override
@@ -178,7 +182,7 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 		}
 		UndoRedo undoRedo;
 		synchronized (allChanges) {
-			String modelId = model.getModelId();
+			IRI modelId = model.getModelId();
 			undoRedo = allChanges.get(modelId);
 			if (undoRedo == null) {
 				undoRedo = new UndoRedo();
@@ -196,28 +200,14 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 	/**
 	 * Undo latest change for the given model.
 	 * 
-	 * @param modelId
-	 * @param userId
-	 * @return true if the undo was successful
-	 * @throws UnknownIdentifierException
-	 */
-	public boolean undo(String modelId, String userId) throws UnknownIdentifierException {
-		ModelContainer model = checkModelId(modelId);
-		return undo(modelId, model, userId);
-	}
-
-	/**
-	 * Undo latest change for the given model.
-	 * 
-	 * @param modelId
 	 * @param model
 	 * @param userId
 	 * @return true if the undo was successful
 	 */
-	public boolean undo(String modelId, ModelContainer model, String userId) {
+	public boolean undo(ModelContainer model, String userId) {
 		UndoRedo undoRedo;
 		synchronized (allChanges) {
-			undoRedo = allChanges.get(modelId);
+			undoRedo = allChanges.get(model.getModelId());
 		}
 		if (undoRedo != null) {
 			final OWLOntology abox = model.getAboxOntology();
@@ -249,28 +239,14 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 	/**
 	 * Redo latest change for the given model.
 	 * 
-	 * @param modelId
-	 * @param userId
-	 * @return true if the redo was successful
-	 * @throws UnknownIdentifierException
-	 */
-	public boolean redo(String modelId, String userId) throws UnknownIdentifierException {
-		ModelContainer model = checkModelId(modelId);
-		return redo(modelId, model, userId);
-	}
-	
-	/**
-	 * Redo latest change for the given model.
-	 * 
-	 * @param modelId
 	 * @param model
 	 * @param userId
 	 * @return true if the redo was successful
 	 */
-	public boolean redo(String modelId, ModelContainer model, String userId) {
+	public boolean redo(ModelContainer model, String userId) {
 		UndoRedo undoRedo;
 		synchronized (allChanges) {
-			undoRedo = allChanges.get(modelId);
+			undoRedo = allChanges.get(model.getModelId());
 		}
 		if (undoRedo != null) {
 			final OWLOntology abox = model.getAboxOntology();
@@ -304,7 +280,7 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 	 * @param modelId
 	 * @return pair of undo (left) and redo (right) events
 	 */
-	public Pair<List<ChangeEvent>, List<ChangeEvent>> getUndoRedoEvents(String modelId) {
+	public Pair<List<ChangeEvent>, List<ChangeEvent>> getUndoRedoEvents(IRI modelId) {
 		UndoRedo undoRedo = null;
 		synchronized (allChanges) {
 			undoRedo = allChanges.get(modelId);

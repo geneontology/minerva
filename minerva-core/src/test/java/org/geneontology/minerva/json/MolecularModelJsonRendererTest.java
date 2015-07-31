@@ -11,17 +11,20 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
+import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.json.JsonOwlIndividual;
 import org.geneontology.minerva.json.JsonOwlObject;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.json.JsonOwlObject.JsonOwlObjectType;
-import org.geneontology.minerva.util.IdStringManager;
-import org.geneontology.minerva.util.IdStringManager.AnnotationShorthand;
+import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
@@ -38,6 +41,7 @@ import owltools.io.ParserWrapper;
 public class MolecularModelJsonRendererTest {
 
 	private static OWLGraphWrapper g = null;
+	private static CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	private static OWLOntologyManager m = null;
 	private static OWLDataFactory f = null;
 	private static OWLObjectProperty partOf = null;
@@ -56,6 +60,18 @@ public class MolecularModelJsonRendererTest {
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 		IOUtils.closeQuietly(g);
+	}
+
+	@Test
+	public void testIRIConversion() throws Exception {
+		IRI evidenceIRI = AnnotationShorthand.evidence.getAnnotationProperty();
+		OWLAnnotationProperty p = f.getOWLAnnotationProperty(evidenceIRI);
+		IRI iriValue = IRI.generateDocumentIRI();
+		OWLAnnotation owlAnnotation = f.getOWLAnnotation(p, iriValue);
+		JsonAnnotation json = JsonTools.create(p, owlAnnotation.getValue(), curieHandler);
+		assertEquals(AnnotationShorthand.evidence.name(), json.key);
+		assertEquals(curieHandler.getCuri(iriValue), json.value);
+		assertEquals("IRI", json.valueType);
 	}
 
 	@Test
@@ -106,7 +122,7 @@ public class MolecularModelJsonRendererTest {
 		// declare type
 		m.addAxiom(o, f.getOWLClassAssertionAxiom(g.getOWLClassByIdentifier("GO:0000003"), ni1));
 		
-		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(o, null);
+		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(o, null, curieHandler);
 		
 		JsonOwlIndividual jsonOwlIndividualOriginal = r.renderObject(ni1);
 		assertEquals(2, jsonOwlIndividualOriginal.annotations.length);
@@ -134,7 +150,7 @@ public class MolecularModelJsonRendererTest {
 		m.addAxiom(o, f.getOWLClassAssertionAxiom(ce, ni1));
 		
 		
-		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(o, null);
+		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(o, null, curieHandler);
 		
 		JsonOwlIndividual jsonOwlIndividualOriginal = r.renderObject(ni1);
 		
@@ -174,10 +190,10 @@ public class MolecularModelJsonRendererTest {
 		addFact(o, e, a, partOf);
 		addFact(o, a, f, partOf);
 		
-		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(o, null);
+		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(o, null, curieHandler);
 		
-		final String aId = IdStringManager.getId(a, g);
-		final String bId = IdStringManager.getId(b, g);
+		final String aId = curieHandler.getCuri(a);
+		final String bId = curieHandler.getCuri(b);
 		
 		Pair<JsonOwlIndividual[],JsonOwlFact[]> pair = r.renderIndividuals(Arrays.asList(a, b));
 		assertEquals(2, pair.getLeft().length);

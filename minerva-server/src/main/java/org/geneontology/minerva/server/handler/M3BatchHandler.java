@@ -85,6 +85,9 @@ public interface M3BatchHandler {
 		String predicate;
 		String individual;
 		
+		@SerializedName("individual-iri")
+		String individualIRI;
+		
 		@SerializedName("taxon-id")
 		String taxonId;
 		

@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
-import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
@@ -47,48 +46,15 @@ public class ModelContainer {
 	private volatile OWLOntologyChangeListener moduleListener = null;
 	private final Object moduleReasonerMutex = new Object();
 	
-	private final String modelId;
+	private final IRI modelId;
 	private OWLOntology aboxOntology = null;
 	private OWLOntology tboxOntology = null;
 	private OWLOntology queryOntology = null;
 	private Map<OWLClass,OWLClassExpression> queryClassMap = null;
 	Map<OWLOntology,Set<OWLAxiom>> collectedAxioms = new HashMap<OWLOntology,Set<OWLAxiom>>();
-	
-	/**
-	 * The container is seeded with a tbox (i.e. ontology). An abox will be created
-	 * automatically.
-	 * 
-	 * A default reasoner factory will be selected (Elk)
-	 * @param modelId 
-	 * @param tbox
-	 * @throws OWLOntologyCreationException
-	 */
-	public ModelContainer(String modelId, OWLOntology tbox) throws OWLOntologyCreationException {
-		tboxOntology = tbox;
-		this.modelId = modelId;
-		reasonerFactory = new ElkReasonerFactory();
-		init();
-	}
-	/**
-	 * Creates a container with a pre-defined tbox (ontology) and abox (instance store).
-	 * Note the abox should import the tbox (directly or indirectly).
-	 * 
-	 * The abox may be identical to the tbox, in which case individuals are added to
-	 * the same ontology
-	 * 
-	 * @param modelId 
-	 * @param tbox
-	 * @param abox
-	 * @throws OWLOntologyCreationException
-	 */
-	public ModelContainer(String modelId, OWLOntology tbox, OWLOntology abox) throws OWLOntologyCreationException {
-		tboxOntology = tbox;
-		aboxOntology = abox;
-		this.modelId = modelId;
-		reasonerFactory = new ElkReasonerFactory();
-		init();
-	}
 
+	
+	
 	/**
 	 * The container is seeded with a tbox (i.e. ontology). An abox will be created
 	 * automatically.
@@ -98,7 +64,7 @@ public class ModelContainer {
 	 * @param reasonerFactory
 	 * @throws OWLOntologyCreationException
 	 */
-	public ModelContainer(String modelId, OWLOntology tbox,
+	public ModelContainer(IRI modelId, OWLOntology tbox,
 			OWLReasonerFactory reasonerFactory) throws OWLOntologyCreationException {
 		tboxOntology = tbox;
 		this.modelId = modelId;
@@ -119,7 +85,7 @@ public class ModelContainer {
 	 * @param rf
 	 * @throws OWLOntologyCreationException
 	 */
-	public ModelContainer(String modelId, OWLOntology tbox, OWLOntology abox,
+	public ModelContainer(IRI modelId, OWLOntology tbox, OWLOntology abox,
 			OWLReasonerFactory rf) throws OWLOntologyCreationException {
 		tboxOntology = tbox;
 		aboxOntology = abox;
@@ -177,7 +143,7 @@ public class ModelContainer {
 		}
 	}
 
-	public String getModelId() {
+	public IRI getModelId() {
 		return modelId;
 	}
 
@@ -402,6 +368,7 @@ public class ModelContainer {
 		getOWLOntologyManager().applyChanges(changeIRI);
 	}
 	
+	@Deprecated
 	public synchronized Map<OWLClass,OWLClassExpression> getQueryClassMap(boolean precomputePropertyClassCombinations) {
 		if (queryClassMap == null) {
 			generateQueryOntology(precomputePropertyClassCombinations);
@@ -423,6 +390,7 @@ public class ModelContainer {
 	 * 
 	 * @param precomputePropertyClassCombinations 
 	 */
+	@Deprecated
 	private void generateQueryOntology(boolean precomputePropertyClassCombinations) {
 		queryClassMap = new HashMap<OWLClass,OWLClassExpression>(); 
 
@@ -490,7 +458,6 @@ public class ModelContainer {
 	}
 
 	private IRI getSkolemIRI(Set<OWLEntity> objs) {
-		// TODO Auto-generated method stub
 		IRI iri;
 		StringBuffer sb = new StringBuffer();
 		for (OWLEntity obj : objs) {

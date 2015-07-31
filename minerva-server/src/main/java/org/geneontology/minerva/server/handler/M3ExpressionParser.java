@@ -6,8 +6,8 @@ import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.geneontology.minerva.ModelContainer;
-import org.geneontology.minerva.MolecularModelManager;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.json.JsonOwlObject;
 import org.geneontology.minerva.json.JsonOwlObject.JsonOwlObjectType;
 import org.geneontology.minerva.server.external.ExternalLookupService;
@@ -24,20 +24,20 @@ import owltools.graph.OWLGraphWrapper;
 public class M3ExpressionParser {
 	
 	private final boolean checkLiteralIds;
+	private final CurieHandler curieHandler;
 	
-	M3ExpressionParser(boolean checkLiteralIds) {
+	M3ExpressionParser(boolean checkLiteralIds, CurieHandler curieHandler) {
 		this.checkLiteralIds = checkLiteralIds;
+		this.curieHandler = curieHandler;
 	}
 	
-	M3ExpressionParser() {
-		this(true);
+	M3ExpressionParser(CurieHandler curieHandler) {
+		this(true, curieHandler);
 	}
 
-	OWLClassExpression parse(String modelId, JsonOwlObject expression, 
-			MolecularModelManager<?> m3,
+	OWLClassExpression parse(ModelContainer model, JsonOwlObject expression, 
 			ExternalLookupService externalLookupService)
 			throws MissingParameterException, UnknownIdentifierException, OWLException {
-		ModelContainer model = m3.checkModelId(modelId);
 		OWLGraphWrapper g = new OWLGraphWrapper(model.getAboxOntology());
 		return parse(g, expression, externalLookupService);
 	}
@@ -58,22 +58,23 @@ public class M3ExpressionParser {
 			if (StringUtils.containsWhitespace(expression.id)) {
 				throw new UnknownIdentifierException("Identifiers may not contain whitespaces: '"+expression.id+"'");
 			}
+			IRI clsIRI = curieHandler.getIRI(expression.id);
 			OWLClass cls;
 			if (checkLiteralIds) {
-				cls = g.getOWLClassByIdentifier(expression.id);
+				cls = g.getOWLClass(clsIRI);
 				if (cls == null && externalLookupService != null) {
-					List<LookupEntry> lookup = externalLookupService.lookup(expression.id);
+					List<LookupEntry> lookup = externalLookupService.lookup(clsIRI);
 					if (lookup == null || lookup.isEmpty()) {
 						throw new UnknownIdentifierException("Could not validate the id: "+expression.id);
 					}
-					cls = createClass(expression.id, g);
+					cls = createClass(clsIRI, g);
 				}
 				if (cls == null) {
 					throw new UnknownIdentifierException("Could not retrieve a class for id: "+expression.id);
 				}
 			}
 			else {
-				cls = createClass(expression.id, g);
+				cls = createClass(clsIRI, g);
 			}
 			return cls;
 		}
@@ -87,7 +88,8 @@ public class M3ExpressionParser {
 			if (expression.property.type != JsonOwlObjectType.ObjectProperty) {
 				throw new MissingParameterException("Unexpected type for property in 'svf': "+expression.property.type);
 			}
-			OWLObjectProperty p = g.getOWLObjectPropertyByIdentifier(expression.property.id);
+			IRI propIRI = curieHandler.getIRI(expression.property.id);
+			OWLObjectProperty p = g.getOWLObjectProperty(propIRI);
 			if (p == null) {
 				throw new UnknownIdentifierException("Could not find a property for: "+expression.property);
 			}
@@ -142,35 +144,8 @@ public class M3ExpressionParser {
 		}
 	}
 	
-	private OWLClass createClass(String id, OWLGraphWrapper g) {
-		IRI iri = g.getIRIByIdentifier(id);
+	private OWLClass createClass(IRI iri, OWLGraphWrapper g) {
 		return g.getDataFactory().getOWLClass(iri);
 	}
 	
-//	OWLClassExpression parseClassExpression(String expression, OWLGraphWrapper g, 
-//			boolean createClasses, ExternalLookupService externalLookupService) 
-//			throws OWLException, UnknownIdentifierException {
-//		try {
-//			ManchesterSyntaxTool syntaxTool = new ManchesterSyntaxTool(g, createClasses);
-//			OWLClassExpression clsExpr = syntaxTool.parseManchesterExpression(expression);
-//			if (checkLiteralIds && externalLookupService != null) {
-//				Map<String, OWLClass> createdClasses = syntaxTool.getCreatedClasses();
-//				for (Entry<String, OWLClass> createdEntry : createdClasses.entrySet()) {
-//					String id = createdEntry.getKey();
-//					List<LookupEntry> lookup = externalLookupService.lookup(id); // TODO taxon
-//					if (lookup == null || lookup.isEmpty()) {
-//						throw new UnknownIdentifierException("Could not validate the id: "+id+" in expression: "+expression);
-//					}
-//				}
-//			}
-//			return clsExpr;
-//		}
-//		catch (ParserException e) {
-//			// wrap in an Exception (not RuntimeException) to enable proper error handling
-//			throw new OWLException("Could not parse expression: \""+expression+"\"", e) {
-//
-//				private static final long serialVersionUID = -9158071212925724138L;
-//			};
-//		}
-//	}
 }

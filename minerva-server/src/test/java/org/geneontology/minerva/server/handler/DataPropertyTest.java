@@ -11,6 +11,8 @@ import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
+import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.JsonOwlIndividual;
@@ -22,8 +24,9 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
-import org.geneontology.minerva.util.IdStringManager.AnnotationShorthand;
+import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.Test;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
@@ -34,11 +37,20 @@ import org.semanticweb.owlapi.model.OWLDataPropertyAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 
 import owltools.graph.OWLGraphWrapper;
 
 public class DataPropertyTest {
+	
+	private final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
+	
+	private UndoAwareMolecularModelManager createM3(OWLGraphWrapper g) throws OWLOntologyCreationException {
+		UndoAwareMolecularModelManager mmm = new UndoAwareMolecularModelManager(g, new ElkReasonerFactory(), curieHandler,
+				"http://model.geneontology.org/");
+		return mmm;
+	}
 
 	@Test
 	public void testDataPropertyMetadata() throws Exception {
@@ -53,8 +65,8 @@ public class DataPropertyTest {
 			m.addAxiom(ontology, f.getOWLAnnotationAssertionAxiom(propIRI, f.getOWLAnnotation(f.getRDFSLabel(), f.getOWLLiteral("fake-data-property"))));
 		}
 		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
-		MolecularModelManager<?> mmm = new MolecularModelManager<Object>(graph, "http://model.geneontology.org/", "gomodel:");
-		Pair<List<JsonRelationInfo>,List<JsonRelationInfo>> pair = MolecularModelJsonRenderer.renderProperties(mmm, null);
+		MolecularModelManager<?> mmm = createM3(graph);
+		Pair<List<JsonRelationInfo>,List<JsonRelationInfo>> pair = MolecularModelJsonRenderer.renderProperties(mmm, null, curieHandler);
 		List<JsonRelationInfo> dataProperties = pair.getRight();
 		assertEquals(1, dataProperties.size());
 	}
@@ -78,15 +90,14 @@ public class DataPropertyTest {
 		
 		// graph and m3
 		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
-		final Object metadata = new Object();
-		MolecularModelManager<Object> m3 = new MolecularModelManager<Object>(graph, "http://model.geneontology.org/", "gomodel:");
+		final UndoMetadata metadata = new UndoMetadata("foo-user");
+		UndoAwareMolecularModelManager m3 = createM3(graph);
 		
-		final String modelId = m3.generateBlankModel(metadata);
-		final ModelContainer model = m3.getModel(modelId);
+		final ModelContainer model = m3.generateBlankModel(metadata);
 		final OWLNamedIndividual individual = m3.createIndividual(model, cls, metadata);
 		m3.addDataProperty(model, individual, prop, f.getOWLLiteral(10), false, metadata);
 		
-		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(model, null);
+		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(model, null, curieHandler);
 		final JsonModel jsonModel = r.renderModel();
 		assertEquals(1, jsonModel.individuals.length);
 		assertEquals(1, jsonModel.individuals[0].annotations.length);
@@ -102,8 +113,8 @@ public class DataPropertyTest {
 	public void testDataPropertyBatch() throws Exception {
 		OWLOntologyManager m = OWLManager.createOWLOntologyManager();
 		OWLOntology ontology = m.createOntology(IRI.generateDocumentIRI());
-		final IRI clsIRI = IRI.create("http://purl.obolibrary.org/obo/CLS_0001");
-		final IRI propIRI = IRI.create("http://purl.obolibrary.org/obo/PROP_0001");
+		final IRI clsIRI = IRI.create("http://purl.obolibrary.org/obo/GO_0001");
+		final IRI propIRI = IRI.create("http://purl.obolibrary.org/obo/RO_0001");
 		
 		// create a test ontology with one data property and one class
 		OWLDataFactory f = m.getOWLDataFactory();
@@ -117,22 +128,24 @@ public class DataPropertyTest {
 		
 		// graph and m3
 		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
-		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(graph, "http://model.geneontology.org/", "gomodel:");
+		UndoAwareMolecularModelManager m3 = createM3(graph);
 		
 		// handler
-		JsonOrJsonpBatchHandler handler = new JsonOrJsonpBatchHandler(m3, null, null);
+		boolean useReasoner = false;
+		boolean useModelReasoner = false;
+		JsonOrJsonpBatchHandler handler = new JsonOrJsonpBatchHandler(m3, useReasoner, useModelReasoner, null, null);
 		
 		// empty model
-		final String modelId = m3.generateBlankModel(new UndoMetadata("foo-user"));
+		final ModelContainer model = m3.generateBlankModel(new UndoMetadata("foo-user"));
 		
 		// create individual with annotations, including one data property
-		M3Request r1 = BatchTestTools.addIndividual(modelId, "CLS:0001");
+		M3Request r1 = BatchTestTools.addIndividual(curieHandler.getCuri(model.getModelId()), "GO:0001");
 		r1.arguments.values = new JsonAnnotation[2];
 		r1.arguments.values[0] = new JsonAnnotation();
 		r1.arguments.values[0].key = AnnotationShorthand.comment.name();
 		r1.arguments.values[0].value = "foo-comment";
 		r1.arguments.values[1] = new JsonAnnotation();
-		r1.arguments.values[1].key = propIRI.toString();
+		r1.arguments.values[1].key = curieHandler.getCuri(propIRI);
 		r1.arguments.values[1].value = "10";
 		r1.arguments.values[1].valueType = "xsd:integer";
 		
@@ -147,7 +160,7 @@ public class DataPropertyTest {
 			individualsId = i.id;
 			JsonAnnotation dataPropAnnotation = null;
 			for(JsonAnnotation ann : i.annotations) {
-				if (propIRI.toString().equals(ann.key)) {
+				if (curieHandler.getCuri(propIRI).equals(ann.key)) {
 					dataPropAnnotation = ann;
 				}
 			}
@@ -156,7 +169,6 @@ public class DataPropertyTest {
 		assertNotNull(individualsId);
 		
 		// check underlying owl model for usage of OWLDataProperty
-		final ModelContainer model = m3.getModel(modelId);
 		{
 			Set<OWLDataPropertyAssertionAxiom> axioms = model.getAboxOntology().getAxioms(AxiomType.DATA_PROPERTY_ASSERTION);
 			assertEquals(1, axioms.size());
@@ -172,7 +184,7 @@ public class DataPropertyTest {
 		r2.operation = Operation.removeAnnotation;
 		r2.arguments = new M3Argument();
 		r2.arguments.individual = individualsId;
-		r2.arguments.modelId = modelId;
+		r2.arguments.modelId = curieHandler.getCuri(model.getModelId());
 		r2.arguments.values = new JsonAnnotation[1];
 		r2.arguments.values[0] = new JsonAnnotation();
 		r2.arguments.values[0].key = propIRI.toString();

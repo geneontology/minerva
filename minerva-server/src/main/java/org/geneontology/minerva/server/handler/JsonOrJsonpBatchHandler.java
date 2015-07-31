@@ -11,8 +11,6 @@ import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
-import org.geneontology.minerva.ModelContainer;
-import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
 import org.geneontology.minerva.json.JsonModel;
@@ -33,30 +31,20 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	public static final String JSONP_DEFAULT_OVERWRITE = "json.wrf";
 	
 	
-	public static boolean USE_USER_ID = true;
-	public static boolean USE_REASONER = true;
-	public static boolean ADD_INFERENCES = true;
 	public static boolean VALIDATE_BEFORE_SAVE = true;
 	public static boolean ENFORCE_EXTERNAL_VALIDATE = false;
 	public boolean CHECK_LITERAL_IDENTIFIERS = true; // TODO remove the temp work-around
 	
-	/*
-	 * If set to TRUE, this will use a different approach for the reasoner: It will create
-	 * a module from the abox using the individuals as seeds and only create a reasoner for
-	 * this new ontology.
-	 * 
-	 * This reduced set of axioms should consume less memory for each reasoner. 
-	 * The drawback is the additional CPU time (sequential) to generate the relevant 
-	 * subset. During tests this tripled the runtime of the test cases. 
-	 */
-	public static boolean USE_MODULE_REASONER = false;
-	
 	private static final Logger logger = Logger.getLogger(JsonOrJsonpBatchHandler.class);
-
-	public JsonOrJsonpBatchHandler(UndoAwareMolecularModelManager models, 
+	
+	private final boolean useReasoner;
+	
+	public JsonOrJsonpBatchHandler(UndoAwareMolecularModelManager models,
+			boolean useReasoner, boolean useModuleReasoner,
 			Set<OWLObjectProperty> importantRelations,
 			ExternalLookupService externalLookupService) {
-		super(models, importantRelations, externalLookupService);
+		super(models, importantRelations, externalLookupService, useModuleReasoner);
+		this.useReasoner = useReasoner;
 	}
 
 	private final Type requestType = new TypeToken<M3Request[]>(){
@@ -81,9 +69,8 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		return VALIDATE_BEFORE_SAVE;
 	}
 
-	@Override
-	boolean useUserId() {
-		return USE_USER_ID;
+	boolean isUseReasoner() {
+		return useReasoner;
 	}
 
 	@Override
@@ -145,12 +132,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		}
 	}
 	
-	private void checkShortFormModelId(M3Request request) {
-		if (request.arguments != null) {
-			request.arguments.modelId = m3.getLongFormModelId(request.arguments.modelId);
-		}
-	}
-	
 	private M3BatchResponse m3Batch(M3BatchResponse response, M3Request[] requests, String userId, boolean isPrivileged) throws InsufficientPermissionsException, Exception {
 		userId = normalizeUserId(userId);
 		UndoMetadata token = new UndoMetadata(userId);
@@ -163,7 +144,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			final Entity entity = request.entity;
 			final Operation operation = request.operation;
 			checkPermissions(entity, operation, isPrivileged);
-			checkShortFormModelId(request);
 
 			// individual
 			if (Entity.individual == entity) {
@@ -206,24 +186,24 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		if (M3BatchResponse.SIGNAL_META.equals(response.signal)) {
 			return response;
 		}
-		if (values.modelId == null) {
+		if (values.model == null) {
 			return error(response, "Empty batch calls are not supported, at least one request is required.", null);
 		}
-		// get model
-		final ModelContainer model = m3.getModel(values.modelId);
-		if (model == null) {
-			throw new UnknownIdentifierException("Could not retrieve a model for id: "+values.modelId);
-		}
+//		// get model
+//		final ModelContainer model = m3.getModel(values.modelId);
+//		if (model == null) {
+//			throw new UnknownIdentifierException("Could not retrieve a model for id: "+values.modelId);
+//		}
 		// update reasoner
 		// report state
 		final OWLReasoner reasoner;
 		final boolean isConsistent;
-		if (USE_REASONER) {
-			if (USE_MODULE_REASONER) {
-				reasoner = model.getModuleReasoner();
+		if (useReasoner) {
+			if (useModuleReasoner) {
+				reasoner = values.model.getModuleReasoner();
 			}
 			else {
-				reasoner = model.getReasoner();
+				reasoner = values.model.getReasoner();
 				reasoner.flush();
 			}
 			isConsistent = reasoner.isConsistent();
@@ -236,11 +216,11 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		// create response.data
 		response.data = new ResponseData();
 		final MolecularModelJsonRenderer renderer;
-		if (USE_REASONER && ADD_INFERENCES && isConsistent) {
-			renderer = createModelRenderer(model, externalLookupService, reasoner);
+		if (useReasoner && isConsistent) {
+			renderer = createModelRenderer(values.model, externalLookupService, reasoner, curieHandler);
 		}
 		else {
-			renderer = createModelRenderer(model, externalLookupService, null);
+			renderer = createModelRenderer(values.model, externalLookupService, null, curieHandler);
 		}
 		if (values.renderBulk) {
 			// render complete model
@@ -257,11 +237,11 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 				response.data.facts = pair.getRight();
 			}
 			// add model annotations
-			response.data.annotations = MolecularModelJsonRenderer.renderModelAnnotations(model.getAboxOntology());
+			response.data.annotations = MolecularModelJsonRenderer.renderModelAnnotations(values.model.getAboxOntology(), curieHandler);
 		}
 		
 		// add other infos to data
-		response.data.id = m3.getShortFormModelId(values.modelId);
+		response.data.id = curieHandler.getCuri(values.model.getModelId());
 		if (!isConsistent) {
 			response.data.inconsistentFlag =  Boolean.TRUE;
 		}

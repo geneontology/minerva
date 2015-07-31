@@ -2,6 +2,8 @@ package org.geneontology.minerva.server.external;
 
 import java.util.List;
 
+import org.semanticweb.owlapi.model.IRI;
+
 /**
  * Interface for wrapping a service to lookup information for a given identifier.
  */
@@ -12,7 +14,7 @@ public interface ExternalLookupService {
 	 */
 	public static class LookupEntry {
 
-		public final String id;
+		public final IRI id;
 		public final String label;
 		public final String type;
 		public final String taxon;
@@ -23,7 +25,7 @@ public interface ExternalLookupService {
 		 * @param type
 		 * @param taxon
 		 */
-		public LookupEntry(String id, String label, String type, String taxon) {
+		public LookupEntry(IRI id, String label, String type, String taxon) {
 			this.id = id;
 			this.label = label;
 			this.type = type;
@@ -37,7 +39,7 @@ public interface ExternalLookupService {
 	 * @param id
 	 * @return entries
 	 */
-	public List<LookupEntry> lookup(String id);
+	public List<LookupEntry> lookup(IRI id);
 	
 	/**
 	 * Lookup the information for the given identifier and taxon. This is not a
@@ -47,6 +49,6 @@ public interface ExternalLookupService {
 	 * @param taxon
 	 * @return entry
 	 */
-	public LookupEntry lookup(String id, String taxon);
+	public LookupEntry lookup(IRI id, String taxon);
 	
 }

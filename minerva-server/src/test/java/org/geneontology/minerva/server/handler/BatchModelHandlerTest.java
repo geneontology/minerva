@@ -17,6 +17,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
+import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.CurieMappings;
+import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.json.JsonEvidenceInfo;
 import org.geneontology.minerva.json.JsonOwlFact;
@@ -34,15 +38,17 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
-import org.geneontology.minerva.util.IdStringManager;
-import org.geneontology.minerva.util.IdStringManager.AnnotationShorthand;
+import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
+import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
@@ -53,6 +59,7 @@ public class BatchModelHandlerTest {
 	@Rule
 	public TemporaryFolder folder = new TemporaryFolder();
 
+	private static CurieHandler curieHandler = null;
 	private static JsonOrJsonpBatchHandler handler = null;
 	private static UndoAwareMolecularModelManager models = null;
 	private static Set<OWLObjectProperty> importantRelations = null;
@@ -75,10 +82,19 @@ public class BatchModelHandlerTest {
 		assertNotNull(legorelParent);
 		importantRelations = StartUpTool.getAssertedSubProperties(legorelParent, graph);
 		assertFalse(importantRelations.isEmpty());
-		
-		models = new UndoAwareMolecularModelManager(graph, "http://model.geneontology.org/", "gomodel:");
-		lookupService = createTestProteins();
-		handler = new JsonOrJsonpBatchHandler(models, importantRelations, lookupService) {
+		// curie handler
+		final String modelIdcurie = "gomodel";
+		final String modelIdPrefix = "http://model.geneontology.org/";
+		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
+		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
+		OWLReasonerFactory rf = new ElkReasonerFactory();
+//		rf = new org.semanticweb.HermiT.Reasoner.ReasonerFactory();
+		models = new UndoAwareMolecularModelManager(graph, rf, curieHandler, modelIdPrefix);
+		lookupService = createTestProteins(curieHandler);
+		boolean useReasoner = true;
+		boolean useModelReasoner = false;
+//		useModelReasoner = true;
+		handler = new JsonOrJsonpBatchHandler(models, useReasoner, useModelReasoner, importantRelations, lookupService) {
 
 			@Override
 			protected String generateDateString() {
@@ -91,18 +107,20 @@ public class BatchModelHandlerTest {
 				return super.generateDateString();
 			}
 		};
-		JsonOrJsonpBatchHandler.ADD_INFERENCES = true;
-		JsonOrJsonpBatchHandler.USE_USER_ID = true;
 		JsonOrJsonpBatchHandler.VALIDATE_BEFORE_SAVE = true;
 		JsonOrJsonpBatchHandler.ENFORCE_EXTERNAL_VALIDATE = true;
 	}
 
-	private static ExternalLookupService createTestProteins() {
+	private static ExternalLookupService createTestProteins(CurieHandler curieHandler) {
 		List<LookupEntry> testEntries = new ArrayList<LookupEntry>();
-		testEntries.add(new LookupEntry("UniProtKB:P0000", "P0000", "protein", "fake-taxon-id"));
-		testEntries.add(new LookupEntry("UniProtKB:P0001", "P0001", "protein", "fake-taxon-id"));
-		testEntries.add(new LookupEntry("UniProtKB:P0002", "P0002", "protein", "fake-taxon-id"));
-		testEntries.add(new LookupEntry("UniProtKB:P0003", "P0003", "protein", "fake-taxon-id"));
+		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0000"),
+				"P0000", "protein", "fake-taxon-id"));
+		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0001"),
+				"P0001", "protein", "fake-taxon-id"));
+		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0002"),
+				"P0002", "protein", "fake-taxon-id"));
+		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0003"),
+				"P0003", "protein", "fake-taxon-id"));
 		return new TableLookupService(testEntries);
 	}
 
@@ -268,8 +286,6 @@ public class BatchModelHandlerTest {
 	
 	@Test
 	public void testModelAnnotations() throws Exception {
-		assertTrue(JsonOrJsonpBatchHandler.USE_USER_ID);
-		
 		final String modelId = generateBlankModel();
 		
 		final JsonAnnotation[] annotations1 = getModelAnnotations(modelId);
@@ -342,7 +358,7 @@ public class BatchModelHandlerTest {
 		final OWLGraphWrapper tbox = models.getGraph();
 		final OWLObjectProperty part_of = tbox.getOWLObjectPropertyByIdentifier("part_of");
 		assertNotNull(part_of);
-		final String partOfJsonId = IdStringManager.getId(part_of, tbox);
+		final String partOfJsonId = models.getCuriHandler().getCuri(part_of);
 		boolean hasPartOf = false;
 		for (JsonRelationInfo info : relations) {
 			String id = info.id;
@@ -751,7 +767,7 @@ public class BatchModelHandlerTest {
 	@Test
 	public void testInferencesRedundant() throws Exception {
 		models.dispose();
-		assertTrue(JsonOrJsonpBatchHandler.ADD_INFERENCES);
+		assertTrue(handler.isUseReasoner());
 		
 		final String modelId = generateBlankModel();
 		
@@ -1984,7 +2000,7 @@ public class BatchModelHandlerTest {
 		models.dispose();
 		assertTrue(models.getCurrentModelIds().isEmpty());
 		
-		Map<String, String> availableModelIds = models.getAvailableModelIds();
+		Set<IRI> availableModelIds = models.getAvailableModelIds();
 		assertEquals(1, availableModelIds.size());
 		
 		r =  new M3Request();
@@ -2011,6 +2027,53 @@ public class BatchModelHandlerTest {
 		assertTrue(foundY);
 	}
 
+	@Test
+	public void testPmidIRIIndividual() throws Exception {
+		String modelId = generateBlankModel();
+		
+		M3Request r;
+		final List<M3Request> batch1 = new ArrayList<M3Request>();
+		r = new M3Request();
+		r.entity = Entity.individual;
+		r.operation = Operation.add;
+		r.arguments = new M3Argument();
+		r.arguments.modelId = modelId;
+		r.arguments.individualIRI = "PMID:0000";
+		BatchTestTools.setExpressionClass(r.arguments, "IAO:0000311");
+		batch1.add(r);
+		
+		// de-activate check as "IAO:0000311" is currently not in the import chain
+		boolean defaultIdPolicy = handler.CHECK_LITERAL_IDENTIFIERS;
+		M3BatchResponse response1;
+		try {
+			handler.CHECK_LITERAL_IDENTIFIERS = false;
+			response1 = executeBatch(batch1);
+		}
+		finally {
+			handler.CHECK_LITERAL_IDENTIFIERS = defaultIdPolicy;
+		}
+		
+		JsonOwlIndividual[] individuals1 = BatchTestTools.responseIndividuals(response1);
+		assertEquals(1, individuals1.length);
+		assertEquals("PMID:0000", individuals1[0].id);
+		
+		// de-activate check as "IAO:0000311" is currently not in the import chain
+		// execute second request to test behavior for multiple adds with the same PMID
+		defaultIdPolicy = handler.CHECK_LITERAL_IDENTIFIERS;
+		M3BatchResponse response2;
+		try {
+			handler.CHECK_LITERAL_IDENTIFIERS = false;
+			response2 = executeBatch(batch1);
+		}
+		finally {
+			handler.CHECK_LITERAL_IDENTIFIERS = defaultIdPolicy;
+		}
+
+		JsonOwlIndividual[] individuals2 = BatchTestTools.responseIndividuals(response2);
+		assertEquals(1, individuals2.length);
+		assertEquals("PMID:0000", individuals2[0].id);
+	}
+	
 	private M3BatchResponse executeBatch(List<M3Request> batch) {
 		return executeBatch(batch, uid);
 	}

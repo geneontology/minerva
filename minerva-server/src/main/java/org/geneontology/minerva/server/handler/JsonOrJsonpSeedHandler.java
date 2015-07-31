@@ -1,6 +1,8 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.geneontology.minerva.server.handler.OperationsTools.*;
+import static org.geneontology.minerva.server.handler.OperationsTools.createModelRenderer;
+import static org.geneontology.minerva.server.handler.OperationsTools.normalizeUserId;
+import static org.geneontology.minerva.server.handler.OperationsTools.requireNotNull;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -11,9 +13,10 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.ModelContainer;
-import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
+import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.generate.GolrSeedingDataProvider;
 import org.geneontology.minerva.generate.ModelSeeding;
 import org.geneontology.minerva.json.JsonModel;
@@ -25,6 +28,7 @@ import org.geneontology.reasoner.ExpressionMaterializingReasonerFactory;
 import org.geneontology.reasoner.OWLExtendedReasonerFactory;
 import org.glassfish.jersey.server.JSONP;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
+import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
 
 import owltools.graph.OWLGraphWrapper;
@@ -40,11 +44,14 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 	private final String golrUrl;
 	private final OWLExtendedReasonerFactory<ExpressionMaterializingReasoner> factory;
 	private final ExternalLookupService externalLookupService;
+	private final CurieHandler curieHandler;
 	
-	public JsonOrJsonpSeedHandler(UndoAwareMolecularModelManager m3, String golr, ExternalLookupService externalLookupService) {
+	public JsonOrJsonpSeedHandler(UndoAwareMolecularModelManager m3, String golr, 
+			ExternalLookupService externalLookupService) {
 		this.m3 = m3;
 		this.golrUrl = golr;
 		this.externalLookupService = externalLookupService;
+		this.curieHandler = m3.getCuriHandler();
 		factory = new ExpressionMaterializingReasonerFactory(new ElkReasonerFactory());
 	}
 
@@ -89,8 +96,8 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 			requireNotNull(request, "The request may not be null.");
 			uid = normalizeUserId(uid);
 			UndoMetadata token = new UndoMetadata(uid);
-			ModelContainer model = getModel(request.modelId);
-			return seedFromProcess(request, request.modelId, model, response, token);
+			ModelContainer model = getModel(curieHandler.getIRI(request.modelId));
+			return seedFromProcess(request, model, response, token);
 		} catch (Exception e) {
 			return error(response, "Could not successfully handle batch request.", e);
 		} catch (Throwable t) {
@@ -99,7 +106,7 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 		}
 	}
 	
-	private ModelContainer getModel(String modelId) throws Exception {
+	private ModelContainer getModel(IRI modelId) throws Exception {
 		requireNotNull(modelId, "model id may not be null for seeding");
 		final ModelContainer model = m3.getModel(modelId);
 		if (model == null) {
@@ -108,7 +115,7 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 		return model;
 	}
 	
-	private SeedResponse seedFromProcess(SeedRequest request, String modelId, ModelContainer model, SeedResponse response, UndoMetadata token) throws Exception {
+	private SeedResponse seedFromProcess(SeedRequest request, ModelContainer model, SeedResponse response, UndoMetadata token) throws Exception {
 		// check required fields
 		requireNotNull(request.process, "");
 		requireNotNull(request.taxon, "");
@@ -124,17 +131,17 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 				}
 			}
 		}
-		Set<String> evidenceRestriction = request.evidenceRestriction != null ? new HashSet<String>(Arrays.asList(request.evidenceRestriction)) : null;
-		Set<String> blackList = request.ignoreList != null ? new HashSet<String>(Arrays.asList(request.ignoreList)) : null;
+		Set<String> evidenceRestriction = request.evidenceRestriction != null ? new HashSet<>(Arrays.asList(request.evidenceRestriction)) : null;
+		Set<String> blackList = request.ignoreList != null ? new HashSet<>(Arrays.asList(request.ignoreList)) : null;
 		Set<String> taxonRestriction = Collections.singleton(request.taxon);
 		ExpressionMaterializingReasoner reasoner = factory.createReasoner(model.getAboxOntology());
 		reasoner.setIncludeImports(true);
 		GolrSeedingDataProvider provider = new GolrSeedingDataProvider(golrUrl, graph, 
 				reasoner, locationRoots, evidenceRestriction, taxonRestriction, blackList);
-		ModelSeeding<UndoMetadata> seeder = new ModelSeeding<UndoMetadata>(reasoner, provider);
+		ModelSeeding<UndoMetadata> seeder = new ModelSeeding<UndoMetadata>(reasoner, provider, curieHandler);
 
 		// seed
-		seeder.seedModel(modelId, model, m3, request.process, token);
+		seeder.seedModel(model, m3, request.process, token);
 		
 		// render result
 		// create response.data
@@ -143,7 +150,7 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 		reasoner.flush();
 		response.data.inconsistentFlag = reasoner.isConsistent();
 		
-		MolecularModelJsonRenderer renderer = createModelRenderer(model, externalLookupService, null);
+		MolecularModelJsonRenderer renderer = createModelRenderer(model, externalLookupService, null, curieHandler);
 		// render complete model
 		JsonModel jsonModel = renderer.renderModel();
 		response.data.individuals = jsonModel.individuals;

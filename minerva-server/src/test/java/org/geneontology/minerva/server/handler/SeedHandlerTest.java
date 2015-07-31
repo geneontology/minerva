@@ -2,8 +2,15 @@ package org.geneontology.minerva.server.handler;
 
 import static org.junit.Assert.*;
 
+import java.util.Collections;
+
+import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
+import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.CurieMappings;
+import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.handler.JsonOrJsonpSeedHandler;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
@@ -12,12 +19,14 @@ import org.geneontology.minerva.server.handler.M3SeedHandler.SeedResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
 
 public class SeedHandlerTest {
 
+	private static CurieHandler curieHandler = null;
 	private static JsonOrJsonpSeedHandler handler = null;
 	private static UndoAwareMolecularModelManager models = null;
 	
@@ -32,8 +41,12 @@ public class SeedHandlerTest {
 
 	static void init(ParserWrapper pw, String golr) throws Exception {
 		final OWLGraphWrapper graph = pw.parseToOWLGraph("http://purl.obolibrary.org/obo/go/extensions/go-lego.owl");
-		
-		models = new UndoAwareMolecularModelManager(graph, "http://model.geneontology.org/", "gomodel:");
+		// curie handler
+		final String modelIdcurie = "gomodel";
+		final String modelIdPrefix = "http://model.geneontology.org/";
+		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
+		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
+		models = new UndoAwareMolecularModelManager(graph, new ElkReasonerFactory(), curieHandler, modelIdPrefix);
 		handler = new JsonOrJsonpSeedHandler(models, golr, null);
 	}
 	
@@ -77,8 +90,8 @@ public class SeedHandlerTest {
 	
 	private String generateBlankModel() throws Exception {
 		UndoMetadata metadata = new UndoMetadata(uid);
-		String modelId = models.generateBlankModel(metadata);
-		return modelId;
+		ModelContainer model = models.generateBlankModel(metadata);
+		return curieHandler.getCuri(model.getModelId());
 	}
 	
 	private String toJson(Object data) {
