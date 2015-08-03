@@ -9,6 +9,7 @@ import java.io.StringWriter;
 import java.lang.reflect.Type;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
@@ -107,6 +108,9 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	@Override
 	public M3BatchResponse m3Batch(String uid, String intention, String packetId, M3Request[] requests, boolean isPrivileged) {
 		M3BatchResponse response = new M3BatchResponse(uid, intention, checkPacketId(packetId));
+		if (requests == null) {
+			return error(response, "The batch contains no requests: null value for request array", null);
+		}
 		try {
 			return m3Batch(response, requests, uid, isPrivileged);
 		} catch (InsufficientPermissionsException e) {
@@ -121,6 +125,10 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	
 	private M3BatchResponse m3Batch(String uid, String intention, String packetId, String requestString, boolean isPrivileged) {
 		M3BatchResponse response = new M3BatchResponse(uid, intention, checkPacketId(packetId));
+		requestString = StringUtils.trimToNull(requestString);
+		if (requestString == null) {
+			return error(response, "The batch contains no requests: null value for request", null);
+		}
 		try {
 			M3Request[] requests = MolecularModelJsonRenderer.parseFromJson(requestString, requestType);
 			return m3Batch(response, requests, uid, isPrivileged);
