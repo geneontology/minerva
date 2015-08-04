@@ -77,6 +77,8 @@ public class StartUpTool {
 		int port = 6800; 
 		String contextPrefix = null; // root context by default
 		String contextString = null;
+		
+		boolean useRequestLogging = false;
 	}
 	
 	public static void main(String[] args) throws Exception {
@@ -161,6 +163,9 @@ public class StartUpTool {
 			else if (opts.nextEq("--elk")) {
 				conf.rf = new ElkReasonerFactory();
 				conf.useModuleReasoner = false;
+			}
+			else if (opts.nextEq("--use-request-logging|--request-logging")) {
+				conf.useRequestLogging = true;
 			}
 			else {
 				break;
@@ -292,6 +297,9 @@ public class StartUpTool {
 		ResourceConfig resourceConfig = new ResourceConfig();
 		resourceConfig.register(GsonMessageBodyHandler.class);
 		resourceConfig.register(RequireJsonpFilter.class);
+		if (conf.useRequestLogging) {
+			resourceConfig.register(LoggingApplicationEventListener.class);
+		}
 		//resourceConfig.register(AuthorizationRequestFilter.class);
 		
 		LOGGER.info("BatchHandler config useReasoner: "+conf.useReasoner);
