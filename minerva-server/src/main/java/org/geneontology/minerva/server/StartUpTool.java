@@ -307,6 +307,7 @@ public class StartUpTool {
 		LOGGER.info("BatchHandler config importantRelations: "+conf.importantRelations);
 		LOGGER.info("BatchHandler config lookupService: "+conf.lookupService);
 		LOGGER.info("BatchHandler config checkLiteralIds: "+conf.checkLiteralIds);
+		LOGGER.info("BatchHandler config useRequestLogging"+conf.useRequestLogging);
 		
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.useReasoner, 
 				conf.useModuleReasoner, conf.importantRelations, conf.lookupService);
