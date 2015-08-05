@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
@@ -38,21 +39,21 @@ public class StartUpTool {
 	
 	private static final Logger LOGGER = Logger.getLogger(StartUpTool.class);
 
-	static class MinervaStartUpConfig {
+	public static class MinervaStartUpConfig {
 		// data configuration
-		String ontology = null;
-		String catalog = null;
-		String modelFolder = null;
-		String modelIdPrefix = "http://model.geneontology.org/";
-		String modelIdcurie = "gomodel";
+		public String ontology = null;
+		public String catalog = null;
+		public String modelFolder = null;
+		public String modelIdPrefix = "http://model.geneontology.org/";
+		public String modelIdcurie = "gomodel";
 		
-		String golrUrl = null;
-		int golrCacheSize = 100000;
-		ExternalLookupService lookupService = null;
-		boolean checkLiteralIds = true;
+		public String golrUrl = null;
+		public int golrCacheSize = 100000;
+		public ExternalLookupService lookupService = null;
+		public boolean checkLiteralIds = true;
 
 		// reasoner settings
-		boolean useReasoner = true;
+		public boolean useReasoner = true;
 		
 		/*
 		 * If set to TRUE, this will use a different approach for the reasoner: It will create
@@ -63,22 +64,26 @@ public class StartUpTool {
 		 * The drawback is the additional CPU time (sequential) to generate the relevant 
 		 * subset. During tests this tripled the runtime of the test cases. 
 		 */
-		boolean useModuleReasoner = false;
-		OWLReasonerFactory rf = new ElkReasonerFactory();
+		public boolean useModuleReasoner = false;
+		public OWLReasonerFactory rf = new ElkReasonerFactory();
 		
-		CurieHandler curieHandler;
+		public CurieHandler curieHandler;
 
 		// The subset of highly relevant relations is configured using super property
 		// all direct children (asserted) are considered important
-		String importantRelationParent = null;
-		Set<OWLObjectProperty> importantRelations = null;
+		public String importantRelationParent = null;
+		public Set<OWLObjectProperty> importantRelations = null;
 
 		// server configuration
-		int port = 6800; 
-		String contextPrefix = null; // root context by default
-		String contextString = null;
+		public int port = 6800; 
+		public String contextPrefix = null; // root context by default
+		public String contextString = null;
 		
-		boolean useRequestLogging = false;
+		// increase default size to deal with large HTTP GET requests
+		public int requestHeaderSize = 64*1024;
+		public int requestBufferSize = 128*1024;
+		
+		public boolean useRequestLogging = false;
 	}
 	
 	public static void main(String[] args) throws Exception {
@@ -314,8 +319,14 @@ public class StartUpTool {
 		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
 		resourceConfig = resourceConfig.registerInstances(batchHandler);
 
-		// setup jetty server port and context path
-		Server server = new Server(conf.port);
+		// setup jetty server port, buffers and context path
+		Server server = new Server();
+		// create connector with port and custom buffer sizes
+		SelectChannelConnector connector = new SelectChannelConnector();
+		connector.setPort(conf.port);
+		connector.setRequestHeaderSize(conf.requestHeaderSize);
+		connector.setRequestBufferSize(conf.requestBufferSize);
+		server.addConnector(connector);
 
 		ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
 		context.setContextPath(conf.contextString);
