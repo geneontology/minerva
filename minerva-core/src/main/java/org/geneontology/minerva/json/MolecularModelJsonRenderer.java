@@ -430,9 +430,18 @@ public class MolecularModelJsonRenderer {
 		return renderEvidences(mmm.getGraph().getManager(), curieHandler);
 	}
 	
+	private static final Object ecoMutex = new Object();
+	private static volatile OntologyMapperPair<EcoMapper> eco = null;
+	
 	public static List<JsonEvidenceInfo> renderEvidences(OWLOntologyManager manager, CurieHandler curieHandler) throws OWLException, IOException {
 		// TODO remove the hard coded ECO dependencies
-		OntologyMapperPair<EcoMapper> pair = EcoMapperFactory.createEcoMapper(manager);
+		OntologyMapperPair<EcoMapper> pair;
+		synchronized (ecoMutex) {
+			if (eco == null) {
+				eco = EcoMapperFactory.createEcoMapper(manager);
+			}
+			pair = eco;
+		}
 		final OWLGraphWrapper graph = pair.getGraph();
 		final EcoMapper mapper = pair.getMapper();
 		Set<OWLClass> ecoClasses = graph.getAllOWLClasses();
