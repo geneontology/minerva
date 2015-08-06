@@ -22,7 +22,8 @@ public enum AnnotationShorthand {
 	source(IRI.create("http://purl.org/dc/elements/1.1/source")), // arbitrary string, such as PMID:000000
 	contributor(IRI.create("http://purl.org/dc/elements/1.1/contributor")), // who contributed to the annotation
 	title(IRI.create("http://purl.org/dc/elements/1.1/title")), // title (of the model)
-	deprecated(OWLRDFVocabulary.OWL_DEPRECATED.getIRI()); // model annotation to indicate deprecated models
+	deprecated(OWLRDFVocabulary.OWL_DEPRECATED.getIRI()), // model annotation to indicate deprecated models
+	modelstate(IRI.create("http://geneontology.org/lego/modelstate"), "model-state");
 	
 	
 	private final IRI annotationProperty;
