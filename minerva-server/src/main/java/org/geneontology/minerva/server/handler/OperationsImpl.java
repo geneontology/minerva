@@ -634,7 +634,7 @@ abstract class OperationsImpl {
 		// and model annotations
 		final Set<IRI> allModelIds = m3.getAvailableModelIds();
 		final Map<String,Map<String,String>> allModelAnnotations = new HashMap<>();
-		final Map<String, Boolean> allModelModified = new HashMap<>();
+		final Map<String,Map<String,Object>> allModelAnnotationsReadOnly = new HashMap<>();
 		for (IRI modelId : allModelIds) {
 			String curie = curieHandler.getCuri(modelId);
 			Map<String, String> modelAnnotations = new HashMap<>();
@@ -650,13 +650,14 @@ abstract class OperationsImpl {
 				}
 			}
 			
+			// handle read-only information, currently only the modification flag
 			// check modification status
 			boolean modified = m3.isModelModified(modelId);
-			allModelModified.put(curie, Boolean.valueOf(modified));
+			Map<String,Object> readOnly = Collections.<String, Object>singletonMap("modified-p", Boolean.valueOf(modified));
+			allModelAnnotationsReadOnly.put(curie, readOnly);
 		}
-		response.data.meta.modelIds = allModelAnnotations.keySet(); // curies
 		response.data.meta.modelsMeta = allModelAnnotations;
-		response.data.meta.modelsModified = allModelModified;
+		response.data.meta.modelsReadOnly = allModelAnnotationsReadOnly;
 	}
 	
 	

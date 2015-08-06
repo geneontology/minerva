@@ -157,11 +157,12 @@ public class ModelEditTest {
 		
 		// get meta, check that the model shows up as not modified
 		MetaResponse meta1 = BatchTestTools.getMeta(handler);
-		assertNotNull(meta1.modelsModified);
-		Map<String, Boolean> modelsModified1 = (Map<String, Boolean>) meta1.modelsModified;
+		assertNotNull(meta1.modelsReadOnly);
+		Map<String, Map<String, Object>> modelsModified1 = (Map<String, Map<String, Object>>) meta1.modelsReadOnly;
 		assertFalse(modelsModified1.isEmpty());
-		for(Entry<String, Boolean> entity : modelsModified1.entrySet()) {
-			assertFalse(entity.getValue().booleanValue());
+		for(Entry<String, Map<String, Object>> entity : modelsModified1.entrySet()) {
+			boolean modifiedFlag = (Boolean) entity.getValue().get("modified-p");
+			assertFalse(modifiedFlag);
 		}
 		
 		// get model, check that the model indicated as not modified
@@ -178,15 +179,16 @@ public class ModelEditTest {
 		
 		// get meta, check that the model shows up as modified
 		MetaResponse meta2 = BatchTestTools.getMeta(handler);
-		assertNotNull(meta2.modelsModified);
-		Map<String, Boolean> modelsModified2 = (Map<String, Boolean>) meta2.modelsModified;
-		assertFalse(modelsModified2.isEmpty());
-		for(Entry<String, Boolean> entity : modelsModified2.entrySet()) {
+		assertNotNull(meta2.modelsReadOnly);
+		Map<String, Map<String, Object>> readOnly = (Map<String, Map<String, Object>>) meta2.modelsReadOnly;
+		assertFalse(readOnly.isEmpty());
+		for(Entry<String, Map<String, Object>> entity : readOnly.entrySet()) {
+			boolean modifiedFlag = (Boolean) entity.getValue().get("modified-p");
 			if(entity.getKey().equals(curie)) {
-				assertTrue(entity.getValue().booleanValue());
+				assertTrue(modifiedFlag);
 			}
 			else {
-				assertFalse(entity.getValue().booleanValue());
+				assertFalse(modifiedFlag);
 			}
 		}
 		
@@ -203,11 +205,12 @@ public class ModelEditTest {
 		
 		// get meta, check that the model shows up as not modified
 		MetaResponse meta3 = BatchTestTools.getMeta(handler);
-		assertNotNull(meta3.modelsModified);
-		Map<String, Boolean> modelsModified3 = (Map<String, Boolean>) meta3.modelsModified;
+		assertNotNull(meta3.modelsReadOnly);
+		Map<String, Map<String, Object>> modelsModified3 = (Map<String, Map<String, Object>>) meta3.modelsReadOnly;
 		assertFalse(modelsModified3.isEmpty());
-		for(Entry<String, Boolean> entity : modelsModified3.entrySet()) {
-			assertFalse(entity.getValue().booleanValue());
+		for(Entry<String, Map<String, Object>> entity : modelsModified3.entrySet()) {
+			boolean modifiedFlag = (Boolean) entity.getValue().get("modified-p");
+			assertFalse(modifiedFlag);
 		}
 	}
 	

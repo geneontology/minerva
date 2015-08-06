@@ -9,7 +9,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -374,7 +373,7 @@ public class BatchModelHandlerTest {
 		final JsonEvidenceInfo[] evidences = BatchTestTools.responseEvidences(response);
 		assertTrue(evidences.length > 100);
 		
-		final Collection<String> modelIds = BatchTestTools.responseModelsIds(response);
+		final Map<String, Map<String, String>> modelIds = BatchTestTools.responseModelsMeta(response);
 		assertEquals(0, modelIds.size());
 	}
 	

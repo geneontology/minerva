@@ -172,14 +172,11 @@ public interface M3BatchHandler {
 			
 			public JsonEvidenceInfo[] evidence;
 			
-			@SerializedName("model-ids")
-			public Object modelIds;
-			
 			@SerializedName("models-meta")
 			public Object modelsMeta;
 			
-			@SerializedName("models-modified")
-			public Object modelsModified;
+			@SerializedName("models-meta-read-only")
+			public Object modelsReadOnly;
 		}
 
 		/**
