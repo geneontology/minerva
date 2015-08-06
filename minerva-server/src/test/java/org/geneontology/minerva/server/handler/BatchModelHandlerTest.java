@@ -1164,14 +1164,7 @@ public class BatchModelHandlerTest {
 	}
 	
 	private M3BatchResponse checkCounts(String modelId, int individuals, int facts) {
-		M3Request r = new M3Request();
-		r.entity = Entity.model;
-		r.operation = Operation.get;
-		r.arguments = new M3Argument();
-		r.arguments.modelId = modelId;
-		final M3BatchResponse response = handler.m3Batch(uid, intention, packetId, new M3Request[]{r }, true);
-		assertEquals(uid, response.uid);
-		assertEquals(intention, response.intention);
+		final M3BatchResponse response = BatchTestTools.getModel(handler, modelId);
 		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
 		JsonOwlIndividual[] iObjs = BatchTestTools.responseIndividuals(response);
 		assertEquals(individuals, iObjs.length);
@@ -1181,15 +1174,7 @@ public class BatchModelHandlerTest {
 	}
 	
 	private JsonAnnotation[] getModelAnnotations(String modelId) {
-		M3Request r = new M3Request();
-		r.entity = Entity.model;
-		r.operation = Operation.get;
-		r.arguments = new M3Argument();
-		r.arguments.modelId = modelId;
-		final M3BatchResponse response = handler.m3Batch(uid, intention, packetId, new M3Request[]{r }, true);
-		assertEquals(uid, response.uid);
-		assertEquals(intention, response.intention);
-		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
+		final M3BatchResponse response = BatchTestTools.getModel(handler, modelId);
 		return response.data.annotations;
 	}
 	

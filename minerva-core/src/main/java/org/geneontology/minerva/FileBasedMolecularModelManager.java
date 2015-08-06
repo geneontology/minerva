@@ -211,6 +211,9 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 			
 			// copy temp file to the finalFile
 			FileUtils.copyFile(tempFile, targetFile);
+			
+			// reset modified flag for abox after successful save
+			m.setAboxModified(false);
 		}
 		finally {
 			// delete temp file

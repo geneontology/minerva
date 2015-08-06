@@ -145,6 +145,9 @@ public interface M3BatchHandler {
 			@SerializedName("inconsistent-p")
 			public Boolean inconsistentFlag;
 			
+			@SerializedName("modified-p")
+			public Boolean modifiedFlag;
+			
 			public JsonAnnotation[] annotations;
 			
 			public JsonOwlFact[] facts;
@@ -174,6 +177,9 @@ public interface M3BatchHandler {
 			
 			@SerializedName("models-meta")
 			public Object modelsMeta;
+			
+			@SerializedName("models-modified")
+			public Object modelsModified;
 		}
 
 		/**

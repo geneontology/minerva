@@ -18,6 +18,7 @@ import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Entity;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
+import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.MetaResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.util.AnnotationShorthand;
@@ -212,6 +213,32 @@ public class BatchTestTools {
 		String modelId = responseId(resp);
 		assertNotNull(modelId);
 		return modelId;
+	}
+	
+	static MetaResponse getMeta(JsonOrJsonpBatchHandler handler) {
+		M3Request[] batch = new M3Request[1];
+		batch[0] = new M3Request();
+		batch[0].entity = Entity.meta;
+		batch[0].operation = Operation.get;
+		M3BatchResponse resp = handler.m3Batch(BatchModelHandlerTest.uid, BatchModelHandlerTest.intention, null, batch, true);
+		assertEquals(resp.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, resp.messageType);
+		assertNotNull(resp.packetId);
+		assertNotNull(resp.data);
+		assertNotNull(resp.data.meta);
+		return resp.data.meta;
+	}
+	
+	static M3BatchResponse getModel(JsonOrJsonpBatchHandler handler, String modelId) {
+		M3Request[] batch = new M3Request[1];
+		batch[0] = new M3Request();
+		batch[0].entity = Entity.model;
+		batch[0].operation = Operation.get;
+		batch[0].arguments = new M3Argument();
+		batch[0].arguments.modelId = modelId;
+		M3BatchResponse resp = handler.m3Batch(BatchModelHandlerTest.uid, BatchModelHandlerTest.intention, null, batch, true);
+		assertEquals(resp.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, resp.messageType);
+		assertNotNull(resp.packetId);
+		return resp;
 	}
 	
 	static JsonAnnotation[] singleAnnotation(AnnotationShorthand sh, String value) {

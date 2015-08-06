@@ -593,6 +593,16 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return abox;
 	}
 	
+	public boolean isModelModified(IRI modelId) {
+		ModelContainer model = modelMap.get(modelId);
+		if (model != null) {
+			// ask model about modification
+			return model.isModified();
+		}
+		// non in-memory models are considered not modified.
+		return false;
+	}
+	
 	/**
 	 * @param modelId
 	 * @return ontology
