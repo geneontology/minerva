@@ -148,7 +148,6 @@ public class ModelEditTest {
 		executeBatch(batch);
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Test
 	public void testModifiedFlag() throws Exception {
 		final String modelId = "http://model.geneontology.org/5437882f00000024";
@@ -158,9 +157,8 @@ public class ModelEditTest {
 		// get meta, check that the model shows up as not modified
 		MetaResponse meta1 = BatchTestTools.getMeta(handler);
 		assertNotNull(meta1.modelsReadOnly);
-		Map<String, Map<String, Object>> modelsModified1 = (Map<String, Map<String, Object>>) meta1.modelsReadOnly;
-		assertFalse(modelsModified1.isEmpty());
-		for(Entry<String, Map<String, Object>> entity : modelsModified1.entrySet()) {
+		assertFalse(meta1.modelsReadOnly.isEmpty());
+		for(Entry<String, Map<String, Object>> entity : meta1.modelsReadOnly.entrySet()) {
 			boolean modifiedFlag = (Boolean) entity.getValue().get("modified-p");
 			assertFalse(modifiedFlag);
 		}

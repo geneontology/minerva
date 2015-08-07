@@ -1,10 +1,8 @@
 package org.geneontology.minerva.json;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLAnnotationValue;
 import org.semanticweb.owlapi.model.OWLAnnotationValueVisitorEx;
@@ -43,35 +41,6 @@ public class JsonTools {
 			type = datatype.getBuiltInDatatype().getPrefixedName();
 		}
 		return type;
-	}
-	
-	public static Pair<String, String> createSimplePair(OWLAnnotation an, final CurieHandler curieHandler) {
-		Pair<String, String> result = null;
-		// only render shorthand annotations in simple pairs
-		AnnotationShorthand shorthand = AnnotationShorthand.getShorthand(an.getProperty().getIRI());
-		if (shorthand != null) {
-			String value = an.getValue().accept(new OWLAnnotationValueVisitorEx<String>() {
-
-				@Override
-				public String visit(IRI iri) {
-					return curieHandler.getCuri(iri);
-				}
-
-				@Override
-				public String visit(OWLAnonymousIndividual individual) {
-					return null;
-				}
-
-				@Override
-				public String visit(OWLLiteral literal) {
-					return literal.getLiteral();
-				}
-			});
-			if (value != null) {
-				result = Pair.of(shorthand.getShorthand(), value);
-			}
-		}
-		return result;
 	}
 	
 	private static JsonAnnotation create(final String key, OWLAnnotationValue value, final CurieHandler curieHandler) {

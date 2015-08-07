@@ -1,11 +1,6 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -374,7 +369,7 @@ public class BatchModelHandlerTest {
 		final JsonEvidenceInfo[] evidences = BatchTestTools.responseEvidences(response);
 		assertTrue(evidences.length > 100);
 		
-		final Map<String, Map<String, String>> modelIds = BatchTestTools.responseModelsMeta(response);
+		final Map<String, List<JsonAnnotation>> modelIds = BatchTestTools.responseModelsMeta(response);
 		assertEquals(0, modelIds.size());
 	}
 	
@@ -1420,18 +1415,29 @@ public class BatchModelHandlerTest {
 		assertEquals(intention, response2.intention);
 		assertEquals(response2.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response2.messageType);
 		
-		Map<String,Map<String,String>> map = BatchTestTools.responseModelsMeta(response2);
-		assertEquals(2, map.size());
+		Map<String, List<JsonAnnotation>> meta = BatchTestTools.responseModelsMeta(response2);
+		assertEquals(2, meta.size());
 		// model 1
-		Map<String, String> modelData = map.get(modelId1);
+		List<JsonAnnotation> modelData = meta.get(modelId1);
 		assertNotNull(modelData);
-		assertFalse(modelData.containsKey(AnnotationShorthand.deprecated.name()));
+		for (JsonAnnotation json : modelData) {
+			if (json.key.equals(AnnotationShorthand.deprecated.name())) {
+				fail("the model should not have a deprecation annotation");
+			}
+		}
 		
 		// model 2, deprecated
-		modelData = map.get(modelId2);
+		modelData = meta.get(modelId2);
 		assertNotNull(modelData);
-		assertTrue(modelData.containsKey(AnnotationShorthand.deprecated.name()));
-		assertEquals("true", modelData.get(AnnotationShorthand.deprecated.name()));
+		boolean found = false;
+		for (JsonAnnotation json : modelData) {
+			if (json.key.equals(AnnotationShorthand.deprecated.name())) {
+				found = true;
+				assertEquals("true", json.value);
+			}
+		}
+		assertTrue("the model must have a deprecation annotation", found);
+		
 	}
 	
 	@Test

@@ -3,6 +3,7 @@ package org.geneontology.minerva.server.handler;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.List;
 import java.util.Map;
 
 import org.geneontology.minerva.json.JsonAnnotation;
@@ -171,12 +172,11 @@ public class BatchTestTools {
 		return response.data.inconsistentFlag;
 	}
 
-	@SuppressWarnings("unchecked")
-	static Map<String,Map<String,String>> responseModelsMeta(M3BatchResponse response) {
+	static Map<String,List<JsonAnnotation>> responseModelsMeta(M3BatchResponse response) {
 		assertNotNull(response);
 		assertNotNull(response.data);
 		assertNotNull(response.data.meta);
-		return (Map<String,Map<String,String>>) response.data.meta.modelsMeta;
+		return response.data.meta.modelsMeta;
 	}
 	
 	static JsonEvidenceInfo[] responseEvidences(M3BatchResponse response) {
