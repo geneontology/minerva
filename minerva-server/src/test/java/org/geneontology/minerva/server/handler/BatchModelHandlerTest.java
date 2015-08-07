@@ -93,7 +93,7 @@ public class BatchModelHandlerTest {
 		boolean useReasoner = true;
 		boolean useModelReasoner = false;
 //		useModelReasoner = true;
-		handler = new JsonOrJsonpBatchHandler(models, useReasoner, useModelReasoner, importantRelations, lookupService) {
+		handler = new JsonOrJsonpBatchHandler(models, "development", useReasoner, useModelReasoner, importantRelations, lookupService) {
 
 			@Override
 			protected String generateDateString() {
@@ -290,7 +290,8 @@ public class BatchModelHandlerTest {
 		final JsonAnnotation[] annotations1 = getModelAnnotations(modelId);
 		// creation date
 		// user id
-		assertEquals(2, annotations1.length);
+		// model state
+		assertEquals(3, annotations1.length);
 		
 		// create annotations
 		M3Request[] batch1 = new M3Request[1];
@@ -314,7 +315,7 @@ public class BatchModelHandlerTest {
 		
 		final JsonAnnotation[] annotations2 = getModelAnnotations(modelId);
 		assertNotNull(annotations2);
-		assertEquals(4, annotations2.length);
+		assertEquals(5, annotations2.length);
 		
 		
 		// remove one annotation
@@ -335,7 +336,7 @@ public class BatchModelHandlerTest {
 		
 		final JsonAnnotation[] annotations3 = getModelAnnotations(modelId);
 		assertNotNull(annotations3);
-		assertEquals(3, annotations3.length);
+		assertEquals(4, annotations3.length);
 	}
 
 	@Test

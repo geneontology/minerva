@@ -41,10 +41,11 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	private final boolean useReasoner;
 	
 	public JsonOrJsonpBatchHandler(UndoAwareMolecularModelManager models,
+			String defaultModelStqte,
 			boolean useReasoner, boolean useModuleReasoner,
 			Set<OWLObjectProperty> importantRelations,
 			ExternalLookupService externalLookupService) {
-		super(models, importantRelations, externalLookupService, useModuleReasoner);
+		super(models, importantRelations, externalLookupService, defaultModelStqte, useModuleReasoner);
 		this.useReasoner = useReasoner;
 	}
 

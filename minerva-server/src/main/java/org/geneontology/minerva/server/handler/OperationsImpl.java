@@ -69,14 +69,17 @@ abstract class OperationsImpl {
 	final ExternalLookupService externalLookupService;
 	final CurieHandler curieHandler;
 	final Set<IRI> dataPropertyIRIs;
+	final String defaultModelState;
 	final boolean useModuleReasoner;
 	
 	OperationsImpl(UndoAwareMolecularModelManager models, 
 			Set<OWLObjectProperty> importantRelations,
 			ExternalLookupService externalLookupService,
+			String defaultModelState,
 			boolean useModuleReasoner) {
 		super();
 		this.m3 = models;
+		this.defaultModelState = defaultModelState;
 		this.useModuleReasoner = useModuleReasoner;
 		this.importantRelations = importantRelations;
 		this.externalLookupService = externalLookupService;
@@ -452,6 +455,7 @@ abstract class OperationsImpl {
 			else {
 				annotations = extract(null, userId, values, values.model);
 			}
+			annotations = addDefaultModelState(annotations, values.model.getOWLDataFactory());
 			if (annotations != null) {
 				m3.addModelAnnotations(values.model, annotations, token);
 			}
@@ -782,6 +786,17 @@ abstract class OperationsImpl {
 		if (userId != null) {
 			annotations.add(create(f, AnnotationShorthand.contributor, userId));
 		}
+	}
+	
+	private Set<OWLAnnotation> addDefaultModelState(Set<OWLAnnotation> existing, OWLDataFactory f) {
+		IRI iri = AnnotationShorthand.modelstate.getAnnotationProperty();
+		OWLAnnotationProperty property = f.getOWLAnnotationProperty(iri);
+		OWLAnnotation ann = f.getOWLAnnotation(property, f.getOWLLiteral(defaultModelState));
+		if (existing == null || existing.isEmpty()) {
+			return Collections.singleton(ann);
+		}
+		existing.add(ann);
+		return existing;
 	}
 	
 	private void addDateAnnotation(Set<OWLAnnotation> annotations, OWLDataFactory f) {

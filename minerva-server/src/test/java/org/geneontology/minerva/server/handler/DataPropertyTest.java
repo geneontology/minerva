@@ -133,7 +133,7 @@ public class DataPropertyTest {
 		// handler
 		boolean useReasoner = false;
 		boolean useModelReasoner = false;
-		JsonOrJsonpBatchHandler handler = new JsonOrJsonpBatchHandler(m3, useReasoner, useModelReasoner, null, null);
+		JsonOrJsonpBatchHandler handler = new JsonOrJsonpBatchHandler(m3, "development", useReasoner, useModelReasoner, null, null);
 		
 		// empty model
 		final ModelContainer model = m3.generateBlankModel(new UndoMetadata("foo-user"));

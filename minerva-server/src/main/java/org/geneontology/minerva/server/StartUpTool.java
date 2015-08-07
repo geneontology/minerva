@@ -47,6 +47,8 @@ public class StartUpTool {
 		public String modelIdPrefix = "http://model.geneontology.org/";
 		public String modelIdcurie = "gomodel";
 		
+		public String defaultModelState = "development";
+		
 		public String golrUrl = null;
 		public int golrCacheSize = 100000;
 		public ExternalLookupService lookupService = null;
@@ -314,8 +316,8 @@ public class StartUpTool {
 		LOGGER.info("BatchHandler config checkLiteralIds: "+conf.checkLiteralIds);
 		LOGGER.info("BatchHandler config useRequestLogging"+conf.useRequestLogging);
 		
-		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.useReasoner, 
-				conf.useModuleReasoner, conf.importantRelations, conf.lookupService);
+		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
+				conf.useReasoner, conf.useModuleReasoner, conf.importantRelations, conf.lookupService);
 		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
 		resourceConfig = resourceConfig.registerInstances(batchHandler);
 

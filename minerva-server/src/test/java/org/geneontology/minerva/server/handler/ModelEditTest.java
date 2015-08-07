@@ -70,7 +70,7 @@ public class ModelEditTest {
 		models = new UndoAwareMolecularModelManager(graph, rf, curieHandler, modelIdPrefix);
 		boolean useReasoner = false;
 		boolean useModelReasoner = false;
-		handler = new JsonOrJsonpBatchHandler(models, useReasoner, useModelReasoner,
+		handler = new JsonOrJsonpBatchHandler(models, "development", useReasoner, useModelReasoner,
 				Collections.<OWLObjectProperty>emptySet(), (ExternalLookupService) null);
 	}
 	
