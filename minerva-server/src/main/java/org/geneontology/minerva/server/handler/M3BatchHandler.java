@@ -171,6 +171,7 @@ public interface M3BatchHandler {
 		public static class MetaResponse {
 			public JsonRelationInfo[] relations;
 			
+			@SerializedName("data-properties")
 			public JsonRelationInfo[] dataProperties;
 			
 			public JsonEvidenceInfo[] evidence;
