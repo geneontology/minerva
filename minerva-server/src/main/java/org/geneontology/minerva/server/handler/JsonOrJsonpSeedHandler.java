@@ -117,8 +117,8 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 	
 	private SeedResponse seedFromProcess(SeedRequest request, ModelContainer model, SeedResponse response, UndoMetadata token) throws Exception {
 		// check required fields
-		requireNotNull(request.process, "");
-		requireNotNull(request.taxon, "");
+		requireNotNull(request.process, "A process id is required for seeding");
+		requireNotNull(request.taxon, "A taxon id is required for seeding");
 		
 		// prepare seeder
 		OWLGraphWrapper graph = new OWLGraphWrapper(model.getAboxOntology());
@@ -150,6 +150,8 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 		reasoner.flush();
 		response.data.inconsistentFlag = reasoner.isConsistent();
 		
+		// model id
+		response.data.modelId = curieHandler.getCuri(model.getModelId());
 		MolecularModelJsonRenderer renderer = createModelRenderer(model, externalLookupService, null, curieHandler);
 		// render complete model
 		JsonModel jsonModel = renderer.renderModel();
