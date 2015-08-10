@@ -75,7 +75,9 @@ public interface M3SeedHandler {
 		String commentary;
 		
 		public static class SeedResponseData {
-			public String id;
+			
+			@SerializedName("model-id")
+			public String modelId;
 			
 			@SerializedName("inconsistent-p")
 			public Boolean inconsistentFlag;
