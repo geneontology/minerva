@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.bbop.golr.java.RetrieveGolrBioentities;
 import org.bbop.golr.java.RetrieveGolrOntologyClass;
@@ -83,7 +84,7 @@ public class GolrExternalLookupServiceTest {
 				requests.add(uri);
 			}
 		}, handler);
-		ExternalLookupService s = new CachingExternalLookupService(golr, 1000);
+		ExternalLookupService s = new CachingExternalLookupService(golr, 1000, 24l, TimeUnit.HOURS);
 		
 		List<LookupEntry> lookup1 = s.lookup(handler.getIRI("SGD:S000004529"));
 		assertEquals(1, lookup1.size());

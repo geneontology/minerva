@@ -3,6 +3,7 @@ package org.geneontology.minerva.server;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 import org.eclipse.jetty.server.Server;
@@ -51,6 +52,8 @@ public class StartUpTool {
 		
 		public String golrUrl = null;
 		public int golrCacheSize = 100000;
+		public long golrCacheDuration = 24l;
+		public TimeUnit golrCacheDurationUnit = TimeUnit.HOURS;
 		public ExternalLookupService lookupService = null;
 		public boolean checkLiteralIds = true;
 
@@ -201,7 +204,9 @@ public class StartUpTool {
 		// wrap the Golr service with a cache
 		if (conf.golrUrl != null) {
 			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler);
-			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize);
+			LOGGER.info("Setting up Golr cache with size: "+conf.golrCacheSize+" duration: "+
+					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit);
+			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
 		}
 		
 		startUp(conf);
