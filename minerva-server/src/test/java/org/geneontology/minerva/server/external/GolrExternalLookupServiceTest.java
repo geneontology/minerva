@@ -37,6 +37,22 @@ public class GolrExternalLookupServiceTest {
 	}
 	
 	@Test
+	public void testLookupString3() throws Exception {
+		GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler);
+		String testCurie = "SGD:S000005952";
+		List<LookupEntry> lookup = s.lookup(handler.getIRI(testCurie));
+		assertEquals(1, lookup.size());
+		assertEquals("PHO85", lookup.get(0).label);
+		
+		IRI testIRI = IRI.create("http://identifiers.org/sgd/S000005952");
+		assertEquals(testCurie, handler.getCuri(testIRI));
+		List<LookupEntry> lookup2 = s.lookup(testIRI);
+		assertEquals(1, lookup2.size());
+		assertEquals("PHO85", lookup2.get(0).label);
+		
+	}
+	
+	@Test
 	public void testLookupStringCls() throws Exception {
 		GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler);
 		List<LookupEntry> lookup = s.lookup(handler.getIRI("PO:0001040"));
