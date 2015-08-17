@@ -22,10 +22,16 @@ public class GolrExternalLookupServiceTest {
 	@Test
 	public void testLookupString1() throws Exception {
 		GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler);
-		IRI testIRI = handler.getIRI("SGD:S000004529");
-		List<LookupEntry> lookup = s.lookup(testIRI);
+		String testCurie = "SGD:S000004529";
+		List<LookupEntry> lookup = s.lookup(handler.getIRI(testCurie));
 		assertEquals(1, lookup.size());
 		assertEquals("TEM1", lookup.get(0).label);
+		
+		IRI testIRI = IRI.create("http://identifiers.org/sgd/S000004529");
+		assertEquals(testCurie, handler.getCuri(testIRI));
+		List<LookupEntry> lookup2 = s.lookup(testIRI);
+		assertEquals(1, lookup2.size());
+		assertEquals("TEM1", lookup2.get(0).label);
 	}
 	
 	@Test
