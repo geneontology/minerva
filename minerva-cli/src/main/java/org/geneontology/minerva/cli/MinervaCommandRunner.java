@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -19,20 +20,27 @@ import org.geneontology.minerva.GafToLegoIndividualTranslator;
 import org.geneontology.minerva.GafToLegoTranslator;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.generate.LegoModelGenerator;
 import org.geneontology.minerva.legacy.LegoAllIndividualToGeneAnnotationTranslator;
+import org.geneontology.minerva.util.AnnotationShorthand;
 import org.geneontology.minerva.util.MinimalModelGenerator;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
 import org.semanticweb.owlapi.io.RDFXMLOntologyFormat;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLAnnotationValueVisitorEx;
+import org.semanticweb.owlapi.model.OWLAnonymousIndividual;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLEntity;
 import org.semanticweb.owlapi.model.OWLEquivalentClassesAxiom;
+import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectIntersectionOf;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
@@ -564,16 +572,18 @@ public class MinervaCommandRunner extends JsCommandRunner {
 	
 	@CLIMethod("--lego-to-gpad")
 	public void legoToAnnotations(Opts opts) throws Exception {
-		String inputName = null;
-		String outputFileName = null;
+		String modelIdPrefix = "http://model.geneontology.org/";
+		String modelIdcurie = "gomodel";
+		String inputFolder = null;
+		String outputFolder = null;
 		List<String> defaultRefs = null;
 		boolean addLegoModelId = true;
 		while (opts.hasOpts()) {
 			if (opts.nextEq("-i|--input")) {
-				inputName = opts.nextOpt();
+				inputFolder = opts.nextOpt();
 			}
 			else if (opts.nextEq("-o|--output")) {
-				outputFileName = opts.nextOpt();
+				outputFolder = opts.nextOpt();
 			}
 			else if (opts.nextEq("--add-default-ref")) {
 				if (defaultRefs == null) {
@@ -584,62 +594,134 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			else if (opts.nextEq("--remove-lego-model-ids")) {
 				addLegoModelId = false;
 			}
+			else if (opts.nextEq("--model-id-prefix")) {
+				modelIdPrefix = opts.nextOpt();
+			}
+			else if (opts.nextEq("--model-id-curie")) {
+				modelIdcurie = opts.nextOpt();
+			}
 			else {
 				break;
 			}
 		}
+		// create curie handler
+		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
+		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
 
 		SimpleEcoMapper mapper = EcoMapperFactory.createSimple();
-		LegoAllIndividualToGeneAnnotationTranslator translator = new LegoAllIndividualToGeneAnnotationTranslator(g, reasoner, mapper);
-		GafDocument annotations = new GafDocument(null, null);
-		BioentityDocument entities = new BioentityDocument(null);
+		LegoAllIndividualToGeneAnnotationTranslator translator = new LegoAllIndividualToGeneAnnotationTranslator(g, curieHandler, reasoner, mapper);
+		Set<String> modelStates = new HashSet<>();
+		Map<String, GafDocument> typedAnnotations = new HashMap<>();
+		Map<String, BioentityDocument> typedEntities = new HashMap<>();
 
-		File inputFile = new File(inputName).getCanonicalFile();
+		File inputFile = new File(inputFolder).getCanonicalFile();
 		OWLOntologyManager m = g.getManager();
-		if (inputFile.isFile()) {
-			OWLOntology model = m.loadOntology(IRI.create(inputFile));
-			String modelId = StringUtils.stripEnd(inputFile.getName(), ".owl");
-			List<String> addtitionalRefs = handleRefs(defaultRefs, addLegoModelId, modelId);
-			translator.translate(model, annotations, entities, addtitionalRefs);	
-		}
-		else if (inputFile.isDirectory()) {
+		if (inputFile.isDirectory()) {
 			File[] files = inputFile.listFiles(new FilenameFilter() {
 
 				@Override
 				public boolean accept(File dir, String name) {
-					return StringUtils.trimToEmpty(name).toLowerCase().endsWith(".owl");
+					return StringUtils.isAlphanumeric(name);
 				}
 			});
 			for (File file : files) {
-				String modelId = StringUtils.stripEnd(file.getName(), ".owl");
-				List<String> addtitionalRefs = handleRefs(defaultRefs, addLegoModelId, modelId);
 				OWLOntology model = m.loadOntology(IRI.create(file));
+				
+				// get curie
+				String modelCurie = getModelCurie(model, curieHandler, null);
+				
+				List<String> addtitionalRefs = handleRefs(defaultRefs, addLegoModelId, modelCurie);
+				
+				// get state
+				final String modelState = getModelState(model, "unknown");
+				modelStates.add(modelState);
+				
+				// get appropriate annotation containers
+				GafDocument annotations = typedAnnotations.get(modelState);
+				if (annotations == null) {
+					annotations = new GafDocument(null, null);
+					typedAnnotations.put(modelState, annotations);
+				}
+				BioentityDocument entities = typedEntities.get(modelState);
+				if (entities == null) {
+					entities = new BioentityDocument(null);
+				}
+				
+				// translate
 				translator.translate(model, annotations, entities, addtitionalRefs);	
 			}
 		}
 
-		// write GPAD to avoid bioentity data issues
-		PrintWriter fileWriter = null;
-		try {
-			fileWriter = new PrintWriter(new File(outputFileName));
-			GpadWriter writer = new GpadWriter(fileWriter, 1.2d);
-			writer.write(annotations);
-		}
-		finally {
-			IOUtils.closeQuietly(fileWriter);	
+		for(String modelState : modelStates) {
+			// write GPAD to avoid bioentity data issues
+			GafDocument annotations = typedAnnotations.get(modelState);
+			if (annotations != null) {
+				PrintWriter fileWriter = null;
+				File outputFile = new File(outputFolder, modelState+".gpad");
+				try {
+					outputFile.getParentFile().mkdirs();
+					fileWriter = new PrintWriter(outputFile);
+					GpadWriter writer = new GpadWriter(fileWriter, 1.2d);
+					writer.write(annotations);
+				}
+				finally {
+					IOUtils.closeQuietly(fileWriter);	
+				}
+			}
 		}
 	}
 	
-	List<String> handleRefs(List<String> defaultRefs, boolean addLegoModelId, String modelId) {
+	private static String getModelState(OWLOntology model, String defaultValue) {
+		String modelState = defaultValue;
+		Set<OWLAnnotation> modelAnnotations = model.getAnnotations();
+		for (OWLAnnotation modelAnnotation : modelAnnotations) {
+			IRI propIRI = modelAnnotation.getProperty().getIRI();
+			if (AnnotationShorthand.modelstate.getAnnotationProperty().equals(propIRI)) {
+				String value = modelAnnotation.getValue().accept(new OWLAnnotationValueVisitorEx<String>() {
+
+					@Override
+					public String visit(IRI iri) {
+						return null;
+					}
+
+					@Override
+					public String visit(OWLAnonymousIndividual individual) {
+						return null;
+					}
+
+					@Override
+					public String visit(OWLLiteral literal) {
+						return literal.getLiteral();
+					}
+				});
+				if (value != null) {
+					modelState = value;
+				}
+			}
+		}
+		return modelState;
+	}
+	
+	private static String getModelCurie(OWLOntology model, CurieHandler curieHandler, String defaultValue) {
+		// get model curie from ontology IRI
+		String modelCurie = defaultValue;
+		IRI ontologyIRI = model.getOntologyID().getOntologyIRI();
+		if (ontologyIRI != null) {
+			modelCurie = curieHandler.getCuri(ontologyIRI);
+		}
+		return modelCurie;
+	}
+	
+	List<String> handleRefs(List<String> defaultRefs, boolean addLegoModelId, String modelCurie) {
 		List<String> addtitionalRefs;
-		if (addLegoModelId) {
+		if (addLegoModelId && modelCurie != null) {
 			if (defaultRefs == null) {
-				addtitionalRefs = Collections.singletonList(modelId);
+				addtitionalRefs = Collections.singletonList(modelCurie);
 			}
 			else {
 				addtitionalRefs = new ArrayList<String>(defaultRefs.size() + 1);
 				addtitionalRefs.addAll(defaultRefs);
-				addtitionalRefs.add(modelId);
+				addtitionalRefs.add(modelCurie);
 			}
 		}
 		else {
