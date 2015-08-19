@@ -180,7 +180,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 				if (Operation.get == operation){
 					if (values.nonMeta) {
 						// can only be used with other "meta" operations in batch mode, otherwise it would lead to conflicts in the returned signal
-						return error(response, "Get Relations can only be combined with other meta operations.", null);
+						return error(response, "Get meta entity can only be combined with other meta operations.", null);
 					}
 					getMeta(response, userId);
 				}
