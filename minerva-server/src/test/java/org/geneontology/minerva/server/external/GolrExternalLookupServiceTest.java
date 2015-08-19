@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.bbop.golr.java.RetrieveGolrBioentities;
 import org.bbop.golr.java.RetrieveGolrOntologyClass;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -65,6 +67,15 @@ public class GolrExternalLookupServiceTest {
 		List<LookupEntry> lookup = s.lookup(handler.getIRI("PO:0001040"));
 		assertEquals(1, lookup.size());
 		assertEquals("dry seed stage", lookup.get(0).label);
+	}
+	
+	@Test
+	public void testLookupStringCls2() throws Exception {
+		Logger.getLogger(GolrExternalLookupService.class).setLevel(Level.DEBUG);
+		GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler);
+		List<LookupEntry> lookup = s.lookup(handler.getIRI("UBERON:0010403"));
+		assertEquals(1, lookup.size());
+		assertEquals("brain marginal zone", lookup.get(0).label);
 	}
 	
 	@Test
