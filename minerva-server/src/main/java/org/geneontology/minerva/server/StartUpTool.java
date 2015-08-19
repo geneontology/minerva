@@ -19,6 +19,7 @@ import org.geneontology.minerva.server.external.CachingExternalLookupService;
 import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.external.GolrExternalLookupService;
 import org.geneontology.minerva.server.handler.JsonOrJsonpBatchHandler;
+import org.geneontology.minerva.server.handler.JsonOrJsonpSeedHandler;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
@@ -320,11 +321,13 @@ public class StartUpTool {
 		LOGGER.info("BatchHandler config lookupService: "+conf.lookupService);
 		LOGGER.info("BatchHandler config checkLiteralIds: "+conf.checkLiteralIds);
 		LOGGER.info("BatchHandler config useRequestLogging"+conf.useRequestLogging);
+		LOGGER.info("SeedHandler config golrUrl: "+conf.golrUrl);
 		
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
 				conf.useReasoner, conf.useModuleReasoner, conf.importantRelations, conf.lookupService);
 		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
-		resourceConfig = resourceConfig.registerInstances(batchHandler);
+		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.golrUrl);
+		resourceConfig = resourceConfig.registerInstances(batchHandler, seedHandler);
 
 		// setup jetty server port, buffers and context path
 		Server server = new Server();

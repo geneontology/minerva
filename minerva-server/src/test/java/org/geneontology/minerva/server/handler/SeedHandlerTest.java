@@ -47,7 +47,7 @@ public class SeedHandlerTest {
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
 		models = new UndoAwareMolecularModelManager(graph, new ElkReasonerFactory(), curieHandler, modelIdPrefix);
-		handler = new JsonOrJsonpSeedHandler(models, golr, null);
+		handler = new JsonOrJsonpSeedHandler(models, golr);
 	}
 	
 	@AfterClass
@@ -81,7 +81,8 @@ public class SeedHandlerTest {
 	}
 	
 	private SeedResponse seed(SeedRequest request) {
-		SeedResponse response = handler.fromProcessGetPrivileged(uid, intention, packetId, request);
+		String json = MolecularModelJsonRenderer.renderToJson(request, false);
+		SeedResponse response = handler.fromProcessGetPrivileged(uid, intention, packetId, json);
 		assertEquals(uid, response.uid);
 		assertEquals(intention, response.intention);
 		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);

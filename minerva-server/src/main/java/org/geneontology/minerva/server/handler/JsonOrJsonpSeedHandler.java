@@ -1,6 +1,5 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.geneontology.minerva.server.handler.OperationsTools.createModelRenderer;
 import static org.geneontology.minerva.server.handler.OperationsTools.normalizeUserId;
 import static org.geneontology.minerva.server.handler.OperationsTools.requireNotNull;
 
@@ -11,6 +10,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
@@ -19,9 +19,7 @@ import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.generate.GolrSeedingDataProvider;
 import org.geneontology.minerva.generate.ModelSeeding;
-import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
-import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3SeedHandler.SeedResponse.SeedResponseData;
 import org.geneontology.reasoner.ExpressionMaterializingReasoner;
 import org.geneontology.reasoner.ExpressionMaterializingReasonerFactory;
@@ -43,21 +41,18 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 	private final UndoAwareMolecularModelManager m3;
 	private final String golrUrl;
 	private final OWLExtendedReasonerFactory<ExpressionMaterializingReasoner> factory;
-	private final ExternalLookupService externalLookupService;
 	private final CurieHandler curieHandler;
 	
-	public JsonOrJsonpSeedHandler(UndoAwareMolecularModelManager m3, String golr, 
-			ExternalLookupService externalLookupService) {
+	public JsonOrJsonpSeedHandler(UndoAwareMolecularModelManager m3, String golr) {
 		this.m3 = m3;
 		this.golrUrl = golr;
-		this.externalLookupService = externalLookupService;
 		this.curieHandler = m3.getCuriHandler();
 		factory = new ExpressionMaterializingReasonerFactory(new ElkReasonerFactory());
 	}
 
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public SeedResponse fromProcessPost(String intention, String packetId, SeedRequest request) {
+	public SeedResponse fromProcessPost(String intention, String packetId, String requestString) {
 		// only privileged calls are allowed
 		SeedResponse response = new SeedResponse(null, intention, packetId);
 		return error(response, "Insufficient permissions for seed operation.", null);
@@ -65,13 +60,13 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public SeedResponse fromProcessPostPrivileged(String uid, String intention, String packetId, SeedRequest request) {
-		return fromProcess(uid, intention, checkPacketId(packetId), request);
+	public SeedResponse fromProcessPostPrivileged(String uid, String intention, String packetId, String requestString) {
+		return fromProcess(uid, intention, checkPacketId(packetId), requestString);
 	}
 
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public SeedResponse fromProcessGet(String intention, String packetId, SeedRequest request) {
+	public SeedResponse fromProcessGet(String intention, String packetId, String requestString) {
 		// only privileged calls are allowed
 		SeedResponse response = new SeedResponse(null, intention, packetId);
 		return error(response, "Insufficient permissions for seed operation.", null);
@@ -79,8 +74,8 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public SeedResponse fromProcessGetPrivileged(String uid, String intention, String packetId, SeedRequest request) {
-		return fromProcess(uid, intention, checkPacketId(packetId), request);
+	public SeedResponse fromProcessGetPrivileged(String uid, String intention, String packetId, String requestString) {
+		return fromProcess(uid, intention, checkPacketId(packetId), requestString);
 	}
 
 	private static String checkPacketId(String packetId) {
@@ -90,10 +85,12 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 		return packetId;
 	}
 	
-	private SeedResponse fromProcess(String uid, String intention, String packetId, SeedRequest request) {
+	private SeedResponse fromProcess(String uid, String intention, String packetId, String requestString) {
 		SeedResponse response = new SeedResponse(uid, intention, packetId);
 		try {
-			requireNotNull(request, "The request may not be null.");
+			requestString = StringUtils.trimToNull(requestString);
+			requireNotNull(requestString, "The request may not be null.");
+			SeedRequest request = MolecularModelJsonRenderer.parseFromJson(requestString, SeedRequest.class);
 			uid = normalizeUserId(uid);
 			UndoMetadata token = new UndoMetadata(uid);
 			ModelContainer model = getModel(curieHandler.getIRI(request.modelId));
@@ -147,18 +144,9 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 		// create response.data
 		response.messageType = SeedResponse.MESSAGE_TYPE_SUCCESS;
 		response.data = new SeedResponseData();
-		reasoner.flush();
-		response.data.inconsistentFlag = reasoner.isConsistent();
 		
 		// model id
-		response.data.modelId = curieHandler.getCuri(model.getModelId());
-		MolecularModelJsonRenderer renderer = createModelRenderer(model, externalLookupService, null, curieHandler);
-		// render complete model
-		JsonModel jsonModel = renderer.renderModel();
-		response.data.individuals = jsonModel.individuals;
-		response.data.facts = jsonModel.facts;
-		response.data.properties = jsonModel.properties;
-		
+		response.data.id = curieHandler.getCuri(model.getModelId());
 		return response;
 	}
 	
