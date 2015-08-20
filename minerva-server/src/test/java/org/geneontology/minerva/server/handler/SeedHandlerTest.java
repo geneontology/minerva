@@ -46,7 +46,7 @@ public class SeedHandlerTest {
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
 		models = new UndoAwareMolecularModelManager(graph, new ElkReasonerFactory(), curieHandler, modelIdPrefix);
-		handler = new JsonOrJsonpSeedHandler(models, golr);
+		handler = new JsonOrJsonpSeedHandler(models, "unknown", golr);
 	}
 	
 	@AfterClass

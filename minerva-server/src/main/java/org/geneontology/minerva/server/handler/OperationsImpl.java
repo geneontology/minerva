@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -22,7 +21,6 @@ import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.ChangeEvent;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
-import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.json.JsonEvidenceInfo;
 import org.geneontology.minerva.json.JsonOwlObject;
@@ -38,11 +36,8 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.handler.OperationsTools.MissingParameterException;
 import org.geneontology.minerva.server.validation.BeforeSaveModelValidator;
-import org.geneontology.minerva.util.AnnotationShorthand;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
-import org.semanticweb.owlapi.model.OWLAnnotationProperty;
-import org.semanticweb.owlapi.model.OWLAnnotationValue;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLDataProperty;
@@ -60,16 +55,14 @@ import org.semanticweb.owlapi.model.OWLOntologyStorageException;
  * request, error and response handling.
  * 
  * @see JsonOrJsonpBatchHandler
+ * @see ModelCreator
  */
-abstract class OperationsImpl {
+abstract class OperationsImpl extends ModelCreator {
 
-	final UndoAwareMolecularModelManager m3;
 	final Set<OWLObjectProperty> importantRelations;
 	final BeforeSaveModelValidator beforeSaveValidator;
 	final ExternalLookupService externalLookupService;
-	final CurieHandler curieHandler;
-	final Set<IRI> dataPropertyIRIs;
-	final String defaultModelState;
+	
 	final boolean useModuleReasoner;
 	
 	OperationsImpl(UndoAwareMolecularModelManager models, 
@@ -77,19 +70,11 @@ abstract class OperationsImpl {
 			ExternalLookupService externalLookupService,
 			String defaultModelState,
 			boolean useModuleReasoner) {
-		super();
-		this.m3 = models;
-		this.defaultModelState = defaultModelState;
+		super(models, defaultModelState);
 		this.useModuleReasoner = useModuleReasoner;
 		this.importantRelations = importantRelations;
 		this.externalLookupService = externalLookupService;
-		this.curieHandler = models.getCuriHandler();
 		this.beforeSaveValidator = new BeforeSaveModelValidator();
-		Set<IRI> dataPropertyIRIs = new HashSet<IRI>();
-		for(OWLDataProperty p : m3.getOntology().getDataPropertiesInSignature(true)) {
-			dataPropertyIRIs.add(p.getIRI());
-		}
-		this.dataPropertyIRIs = Collections.unmodifiableSet(dataPropertyIRIs);
 	}
 
 	abstract boolean enforceExternalValidate();
@@ -98,7 +83,7 @@ abstract class OperationsImpl {
 	
 	abstract boolean validateBeforeSave();
 	
-	static class BatchHandlerValues {
+	static class BatchHandlerValues implements VariableResolver {
 		
 		final Set<OWLNamedIndividual> relevantIndividuals = new HashSet<>();
 		boolean renderBulk = false;
@@ -106,10 +91,12 @@ abstract class OperationsImpl {
 		ModelContainer model = null;
 		Map<String, OWLNamedIndividual> individualVariable = new HashMap<>();
 		
+		@Override
 		public boolean notVariable(String id) {
 			return individualVariable.containsKey(id) == false;
 		}
 		
+		@Override
 		public OWLNamedIndividual getVariableValue(String id) throws UnknownIdentifierException {
 			if (individualVariable.containsKey(id)) {
 				OWLNamedIndividual individual = individualVariable.get(id);
@@ -441,25 +428,12 @@ abstract class OperationsImpl {
 			values.nonMeta = true;
 			values.renderBulk = true;
 			
-			Set<OWLAnnotation> annotations = null;
-//			if (request.arguments != null && request.arguments.taxonId != null) {
-//				values.modelId = m3.generateBlankModelWithTaxon(request.arguments.taxonId, token);
-//			}
-//			else {
-				values.model = m3.generateBlankModel(token);
-//			}
-			
 			if (request.arguments != null) {
-				annotations = extract(request.arguments.values, userId, values, values.model);
+				values.model = createModel(userId, token, values, request.arguments.values);
 			}
 			else {
-				annotations = extract(null, userId, values, values.model);
+				values.model = createModel(userId, token, values, null);
 			}
-			annotations = addDefaultModelState(annotations, values.model.getOWLDataFactory());
-			if (annotations != null) {
-				m3.addModelAnnotations(values.model, annotations, token);
-			}
-			updateModelAnnotations(values.model, userId, token, m3);
 		}
 		else if (Operation.addAnnotation == operation) {
 			values.nonMeta = true;
@@ -678,15 +652,6 @@ abstract class OperationsImpl {
 		response.data.exportModel = exportModel;
 	}
 	
-	private static OWLAnnotation create(OWLDataFactory f, AnnotationShorthand s, String literal) {
-		return create(f, s, f.getOWLLiteral(literal));
-	}
-	
-	private static OWLAnnotation create(OWLDataFactory f, AnnotationShorthand s, OWLAnnotationValue v) {
-		final OWLAnnotationProperty p = f.getOWLAnnotationProperty(s.getAnnotationProperty());
-		return f.getOWLAnnotation(p, v);
-	}
-
 
 	/**
 	 * @param model
@@ -716,102 +681,6 @@ abstract class OperationsImpl {
 		return model;
 	}
 	
-	private Set<OWLAnnotation> extract(JsonAnnotation[] values, String userId, BatchHandlerValues batchValues, ModelContainer model) throws UnknownIdentifierException {
-		Set<OWLAnnotation> result = new HashSet<OWLAnnotation>();
-		OWLDataFactory f = model.getOWLDataFactory();
-		if (values != null) {
-			for (JsonAnnotation jsonAnn : values) {
-				if (jsonAnn.key != null && jsonAnn.value != null) {
-					AnnotationShorthand shorthand = AnnotationShorthand.getShorthand(jsonAnn.key, curieHandler);
-					if (shorthand != null) {
-						if (AnnotationShorthand.evidence == shorthand) {
-							IRI evidenceIRI;
-							if (batchValues.notVariable(jsonAnn.value)) {
-								evidenceIRI = curieHandler.getIRI(jsonAnn.value);
-							}
-							else {
-								evidenceIRI = batchValues.getVariableValue(jsonAnn.value).getIRI();
-							}
-							result.add(create(f, shorthand, evidenceIRI));
-						}
-						else {
-							result.add(create(f, shorthand, JsonTools.createAnnotationValue(jsonAnn, f)));
-						}
-					}
-					else {
-						IRI pIRI = curieHandler.getIRI(jsonAnn.key);
-						if (dataPropertyIRIs.contains(pIRI) == false) {
-							OWLAnnotationValue annotationValue = JsonTools.createAnnotationValue(jsonAnn, f);
-							result.add(f.getOWLAnnotation(f.getOWLAnnotationProperty(pIRI), annotationValue));
-						}
-					}
-				}
-			}
-		}
-		addGeneratedAnnotations(userId, result, f);
-		return result;
-	}
-	
-	private Map<OWLDataProperty, Set<OWLLiteral>> extractDataProperties(JsonAnnotation[] values, ModelContainer model) {
-		Map<OWLDataProperty, Set<OWLLiteral>> result = new HashMap<OWLDataProperty, Set<OWLLiteral>>();
-		
-		if (values != null && values.length > 0) {
-			OWLDataFactory f = model.getOWLDataFactory();
-			for (JsonAnnotation jsonAnn : values) {
-				if (jsonAnn.key != null && jsonAnn.value != null) {
-					AnnotationShorthand shorthand = AnnotationShorthand.getShorthand(jsonAnn.key, curieHandler);
-					if (shorthand == null) {
-						IRI pIRI = curieHandler.getIRI(jsonAnn.key);
-						if (dataPropertyIRIs.contains(pIRI)) {
-							OWLLiteral literal = JsonTools.createLiteral(jsonAnn, f);
-							if (literal != null) {
-								OWLDataProperty property = f.getOWLDataProperty(pIRI);
-								Set<OWLLiteral> literals = result.get(property);
-								if (literals == null) {
-									literals = new HashSet<OWLLiteral>();
-									result.put(property, literals);
-								}
-								literals.add(literal);
-							}
-						}
-					}
-				}
-			}
-		}
-		
-		return result;
-	}
-	
-	private void addGeneratedAnnotations(String userId, Set<OWLAnnotation> annotations, OWLDataFactory f) {
-		if (userId != null) {
-			annotations.add(create(f, AnnotationShorthand.contributor, userId));
-		}
-	}
-	
-	private Set<OWLAnnotation> addDefaultModelState(Set<OWLAnnotation> existing, OWLDataFactory f) {
-		IRI iri = AnnotationShorthand.modelstate.getAnnotationProperty();
-		OWLAnnotationProperty property = f.getOWLAnnotationProperty(iri);
-		OWLAnnotation ann = f.getOWLAnnotation(property, f.getOWLLiteral(defaultModelState));
-		if (existing == null || existing.isEmpty()) {
-			return Collections.singleton(ann);
-		}
-		existing.add(ann);
-		return existing;
-	}
-	
-	private void addDateAnnotation(Set<OWLAnnotation> annotations, OWLDataFactory f) {
-		annotations.add(createDateAnnotation(f));
-	}
-	
-	private OWLAnnotation createDateAnnotation(OWLDataFactory f) {
-		return create(f, AnnotationShorthand.date, generateDateString());
-	}
-
-	private void updateDate(ModelContainer model, OWLNamedIndividual individual, UndoMetadata token, UndoAwareMolecularModelManager m3) throws UnknownIdentifierException {
-		final OWLDataFactory f = model.getOWLDataFactory();
-		m3.updateAnnotation(model, individual, createDateAnnotation(f), token);
-	}
-	
 	private void updateAnnotationsForDelete(DeleteInformation info, ModelContainer model, String userId, UndoMetadata token, UndoAwareMolecularModelManager m3) throws UnknownIdentifierException {
 		final OWLDataFactory f = model.getOWLDataFactory();
 		final OWLAnnotation annotation = createDateAnnotation(f);
@@ -826,38 +695,6 @@ abstract class OperationsImpl {
 					m3.updateAnnotation(model, info.updated, annotation, token);
 			m3.addAnnotations(model, newAxioms, generated, token);
 		}
-	}
-	
-	private void updateDate(ModelContainer model, OWLObjectProperty predicate, OWLNamedIndividual subject, OWLNamedIndividual object, UndoMetadata token, UndoAwareMolecularModelManager m3) throws UnknownIdentifierException {
-		final OWLDataFactory f = model.getOWLDataFactory();
-		m3.updateAnnotation(model, predicate, subject, object, createDateAnnotation(f), token);
-	}
-	
-	private void updateModelAnnotations(ModelContainer model, String userId, UndoMetadata token, MolecularModelManager<UndoMetadata> m3) throws UnknownIdentifierException {
-		final OWLDataFactory f = model.getOWLDataFactory();
-		if (userId != null) {
-			Set<OWLAnnotation> annotations = new HashSet<OWLAnnotation>();
-			annotations.add(create(f, AnnotationShorthand.contributor, userId));
-			m3.addModelAnnotations(model, annotations, token);
-		}
-		m3.updateAnnotation(model, createDateAnnotation(f), token);
-	}
-
-	/**
-	 * separate method, intended to be overridden during test.
-	 * 
-	 * @return date string, never null
-	 */
-	protected String generateDateString() {
-		String dateString = MolecularModelJsonRenderer.AnnotationTypeDateFormat.get().format(new Date());
-		return dateString;
-	}
-	
-	private Set<OWLAnnotation> createGeneratedAnnotations(ModelContainer model, String userId) {
-		Set<OWLAnnotation> annotations = new HashSet<OWLAnnotation>();
-		OWLDataFactory f = model.getOWLDataFactory();
-		addGeneratedAnnotations(userId, annotations, f);
-		return annotations;
 	}
 	
 	static class MultipleModelIdsParameterException extends Exception {

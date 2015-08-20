@@ -13,10 +13,8 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.ModelContainer;
-import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
-import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.generate.GolrSeedingDataProvider;
 import org.geneontology.minerva.generate.ModelSeeding;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
@@ -26,27 +24,23 @@ import org.geneontology.reasoner.ExpressionMaterializingReasonerFactory;
 import org.geneontology.reasoner.OWLExtendedReasonerFactory;
 import org.glassfish.jersey.server.JSONP;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
-import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
 
 import owltools.graph.OWLGraphWrapper;
 
-public class JsonOrJsonpSeedHandler implements M3SeedHandler {
+public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandler {
 
 	public static final String JSONP_DEFAULT_CALLBACK = "jsonp";
 	public static final String JSONP_DEFAULT_OVERWRITE = "json.wrf";
 	
 	private static final Logger logger = Logger.getLogger(JsonOrJsonpSeedHandler.class);
 	
-	private final UndoAwareMolecularModelManager m3;
 	private final String golrUrl;
 	private final OWLExtendedReasonerFactory<ExpressionMaterializingReasoner> factory;
-	private final CurieHandler curieHandler;
 	
-	public JsonOrJsonpSeedHandler(UndoAwareMolecularModelManager m3, String golr) {
-		this.m3 = m3;
+	public JsonOrJsonpSeedHandler(UndoAwareMolecularModelManager m3, String defaultModelState, String golr) {
+		super(m3, defaultModelState);
 		this.golrUrl = golr;
-		this.curieHandler = m3.getCuriHandler();
 		factory = new ExpressionMaterializingReasonerFactory(new ElkReasonerFactory());
 	}
 
@@ -93,7 +87,7 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 			SeedRequest request = MolecularModelJsonRenderer.parseFromJson(requestString, SeedRequest.class);
 			uid = normalizeUserId(uid);
 			UndoMetadata token = new UndoMetadata(uid);
-			ModelContainer model = m3.generateBlankModel(token);
+			ModelContainer model = createModel(uid, token, VariableResolver.EMPTY, null);
 			return seedFromProcess(request, model, response, token);
 		} catch (Exception e) {
 			return error(response, "Could not successfully handle batch request.", e);
@@ -122,23 +116,31 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 		Set<String> evidenceRestriction = request.evidenceRestriction != null ? new HashSet<>(Arrays.asList(request.evidenceRestriction)) : null;
 		Set<String> blackList = request.ignoreList != null ? new HashSet<>(Arrays.asList(request.ignoreList)) : null;
 		Set<String> taxonRestriction = Collections.singleton(request.taxon);
-		ExpressionMaterializingReasoner reasoner = factory.createReasoner(model.getAboxOntology());
-		reasoner.setIncludeImports(true);
-		GolrSeedingDataProvider provider = new GolrSeedingDataProvider(golrUrl, graph, 
-				reasoner, locationRoots, evidenceRestriction, taxonRestriction, blackList);
-		ModelSeeding<UndoMetadata> seeder = new ModelSeeding<UndoMetadata>(reasoner, provider, curieHandler);
+		ExpressionMaterializingReasoner reasoner = null;
+		try {
+			reasoner = factory.createReasoner(model.getAboxOntology());
+			reasoner.setIncludeImports(true);
+			GolrSeedingDataProvider provider = new GolrSeedingDataProvider(golrUrl, graph, 
+					reasoner, locationRoots, evidenceRestriction, taxonRestriction, blackList);
+			ModelSeeding<UndoMetadata> seeder = new ModelSeeding<UndoMetadata>(reasoner, provider, curieHandler);
 
-		// seed
-		seeder.seedModel(model, m3, request.process, token);
-		
-		// render result
-		// create response.data
-		response.messageType = SeedResponse.MESSAGE_TYPE_SUCCESS;
-		response.data = new SeedResponseData();
-		
-		// model id
-		response.data.id = curieHandler.getCuri(model.getModelId());
-		return response;
+			// seed
+			seeder.seedModel(model, m3, request.process, token);
+
+			// render result
+			// create response.data
+			response.messageType = SeedResponse.MESSAGE_TYPE_SUCCESS;
+			response.data = new SeedResponseData();
+
+			// model id
+			response.data.id = curieHandler.getCuri(model.getModelId());
+			return response;
+		}
+		finally {
+			if (reasoner != null) {
+				reasoner.dispose();
+			}
+		}
 	}
 	
 	/*

@@ -326,7 +326,7 @@ public class StartUpTool {
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
 				conf.useReasoner, conf.useModuleReasoner, conf.importantRelations, conf.lookupService);
 		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
-		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.golrUrl);
+		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrUrl);
 		resourceConfig = resourceConfig.registerInstances(batchHandler, seedHandler);
 
 		// setup jetty server port, buffers and context path
