@@ -93,7 +93,7 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 			SeedRequest request = MolecularModelJsonRenderer.parseFromJson(requestString, SeedRequest.class);
 			uid = normalizeUserId(uid);
 			UndoMetadata token = new UndoMetadata(uid);
-			ModelContainer model = getModel(curieHandler.getIRI(request.modelId));
+			ModelContainer model = m3.generateBlankModel(token);
 			return seedFromProcess(request, model, response, token);
 		} catch (Exception e) {
 			return error(response, "Could not successfully handle batch request.", e);
@@ -101,15 +101,6 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 			logger.error("A critical error occured.", t);
 			return error(response, "An internal error occured at the server level.", t);
 		}
-	}
-	
-	private ModelContainer getModel(IRI modelId) throws Exception {
-		requireNotNull(modelId, "model id may not be null for seeding");
-		final ModelContainer model = m3.getModel(modelId);
-		if (model == null) {
-			throw new UnknownIdentifierException("Could not retrieve a model for id: "+modelId);
-		}
-		return model;
 	}
 	
 	private SeedResponse seedFromProcess(SeedRequest request, ModelContainer model, SeedResponse response, UndoMetadata token) throws Exception {

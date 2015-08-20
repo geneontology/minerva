@@ -18,10 +18,6 @@ public interface M3SeedHandler {
 
 	public static class SeedRequest {
 		
-		@SerializedName("model-id")
-		String modelId;
-		
-		
 		String process;
 		String taxon;
 		
