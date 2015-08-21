@@ -90,6 +90,7 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 	
 	private SeedResponse fromProcess(String uid, String intention, String packetId, String requestString) {
 		SeedResponse response = new SeedResponse(uid, intention, packetId);
+		ModelContainer model = null;
 		try {
 			requestString = StringUtils.trimToNull(requestString);
 			requireNotNull(requestString, "The requests parameter may not be null.");
@@ -100,11 +101,13 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 			}
 			uid = normalizeUserId(uid);
 			UndoMetadata token = new UndoMetadata(uid);
-			ModelContainer model = createModel(uid, token, VariableResolver.EMPTY, null);
+			model = createModel(uid, token, VariableResolver.EMPTY, null);
 			return seedFromProcess(request[0], model, response, token);
 		} catch (Exception e) {
+			deleteModel(model);
 			return error(response, "Could not successfully handle batch request.", e);
 		} catch (Throwable t) {
+			deleteModel(model);
 			logger.error("A critical error occured.", t);
 			return error(response, "An internal error occured at the server level.", t);
 		}

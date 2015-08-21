@@ -79,6 +79,13 @@ abstract class ModelCreator {
 		return model;
 	}
 	
+	boolean deleteModel(ModelContainer model) {
+		if (model != null) {
+			return m3.deleteModel(model);
+		}
+		return false;
+	}
+	
 	private Set<OWLAnnotation> addDefaultModelState(Set<OWLAnnotation> existing, OWLDataFactory f) {
 		IRI iri = AnnotationShorthand.modelstate.getAnnotationProperty();
 		OWLAnnotationProperty property = f.getOWLAnnotationProperty(iri);

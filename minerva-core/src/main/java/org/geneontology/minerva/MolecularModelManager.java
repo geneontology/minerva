@@ -296,11 +296,26 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 	}
 	
 	/**
-	 * @param id
+	 * @param model
+	 * @return true, if the model was removed
 	 */
-	public void deleteModel(String id) {
-		modelMap.remove(id);
+	public boolean deleteModel(ModelContainer model) {
+		return deleteModel(model.getModelId());
 	}
+	
+	/**
+	 * @param modelId
+	 * @return true, if the model was removed
+	 */
+	public boolean deleteModel(IRI modelId) {
+		ModelContainer model = modelMap.remove(modelId);
+		if (model != null) {
+			model.dispose();
+			return true;
+		}
+		return false;
+	}
+	
 	
 	public Set<IRI> searchModels(Collection<String> ids) throws IOException {
 		final Set<IRI> resultSet = new HashSet<>();
