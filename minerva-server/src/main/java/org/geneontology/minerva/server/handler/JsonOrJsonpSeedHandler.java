@@ -146,6 +146,7 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 			// render result
 			// create response.data
 			response.messageType = SeedResponse.MESSAGE_TYPE_SUCCESS;
+			response.message = SeedResponse.MESSAGE_TYPE_SUCCESS;
 			response.data = new SeedResponseData();
 
 			// model id
