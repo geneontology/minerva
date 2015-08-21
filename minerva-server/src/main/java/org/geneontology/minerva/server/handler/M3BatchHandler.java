@@ -22,10 +22,8 @@ import com.google.gson.annotations.SerializedName;
 @Path("/")
 public interface M3BatchHandler {
 
-	public static class M3Request {
-		Entity entity;
-		Operation operation;
-		M3Argument arguments;
+	public static class M3Request extends MinervaRequest<Operation, Entity, M3Argument> {
+		// wrapper to conform to minerva request standard
 	}
 	
 	public static enum Entity {
@@ -79,7 +77,7 @@ public interface M3BatchHandler {
 		
 	}
 	
-	public static class M3Argument {
+	public static class M3Argument extends MinervaRequest.MinervaArgument {
 		
 		 @SerializedName("model-id")
 		String modelId;

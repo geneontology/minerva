@@ -14,6 +14,7 @@ import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.handler.JsonOrJsonpSeedHandler;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3SeedHandler.SeedRequest;
+import org.geneontology.minerva.server.handler.M3SeedHandler.SeedRequestArgument;
 import org.geneontology.minerva.server.handler.M3SeedHandler.SeedResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -76,8 +77,9 @@ public class SeedHandlerTest {
 	
 	private SeedResponse seed(String process, String taxon) throws Exception {
 		SeedRequest request = new SeedRequest();
-		request.process = process;
-		request.taxon = taxon;
+		request.arguments = new SeedRequestArgument();
+		request.arguments.process = process;
+		request.arguments.taxon = taxon;
 		return seed(request);
 	}
 	

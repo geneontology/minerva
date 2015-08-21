@@ -102,7 +102,7 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 			uid = normalizeUserId(uid);
 			UndoMetadata token = new UndoMetadata(uid);
 			model = createModel(uid, token, VariableResolver.EMPTY, null);
-			return seedFromProcess(request[0], model, response, token);
+			return seedFromProcess(request[0].arguments, model, response, token);
 		} catch (Exception e) {
 			deleteModel(model);
 			return error(response, "Could not successfully handle batch request.", e);
@@ -113,7 +113,7 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 		}
 	}
 	
-	private SeedResponse seedFromProcess(SeedRequest request, ModelContainer model, SeedResponse response, UndoMetadata token) throws Exception {
+	private SeedResponse seedFromProcess(SeedRequestArgument request, ModelContainer model, SeedResponse response, UndoMetadata token) throws Exception {
 		// check required fields
 		requireNotNull(request.process, "A process id is required for seeding");
 		requireNotNull(request.taxon, "A taxon id is required for seeding");

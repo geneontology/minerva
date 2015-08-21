@@ -7,6 +7,8 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 
+import org.geneontology.minerva.server.handler.MinervaRequest.MinervaArgument;
+
 import com.google.gson.annotations.SerializedName;
 
 /**
@@ -15,8 +17,12 @@ import com.google.gson.annotations.SerializedName;
  */
 @Path("/seed")
 public interface M3SeedHandler {
+	
+	public static class SeedRequest extends MinervaRequest<String, String, SeedRequestArgument> {
+		// wrapper to conform to minerva request standard
+	}
 
-	public static class SeedRequest {
+	public static class SeedRequestArgument extends MinervaArgument {
 		
 		String process;
 		String taxon;
