@@ -41,42 +41,12 @@ public interface M3SeedHandler {
 		String[] ignoreList = new String[]{"GO:0005515"}; // protein binding
 	}
 	
-	public static class SeedResponse {
-		@SerializedName("packet-id")
-		final String packetId; // generated or pass-through
-		final String uid; // pass-through
-		/*
-		 * pass-through; model:
-		 * "query", "action" //, "location"
-		 */
-		final String intention;
-		
-		public static final String SIGNAL_REBUILD = "rebuild"; // 
-		/*
-		 * always rebuild after seed!
-		 */
-		final String signal = SIGNAL_REBUILD;
-		
-		public static final String MESSAGE_TYPE_SUCCESS = "success";
-		public static final String MESSAGE_TYPE_ERROR = "error";
-		/*
-		 * "error", "success", //"warning"
-		 */
-		@SerializedName("message-type")
-		String messageType;
-		/*
-		 * "e.g.: server done borked"
-		 */
-		String message;
-		
-		String commentary;
+	public static class SeedResponse extends MinervaResponse<SeedResponse.SeedResponseData> {
 		
 		public static class SeedResponseData {
 			
 			public String id;
 		}
-		
-		SeedResponseData data;
 		
 		/**
 		 * @param uid
@@ -84,9 +54,7 @@ public interface M3SeedHandler {
 		 * @param packetId
 		 */
 		public SeedResponse(String uid, String intention, String packetId) {
-			this.uid = uid;
-			this.intention = intention;
-			this.packetId = packetId;
+			super(uid, intention, packetId);
 		}
 	}
 	
