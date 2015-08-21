@@ -98,7 +98,7 @@ public interface M3SeedHandler {
 	public SeedResponse fromProcessPost(
 			@FormParam("intention") String intention,
 			@FormParam("packet-id") String packetId,
-			@FormParam("request") String requestString);
+			@FormParam("requests") String requestString);
 	
 	/**
 	 * Jersey REST method for POST with three form parameters with privileged rights.
@@ -116,7 +116,7 @@ public interface M3SeedHandler {
 			@FormParam("uid") String uid,
 			@FormParam("intention") String intention,
 			@FormParam("packet-id") String packetId,
-			@FormParam("request") String requestString);
+			@FormParam("requests") String requestString);
 	
 	
 	/**
@@ -132,7 +132,7 @@ public interface M3SeedHandler {
 	public SeedResponse fromProcessGet(
 			@QueryParam("intention") String intention,
 			@QueryParam("packet-id") String packetId,
-			@QueryParam("request") String requestString);
+			@QueryParam("requests") String requestString);
 	
 	/**
 	 * Jersey REST method for GET with three query parameters with privileged rights.
@@ -149,5 +149,5 @@ public interface M3SeedHandler {
 			@QueryParam("uid") String uid,
 			@QueryParam("intention") String intention,
 			@QueryParam("packet-id") String packetId,
-			@QueryParam("request") String requestString);
+			@QueryParam("requests") String requestString);
 }

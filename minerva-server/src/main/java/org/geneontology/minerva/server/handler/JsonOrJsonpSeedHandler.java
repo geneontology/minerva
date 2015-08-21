@@ -1,10 +1,10 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.geneontology.minerva.server.handler.OperationsTools.normalizeUserId;
-import static org.geneontology.minerva.server.handler.OperationsTools.requireNotNull;
+import static org.geneontology.minerva.server.handler.OperationsTools.*;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -26,6 +26,8 @@ import org.glassfish.jersey.server.JSONP;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.OWLClass;
 
+import com.google.common.reflect.TypeToken;
+
 import owltools.graph.OWLGraphWrapper;
 
 public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandler {
@@ -37,6 +39,13 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 	
 	private final String golrUrl;
 	private final OWLExtendedReasonerFactory<ExpressionMaterializingReasoner> factory;
+	
+	private final Type requestType = new TypeToken<SeedRequest[]>(){
+
+		// generated
+		private static final long serialVersionUID = 5452629810143143422L;
+		
+	}.getType();
 	
 	public JsonOrJsonpSeedHandler(UndoAwareMolecularModelManager m3, String defaultModelState, String golr) {
 		super(m3, defaultModelState);
@@ -83,12 +92,16 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 		SeedResponse response = new SeedResponse(uid, intention, packetId);
 		try {
 			requestString = StringUtils.trimToNull(requestString);
-			requireNotNull(requestString, "The request may not be null.");
-			SeedRequest request = MolecularModelJsonRenderer.parseFromJson(requestString, SeedRequest.class);
+			requireNotNull(requestString, "The requests parameter may not be null.");
+			SeedRequest[] request = MolecularModelJsonRenderer.parseFromJson(requestString, requestType);
+			requireNotNull(request, "The requests array may not be null");
+			if (request.length == 0 || request[0] == null || request.length > 1) {
+				throw new MissingParameterException("The requests array must contain exactly one non-null entry");
+			}
 			uid = normalizeUserId(uid);
 			UndoMetadata token = new UndoMetadata(uid);
 			ModelContainer model = createModel(uid, token, VariableResolver.EMPTY, null);
-			return seedFromProcess(request, model, response, token);
+			return seedFromProcess(request[0], model, response, token);
 		} catch (Exception e) {
 			return error(response, "Could not successfully handle batch request.", e);
 		} catch (Throwable t) {
