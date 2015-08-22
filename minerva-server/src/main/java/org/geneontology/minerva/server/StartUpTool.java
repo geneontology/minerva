@@ -3,9 +3,11 @@ package org.geneontology.minerva.server;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
@@ -17,6 +19,7 @@ import org.geneontology.minerva.server.external.CachingExternalLookupService;
 import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.external.GolrExternalLookupService;
 import org.geneontology.minerva.server.handler.JsonOrJsonpBatchHandler;
+import org.geneontology.minerva.server.handler.JsonOrJsonpSeedHandler;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
@@ -38,21 +41,25 @@ public class StartUpTool {
 	
 	private static final Logger LOGGER = Logger.getLogger(StartUpTool.class);
 
-	static class MinervaStartUpConfig {
+	public static class MinervaStartUpConfig {
 		// data configuration
-		String ontology = null;
-		String catalog = null;
-		String modelFolder = null;
-		String modelIdPrefix = "http://model.geneontology.org/";
-		String modelIdcurie = "gomodel";
+		public String ontology = null;
+		public String catalog = null;
+		public String modelFolder = null;
+		public String modelIdPrefix = "http://model.geneontology.org/";
+		public String modelIdcurie = "gomodel";
 		
-		String golrUrl = null;
-		int golrCacheSize = 100000;
-		ExternalLookupService lookupService = null;
-		boolean checkLiteralIds = true;
+		public String defaultModelState = "development";
+		
+		public String golrUrl = null;
+		public int golrCacheSize = 100000;
+		public long golrCacheDuration = 24l;
+		public TimeUnit golrCacheDurationUnit = TimeUnit.HOURS;
+		public ExternalLookupService lookupService = null;
+		public boolean checkLiteralIds = true;
 
 		// reasoner settings
-		boolean useReasoner = true;
+		public boolean useReasoner = true;
 		
 		/*
 		 * If set to TRUE, this will use a different approach for the reasoner: It will create
@@ -63,20 +70,26 @@ public class StartUpTool {
 		 * The drawback is the additional CPU time (sequential) to generate the relevant 
 		 * subset. During tests this tripled the runtime of the test cases. 
 		 */
-		boolean useModuleReasoner = false;
-		OWLReasonerFactory rf = new ElkReasonerFactory();
+		public boolean useModuleReasoner = false;
+		public OWLReasonerFactory rf = new ElkReasonerFactory();
 		
-		CurieHandler curieHandler;
+		public CurieHandler curieHandler;
 
 		// The subset of highly relevant relations is configured using super property
 		// all direct children (asserted) are considered important
-		String importantRelationParent = null;
-		Set<OWLObjectProperty> importantRelations = null;
+		public String importantRelationParent = null;
+		public Set<OWLObjectProperty> importantRelations = null;
 
 		// server configuration
-		int port = 6800; 
-		String contextPrefix = null; // root context by default
-		String contextString = null;
+		public int port = 6800; 
+		public String contextPrefix = null; // root context by default
+		public String contextString = null;
+		
+		// increase default size to deal with large HTTP GET requests
+		public int requestHeaderSize = 64*1024;
+		public int requestBufferSize = 128*1024;
+		
+		public boolean useRequestLogging = false;
 	}
 	
 	public static void main(String[] args) throws Exception {
@@ -162,6 +175,9 @@ public class StartUpTool {
 				conf.rf = new ElkReasonerFactory();
 				conf.useModuleReasoner = false;
 			}
+			else if (opts.nextEq("--use-request-logging|--request-logging")) {
+				conf.useRequestLogging = true;
+			}
 			else {
 				break;
 			}
@@ -189,7 +205,9 @@ public class StartUpTool {
 		// wrap the Golr service with a cache
 		if (conf.golrUrl != null) {
 			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler);
-			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize);
+			LOGGER.info("Setting up Golr cache with size: "+conf.golrCacheSize+" duration: "+
+					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit);
+			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
 		}
 		
 		startUp(conf);
@@ -292,6 +310,9 @@ public class StartUpTool {
 		ResourceConfig resourceConfig = new ResourceConfig();
 		resourceConfig.register(GsonMessageBodyHandler.class);
 		resourceConfig.register(RequireJsonpFilter.class);
+		if (conf.useRequestLogging) {
+			resourceConfig.register(LoggingApplicationEventListener.class);
+		}
 		//resourceConfig.register(AuthorizationRequestFilter.class);
 		
 		LOGGER.info("BatchHandler config useReasoner: "+conf.useReasoner);
@@ -299,14 +320,23 @@ public class StartUpTool {
 		LOGGER.info("BatchHandler config importantRelations: "+conf.importantRelations);
 		LOGGER.info("BatchHandler config lookupService: "+conf.lookupService);
 		LOGGER.info("BatchHandler config checkLiteralIds: "+conf.checkLiteralIds);
+		LOGGER.info("BatchHandler config useRequestLogging"+conf.useRequestLogging);
+		LOGGER.info("SeedHandler config golrUrl: "+conf.golrUrl);
 		
-		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.useReasoner, 
-				conf.useModuleReasoner, conf.importantRelations, conf.lookupService);
+		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
+				conf.useReasoner, conf.useModuleReasoner, conf.importantRelations, conf.lookupService);
 		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
-		resourceConfig = resourceConfig.registerInstances(batchHandler);
+		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrUrl);
+		resourceConfig = resourceConfig.registerInstances(batchHandler, seedHandler);
 
-		// setup jetty server port and context path
-		Server server = new Server(conf.port);
+		// setup jetty server port, buffers and context path
+		Server server = new Server();
+		// create connector with port and custom buffer sizes
+		SelectChannelConnector connector = new SelectChannelConnector();
+		connector.setPort(conf.port);
+		connector.setRequestHeaderSize(conf.requestHeaderSize);
+		connector.setRequestBufferSize(conf.requestBufferSize);
+		server.addConnector(connector);
 
 		ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
 		context.setContextPath(conf.contextString);

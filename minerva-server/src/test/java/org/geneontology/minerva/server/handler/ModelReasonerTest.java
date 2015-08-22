@@ -60,7 +60,7 @@ public class ModelReasonerTest {
 		models = new UndoAwareMolecularModelManager(graph, rf, curieHandler, modelIdPrefix);
 		boolean useReasoner = true;
 		boolean useModelReasoner = false;
-		handler = new JsonOrJsonpBatchHandler(models, useReasoner, useModelReasoner,
+		handler = new JsonOrJsonpBatchHandler(models, "development", useReasoner, useModelReasoner,
 				Collections.<OWLObjectProperty>emptySet(), (ExternalLookupService) null);
 		models.setPathToOWLFiles("src/test/resources/reasoner-test");
 	}

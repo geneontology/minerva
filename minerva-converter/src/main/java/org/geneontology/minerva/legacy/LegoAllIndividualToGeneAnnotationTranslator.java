@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.geneontology.minerva.curie.CurieHandler;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
@@ -35,8 +36,8 @@ public class LegoAllIndividualToGeneAnnotationTranslator extends AbstractLegoTra
 	
 	private OWLGraphWrapper graph;
 
-	public LegoAllIndividualToGeneAnnotationTranslator(OWLGraphWrapper graph, OWLReasoner reasoner, SimpleEcoMapper mapper) {
-		super(graph, reasoner, mapper);
+	public LegoAllIndividualToGeneAnnotationTranslator(OWLGraphWrapper graph, CurieHandler curieHandler, OWLReasoner reasoner, SimpleEcoMapper mapper) {
+		super(graph, curieHandler, reasoner, mapper);
 		this.graph = graph;
 	}
 	

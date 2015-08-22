@@ -1,5 +1,8 @@
 package org.geneontology.minerva.server.handler;
 
+import java.util.List;
+import java.util.Map;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -19,10 +22,8 @@ import com.google.gson.annotations.SerializedName;
 @Path("/")
 public interface M3BatchHandler {
 
-	public static class M3Request {
-		Entity entity;
-		Operation operation;
-		M3Argument arguments;
+	public static class M3Request extends MinervaRequest<Operation, Entity, M3Argument> {
+		// wrapper to conform to minerva request standard
 	}
 	
 	public static enum Entity {
@@ -76,7 +77,7 @@ public interface M3BatchHandler {
 		
 	}
 	
-	public static class M3Argument {
+	public static class M3Argument extends MinervaRequest.MinervaArgument {
 		
 		 @SerializedName("model-id")
 		String modelId;
@@ -102,48 +103,16 @@ public interface M3BatchHandler {
 		JsonAnnotation[] values;
 	}
 	
-	public static class M3BatchResponse {
-		@SerializedName("packet-id")
-		final String packetId; // generated or pass-through
-		final String uid; // pass-through
-		/*
-		 * pass-through; model:
-		 * "query", "action" //, "location"
-		 */
-		final String intention;
-		
-		public static final String SIGNAL_MERGE = "merge";
-		public static final String SIGNAL_REBUILD = "rebuild";
-		public static final String SIGNAL_META = "meta";
-		/*
-		 * "merge", "rebuild", "meta" //, "location"?
-		 */
-		String signal;
-		
-		public static final String MESSAGE_TYPE_SUCCESS = "success";
-		public static final String MESSAGE_TYPE_ERROR = "error";
-		/*
-		 * "error", "success", //"warning"
-		 */
-		@SerializedName("message-type")
-		String messageType;
-		/*
-		 * "e.g.: server done borked"
-		 */
-		String message;
-		/*
-		 * Now degraded to just a String, not an Object.
-		 */
-		//Map<String, Object> commentary = null;
-		String commentary;
-		
-		ResponseData data;
+	public static class M3BatchResponse extends MinervaResponse<M3BatchResponse.ResponseData>{
 		
 		public static class ResponseData {
 			public String id;
 			
 			@SerializedName("inconsistent-p")
 			public Boolean inconsistentFlag;
+			
+			@SerializedName("modified-p")
+			public Boolean modifiedFlag;
 			
 			public JsonAnnotation[] annotations;
 			
@@ -165,15 +134,16 @@ public interface M3BatchHandler {
 		public static class MetaResponse {
 			public JsonRelationInfo[] relations;
 			
+			@SerializedName("data-properties")
 			public JsonRelationInfo[] dataProperties;
 			
 			public JsonEvidenceInfo[] evidence;
 			
-			@SerializedName("model-ids")
-			public Object modelIds;
-			
 			@SerializedName("models-meta")
-			public Object modelsMeta;
+			public Map<String,List<JsonAnnotation>> modelsMeta;
+			
+			@SerializedName("models-meta-read-only")
+			public Map<String, Map<String,Object>> modelsReadOnly;
 		}
 
 		/**
@@ -182,9 +152,7 @@ public interface M3BatchHandler {
 		 * @param packetId
 		 */
 		public M3BatchResponse(String uid, String intention, String packetId) {
-			this.uid = uid;
-			this.intention = intention;
-			this.packetId = packetId;
+			super(uid, intention, packetId);
 		}
 		
 	}

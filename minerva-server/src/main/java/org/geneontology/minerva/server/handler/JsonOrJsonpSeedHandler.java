@@ -1,63 +1,61 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.geneontology.minerva.server.handler.OperationsTools.createModelRenderer;
-import static org.geneontology.minerva.server.handler.OperationsTools.normalizeUserId;
-import static org.geneontology.minerva.server.handler.OperationsTools.requireNotNull;
+import static org.geneontology.minerva.server.handler.OperationsTools.*;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.ModelContainer;
-import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
-import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.generate.GolrSeedingDataProvider;
 import org.geneontology.minerva.generate.ModelSeeding;
-import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
-import org.geneontology.minerva.server.external.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3SeedHandler.SeedResponse.SeedResponseData;
 import org.geneontology.reasoner.ExpressionMaterializingReasoner;
 import org.geneontology.reasoner.ExpressionMaterializingReasonerFactory;
 import org.geneontology.reasoner.OWLExtendedReasonerFactory;
 import org.glassfish.jersey.server.JSONP;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
-import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
+
+import com.google.common.reflect.TypeToken;
 
 import owltools.graph.OWLGraphWrapper;
 
-public class JsonOrJsonpSeedHandler implements M3SeedHandler {
+public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandler {
 
 	public static final String JSONP_DEFAULT_CALLBACK = "jsonp";
 	public static final String JSONP_DEFAULT_OVERWRITE = "json.wrf";
 	
 	private static final Logger logger = Logger.getLogger(JsonOrJsonpSeedHandler.class);
 	
-	private final UndoAwareMolecularModelManager m3;
 	private final String golrUrl;
 	private final OWLExtendedReasonerFactory<ExpressionMaterializingReasoner> factory;
-	private final ExternalLookupService externalLookupService;
-	private final CurieHandler curieHandler;
 	
-	public JsonOrJsonpSeedHandler(UndoAwareMolecularModelManager m3, String golr, 
-			ExternalLookupService externalLookupService) {
-		this.m3 = m3;
+	private final Type requestType = new TypeToken<SeedRequest[]>(){
+
+		// generated
+		private static final long serialVersionUID = 5452629810143143422L;
+		
+	}.getType();
+	
+	public JsonOrJsonpSeedHandler(UndoAwareMolecularModelManager m3, String defaultModelState, String golr) {
+		super(m3, defaultModelState);
 		this.golrUrl = golr;
-		this.externalLookupService = externalLookupService;
-		this.curieHandler = m3.getCuriHandler();
 		factory = new ExpressionMaterializingReasonerFactory(new ElkReasonerFactory());
 	}
 
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public SeedResponse fromProcessPost(String intention, String packetId, SeedRequest request) {
+	public SeedResponse fromProcessPost(String intention, String packetId, String requestString) {
 		// only privileged calls are allowed
 		SeedResponse response = new SeedResponse(null, intention, packetId);
 		return error(response, "Insufficient permissions for seed operation.", null);
@@ -65,13 +63,13 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public SeedResponse fromProcessPostPrivileged(String uid, String intention, String packetId, SeedRequest request) {
-		return fromProcess(uid, intention, checkPacketId(packetId), request);
+	public SeedResponse fromProcessPostPrivileged(String uid, String intention, String packetId, String requestString) {
+		return fromProcess(uid, intention, checkPacketId(packetId), requestString);
 	}
 
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public SeedResponse fromProcessGet(String intention, String packetId, SeedRequest request) {
+	public SeedResponse fromProcessGet(String intention, String packetId, String requestString) {
 		// only privileged calls are allowed
 		SeedResponse response = new SeedResponse(null, intention, packetId);
 		return error(response, "Insufficient permissions for seed operation.", null);
@@ -79,8 +77,8 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public SeedResponse fromProcessGetPrivileged(String uid, String intention, String packetId, SeedRequest request) {
-		return fromProcess(uid, intention, checkPacketId(packetId), request);
+	public SeedResponse fromProcessGetPrivileged(String uid, String intention, String packetId, String requestString) {
+		return fromProcess(uid, intention, checkPacketId(packetId), requestString);
 	}
 
 	private static String checkPacketId(String packetId) {
@@ -90,35 +88,35 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 		return packetId;
 	}
 	
-	private SeedResponse fromProcess(String uid, String intention, String packetId, SeedRequest request) {
+	private SeedResponse fromProcess(String uid, String intention, String packetId, String requestString) {
 		SeedResponse response = new SeedResponse(uid, intention, packetId);
+		ModelContainer model = null;
 		try {
-			requireNotNull(request, "The request may not be null.");
+			requestString = StringUtils.trimToNull(requestString);
+			requireNotNull(requestString, "The requests parameter may not be null.");
+			SeedRequest[] request = MolecularModelJsonRenderer.parseFromJson(requestString, requestType);
+			requireNotNull(request, "The requests array may not be null");
+			if (request.length == 0 || request[0] == null || request.length > 1) {
+				throw new MissingParameterException("The requests array must contain exactly one non-null entry");
+			}
 			uid = normalizeUserId(uid);
 			UndoMetadata token = new UndoMetadata(uid);
-			ModelContainer model = getModel(curieHandler.getIRI(request.modelId));
-			return seedFromProcess(request, model, response, token);
+			model = createModel(uid, token, VariableResolver.EMPTY, null);
+			return seedFromProcess(request[0].arguments, model, response, token);
 		} catch (Exception e) {
+			deleteModel(model);
 			return error(response, "Could not successfully handle batch request.", e);
 		} catch (Throwable t) {
+			deleteModel(model);
 			logger.error("A critical error occured.", t);
 			return error(response, "An internal error occured at the server level.", t);
 		}
 	}
 	
-	private ModelContainer getModel(IRI modelId) throws Exception {
-		requireNotNull(modelId, "model id may not be null for seeding");
-		final ModelContainer model = m3.getModel(modelId);
-		if (model == null) {
-			throw new UnknownIdentifierException("Could not retrieve a model for id: "+modelId);
-		}
-		return model;
-	}
-	
-	private SeedResponse seedFromProcess(SeedRequest request, ModelContainer model, SeedResponse response, UndoMetadata token) throws Exception {
+	private SeedResponse seedFromProcess(SeedRequestArgument request, ModelContainer model, SeedResponse response, UndoMetadata token) throws Exception {
 		// check required fields
-		requireNotNull(request.process, "");
-		requireNotNull(request.taxon, "");
+		requireNotNull(request.process, "A process id is required for seeding");
+		requireNotNull(request.taxon, "A taxon id is required for seeding");
 		
 		// prepare seeder
 		OWLGraphWrapper graph = new OWLGraphWrapper(model.getAboxOntology());
@@ -134,30 +132,33 @@ public class JsonOrJsonpSeedHandler implements M3SeedHandler {
 		Set<String> evidenceRestriction = request.evidenceRestriction != null ? new HashSet<>(Arrays.asList(request.evidenceRestriction)) : null;
 		Set<String> blackList = request.ignoreList != null ? new HashSet<>(Arrays.asList(request.ignoreList)) : null;
 		Set<String> taxonRestriction = Collections.singleton(request.taxon);
-		ExpressionMaterializingReasoner reasoner = factory.createReasoner(model.getAboxOntology());
-		reasoner.setIncludeImports(true);
-		GolrSeedingDataProvider provider = new GolrSeedingDataProvider(golrUrl, graph, 
-				reasoner, locationRoots, evidenceRestriction, taxonRestriction, blackList);
-		ModelSeeding<UndoMetadata> seeder = new ModelSeeding<UndoMetadata>(reasoner, provider, curieHandler);
+		ExpressionMaterializingReasoner reasoner = null;
+		try {
+			reasoner = factory.createReasoner(model.getAboxOntology());
+			reasoner.setIncludeImports(true);
+			GolrSeedingDataProvider provider = new GolrSeedingDataProvider(golrUrl, graph, 
+					reasoner, locationRoots, evidenceRestriction, taxonRestriction, blackList);
+			ModelSeeding<UndoMetadata> seeder = new ModelSeeding<UndoMetadata>(reasoner, provider, curieHandler);
 
-		// seed
-		seeder.seedModel(model, m3, request.process, token);
-		
-		// render result
-		// create response.data
-		response.messageType = SeedResponse.MESSAGE_TYPE_SUCCESS;
-		response.data = new SeedResponseData();
-		reasoner.flush();
-		response.data.inconsistentFlag = reasoner.isConsistent();
-		
-		MolecularModelJsonRenderer renderer = createModelRenderer(model, externalLookupService, null, curieHandler);
-		// render complete model
-		JsonModel jsonModel = renderer.renderModel();
-		response.data.individuals = jsonModel.individuals;
-		response.data.facts = jsonModel.facts;
-		response.data.properties = jsonModel.properties;
-		
-		return response;
+			// seed
+			seeder.seedModel(model, m3, request.process, token);
+
+			// render result
+			// create response.data
+			response.messageType = SeedResponse.MESSAGE_TYPE_SUCCESS;
+			response.message = SeedResponse.MESSAGE_TYPE_SUCCESS;
+			response.signal = SeedResponse.SIGNAL_META;
+			response.data = new SeedResponseData();
+
+			// model id
+			response.data.id = curieHandler.getCuri(model.getModelId());
+			return response;
+		}
+		finally {
+			if (reasoner != null) {
+				reasoner.dispose();
+			}
+		}
 	}
 	
 	/*

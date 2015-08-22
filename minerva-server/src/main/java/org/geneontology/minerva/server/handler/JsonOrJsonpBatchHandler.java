@@ -9,6 +9,7 @@ import java.io.StringWriter;
 import java.lang.reflect.Type;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
@@ -40,10 +41,11 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	private final boolean useReasoner;
 	
 	public JsonOrJsonpBatchHandler(UndoAwareMolecularModelManager models,
+			String defaultModelStqte,
 			boolean useReasoner, boolean useModuleReasoner,
 			Set<OWLObjectProperty> importantRelations,
 			ExternalLookupService externalLookupService) {
-		super(models, importantRelations, externalLookupService, useModuleReasoner);
+		super(models, importantRelations, externalLookupService, defaultModelStqte, useModuleReasoner);
 		this.useReasoner = useReasoner;
 	}
 
@@ -107,6 +109,9 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	@Override
 	public M3BatchResponse m3Batch(String uid, String intention, String packetId, M3Request[] requests, boolean isPrivileged) {
 		M3BatchResponse response = new M3BatchResponse(uid, intention, checkPacketId(packetId));
+		if (requests == null) {
+			return error(response, "The batch contains no requests: null value for request array", null);
+		}
 		try {
 			return m3Batch(response, requests, uid, isPrivileged);
 		} catch (InsufficientPermissionsException e) {
@@ -121,6 +126,10 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	
 	private M3BatchResponse m3Batch(String uid, String intention, String packetId, String requestString, boolean isPrivileged) {
 		M3BatchResponse response = new M3BatchResponse(uid, intention, checkPacketId(packetId));
+		requestString = StringUtils.trimToNull(requestString);
+		if (requestString == null) {
+			return error(response, "The batch contains no requests: null value for request", null);
+		}
 		try {
 			M3Request[] requests = MolecularModelJsonRenderer.parseFromJson(requestString, requestType);
 			return m3Batch(response, requests, uid, isPrivileged);
@@ -171,7 +180,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 				if (Operation.get == operation){
 					if (values.nonMeta) {
 						// can only be used with other "meta" operations in batch mode, otherwise it would lead to conflicts in the returned signal
-						return error(response, "Get Relations can only be combined with other meta operations.", null);
+						return error(response, "Get meta entity can only be combined with other meta operations.", null);
 					}
 					getMeta(response, userId);
 				}
@@ -245,6 +254,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		if (!isConsistent) {
 			response.data.inconsistentFlag =  Boolean.TRUE;
 		}
+		response.data.modifiedFlag = Boolean.valueOf(values.model.isModified());
 		// These are required for an "okay" response.
 		response.messageType = M3BatchResponse.MESSAGE_TYPE_SUCCESS;
 		if( response.message == null ){

@@ -1,15 +1,9 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -94,7 +88,7 @@ public class BatchModelHandlerTest {
 		boolean useReasoner = true;
 		boolean useModelReasoner = false;
 //		useModelReasoner = true;
-		handler = new JsonOrJsonpBatchHandler(models, useReasoner, useModelReasoner, importantRelations, lookupService) {
+		handler = new JsonOrJsonpBatchHandler(models, "development", useReasoner, useModelReasoner, importantRelations, lookupService) {
 
 			@Override
 			protected String generateDateString() {
@@ -291,7 +285,8 @@ public class BatchModelHandlerTest {
 		final JsonAnnotation[] annotations1 = getModelAnnotations(modelId);
 		// creation date
 		// user id
-		assertEquals(2, annotations1.length);
+		// model state
+		assertEquals(3, annotations1.length);
 		
 		// create annotations
 		M3Request[] batch1 = new M3Request[1];
@@ -315,7 +310,7 @@ public class BatchModelHandlerTest {
 		
 		final JsonAnnotation[] annotations2 = getModelAnnotations(modelId);
 		assertNotNull(annotations2);
-		assertEquals(4, annotations2.length);
+		assertEquals(5, annotations2.length);
 		
 		
 		// remove one annotation
@@ -336,7 +331,7 @@ public class BatchModelHandlerTest {
 		
 		final JsonAnnotation[] annotations3 = getModelAnnotations(modelId);
 		assertNotNull(annotations3);
-		assertEquals(3, annotations3.length);
+		assertEquals(4, annotations3.length);
 	}
 
 	@Test
@@ -374,7 +369,7 @@ public class BatchModelHandlerTest {
 		final JsonEvidenceInfo[] evidences = BatchTestTools.responseEvidences(response);
 		assertTrue(evidences.length > 100);
 		
-		final Collection<String> modelIds = BatchTestTools.responseModelsIds(response);
+		final Map<String, List<JsonAnnotation>> modelIds = BatchTestTools.responseModelsMeta(response);
 		assertEquals(0, modelIds.size());
 	}
 	
@@ -1164,14 +1159,7 @@ public class BatchModelHandlerTest {
 	}
 	
 	private M3BatchResponse checkCounts(String modelId, int individuals, int facts) {
-		M3Request r = new M3Request();
-		r.entity = Entity.model;
-		r.operation = Operation.get;
-		r.arguments = new M3Argument();
-		r.arguments.modelId = modelId;
-		final M3BatchResponse response = handler.m3Batch(uid, intention, packetId, new M3Request[]{r }, true);
-		assertEquals(uid, response.uid);
-		assertEquals(intention, response.intention);
+		final M3BatchResponse response = BatchTestTools.getModel(handler, modelId);
 		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
 		JsonOwlIndividual[] iObjs = BatchTestTools.responseIndividuals(response);
 		assertEquals(individuals, iObjs.length);
@@ -1181,15 +1169,7 @@ public class BatchModelHandlerTest {
 	}
 	
 	private JsonAnnotation[] getModelAnnotations(String modelId) {
-		M3Request r = new M3Request();
-		r.entity = Entity.model;
-		r.operation = Operation.get;
-		r.arguments = new M3Argument();
-		r.arguments.modelId = modelId;
-		final M3BatchResponse response = handler.m3Batch(uid, intention, packetId, new M3Request[]{r }, true);
-		assertEquals(uid, response.uid);
-		assertEquals(intention, response.intention);
-		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
+		final M3BatchResponse response = BatchTestTools.getModel(handler, modelId);
 		return response.data.annotations;
 	}
 	
@@ -1435,18 +1415,29 @@ public class BatchModelHandlerTest {
 		assertEquals(intention, response2.intention);
 		assertEquals(response2.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response2.messageType);
 		
-		Map<String,Map<String,String>> map = BatchTestTools.responseModelsMeta(response2);
-		assertEquals(2, map.size());
+		Map<String, List<JsonAnnotation>> meta = BatchTestTools.responseModelsMeta(response2);
+		assertEquals(2, meta.size());
 		// model 1
-		Map<String, String> modelData = map.get(modelId1);
+		List<JsonAnnotation> modelData = meta.get(modelId1);
 		assertNotNull(modelData);
-		assertFalse(modelData.containsKey(AnnotationShorthand.deprecated.name()));
+		for (JsonAnnotation json : modelData) {
+			if (json.key.equals(AnnotationShorthand.deprecated.name())) {
+				fail("the model should not have a deprecation annotation");
+			}
+		}
 		
 		// model 2, deprecated
-		modelData = map.get(modelId2);
+		modelData = meta.get(modelId2);
 		assertNotNull(modelData);
-		assertTrue(modelData.containsKey(AnnotationShorthand.deprecated.name()));
-		assertEquals("true", modelData.get(AnnotationShorthand.deprecated.name()));
+		boolean found = false;
+		for (JsonAnnotation json : modelData) {
+			if (json.key.equals(AnnotationShorthand.deprecated.name())) {
+				found = true;
+				assertEquals("true", json.value);
+			}
+		}
+		assertTrue("the model must have a deprecation annotation", found);
+		
 	}
 	
 	@Test

@@ -8,6 +8,60 @@
 	</parent>
 	<artifactId>minerva-cli</artifactId>
 	<name>Minerva-CommandLineInterface</name>
+	
+	<build>
+		<plugins>
+			<plugin>
+				<!-- used to add ${buildNumber} -->
+				<!-- requires scm connection -->
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>buildnumber-maven-plugin</artifactId>
+				<version>1.1</version>
+				<executions>
+					<execution>
+						<phase>validate</phase>
+						<goals>
+							<goal>create</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+	  			<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<finalName>minerva-cli</finalName>
+					<appendAssemblyId>false</appendAssemblyId>
+					<attach>false</attach>
+					<outputDirectory>${project.basedir}/bin</outputDirectory>
+					<descriptors>
+						<descriptor>src/main/assembly/minerva-cli.xml</descriptor>
+					</descriptors>
+					<archive>
+						<manifest>
+							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+							<mainClass>org.geneontology.minerva.cli.CommandLineInterface</mainClass>
+						</manifest>
+						<manifestEntries>
+							<owltools-build-timestamp>${maven.build.timestamp}</owltools-build-timestamp>
+							<!-- requires the buildnumber-maven-plugin -->
+							<git-revision-sha1>${buildNumber}</git-revision-sha1>
+							<git-revision-url>https://github.com/geneontology/minerva/commit/${buildNumber}</git-revision-url>
+						</manifestEntries>
+					</archive>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 
 	<dependencies>
 		<dependency>

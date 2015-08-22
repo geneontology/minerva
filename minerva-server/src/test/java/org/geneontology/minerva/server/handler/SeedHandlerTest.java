@@ -6,7 +6,6 @@ import java.util.Collections;
 
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
-import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
@@ -15,6 +14,7 @@ import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.handler.JsonOrJsonpSeedHandler;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3SeedHandler.SeedRequest;
+import org.geneontology.minerva.server.handler.M3SeedHandler.SeedRequestArgument;
 import org.geneontology.minerva.server.handler.M3SeedHandler.SeedResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -47,7 +47,7 @@ public class SeedHandlerTest {
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
 		models = new UndoAwareMolecularModelManager(graph, new ElkReasonerFactory(), curieHandler, modelIdPrefix);
-		handler = new JsonOrJsonpSeedHandler(models, golr, null);
+		handler = new JsonOrJsonpSeedHandler(models, "unknown", golr);
 	}
 	
 	@AfterClass
@@ -65,8 +65,11 @@ public class SeedHandlerTest {
 		// B cell apoptotic process
 		// mouse
 		SeedResponse response = seed("GO:0001783", "NCBITaxon:10090");
-		
-		String json = toJson(response.data);
+		assertNotNull(response.data.id);
+		ModelContainer model = models.getModel(curieHandler.getIRI(response.data.id));
+		assertNotNull(model);
+		MolecularModelJsonRenderer renderer = new MolecularModelJsonRenderer(model, null, curieHandler);
+		String json = toJson(renderer.renderModel());
 		System.out.println("-----------");
 		System.out.println(json);
 		System.out.println("-----------");
@@ -74,24 +77,19 @@ public class SeedHandlerTest {
 	
 	private SeedResponse seed(String process, String taxon) throws Exception {
 		SeedRequest request = new SeedRequest();
-		request.modelId = generateBlankModel();
-		request.process = process;
-		request.taxon = taxon;
+		request.arguments = new SeedRequestArgument();
+		request.arguments.process = process;
+		request.arguments.taxon = taxon;
 		return seed(request);
 	}
 	
 	private SeedResponse seed(SeedRequest request) {
-		SeedResponse response = handler.fromProcessGetPrivileged(uid, intention, packetId, request);
+		String json = MolecularModelJsonRenderer.renderToJson(request, false);
+		SeedResponse response = handler.fromProcessGetPrivileged(uid, intention, packetId, json);
 		assertEquals(uid, response.uid);
 		assertEquals(intention, response.intention);
 		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
 		return response;
-	}
-	
-	private String generateBlankModel() throws Exception {
-		UndoMetadata metadata = new UndoMetadata(uid);
-		ModelContainer model = models.generateBlankModel(metadata);
-		return curieHandler.getCuri(model.getModelId());
 	}
 	
 	private String toJson(Object data) {

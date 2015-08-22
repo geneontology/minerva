@@ -7,10 +7,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
 
-import org.geneontology.minerva.json.JsonAnnotation;
-import org.geneontology.minerva.json.JsonOwlFact;
-import org.geneontology.minerva.json.JsonOwlIndividual;
-import org.geneontology.minerva.json.JsonOwlObject;
+import org.geneontology.minerva.server.handler.MinervaRequest.MinervaArgument;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -20,12 +17,12 @@ import com.google.gson.annotations.SerializedName;
  */
 @Path("/seed")
 public interface M3SeedHandler {
+	
+	public static class SeedRequest extends MinervaRequest<String, String, SeedRequestArgument> {
+		// wrapper to conform to minerva request standard
+	}
 
-	public static class SeedRequest {
-		
-		@SerializedName("model-id")
-		String modelId;
-		
+	public static class SeedRequestArgument extends MinervaArgument {
 		
 		String process;
 		String taxon;
@@ -44,54 +41,12 @@ public interface M3SeedHandler {
 		String[] ignoreList = new String[]{"GO:0005515"}; // protein binding
 	}
 	
-	public static class SeedResponse {
-		@SerializedName("packet-id")
-		final String packetId; // generated or pass-through
-		final String uid; // pass-through
-		/*
-		 * pass-through; model:
-		 * "query", "action" //, "location"
-		 */
-		final String intention;
-		
-		public static final String SIGNAL_REBUILD = "rebuild"; // 
-		/*
-		 * always rebuild after seed!
-		 */
-		final String signal = SIGNAL_REBUILD;
-		
-		public static final String MESSAGE_TYPE_SUCCESS = "success";
-		public static final String MESSAGE_TYPE_ERROR = "error";
-		/*
-		 * "error", "success", //"warning"
-		 */
-		@SerializedName("message-type")
-		String messageType;
-		/*
-		 * "e.g.: server done borked"
-		 */
-		String message;
-		
-		String commentary;
+	public static class SeedResponse extends MinervaResponse<SeedResponse.SeedResponseData> {
 		
 		public static class SeedResponseData {
+			
 			public String id;
-			
-			@SerializedName("inconsistent-p")
-			public Boolean inconsistentFlag;
-			
-			public JsonAnnotation[] annotations;
-			
-			public JsonOwlFact[] facts;
-			
-			public JsonOwlIndividual[] individuals;
-			
-			public JsonOwlObject[] properties;
-			@SerializedName("individuals-i")
-			public JsonOwlIndividual[] individualsInferred;
 		}
-		
-		SeedResponseData data;
 		
 		/**
 		 * @param uid
@@ -99,9 +54,7 @@ public interface M3SeedHandler {
 		 * @param packetId
 		 */
 		public SeedResponse(String uid, String intention, String packetId) {
-			this.uid = uid;
-			this.intention = intention;
-			this.packetId = packetId;
+			super(uid, intention, packetId);
 		}
 	}
 	
@@ -110,7 +63,7 @@ public interface M3SeedHandler {
 	 * 
 	 * @param intention JSONP relevant
 	 * @param packetId
-	 * @param request seed request
+	 * @param requestString seed request
 	 * @return response convertible to JSON(P)
 	 */
 	@Path("fromProcess")
@@ -119,7 +72,7 @@ public interface M3SeedHandler {
 	public SeedResponse fromProcessPost(
 			@FormParam("intention") String intention,
 			@FormParam("packet-id") String packetId,
-			@FormParam("request") SeedRequest request);
+			@FormParam("requests") String requestString);
 	
 	/**
 	 * Jersey REST method for POST with three form parameters with privileged rights.
@@ -127,7 +80,7 @@ public interface M3SeedHandler {
 	 * @param uid user id, JSONP relevant
 	 * @param intention JSONP relevant
 	 * @param packetId
-	 * @param request seed request
+	 * @param requestString seed request
 	 * @return response convertible to JSON(P)
 	 */
 	@Path("fromProcessPrivileged")
@@ -137,7 +90,7 @@ public interface M3SeedHandler {
 			@FormParam("uid") String uid,
 			@FormParam("intention") String intention,
 			@FormParam("packet-id") String packetId,
-			@FormParam("request") SeedRequest request);
+			@FormParam("requests") String requestString);
 	
 	
 	/**
@@ -145,7 +98,7 @@ public interface M3SeedHandler {
 	 * 
 	 * @param intention JSONP relevant
 	 * @param packetId 
-	 * @param request seed request
+	 * @param requestString seed request
 	 * @return response convertible to JSON(P)
 	 */
 	@Path("fromProcess")
@@ -153,7 +106,7 @@ public interface M3SeedHandler {
 	public SeedResponse fromProcessGet(
 			@QueryParam("intention") String intention,
 			@QueryParam("packet-id") String packetId,
-			@QueryParam("request") SeedRequest request);
+			@QueryParam("requests") String requestString);
 	
 	/**
 	 * Jersey REST method for GET with three query parameters with privileged rights.
@@ -161,7 +114,7 @@ public interface M3SeedHandler {
 	 * @param uid user id, JSONP relevant
 	 * @param intention JSONP relevant
 	 * @param packetId 
-	 * @param request seed request
+	 * @param requestString seed request
 	 * @return response convertible to JSON(P)
 	 */
 	@Path("fromProcessPrivileged")
@@ -170,5 +123,5 @@ public interface M3SeedHandler {
 			@QueryParam("uid") String uid,
 			@QueryParam("intention") String intention,
 			@QueryParam("packet-id") String packetId,
-			@QueryParam("request") SeedRequest request);
+			@QueryParam("requests") String requestString);
 }

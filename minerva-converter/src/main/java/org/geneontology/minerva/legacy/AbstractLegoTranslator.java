@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.obolibrary.obo2owl.Owl2Obo;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
@@ -53,9 +54,11 @@ abstract class AbstractLegoTranslator {
 	protected final Set<OWLClass> bpSet;
 
 	protected final SimpleEcoMapper mapper;
+	protected final CurieHandler curieHandler;
 	
-	protected AbstractLegoTranslator(OWLGraphWrapper graph, OWLReasoner reasoner, SimpleEcoMapper mapper) {
+	protected AbstractLegoTranslator(OWLGraphWrapper graph, CurieHandler curieHandler, OWLReasoner reasoner, SimpleEcoMapper mapper) {
 		this.mapper = mapper;
+		this.curieHandler = curieHandler;
 		OWLDataFactory df = graph.getDataFactory();
 		partOf = OBOUpperVocabulary.BFO_part_of.getObjectProperty(df);
 		occursIn = OBOUpperVocabulary.BFO_occurs_in.getObjectProperty(df);
@@ -245,7 +248,7 @@ abstract class AbstractLegoTranslator {
 	 * @return type
 	 */
 	protected String getEntityType(OWLClass entity, OWLGraphWrapper modelGraph) {
-		String id = modelGraph.getIdentifier(entity);
+		String id = curieHandler.getCuri(entity);
 		if (id.startsWith("UniProtKB")) {
 			return "protein"; // TODO
 		}
@@ -275,10 +278,10 @@ abstract class AbstractLegoTranslator {
 			annotation.setAssignedBy(e.metadata.assignedBy);
 		}
 
-		annotation.setCls(g.getIdentifier(e.value));
+		annotation.setCls(curieHandler.getCuri(e.value));
 
 		if (e.metadata.evidence != null) {
-			String ecoId = g.getIdentifier(e.metadata.evidence);
+			String ecoId = curieHandler.getCuri(e.metadata.evidence);
 			if (ecoId != null) {
 				String goCode = null;
 				Pair<String, String> pair = mapper.getGoCode(ecoId);
@@ -301,7 +304,7 @@ abstract class AbstractLegoTranslator {
 				OWLClassExpression filler = svf.getFiller();
 				if (property instanceof OWLObjectProperty && filler instanceof OWLClass) {
 					String rel = getRelId(property, g);
-					String objectId = g.getIdentifier(filler);
+					String objectId = curieHandler.getCuri((OWLClass) filler);
 					ExtensionExpression expr = new ExtensionExpression(rel, objectId);
 					expressions.add(expr);
 				}
@@ -347,7 +350,7 @@ abstract class AbstractLegoTranslator {
 	
 	protected BioentityStrings getBioentityStrings(OWLClass entityCls, String entityType, String taxon, OWLGraphWrapper g) {
 		BioentityStrings strings = new BioentityStrings();
-		strings.id = g.getIdentifier(entityCls);
+		strings.id = curieHandler.getCuri(entityCls);
 		strings.db = null;
 		String[] split = StringUtils.split(strings.id, ":", 2);
 		if (split.length == 2) {

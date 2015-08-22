@@ -24,9 +24,11 @@ import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
+import org.semanticweb.owlapi.model.OWLOntologyChangeBroadcastStrategy;
 import org.semanticweb.owlapi.model.OWLOntologyChangeListener;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.SpecificOntologyChangeBroadcastStrategy;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
@@ -48,12 +50,13 @@ public class ModelContainer {
 	
 	private final IRI modelId;
 	private OWLOntology aboxOntology = null;
+	private boolean aboxModified = false;
+	
 	private OWLOntology tboxOntology = null;
 	private OWLOntology queryOntology = null;
 	private Map<OWLClass,OWLClassExpression> queryClassMap = null;
 	Map<OWLOntology,Set<OWLAxiom>> collectedAxioms = new HashMap<OWLOntology,Set<OWLAxiom>>();
 
-	
 	
 	/**
 	 * The container is seeded with a tbox (i.e. ontology). An abox will be created
@@ -119,7 +122,22 @@ public class ModelContainer {
 			AddImport ai = new AddImport(aboxOntology, 
 					getOWLDataFactory().getOWLImportsDeclaration(tboxOntology.getOntologyID().getOntologyIRI()));
 			getOWLOntologyManager().applyChange(ai);
+			
 		}
+		// add listener to abox to set modified flag
+		OWLOntologyChangeBroadcastStrategy strategy = new SpecificOntologyChangeBroadcastStrategy(aboxOntology);
+		OWLOntologyChangeListener listener = new OWLOntologyChangeListener() {
+
+			@Override
+			public void ontologiesChanged(List<? extends OWLOntologyChange> changes) throws OWLException {
+				for (OWLOntologyChange owlOntologyChange : changes) {
+					if (aboxOntology.equals(owlOntologyChange.getOntology())) {
+						setAboxModified(true);
+					}
+				}
+			}
+		};
+		aboxOntology.getOWLOntologyManager().addOntologyChangeListener(listener , strategy);
 		if (queryOntology == null) {
 			// Imports: {q imports a, a imports t}
 			LOG.debug("Creating query ontology");
@@ -246,7 +264,8 @@ public class ModelContainer {
 			}
 			if (moduleListener == null) {
 				moduleListener = createModuleChangeListener();
-				aboxOntology.getOWLOntologyManager().addOntologyChangeListener(moduleListener);
+				OWLOntologyChangeBroadcastStrategy strategy = new SpecificOntologyChangeBroadcastStrategy(aboxOntology);
+				aboxOntology.getOWLOntologyManager().addOntologyChangeListener(moduleListener, strategy);
 			}
 		}
 		return moduleReasoner;
@@ -366,8 +385,17 @@ public class ModelContainer {
 	
 	public void applyChanges(List<OWLOntologyChange> changeIRI) {
 		getOWLOntologyManager().applyChanges(changeIRI);
+		
 	}
 	
+	public boolean isModified() {
+		return aboxModified;
+	}
+	
+	void setAboxModified(boolean modified) {
+		aboxModified = modified;
+	}
+
 	@Deprecated
 	public synchronized Map<OWLClass,OWLClassExpression> getQueryClassMap(boolean precomputePropertyClassCombinations) {
 		if (queryClassMap == null) {

@@ -3,6 +3,7 @@ package org.geneontology.minerva.server.external;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.semanticweb.owlapi.model.IRI;
 
@@ -17,16 +18,17 @@ public class CachingExternalLookupService implements ExternalLookupService {
 	private final LoadingCache<IRI, List<LookupEntry>> cache;
 	private final ExternalLookupService service;
 	
-	public CachingExternalLookupService(ExternalLookupService service, int size) {
+	public CachingExternalLookupService(ExternalLookupService service, int size, long duration, TimeUnit unit) {
 		this.service = service;
 		cache = CacheBuilder.newBuilder()
+				.expireAfterWrite(duration, unit)
 				.maximumSize(size)
 				.build(new CacheLoader<IRI, List<LookupEntry>>() {
 
 					@Override
 					public List<LookupEntry> load(IRI key) throws Exception {
 						List<LookupEntry> lookup = CachingExternalLookupService.this.service.lookup(key);
-						if (lookup == null) {
+						if (lookup == null || lookup.isEmpty()) {
 							throw new Exception("No legal value for key.");
 						}
 						return lookup;
@@ -34,12 +36,12 @@ public class CachingExternalLookupService implements ExternalLookupService {
 				});
 	}
 	
-	public CachingExternalLookupService(Iterable<ExternalLookupService> services, int size) {
-		this(new CombinedExternalLookupService(services), size);
+	public CachingExternalLookupService(Iterable<ExternalLookupService> services, int size, long duration, TimeUnit unit) {
+		this(new CombinedExternalLookupService(services), size, duration, unit);
 	}
 
-	public CachingExternalLookupService(int size, ExternalLookupService...services) {
-		this(Arrays.asList(services), size);
+	public CachingExternalLookupService(int size, long duration, TimeUnit unit, ExternalLookupService...services) {
+		this(Arrays.asList(services), size, duration, unit);
 	}
 	
 	@Override

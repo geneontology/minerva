@@ -23,6 +23,8 @@ MINERVA_LABEL_RESOLUTION=$3
 ## start Minerva
 # use catalog xml and PURLs
 java "-Xmx$MINERVA_MEMORY" -jar minerva-server.jar \
+--use-request-logging \
+--slme-elk \
 --skip-class-id-validation \
 --golr-labels $MINERVA_LABEL_RESOLUTION \
 -c "$GO_SVN"/ontology/extensions/catalog-v001.xml \
