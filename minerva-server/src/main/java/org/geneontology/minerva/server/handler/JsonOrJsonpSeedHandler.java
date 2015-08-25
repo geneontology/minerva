@@ -24,6 +24,7 @@ import org.geneontology.reasoner.ExpressionMaterializingReasonerFactory;
 import org.geneontology.reasoner.OWLExtendedReasonerFactory;
 import org.glassfish.jersey.server.JSONP;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
+import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLClass;
 
 import com.google.common.reflect.TypeToken;
@@ -102,7 +103,7 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 			uid = normalizeUserId(uid);
 			UndoMetadata token = new UndoMetadata(uid);
 			model = createModel(uid, token, VariableResolver.EMPTY, null);
-			return seedFromProcess(request[0].arguments, model, response, token);
+			return seedFromProcess(uid, request[0].arguments, model, response, token);
 		} catch (Exception e) {
 			deleteModel(model);
 			return error(response, "Could not successfully handle batch request.", e);
@@ -113,7 +114,7 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 		}
 	}
 	
-	private SeedResponse seedFromProcess(SeedRequestArgument request, ModelContainer model, SeedResponse response, UndoMetadata token) throws Exception {
+	private SeedResponse seedFromProcess(String uid, SeedRequestArgument request, ModelContainer model, SeedResponse response, UndoMetadata token) throws Exception {
 		// check required fields
 		requireNotNull(request.process, "A process id is required for seeding");
 		requireNotNull(request.taxon, "A taxon id is required for seeding");
@@ -138,7 +139,10 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 			reasoner.setIncludeImports(true);
 			GolrSeedingDataProvider provider = new GolrSeedingDataProvider(golrUrl, graph, 
 					reasoner, locationRoots, evidenceRestriction, taxonRestriction, blackList);
-			ModelSeeding<UndoMetadata> seeder = new ModelSeeding<UndoMetadata>(reasoner, provider, curieHandler);
+			Set<OWLAnnotation> defaultAnnotations = new HashSet<OWLAnnotation>();
+			addGeneratedAnnotations(uid, defaultAnnotations, model.getOWLDataFactory());
+			addDateAnnotation(defaultAnnotations, model.getOWLDataFactory());
+			ModelSeeding<UndoMetadata> seeder = new ModelSeeding<UndoMetadata>(reasoner, provider, defaultAnnotations, curieHandler);
 
 			// seed
 			seeder.seedModel(model, m3, request.process, token);

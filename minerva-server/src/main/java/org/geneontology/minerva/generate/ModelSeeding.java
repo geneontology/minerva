@@ -35,10 +35,12 @@ public class ModelSeeding<METADATA> {
 	private final ExpressionMaterializingReasoner reasoner;
 	private final SeedingDataProvider dataProvider;
 	private final CurieHandler curieHandler;
+	private final Set<OWLAnnotation> defaultAnnotations;
 	
-	public ModelSeeding(ExpressionMaterializingReasoner reasoner, SeedingDataProvider dataProvider, CurieHandler curieHandler) {
+	public ModelSeeding(ExpressionMaterializingReasoner reasoner, SeedingDataProvider dataProvider, Set<OWLAnnotation> defaultAnnotations, CurieHandler curieHandler) {
 		this.reasoner = reasoner;
 		this.dataProvider = dataProvider;
+		this.defaultAnnotations = defaultAnnotations;
 		this.curieHandler = curieHandler;
 		reasoner.setIncludeImports(true);
 	}
@@ -250,6 +252,9 @@ public class ModelSeeding<METADATA> {
 				OWLAnnotationProperty p = f.getOWLAnnotationProperty(AnnotationShorthand.source.getAnnotationProperty());
 				annotations.add(f.getOWLAnnotation(p, f.getOWLLiteral(annotation.toString())));
 			}
+		}
+		if (defaultAnnotations != null) {
+			annotations.addAll(defaultAnnotations);
 		}
 		return annotations;
 	}
