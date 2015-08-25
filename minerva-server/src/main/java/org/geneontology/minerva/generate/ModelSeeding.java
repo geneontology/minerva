@@ -125,8 +125,8 @@ public class ModelSeeding<METADATA> {
 			for(Entry<String, List<GeneAnnotation>> locationGroup : locationGroups.entrySet()) {
 				String location = locationGroup.getKey();
 				Set<OWLAnnotation> source = generateAnnotations(locationGroup.getValue(), f);
-				OWLNamedIndividual locationIndividual = manager.createIndividualNonReasoning(modelId, location, source, metadata);
 				for(OWLNamedIndividual relevantMfIndividual : relevantMfIndividuals) {
+					OWLNamedIndividual locationIndividual = manager.createIndividualNonReasoning(modelId, location, source, metadata);
 					manager.addFactNonReasoning(model, relations.occurs_in, relevantMfIndividual, locationIndividual, source, metadata);
 				}
 			}
