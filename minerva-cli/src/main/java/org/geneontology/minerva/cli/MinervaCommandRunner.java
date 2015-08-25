@@ -37,6 +37,7 @@ import org.obolibrary.obo2owl.Obo2OWLConstants.Obo2OWLVocabulary;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
 import org.semanticweb.owlapi.io.RDFXMLOntologyFormat;
+import org.semanticweb.owlapi.model.AddOntologyAnnotation;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationAssertionAxiom;
@@ -752,7 +753,8 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		long golrCacheDuration = 24l;
 		TimeUnit golrCacheDurationUnit = TimeUnit.HOURS;
 		
-		OWLDataFactory df = pw.getManager().getOWLDataFactory();
+		final OWLOntologyManager m = pw.getManager();
+		final OWLDataFactory df = m.getOWLDataFactory();
 		IRI displayLabelPropIri = df.getRDFSLabel().getIRI();
 		IRI shortIdPropIri = IRI.create(Obo2OWLConstants.OIOVOCAB_IRI_PREFIX+"id");
 		
@@ -825,6 +827,11 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				System.out.println("Model: "+modelFile.getName());
 				// load model
 				model = pw.parseOWL(IRI.create(modelFile));
+				// set shorthand for model id
+				String modelId = curieHandler.getCuri(model.getOntologyID().getOntologyIRI());
+				System.out.println("Add model id shorthand: "+modelId);
+				m.applyChange(new AddOntologyAnnotation(model, df.getOWLAnnotation(shortIdProp, df.getOWLLiteral(modelId))));
+				
 				final Set<OWLOntology> importsClosure = model.getImportsClosure();
 				
 				// find relevant classes
@@ -861,7 +868,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 							if (lbl != null) {
 								addedLabels += 1;
 								OWLAxiom axiom = df.getOWLAnnotationAssertionAxiom(displayLabelProp, cls.getIRI(), df.getOWLLiteral(lbl));
-								pw.getManager().addAxiom(model, axiom);
+								m.addAxiom(model, axiom);
 							}
 						}
 					}
@@ -870,7 +877,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 						String curie = curieHandler.getCuri(cls);
 						addedIds += 1;
 						OWLAxiom axiom = df.getOWLAnnotationAssertionAxiom(shortIdProp, cls.getIRI(), df.getOWLLiteral(curie));
-						pw.getManager().addAxiom(model, axiom);
+						m.addAxiom(model, axiom);
 					}
 				}
 				System.out.println("Added labels: "+addedLabels+" Added ids: "+addedIds);
@@ -880,7 +887,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			}
 			finally {
 				if (model != null) {
-					pw.getManager().removeOntology(model);
+					m.removeOntology(model);
 				}
 			}
 		}
