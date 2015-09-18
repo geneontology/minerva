@@ -96,24 +96,35 @@ E, supported by publication p. This would be written (in Manchester
 syntax) as:
 
 ```
-Prefix: has-evidence: IAO:nnnn
+Prefix: axiom-has-evidence: RO:0002612
+Prefix: evidence-with-support-from: RO:0002614
+Prefix: is-about: IAO:0000136
 ...
 
 Individual: <i>
 Facts:
-  Annotation: has-evidence: <e>
+  Annotation: axiom-has-evidence: <e>
   <r> <j>
 
 Individual: <e>
   Type: E
   Facts:
-   dc:source <p>
+   evidence-with-support-from: <w>
 
-Individual: <p>
-  Type: IAO:nnnnnn
+Individual: <pmid:nnnnn>
+  Type: IAO:0000311
+  Facts:
+   is-about: <e>
+
+Individual: <w>
+  Type: ...
 ```
 
 ![diagram](./evidence-model.png)
+
+Note that at the level of OWL-DL, the axiom-has-evidence axiom
+annotation does not point to the `<e>` individual, it points to its
+IRI.
 
 ## LEGO Models
 
