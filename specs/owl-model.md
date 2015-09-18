@@ -104,6 +104,8 @@ Individual: <p>
   Type: IAO:nnnnnn
 ```
 
+[!][diagram](evidence-model.png)
+
 ## LEGO Models
 
 A LEGO Model (LM) is a NM that consists of at least one individual
