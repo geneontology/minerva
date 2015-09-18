@@ -104,7 +104,7 @@ Individual: <p>
   Type: IAO:nnnnnn
 ```
 
-[!][diagram](evidence-model.png)
+![diagram](./evidence-model.png)
 
 ## LEGO Models
 
