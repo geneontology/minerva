@@ -354,7 +354,7 @@
 		</dict>
 		<dict>
 			<key>Bounds</key>
-			<string>{{430, 306.5}, {83, 28}}</string>
+			<string>{{432, 306.5}, {79, 28}}</string>
 			<key>Class</key>
 			<string>ShapedGraphic</string>
 			<key>FitText</key>
@@ -394,7 +394,7 @@
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
 \f0\fs24 \cf0 is about\
-(IAO_0000136)}</string>
+(IAO:0000136)}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -646,7 +646,7 @@
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
 \f0\fs24 \cf0 axiom has evidence\
-(RO:0002162)}</string>
+(RO:0002612)}</string>
 				<key>VerticalPad</key>
 				<integer>0</integer>
 			</dict>
@@ -833,7 +833,7 @@
 	<key>MasterSheets</key>
 	<array/>
 	<key>ModificationDate</key>
-	<string>2015-09-18 21:55:20 +0000</string>
+	<string>2015-09-18 22:28:31 +0000</string>
 	<key>Modifier</key>
 	<string>Chris Mungall</string>
 	<key>NotesVisible</key>
