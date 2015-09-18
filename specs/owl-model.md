@@ -11,6 +11,8 @@ other documentation prior to this.
 By convention we use OWL2 syntax - this is normative. In some cases we
 provide the corresponding RDF syntax - this is informative.
 
+Note that GO/LEGO conventions are documented here: https://github.com/geneontology/noctua-models/blob/master/README.md
+
 ### Notes on OWL2 terminology
 
 Some OWL2 terminology can be confusing as terms may mean different
@@ -110,6 +112,8 @@ Individual: <e>
 Individual: <p>
   Type: IAO:nnnnnn
 ```
+
+![diagram](./evidence-model.png)
 
 ## LEGO Models
 
