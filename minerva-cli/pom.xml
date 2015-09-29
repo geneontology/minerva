@@ -12,17 +12,22 @@
 	<build>
 		<plugins>
 			<plugin>
-				<!-- used to add ${buildNumber} -->
-				<!-- requires scm connection -->
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>buildnumber-maven-plugin</artifactId>
-				<version>1.1</version>
+				<groupId>pl.project13.maven</groupId>
+				<artifactId>git-commit-id-plugin</artifactId>
+				<version>2.1.13</version>
 				<executions>
 					<execution>
-						<phase>validate</phase>
+						<id>git-commit-id</id>
 						<goals>
-							<goal>create</goal>
+							<goal>revision</goal>
 						</goals>
+						<phase>validate</phase>
+						<configuration>
+							<skipPoms>false</skipPoms>
+							<gitDescribe>
+								<skip>false</skip>
+							</gitDescribe>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
@@ -44,9 +49,10 @@
 						</manifest>
 						<manifestEntries>
 							<owltools-build-timestamp>${maven.build.timestamp}</owltools-build-timestamp>
-							<!-- requires the buildnumber-maven-plugin -->
-							<git-revision-sha1>${buildNumber}</git-revision-sha1>
-							<git-revision-url>https://github.com/geneontology/minerva/commit/${buildNumber}</git-revision-url>
+							<git-revision-sha1>${git.commit.id}</git-revision-sha1>
+							<git-revision-url>https://github.com/geneontology/minerva/commit/${git.commit.id}</git-revision-url>
+							<git-branch>${git.branch}</git-branch>
+							<git-dirty>${git.dirty}</git-dirty>
 						</manifestEntries>
 					</archive>
 				</configuration>
