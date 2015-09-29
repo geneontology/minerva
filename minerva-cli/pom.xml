@@ -48,7 +48,7 @@
 							<mainClass>org.geneontology.minerva.cli.CommandLineInterface</mainClass>
 						</manifest>
 						<manifestEntries>
-							<owltools-build-timestamp>${maven.build.timestamp}</owltools-build-timestamp>
+							<build-timestamp>${maven.build.timestamp}</build-timestamp>
 							<git-revision-sha1>${git.commit.id}</git-revision-sha1>
 							<git-revision-url>https://github.com/geneontology/minerva/commit/${git.commit.id}</git-revision-url>
 							<git-branch>${git.branch}</git-branch>
