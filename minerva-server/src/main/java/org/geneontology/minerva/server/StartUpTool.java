@@ -10,6 +10,8 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.geneontology.minerva.ModelReaderHelper;
+import org.geneontology.minerva.ModelWriterHelper;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
@@ -261,7 +263,7 @@ public class StartUpTool {
 		return properties;
 	}
 
-	public static void startUp(MinervaStartUpConfig conf) 
+	public static void startUp(final MinervaStartUpConfig conf) 
 			throws Exception {
 		// load ontology
 		LOGGER.info("Start loading ontology: "+conf.ontology);
@@ -293,6 +295,10 @@ public class StartUpTool {
 		LOGGER.info("Start initializing Minerva");
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph, conf.rf,
 				conf.curieHandler, conf.modelIdPrefix);
+		// set pre and post file handlers
+		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
+		models.addPreFileSaveHandler(new ModelWriterHelper(conf.curieHandler, conf.lookupService));
+		
 		// set folder to  models
 		LOGGER.info("Model path: "+conf.modelFolder);
 		models.setPathToOWLFiles(conf.modelFolder);

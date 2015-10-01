@@ -45,6 +45,7 @@ public class ModelContainer {
 	private final Object reasonerMutex = new Object();
 	
 	private volatile OWLReasoner moduleReasoner = null;
+	private volatile boolean activateModuleListener = true;
 	private volatile OWLOntologyChangeListener moduleListener = null;
 	private final Object moduleReasonerMutex = new Object();
 	
@@ -290,7 +291,7 @@ public class ModelContainer {
 			@Override
 			public void ontologiesChanged(List<? extends OWLOntologyChange> changes)
 					throws OWLException {
-				if (moduleReasoner != null) { // warning this only works because of the volatile keyword
+				if (activateModuleListener && moduleReasoner != null) { // warning this only works because of the volatile keyword
 					for (OWLOntologyChange change : changes) {
 						boolean dispose = false;
 						if (aboxOntology.equals(change.getOntology())) {
@@ -394,6 +395,10 @@ public class ModelContainer {
 	
 	void setAboxModified(boolean modified) {
 		aboxModified = modified;
+	}
+	
+	public void setListenToOntologyChanges(boolean listen) {
+		activateModuleListener = listen;
 	}
 
 	@Deprecated

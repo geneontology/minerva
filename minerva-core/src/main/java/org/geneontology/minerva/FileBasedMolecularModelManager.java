@@ -3,6 +3,7 @@ package org.geneontology.minerva;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -19,7 +20,6 @@ import org.semanticweb.owlapi.io.RDFXMLOntologyFormat;
 import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
-import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLImportsDeclaration;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -56,6 +56,9 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	// WARNING: Do *NOT* switch to functional syntax until the OWL-API has fixed a bug.
 	OWLOntologyFormat ontologyFormat = new ManchesterOWLSyntaxOntologyFormat();
 
+	private final List<PreFileSaveHandler> preFileSaveHandlers = new ArrayList<PreFileSaveHandler>();
+	private final List<PostLoadOntologyFilter> postLoadOntologyFilters = new ArrayList<PostLoadOntologyFilter>();
+	
 	/**
 	 * @param graph
 	 * @param rf
@@ -200,13 +203,14 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		}
 		File tempFile = null;
 		try {
+			m.setListenToOntologyChanges(false);
 			// create tempFile
 			String prefix = modelId.toString(); // TODO escape
 			tempFile = File.createTempFile(prefix, ".owl");
 		
 			// write to a temp file
 			synchronized (ont) {
-				saveToFile(ont, manager, tempFile, annotations, metadata);	
+				saveToFile(ont, manager, tempFile, metadata);	
 			}
 			
 			// copy temp file to the finalFile
@@ -218,27 +222,17 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		finally {
 			// delete temp file
 			FileUtils.deleteQuietly(tempFile);
+			m.setListenToOntologyChanges(true);
 		}
 	}
 
 	private void saveToFile(final OWLOntology ont, final OWLOntologyManager manager,
-			final File outfile, final Set<OWLAnnotation> annotations, METADATA metadata)
+			final File outfile, METADATA metadata)
 			throws OWLOntologyStorageException {
-		// check that the annotations contain relevant meta data
-		final Set<OWLAxiom> metadataAxioms = new HashSet<OWLAxiom>();
-		if (annotations != null) {
-//			for (Pair<String,String> pair : annotations) {
-				// TODO saved by
-//			}
-		}
-		// TODO save date?
 		
-		List<OWLOntologyChange> changes = null;
+		List<OWLOntologyChange> changes = preSaveFileHandler(ont);
 		final IRI outfileIRI = IRI.create(outfile);
 		try {
-			if (metadataAxioms.isEmpty() == false) {
-				changes = manager.addAxioms(ont, metadataAxioms);
-			}
 			manager.saveOntology(ont, ontologyFormat, outfileIRI);
 		}
 		finally {
@@ -248,6 +242,31 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 					manager.applyChanges(invertedChanges);
 				}
 			}
+		}
+	}
+	
+	private List<OWLOntologyChange> preSaveFileHandler(OWLOntology model) {
+		List<OWLOntologyChange> allChanges = null;
+		for(PreFileSaveHandler handler : preFileSaveHandlers) {
+			List<OWLOntologyChange> changes = handler.handle(model);
+			if (changes != null && !changes.isEmpty()) {
+				if (allChanges == null) {
+					allChanges = new ArrayList<OWLOntologyChange>(changes.size());
+				}
+				allChanges.addAll(changes);
+			}
+		}
+		return allChanges;
+	}
+	
+	public static interface PreFileSaveHandler {
+		
+		public List<OWLOntologyChange> handle(OWLOntology model);
+	}
+	
+	public void addPreFileSaveHandler(PreFileSaveHandler handler) {
+		if (handler != null) {
+			preFileSaveHandlers.add(handler);
 		}
 	}
 	
@@ -367,6 +386,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		File modelFile = getOwlModelFile(modelId);
 		IRI sourceIRI = IRI.create(modelFile);
 		OWLOntology abox = loadOntologyIRI(sourceIRI, false);
+		abox = postLoadFileFilter(abox);
 		ModelContainer model = addModel(modelId, abox);
 		updateImports(model);
 	}
@@ -376,7 +396,26 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		File modelFile = getOwlModelFile(modelId);
 		IRI sourceIRI = IRI.create(modelFile);
 		OWLOntology abox = loadOntologyIRI(sourceIRI, true);
+		abox = postLoadFileFilter(abox);
 		return abox;
+	}
+	
+	private OWLOntology postLoadFileFilter(OWLOntology model) {
+		for (PostLoadOntologyFilter filter : postLoadOntologyFilters) {
+			model = filter.filter(model);
+		}
+		return model;
+	}
+	
+	public static interface PostLoadOntologyFilter {
+		
+		OWLOntology filter(OWLOntology model);
+	}
+
+	public void addPostLoadOntologyFilter(PostLoadOntologyFilter filter) {
+		if (filter != null) {
+			postLoadOntologyFilters.add(filter);
+		}
 	}
 
 	private File getOwlModelFile(IRI modelId) {

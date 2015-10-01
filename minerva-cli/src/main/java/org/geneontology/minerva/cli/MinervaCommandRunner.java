@@ -20,6 +20,7 @@ import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxOntologyFormat;
 import org.geneontology.minerva.GafToLegoIndividualTranslator;
 import org.geneontology.minerva.GafToLegoTranslator;
 import org.geneontology.minerva.ModelContainer;
+import org.geneontology.minerva.ModelWriterHelper;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
@@ -28,25 +29,18 @@ import org.geneontology.minerva.generate.LegoModelGenerator;
 import org.geneontology.minerva.legacy.LegoAllIndividualToGeneAnnotationTranslator;
 import org.geneontology.minerva.server.external.CachingExternalLookupService;
 import org.geneontology.minerva.server.external.ExternalLookupService;
-import org.geneontology.minerva.server.external.ExternalLookupService.LookupEntry;
 import org.geneontology.minerva.server.external.GolrExternalLookupService;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.geneontology.minerva.util.MinimalModelGenerator;
-import org.obolibrary.obo2owl.Obo2OWLConstants;
-import org.obolibrary.obo2owl.Obo2OWLConstants.Obo2OWLVocabulary;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
 import org.semanticweb.owlapi.io.RDFXMLOntologyFormat;
-import org.semanticweb.owlapi.model.AddOntologyAnnotation;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
-import org.semanticweb.owlapi.model.OWLAnnotationAssertionAxiom;
-import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLAnnotationValueVisitorEx;
 import org.semanticweb.owlapi.model.OWLAnonymousIndividual;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
-import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLEntity;
@@ -742,6 +736,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 	}
 
 	@CLIMethod("--enrich-models-for-golr")
+	@Deprecated
 	public void enrichModelsForGolrLoad(Opts opts) throws Exception {
 		// defaults
 		String modelFolder = null;
@@ -752,11 +747,6 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		int golrCacheSize = 100000;
 		long golrCacheDuration = 24l;
 		TimeUnit golrCacheDurationUnit = TimeUnit.HOURS;
-		
-		final OWLOntologyManager m = pw.getManager();
-		final OWLDataFactory df = m.getOWLDataFactory();
-		IRI displayLabelPropIri = df.getRDFSLabel().getIRI();
-		IRI shortIdPropIri = IRI.create(Obo2OWLConstants.OIOVOCAB_IRI_PREFIX+"id");
 		
 		// check parameters
 		while (opts.hasArgs()) {
@@ -806,10 +796,6 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		ExternalLookupService lookupService = new GolrExternalLookupService(golrUrl, curieHandler);
 		lookupService = new CachingExternalLookupService(lookupService, golrCacheSize, golrCacheDuration, golrCacheDurationUnit);
 
-		// prep annotation properties
-		OWLAnnotationProperty shortIdProp = df.getOWLAnnotationProperty(shortIdPropIri);
-		OWLAnnotationProperty displayLabelProp = df.getOWLAnnotationProperty(displayLabelPropIri);
-		
 		File[] modelFiles = new File(modelFolder).getCanonicalFile().listFiles(new FilenameFilter() {
 			
 			@Override
@@ -819,75 +805,20 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		});
 		File outputFolderFile = new File(outputFolder);
 		outputFolderFile.mkdirs();
+		ModelWriterHelper writerHelper = new ModelWriterHelper(curieHandler, lookupService);
 		for (File modelFile : modelFiles) {
 			OWLOntology model = null;
-			int addedLabels = 0;
-			int addedIds = 0;
 			try {
 				System.out.println("Model: "+modelFile.getName());
-				// load model
 				model = pw.parseOWL(IRI.create(modelFile));
-				// set shorthand for model id
-				String modelId = curieHandler.getCuri(model.getOntologyID().getOntologyIRI());
-				System.out.println("Add model id shorthand: "+modelId);
-				m.applyChange(new AddOntologyAnnotation(model, df.getOWLAnnotation(shortIdProp, df.getOWLLiteral(modelId))));
-				
-				final Set<OWLOntology> importsClosure = model.getImportsClosure();
-				
-				// find relevant classes
-				Set<OWLClass> usedClasses = new HashSet<OWLClass>();
-				Set<OWLNamedIndividual> individuals = model.getIndividualsInSignature();
-				for (OWLNamedIndividual individual : individuals) {
-					Set<OWLClassAssertionAxiom> axioms = model.getClassAssertionAxioms(individual);
-					for (OWLClassAssertionAxiom axiom : axioms) {
-						usedClasses.addAll(axiom.getClassesInSignature());
-					}
-				}
-				
-				// check label and ids for used classes
-				for (OWLClass cls : usedClasses) {
-					boolean hasLabelAxiom = false;
-					boolean hasShortIdAxiom = false;
-					Set<OWLAnnotationAssertionAxiom> existingAnnotations = new HashSet<OWLAnnotationAssertionAxiom>();
-					for(OWLOntology ont : importsClosure) {
-						existingAnnotations.addAll(ont.getAnnotationAssertionAxioms(cls.getIRI()));
-					}
-					for (OWLAnnotationAssertionAxiom axiom : existingAnnotations) {
-						if (shortIdProp.equals(axiom.getProperty())) {
-							hasShortIdAxiom = true;
-						}
-						else if (displayLabelProp.equals(axiom.getProperty())) {
-							hasLabelAxiom = true;
-						}
-					}
-					if (hasLabelAxiom == false) {
-						// find label via Golr
-						List<LookupEntry> lookup = lookupService.lookup(cls.getIRI());
-						if (lookup != null && !lookup.isEmpty()) {
-							String lbl = lookup.get(0).label;
-							if (lbl != null) {
-								addedLabels += 1;
-								OWLAxiom axiom = df.getOWLAnnotationAssertionAxiom(displayLabelProp, cls.getIRI(), df.getOWLLiteral(lbl));
-								m.addAxiom(model, axiom);
-							}
-						}
-					}
-					if (hasShortIdAxiom == false) {
-						// id shorthand via curie
-						String curie = curieHandler.getCuri(cls);
-						addedIds += 1;
-						OWLAxiom axiom = df.getOWLAnnotationAssertionAxiom(shortIdProp, cls.getIRI(), df.getOWLLiteral(curie));
-						m.addAxiom(model, axiom);
-					}
-				}
-				System.out.println("Added labels: "+addedLabels+" Added ids: "+addedIds);
+				writerHelper.handle(model);
 				File outputFile = new File(outputFolderFile, modelFile.getName()).getCanonicalFile();
 				pw.getManager().saveOntology(model, IRI.create(outputFile));
 				System.out.println("Finished saving: "+outputFile);
 			}
 			finally {
 				if (model != null) {
-					m.removeOntology(model);
+					model.getOWLOntologyManager().removeOntology(model);
 				}
 			}
 		}
