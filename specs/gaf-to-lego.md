@@ -1,4 +1,4 @@
-Given a set of gene associations, this procedure will generate LEGO models.
+Given a set of gene associations, this procedure will generate LEGO models. The procedure can be reversed for a lossy LEGO->GAF conversion.
 
 The set of associations can be specified by a user query. Includes:
 
@@ -98,6 +98,12 @@ Note this may result in multiple classification of individuals (MCI). The user c
 One variant of this strategy may be to retain the original Id,
 generate new Ids for the collapsed aggregate MF individual, and
 include evidence links back to the atomic MF individuals.
+
+## Evidence
+
+To be specified. For an example, see
+
+![img](gaf-to-lego-mf-example.png)
 
 
     
