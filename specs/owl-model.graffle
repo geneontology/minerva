@@ -26,7 +26,7 @@
 	<key>MasterSheets</key>
 	<array/>
 	<key>ModificationDate</key>
-	<string>2015-10-26 23:47:50 +0000</string>
+	<string>2015-10-27 00:00:34 +0000</string>
 	<key>Modifier</key>
 	<string>Chris Mungall</string>
 	<key>NotesVisible</key>
@@ -3392,7 +3392,7 @@ occurs_in: L}</string>
 			<key>BackgroundGraphic</key>
 			<dict>
 				<key>Bounds</key>
-				<string>{{0, 0}, {1152.0000495910645, 733}}</string>
+				<string>{{0, 0}, {576.00002479553223, 733}}</string>
 				<key>Class</key>
 				<string>SolidGraphic</string>
 				<key>ID</key>
@@ -3699,26 +3699,6 @@ Props: created_by=axiom1.creator\
 \pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
 
 \f0\b\fs24 \cf0 type: W1}</string>
-					</dict>
-				</dict>
-				<dict>
-					<key>Bounds</key>
-					<string>{{821.49441528320312, 413.00001525878906}, {97.499984741210938, 49}}</string>
-					<key>Class</key>
-					<string>ShapedGraphic</string>
-					<key>ID</key>
-					<integer>391</integer>
-					<key>Shape</key>
-					<string>Rectangle</string>
-					<key>Text</key>
-					<dict>
-						<key>Text</key>
-						<string>{\rtf1\ansi\ansicpg1252\cocoartf1187\cocoasubrtf370
-\cocoascreenfonts1{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\qc
-
-\f0\b\fs24 \cf0 iri: P4}</string>
 					</dict>
 				</dict>
 				<dict>
@@ -4033,7 +4013,7 @@ type: IAO:\
 			<key>GridInfo</key>
 			<dict/>
 			<key>HPages</key>
-			<integer>2</integer>
+			<integer>1</integer>
 			<key>KeepToScale</key>
 			<false/>
 			<key>Layers</key>
@@ -4089,7 +4069,7 @@ type: IAO:\
 	<key>WindowInfo</key>
 	<dict>
 		<key>CurrentSheet</key>
-		<integer>0</integer>
+		<integer>2</integer>
 		<key>ExpandedCanvases</key>
 		<array>
 			<dict>
@@ -4112,7 +4092,7 @@ type: IAO:\
 		<key>SidebarWidth</key>
 		<integer>120</integer>
 		<key>VisibleRegion</key>
-		<string>{{3, -8}, {817, 750}}</string>
+		<string>{{-120, -16}, {817, 765}}</string>
 		<key>Zoom</key>
 		<real>1</real>
 		<key>ZoomValues</key>
