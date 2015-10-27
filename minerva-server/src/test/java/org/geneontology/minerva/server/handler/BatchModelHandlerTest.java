@@ -2065,6 +2065,36 @@ public class BatchModelHandlerTest {
 		assertEquals("PMID:0000", individuals2[0].id);
 	}
 	
+	@Test
+	public void testUnknownIdentifier() throws Exception {
+		String modelId = generateBlankModel();
+		
+		M3Request r;
+		final List<M3Request> batch1 = new ArrayList<M3Request>();
+		r = new M3Request();
+		r.entity = Entity.individual;
+		r.operation = Operation.add;
+		r.arguments = new M3Argument();
+		r.arguments.modelId = modelId;
+		BatchTestTools.setExpressionClass(r.arguments, "IDA");
+		batch1.add(r);
+		
+		boolean defaultIdPolicy = handler.CHECK_LITERAL_IDENTIFIERS;
+		M3BatchResponse response;
+		try {
+			handler.CHECK_LITERAL_IDENTIFIERS = true;
+			response = handler.m3Batch(uid, intention, packetId, batch1.toArray(new M3Request[batch1.size()]), true);
+		}
+		finally {
+			handler.CHECK_LITERAL_IDENTIFIERS = defaultIdPolicy;
+		}
+		assertEquals(uid, response.uid);
+		assertEquals(intention, response.intention);
+		
+		// this has to fail as IDA is *not* a known identifier
+		assertEquals(M3BatchResponse.MESSAGE_TYPE_ERROR, response.messageType);
+	}
+	
 	private M3BatchResponse executeBatch(List<M3Request> batch) {
 		return executeBatch(batch, uid);
 	}
