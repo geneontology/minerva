@@ -92,6 +92,8 @@ public class StartUpTool {
 		public int requestBufferSize = 128*1024;
 		
 		public boolean useRequestLogging = false;
+		
+		public boolean useGolrUrlLogging = false;
 	}
 	
 	public static void main(String[] args) throws Exception {
@@ -180,6 +182,9 @@ public class StartUpTool {
 			else if (opts.nextEq("--use-request-logging|--request-logging")) {
 				conf.useRequestLogging = true;
 			}
+			else if (opts.nextEq("--use-golr-url-logging|--golr-url-logging")) {
+				conf.useGolrUrlLogging = true;
+			}
 			else {
 				break;
 			}
@@ -206,9 +211,10 @@ public class StartUpTool {
 
 		// wrap the Golr service with a cache
 		if (conf.golrUrl != null) {
-			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler);
+			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler, conf.useGolrUrlLogging);
 			LOGGER.info("Setting up Golr cache with size: "+conf.golrCacheSize+" duration: "+
-					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit);
+					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
+					" use url logging: "+conf.useGolrUrlLogging);
 			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
 		}
 		
@@ -326,7 +332,7 @@ public class StartUpTool {
 		LOGGER.info("BatchHandler config importantRelations: "+conf.importantRelations);
 		LOGGER.info("BatchHandler config lookupService: "+conf.lookupService);
 		LOGGER.info("BatchHandler config checkLiteralIds: "+conf.checkLiteralIds);
-		LOGGER.info("BatchHandler config useRequestLogging"+conf.useRequestLogging);
+		LOGGER.info("BatchHandler config useRequestLogging: "+conf.useRequestLogging);
 		LOGGER.info("SeedHandler config golrUrl: "+conf.golrUrl);
 		
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
