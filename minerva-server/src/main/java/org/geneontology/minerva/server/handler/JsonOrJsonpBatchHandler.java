@@ -33,7 +33,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	
 	
 	public static boolean VALIDATE_BEFORE_SAVE = true;
-	public static boolean ENFORCE_EXTERNAL_VALIDATE = false;
 	public boolean CHECK_LITERAL_IDENTIFIERS = true; // TODO remove the temp work-around
 	
 	private static final Logger logger = Logger.getLogger(JsonOrJsonpBatchHandler.class);
@@ -56,11 +55,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		
 	}.getType();
 	
-	@Override
-	boolean enforceExternalValidate() {
-		return ENFORCE_EXTERNAL_VALIDATE;
-	}
-
 	@Override
 	boolean checkLiteralIdentifiers() {
 		return CHECK_LITERAL_IDENTIFIERS;

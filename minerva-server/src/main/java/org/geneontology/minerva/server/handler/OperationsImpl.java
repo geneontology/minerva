@@ -77,8 +77,6 @@ abstract class OperationsImpl extends ModelCreator {
 		this.beforeSaveValidator = new BeforeSaveModelValidator();
 	}
 
-	abstract boolean enforceExternalValidate();
-
 	abstract boolean checkLiteralIdentifiers();
 	
 	abstract boolean validateBeforeSave();
@@ -311,12 +309,7 @@ abstract class OperationsImpl extends ModelCreator {
 	private OWLClassExpression parseM3Expression(JsonOwlObject expression, BatchHandlerValues values)
 			throws MissingParameterException, UnknownIdentifierException, OWLException {
 		M3ExpressionParser p = new M3ExpressionParser(checkLiteralIdentifiers(), curieHandler);
-		if (enforceExternalValidate()) {
-			return p.parse(values.model, expression, externalLookupService);
-		}
-		else {
-			return p.parse(values.model, expression, null);
-		}
+		return p.parse(values.model, expression, externalLookupService);
 	}
 	
 	private OWLObjectProperty getProperty(String id, BatchHandlerValues values) throws UnknownIdentifierException {

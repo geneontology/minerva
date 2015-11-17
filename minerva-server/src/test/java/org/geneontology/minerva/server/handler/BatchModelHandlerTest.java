@@ -102,7 +102,6 @@ public class BatchModelHandlerTest {
 			}
 		};
 		JsonOrJsonpBatchHandler.VALIDATE_BEFORE_SAVE = true;
-		JsonOrJsonpBatchHandler.ENFORCE_EXTERNAL_VALIDATE = true;
 	}
 
 	private static ExternalLookupService createTestProteins(CurieHandler curieHandler) {
