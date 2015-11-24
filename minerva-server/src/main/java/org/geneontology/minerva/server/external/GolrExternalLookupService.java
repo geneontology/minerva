@@ -25,12 +25,16 @@ public class GolrExternalLookupService implements ExternalLookupService {
 	private final CurieHandler curieHandler;
 	
 	public GolrExternalLookupService(String golrUrl, CurieHandler curieHandler) {
+		this(golrUrl, curieHandler, false);
+	}
+	
+	public GolrExternalLookupService(String golrUrl, CurieHandler curieHandler, final boolean logGolrRequests) {
 		this(golrUrl, new RetrieveGolrBioentities(golrUrl, 2){
 
 			@Override
 			protected void logRequest(URI uri) {
-				if(LOG.isDebugEnabled()) {
-					LOG.debug("Golr request: "+uri);
+				if(logGolrRequests) {
+					LOG.info("Golr bioentity request: "+uri);
 				}
 			}
 			
@@ -38,8 +42,8 @@ public class GolrExternalLookupService implements ExternalLookupService {
 
 			@Override
 			protected void logRequest(URI uri) {
-				if(LOG.isDebugEnabled()) {
-					LOG.debug("Golr request: "+uri);
+				if(logGolrRequests) {
+					LOG.info("Golr ontology cls request: "+uri);
 				}
 			}
 			

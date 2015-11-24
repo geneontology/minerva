@@ -19,12 +19,12 @@ import org.semanticweb.owlapi.model.IRI;
 
 public class GolrExternalLookupServiceTest {
 	
-	private static final String golrUrl = "http://golr.berkeleybop.org";
+	private static final String golrUrl = "http://golr.berkeleybop.org/solr";
 	private final CurieHandler handler = DefaultCurieHandler.getDefaultHandler();
 
 	@Test
 	public void testLookupString1() throws Exception {
-		GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler);
+		GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler, true);
 		String testCurie = "SGD:S000004529";
 		List<LookupEntry> lookup = s.lookup(handler.getIRI(testCurie));
 		assertEquals(1, lookup.size());

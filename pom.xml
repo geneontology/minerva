@@ -229,6 +229,11 @@
 				<artifactId>owlapi-tools</artifactId>
 				<version>${owlapi.version}</version>
 			</dependency>
+			<dependency>
+				<groupId>commons-collections</groupId>
+				<artifactId>commons-collections</artifactId>
+				<version>3.2.1-fixit</version> <!-- This version does not contain a zero day exploit class InvokeTransformer -->
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	
