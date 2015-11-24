@@ -154,7 +154,36 @@ Biological constraints on the structure of models are specified within
 the GO, RO and any related ontologies, and are enforced by standard
 OWL reasoners.
 
-Evidence follows the standard evidence model.
+Evidence follows the standard evidence model (see above).
+
+### Mapping from GAFs
+
+A molecular function (MF) association is mapped to
+
+    <MFIndividual> enabled_by <GeneProductClass>
+    <MFIndividual> type <MFClass>
+
+A biological process (BP) association is mapped to
+
+    <MFIndividual> enabled_by <GeneProductClass>
+    <MFIndividual> part_of <BPIndividual>
+    <BPIndividual> type <BPClass>
+
+Note in the above the MFIndividual is untyped, because a GO BP
+association carries no information about the MF type; we can also type
+by default to the root MF node
+
+A cellular component (CC) association is mapped to
+
+    <MFIndividual> enabled_by <GeneProductClass>
+    <MFIndividual> occurs_in <CCIndividual>
+    <CCIndividual> type <CCClass>
+
+The MFIndividual is untyped as above.
+
+See also [gaf-to-lego](gaf-to-lego.md)
+
+### Examples/Repository
 
 Example LEGO models can be found in the
 [noctua-models](https://github.com/geneontology/noctua-models)
