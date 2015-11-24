@@ -54,6 +54,7 @@ public class StartUpTool {
 		public String defaultModelState = "development";
 		
 		public String golrUrl = null;
+		public String golrSeedUrl = null;
 		public int golrCacheSize = 100000;
 		public long golrCacheDuration = 24l;
 		public TimeUnit golrCacheDurationUnit = TimeUnit.HOURS;
@@ -163,6 +164,9 @@ public class StartUpTool {
 			}
 			else if (opts.nextEq("--golr-labels")) {
 				conf.golrUrl = opts.nextOpt();
+			}
+			else if (opts.nextEq("--golr-seed")) {
+				conf.golrSeedUrl = opts.nextOpt();
 			}
 			else if (opts.nextEq("--no-reasoning|--no-reasoner")) {
 				conf.useReasoner = false;
@@ -333,12 +337,16 @@ public class StartUpTool {
 		LOGGER.info("BatchHandler config lookupService: "+conf.lookupService);
 		LOGGER.info("BatchHandler config checkLiteralIds: "+conf.checkLiteralIds);
 		LOGGER.info("BatchHandler config useRequestLogging: "+conf.useRequestLogging);
-		LOGGER.info("SeedHandler config golrUrl: "+conf.golrUrl);
+		if (conf.golrSeedUrl == null) {
+			// default fall back to normal golr URL
+			conf.golrSeedUrl = conf.golrUrl;
+		}
+		LOGGER.info("SeedHandler config golrUrl: "+conf.golrSeedUrl);
 		
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
 				conf.useReasoner, conf.useModuleReasoner, conf.importantRelations, conf.lookupService);
 		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
-		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrUrl);
+		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl);
 		resourceConfig = resourceConfig.registerInstances(batchHandler, seedHandler);
 
 		// setup jetty server port, buffers and context path
