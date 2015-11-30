@@ -20,3 +20,4 @@ before_install:
 # Warning: travis fails, when log output >4M
 script:
   - mvn clean compile
+
