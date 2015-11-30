@@ -9,7 +9,7 @@ jdk:
 before_install:
  # always have the latest owltools build
  - git clone https://github.com/owlcollab/owltools.git
- - cd owltools; .build.sh; cd ..
+ - cd owltools; ./build.sh; cd ..
  # look at some machine statistics
  - free -m
  - du -hs
