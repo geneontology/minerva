@@ -1,15 +1,22 @@
 language: java
 
 jdk:
-  - openjdk6
+  # - openjdk6 # Java 6 is not supported for minerva
   - openjdk7
   - oraclejdk8
 
 # install
 before_install:
+ # always have the latest owltools build
+ - git clone https://github.com/owlcollab/owltools.git
+ - cd owltools; .build.sh; cd ..
+ # look at some machine statistics
  - free -m
+ - du -hs
  - ls -la
 
+
 # run tests
+# Warning: travis fails, when log output >4M
 script:
   - mvn clean compile
