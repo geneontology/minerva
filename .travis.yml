@@ -1,0 +1,15 @@
+language: java
+
+jdk:
+  - openjdk6
+  - openjdk7
+  - oraclejdk8
+
+# install
+before_install:
+ - free -m
+ - ls -la
+
+# run tests
+script:
+  - mvn clean compile
