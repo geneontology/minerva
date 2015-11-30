@@ -12,7 +12,7 @@ before_install:
  - cd owltools; ./build.sh; cd ..
  # look at some machine statistics
  - free -m
- - du -hs
+ - du -hs *
  - ls -la
 
 
