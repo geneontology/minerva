@@ -10,8 +10,8 @@ import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.json.JsonOwlObject;
 import org.geneontology.minerva.json.JsonOwlObject.JsonOwlObjectType;
-import org.geneontology.minerva.server.external.ExternalLookupService;
-import org.geneontology.minerva.server.external.ExternalLookupService.LookupEntry;
+import org.geneontology.minerva.lookup.ExternalLookupService;
+import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.geneontology.minerva.server.handler.OperationsTools.MissingParameterException;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;

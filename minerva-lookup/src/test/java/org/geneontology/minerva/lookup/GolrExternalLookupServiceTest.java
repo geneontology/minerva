@@ -1,4 +1,4 @@
-package org.geneontology.minerva.server.external;
+package org.geneontology.minerva.lookup;
 
 import static org.junit.Assert.assertEquals;
 
@@ -13,7 +13,10 @@ import org.bbop.golr.java.RetrieveGolrBioentities;
 import org.bbop.golr.java.RetrieveGolrOntologyClass;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
-import org.geneontology.minerva.server.external.ExternalLookupService.LookupEntry;
+import org.geneontology.minerva.lookup.CachingExternalLookupService;
+import org.geneontology.minerva.lookup.ExternalLookupService;
+import org.geneontology.minerva.lookup.GolrExternalLookupService;
+import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.junit.Test;
 import org.semanticweb.owlapi.model.IRI;
 

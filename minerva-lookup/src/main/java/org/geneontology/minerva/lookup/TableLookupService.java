@@ -1,4 +1,4 @@
-package org.geneontology.minerva.server.external;
+package org.geneontology.minerva.lookup;
 
 import java.util.ArrayList;
 import java.util.Collections;

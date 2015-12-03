@@ -66,6 +66,11 @@
 		</dependency>
 		<dependency>
 			<groupId>org.geneontology</groupId>
+			<artifactId>minerva-lookup</artifactId>
+			<version>${project.parent.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.geneontology</groupId>
 			<artifactId>minerva-converter</artifactId>
 			<version>${project.parent.version}</version>
 		</dependency>

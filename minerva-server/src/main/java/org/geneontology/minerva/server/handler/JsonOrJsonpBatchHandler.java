@@ -18,7 +18,7 @@ import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.JsonOwlFact;
 import org.geneontology.minerva.json.JsonOwlIndividual;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
-import org.geneontology.minerva.server.external.ExternalLookupService;
+import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
 import org.glassfish.jersey.server.JSONP;
 import org.semanticweb.owlapi.model.OWLObjectProperty;

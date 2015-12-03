@@ -17,7 +17,7 @@ import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.json.JsonOwlIndividual;
-import org.geneontology.minerva.server.external.ExternalLookupService;
+import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Entity;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;

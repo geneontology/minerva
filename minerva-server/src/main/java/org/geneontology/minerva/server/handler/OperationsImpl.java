@@ -28,7 +28,7 @@ import org.geneontology.minerva.json.JsonRelationInfo;
 import org.geneontology.minerva.json.JsonTools;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.legacy.GafExportTool;
-import org.geneontology.minerva.server.external.ExternalLookupService;
+import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.MetaResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;

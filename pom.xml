@@ -256,5 +256,6 @@
 		<module>minerva-server</module>
 		<module>minerva-converter</module>
 		<module>minerva-cli</module>
+		<module>minerva-lookup</module>
 	</modules>
 </project>

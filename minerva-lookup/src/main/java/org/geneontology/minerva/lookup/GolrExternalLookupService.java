@@ -1,4 +1,4 @@
-package org.geneontology.minerva.server.external;
+package org.geneontology.minerva.lookup;
 
 import java.io.IOException;
 import java.net.URI;

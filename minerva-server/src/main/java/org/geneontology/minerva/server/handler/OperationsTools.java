@@ -6,8 +6,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
-import org.geneontology.minerva.server.external.ExternalLookupService;
-import org.geneontology.minerva.server.external.ExternalLookupService.LookupEntry;
+import org.geneontology.minerva.lookup.ExternalLookupService;
+import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.semanticweb.owlapi.model.OWLNamedObject;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 

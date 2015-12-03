@@ -8,8 +8,8 @@ import java.util.Set;
 
 import org.geneontology.minerva.FileBasedMolecularModelManager.PreFileSaveHandler;
 import org.geneontology.minerva.curie.CurieHandler;
-import org.geneontology.minerva.server.external.ExternalLookupService;
-import org.geneontology.minerva.server.external.ExternalLookupService.LookupEntry;
+import org.geneontology.minerva.lookup.ExternalLookupService;
+import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.obolibrary.obo2owl.Obo2OWLConstants;
 import org.semanticweb.owlapi.model.AddAxiom;
 import org.semanticweb.owlapi.model.AddOntologyAnnotation;
