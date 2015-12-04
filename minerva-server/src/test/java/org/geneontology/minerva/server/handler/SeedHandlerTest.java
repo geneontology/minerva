@@ -2,6 +2,7 @@ package org.geneontology.minerva.server.handler;
 
 import static org.junit.Assert.*;
 
+import java.net.URI;
 import java.util.Collections;
 
 import org.geneontology.minerva.ModelContainer;
@@ -21,6 +22,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 
+import owltools.gaf.eco.EcoMapperFactory;
+import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
 
@@ -47,7 +50,15 @@ public class SeedHandlerTest {
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
 		models = new UndoAwareMolecularModelManager(graph, new ElkReasonerFactory(), curieHandler, modelIdPrefix);
-		handler = new JsonOrJsonpSeedHandler(models, "unknown", golr);
+		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
+		handler = new JsonOrJsonpSeedHandler(models, "unknown", golr, ecoMapper) {
+
+			@Override
+			protected void logGolrRequest(URI uri) {
+				System.err.println(uri);
+			}
+			
+		};
 	}
 	
 	@AfterClass
@@ -84,7 +95,7 @@ public class SeedHandlerTest {
 	}
 	
 	private SeedResponse seed(SeedRequest request) {
-		String json = MolecularModelJsonRenderer.renderToJson(request, false);
+		String json = MolecularModelJsonRenderer.renderToJson(new SeedRequest[]{request}, false);
 		SeedResponse response = handler.fromProcessGetPrivileged(uid, intention, packetId, json);
 		assertEquals(uid, response.uid);
 		assertEquals(intention, response.intention);

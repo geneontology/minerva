@@ -5,6 +5,7 @@ import static org.geneontology.minerva.server.handler.OperationsTools.*;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Type;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -29,6 +30,7 @@ import org.semanticweb.owlapi.model.OWLClass;
 
 import com.google.common.reflect.TypeToken;
 
+import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.graph.OWLGraphWrapper;
 
 public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandler {
@@ -39,6 +41,7 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 	private static final Logger logger = Logger.getLogger(JsonOrJsonpSeedHandler.class);
 	
 	private final String golrUrl;
+	private final SimpleEcoMapper ecoMapper;
 	private final OWLExtendedReasonerFactory<ExpressionMaterializingReasoner> factory;
 	
 	private final Type requestType = new TypeToken<SeedRequest[]>(){
@@ -48,9 +51,10 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 		
 	}.getType();
 	
-	public JsonOrJsonpSeedHandler(UndoAwareMolecularModelManager m3, String defaultModelState, String golr) {
+	public JsonOrJsonpSeedHandler(UndoAwareMolecularModelManager m3, String defaultModelState, String golr, SimpleEcoMapper ecoMapper) {
 		super(m3, defaultModelState);
 		this.golrUrl = golr;
+		this.ecoMapper = ecoMapper;
 		factory = new ExpressionMaterializingReasonerFactory(new ElkReasonerFactory());
 	}
 
@@ -138,11 +142,18 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 			reasoner = factory.createReasoner(model.getAboxOntology());
 			reasoner.setIncludeImports(true);
 			GolrSeedingDataProvider provider = new GolrSeedingDataProvider(golrUrl, graph, 
-					reasoner, locationRoots, evidenceRestriction, taxonRestriction, blackList);
+					reasoner, locationRoots, evidenceRestriction, taxonRestriction, blackList) {
+
+						@Override
+						protected void logRequest(URI uri) {
+							logGolrRequest(uri);
+						}
+					
+					};
 			Set<OWLAnnotation> defaultAnnotations = new HashSet<OWLAnnotation>();
 			addGeneratedAnnotations(uid, defaultAnnotations, model.getOWLDataFactory());
 			addDateAnnotation(defaultAnnotations, model.getOWLDataFactory());
-			ModelSeeding<UndoMetadata> seeder = new ModelSeeding<UndoMetadata>(reasoner, provider, defaultAnnotations, curieHandler);
+			ModelSeeding<UndoMetadata> seeder = new ModelSeeding<UndoMetadata>(reasoner, provider, defaultAnnotations, curieHandler, ecoMapper);
 
 			// seed
 			seeder.seedModel(model, m3, request.process, token);
@@ -163,6 +174,10 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 				reasoner.dispose();
 			}
 		}
+	}
+	
+	protected void logGolrRequest(URI uri) {
+		// empty, overwrite for custom logging
 	}
 	
 	/*

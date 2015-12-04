@@ -1,6 +1,7 @@
 package org.geneontology.minerva.generate;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,7 +27,8 @@ import org.semanticweb.owlapi.util.OWLClassExpressionVisitorAdapter;
 
 import owltools.gaf.Bioentity;
 import owltools.gaf.GeneAnnotation;
-import owltools.graph.OWLGraphWrapper;
+import owltools.gaf.eco.SimpleEcoMapper;
+import owltools.vocab.OBOUpperVocabulary;
 
 import com.google.common.collect.Sets;
 
@@ -36,12 +38,15 @@ public class ModelSeeding<METADATA> {
 	private final SeedingDataProvider dataProvider;
 	private final CurieHandler curieHandler;
 	private final Set<OWLAnnotation> defaultAnnotations;
+	private final SimpleEcoMapper ecoMapper;
 	
-	public ModelSeeding(ExpressionMaterializingReasoner reasoner, SeedingDataProvider dataProvider, Set<OWLAnnotation> defaultAnnotations, CurieHandler curieHandler) {
+	public ModelSeeding(ExpressionMaterializingReasoner reasoner, SeedingDataProvider dataProvider, 
+			Set<OWLAnnotation> defaultAnnotations, CurieHandler curieHandler, SimpleEcoMapper ecoMapper) {
 		this.reasoner = reasoner;
 		this.dataProvider = dataProvider;
 		this.defaultAnnotations = defaultAnnotations;
 		this.curieHandler = curieHandler;
+		this.ecoMapper = ecoMapper;
 		reasoner.setIncludeImports(true);
 	}
 
@@ -53,8 +58,7 @@ public class ModelSeeding<METADATA> {
 		}
 		
 		final OWLDataFactory f = model.getOWLDataFactory();
-		final OWLGraphWrapper modelGraph = new OWLGraphWrapper(model.getAboxOntology());
-		final Relations relations = setupRelations(modelGraph);
+		final Relations relations = new Relations(f, curieHandler);
 		
 		// create bp
 		Set<OWLAnnotation> bpAnnotations = null;
@@ -67,10 +71,10 @@ public class ModelSeeding<METADATA> {
 			
 			// explicitly create OWL class for gene product
 			final IRI gpIRI = curieHandler.getIRI(gp.getId());
-			final OWLClass gpClass = modelGraph.getDataFactory().getOWLClass(gpIRI);
-			manager.addAxiom(model, modelGraph.getDataFactory().getOWLDeclarationAxiom(gpClass), false, metadata);
+			final OWLClass gpClass = f.getOWLClass(gpIRI);
+			manager.addAxiom(model, f.getOWLDeclarationAxiom(gpClass), false, metadata);
 			
-			Set<OWLAnnotation> gpAnnotations = generateAnnotations(source, f);
+			Set<OWLAnnotation> gpAnnotations = generateAnnotationAndEvidence(source, model, manager, metadata);
 			OWLNamedIndividual gpIndividual = manager.createIndividualNonReasoning(modelId, gp.getId(), gpAnnotations, metadata);
 			gpIndividuals.put(gp, gpIndividual);
 		}
@@ -86,10 +90,10 @@ public class ModelSeeding<METADATA> {
 			
 			// TODO choose one representative and preserve others as choice!
 			// for now group to minimize mf individuals
-			Map<String, List<GeneAnnotation>> mfGroups = removeRedundants(groupByCls(functionAnnotations), modelGraph);
+			Map<String, List<GeneAnnotation>> mfGroups = removeRedundants(groupByCls(functionAnnotations), f);
 			for(Entry<String, List<GeneAnnotation>> mfGroup : mfGroups.entrySet()) {
 				String mf = mfGroup.getKey();
-				Set<OWLAnnotation> mfAnnotations = generateAnnotations(mfGroup.getValue(), f);
+				Set<OWLAnnotation> mfAnnotations = generateAnnotationAndEvidence(mfGroup.getValue(),  model, manager, metadata);
 				OWLNamedIndividual mfIndividual = manager.createIndividualNonReasoning(modelId, mf, mfAnnotations , metadata);
 				mfIndividualList.add(mfIndividual);
 				manager.addFactNonReasoning(model, relations.enabled_by, mfIndividual, gpIndividual, mfAnnotations, metadata);
@@ -123,10 +127,10 @@ public class ModelSeeding<METADATA> {
 				continue;
 			}
 			List<GeneAnnotation> locationAnnotations = locations.get(gp);
-			Map<String, List<GeneAnnotation>> locationGroups = removeRedundants(groupByCls(locationAnnotations), modelGraph);
+			Map<String, List<GeneAnnotation>> locationGroups = removeRedundants(groupByCls(locationAnnotations), f);
 			for(Entry<String, List<GeneAnnotation>> locationGroup : locationGroups.entrySet()) {
 				String location = locationGroup.getKey();
-				Set<OWLAnnotation> source = generateAnnotations(locationGroup.getValue(), f);
+				Set<OWLAnnotation> source = generateAnnotationAndEvidence(locationGroup.getValue(), model, manager, metadata);
 				for(OWLNamedIndividual relevantMfIndividual : relevantMfIndividuals) {
 					OWLNamedIndividual locationIndividual = manager.createIndividualNonReasoning(modelId, location, source, metadata);
 					manager.addFactNonReasoning(model, relations.occurs_in, relevantMfIndividual, locationIndividual, source, metadata);
@@ -147,39 +151,14 @@ public class ModelSeeding<METADATA> {
 		final OWLObjectProperty occurs_in;
 		final String occurs_in_id;
 		
-		Relations(OWLObjectProperty part_of, String part_of_id,
-				OWLObjectProperty enabled_by, String enabled_by_id,
-				OWLObjectProperty occurs_in, String occurs_in_id) {
-			this.part_of = part_of;
-			this.part_of_id = part_of_id;
-			this.enabled_by = enabled_by;
-			this.enabled_by_id = enabled_by_id;
-			this.occurs_in = occurs_in;
-			this.occurs_in_id = occurs_in_id;
+		Relations(OWLDataFactory f, CurieHandler curieHandler) {
+			part_of = OBOUpperVocabulary.BFO_part_of.getObjectProperty(f);
+			part_of_id = curieHandler.getCuri(part_of);
+			occurs_in = OBOUpperVocabulary.BFO_occurs_in.getObjectProperty(f);
+			occurs_in_id = curieHandler.getCuri(occurs_in);
+			enabled_by = OBOUpperVocabulary.GOREL_enabled_by.getObjectProperty(f);
+			enabled_by_id = curieHandler.getCuri(enabled_by);
 		}
-	}
-	
-	private Relations setupRelations(OWLGraphWrapper graph) throws Exception {
-		final OWLObjectProperty part_of = graph.getOWLObjectPropertyByIdentifier("BFO:0000050");
-		if (part_of == null) {
-			throw new Exception("Could not find 'part_of'");
-		}
-		reasoner.materializeExpressions(part_of);
-		final String part_of_id = graph.getIdentifier(part_of.getIRI());
-		final OWLObjectProperty enabled_by = graph.getOWLObjectPropertyByIdentifier("RO:0002333");
-		if (enabled_by == null) {
-			throw new Exception("Could not find 'enabled_by'");
-		}
-		final String enabled_by_id = graph.getIdentifier(enabled_by.getIRI());
-		final OWLObjectProperty occurs_in = graph.getOWLObjectPropertyByIdentifier("BFO:0000066");
-		if (occurs_in == null) {
-			throw new Exception("Could not find 'occurs in'");
-		}
-		final String occurs_in_id = graph.getIdentifier(occurs_in.getIRI());
-		
-		Relations relations = new Relations(part_of, part_of_id, enabled_by, 
-								enabled_by_id, occurs_in, occurs_in_id);
-		return relations;
 	}
 	
 	private Map<String, List<GeneAnnotation>> groupByCls(List<GeneAnnotation> annotations) {
@@ -196,11 +175,11 @@ public class ModelSeeding<METADATA> {
 		return groups;
 	}
 	
-	private Map<String, List<GeneAnnotation>> removeRedundants(Map<String, List<GeneAnnotation>> groups, final OWLGraphWrapper graph) {
+	private Map<String, List<GeneAnnotation>> removeRedundants(Map<String, List<GeneAnnotation>> groups, final OWLDataFactory f) {
 		// calculate all ancestors for each group
 		Map<String, Set<String>> allAncestors = new HashMap<String, Set<String>>();
 		for(String cls : groups.keySet()) {
-			OWLClass owlCls = graph.getOWLClassByIdentifier(cls);
+			OWLClass owlCls = f.getOWLClass(curieHandler.getIRI(cls));
 			Set<OWLClassExpression> superClassExpressions = reasoner.getSuperClassExpressions(owlCls, false);
 			final Set<String> ancestors = new HashSet<String>();
 			allAncestors.put(cls, ancestors);
@@ -209,7 +188,7 @@ public class ModelSeeding<METADATA> {
 
 					@Override
 					public void visit(OWLClass desc) {
-						ancestors.add(graph.getIdentifier(desc));
+						ancestors.add(curieHandler.getCuri(desc));
 					}
 
 					@Override
@@ -218,7 +197,7 @@ public class ModelSeeding<METADATA> {
 						filler.accept(new OWLClassExpressionVisitorAdapter(){
 							@Override
 							public void visit(OWLClass desc) {
-								ancestors.add(graph.getIdentifier(desc));
+								ancestors.add(curieHandler.getCuri(desc));
 							}
 							
 						});
@@ -245,17 +224,67 @@ public class ModelSeeding<METADATA> {
 		return redundantFree;
 	}
 	
-	private Set<OWLAnnotation> generateAnnotations(List<GeneAnnotation> source, OWLDataFactory f) {
+	private Set<OWLAnnotation> generateAnnotationAndEvidence(final List<GeneAnnotation> source, ModelContainer model, MolecularModelManager<METADATA> manager, final METADATA metadata) {
+		final OWLDataFactory f = model.getOWLDataFactory();
+		final OWLAnnotationProperty evidenceProperty = f.getOWLAnnotationProperty(AnnotationShorthand.evidence.getAnnotationProperty());
+		final OWLAnnotationProperty sourceProperty = f.getOWLAnnotationProperty(AnnotationShorthand.source.getAnnotationProperty());
+		final OWLAnnotationProperty withProperty = f.getOWLAnnotationProperty(AnnotationShorthand.with.getAnnotationProperty());
+		final OWLAnnotationProperty contributorProperty = f.getOWLAnnotationProperty(AnnotationShorthand.contributor.getAnnotationProperty());
 		Set<OWLAnnotation> annotations = new HashSet<OWLAnnotation>();
+		
 		if (source != null) {
 			for (GeneAnnotation annotation : source) {
-				OWLAnnotationProperty p = f.getOWLAnnotationProperty(AnnotationShorthand.source.getAnnotationProperty());
-				annotations.add(f.getOWLAnnotation(p, f.getOWLLiteral(annotation.toString())));
+				OWLClass ecoCls = findEco(annotation, model);
+				if (ecoCls != null) {
+					final OWLNamedIndividual evidenceIndividual = manager.createIndividualNonReasoning(model, defaultAnnotations, metadata);
+					manager.addTypeNonReasoning(model, evidenceIndividual, ecoCls, metadata);
+					Set<OWLAnnotation> evidenceAnnotations = new HashSet<OWLAnnotation>();
+					List<String> referenceIds = annotation.getReferenceIds();
+					if (referenceIds != null) {
+						for (String referenceId : referenceIds) {
+							evidenceAnnotations.add(f.getOWLAnnotation(sourceProperty, f.getOWLLiteral(referenceId)));
+						}
+					}
+					Collection<String> withInfos = annotation.getWithInfos();
+					if (withInfos != null) {
+						for (String withInfo : withInfos) {
+							evidenceAnnotations.add(f.getOWLAnnotation(withProperty, f.getOWLLiteral(withInfo)));
+						}
+					}
+					if (annotation.getAssignedBy() != null) {
+						evidenceAnnotations.add(f.getOWLAnnotation(contributorProperty, f.getOWLLiteral(annotation.getAssignedBy())));
+					}
+					evidenceAnnotations.add(f.getOWLAnnotation(f.getRDFSComment(), f.getOWLLiteral("Generated from: "+annotation.toString())));
+					manager.addAnnotations(model, evidenceIndividual, evidenceAnnotations , metadata);
+					annotations.add(f.getOWLAnnotation(evidenceProperty, evidenceIndividual.getIRI()));
+				}
 			}
 		}
 		if (defaultAnnotations != null) {
 			annotations.addAll(defaultAnnotations);
 		}
 		return annotations;
+	}
+	
+	private OWLClass findEco(GeneAnnotation annotation, ModelContainer model) {
+		OWLClass result = null;
+		String ecoId = annotation.getEcoEvidenceCls();
+		String goCode = annotation.getShortEvidence();
+		if (ecoId == null && goCode != null) {
+			List<String> referenceIds = annotation.getReferenceIds();
+			if (referenceIds != null) {
+				ecoId = ecoMapper.getEco(goCode, referenceIds);
+			}
+			if (ecoId == null) {
+				ecoId = ecoMapper.getEco(goCode, (String) null);
+			}
+		}
+		if (ecoId != null) {
+			IRI ecoIRI = curieHandler.getIRI(ecoId);
+			if (ecoIRI != null) {
+				result = model.getOWLDataFactory().getOWLClass(ecoIRI);
+			}
+		}
+		return result;
 	}
 }

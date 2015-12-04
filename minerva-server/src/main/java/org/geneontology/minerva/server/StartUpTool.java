@@ -34,6 +34,8 @@ import org.semanticweb.owlapi.model.OWLSubObjectPropertyOfAxiom;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.cli.Opts;
+import owltools.gaf.eco.EcoMapperFactory;
+import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.CatalogXmlIRIMapper;
 import owltools.io.ParserWrapper;
@@ -346,7 +348,9 @@ public class StartUpTool {
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
 				conf.useReasoner, conf.useModuleReasoner, conf.importantRelations, conf.lookupService);
 		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
-		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl);
+		
+		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
+		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
 		resourceConfig = resourceConfig.registerInstances(batchHandler, seedHandler);
 
 		// setup jetty server port, buffers and context path
