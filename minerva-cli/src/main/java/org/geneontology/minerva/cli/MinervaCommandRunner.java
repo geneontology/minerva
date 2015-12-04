@@ -26,7 +26,7 @@ import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.generate.LegoModelGenerator;
-import org.geneontology.minerva.legacy.LegoAllIndividualToGeneAnnotationTranslator;
+import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
 import org.geneontology.minerva.lookup.CachingExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.GolrExternalLookupService;
@@ -614,7 +614,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
 
 		SimpleEcoMapper mapper = EcoMapperFactory.createSimple();
-		LegoAllIndividualToGeneAnnotationTranslator translator = new LegoAllIndividualToGeneAnnotationTranslator(g, curieHandler, reasoner, mapper);
+		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(g.getSourceOntology(), curieHandler, reasoner, mapper);
 		Set<String> modelStates = new HashSet<>();
 		Map<String, GafDocument> typedAnnotations = new HashMap<>();
 		Map<String, BioentityDocument> typedEntities = new HashMap<>();

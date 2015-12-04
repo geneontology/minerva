@@ -11,12 +11,11 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.curie.CurieHandler;
-import org.geneontology.minerva.util.AnnotationShorthand;
+import org.geneontology.minerva.evidence.FindGoCodes;
+import org.geneontology.minerva.taxon.FindTaxonTool;
 import org.obolibrary.obo2owl.Owl2Obo;
-import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
-import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectPropertyExpression;
@@ -33,59 +32,51 @@ import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.graph.OWLGraphWrapper;
 import owltools.vocab.OBOUpperVocabulary;
 
-abstract class AbstractLegoTranslator {
+abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTranslator.Summary> {
 
-	protected final OWLObjectProperty partOf;
-	protected final OWLObjectProperty occursIn;
-	protected final OWLObjectProperty enabledBy;
-	
-	protected final OWLAnnotationProperty source;
-	protected final OWLAnnotationProperty contributor;
-	protected final OWLAnnotationProperty date;
-	protected final OWLAnnotationProperty evidence;
-	
 	protected final OWLClass mf;
 	protected final Set<OWLClass> mfSet;
-	
+
 	protected final OWLClass cc;
 	protected final Set<OWLClass> ccSet;
-	
+
 	protected final OWLClass bp;
 	protected final Set<OWLClass> bpSet;
 
-	protected final SimpleEcoMapper mapper;
+	protected final FindGoCodes goCodes;
 	protected final CurieHandler curieHandler;
-	
-	protected AbstractLegoTranslator(OWLGraphWrapper graph, CurieHandler curieHandler, OWLReasoner reasoner, SimpleEcoMapper mapper) {
-		this.mapper = mapper;
+
+	protected String assignedBy;
+
+	protected AbstractLegoTranslator(OWLOntology model, CurieHandler curieHandler, OWLReasoner reasoner, SimpleEcoMapper mapper) {
+		super(model.getOWLOntologyManager().getOWLDataFactory());
 		this.curieHandler = curieHandler;
-		OWLDataFactory df = graph.getDataFactory();
-		partOf = OBOUpperVocabulary.BFO_part_of.getObjectProperty(df);
-		occursIn = OBOUpperVocabulary.BFO_occurs_in.getObjectProperty(df);
-		
-		mf = OBOUpperVocabulary.GO_molecular_function.getOWLClass(df);
-		cc = graph.getOWLClassByIdentifier("GO:0005575");
-		bp = OBOUpperVocabulary.GO_biological_process.getOWLClass(df);
-		
-		enabledBy = OBOUpperVocabulary.GOREL_enabled_by.getObjectProperty(df);
-		
-		source = df.getOWLAnnotationProperty(AnnotationShorthand.source.getAnnotationProperty());
-		contributor = df.getOWLAnnotationProperty(AnnotationShorthand.contributor.getAnnotationProperty());
-		date = df.getOWLAnnotationProperty(AnnotationShorthand.date.getAnnotationProperty());
-		evidence = df.getOWLAnnotationProperty(AnnotationShorthand.evidence.getAnnotationProperty());
-		
-		bpSet = getAllSubClasses(bp, graph, reasoner, true);
-		mfSet = getAllSubClasses(mf, graph, reasoner, true);
-		ccSet = getAllSubClasses(cc, graph, reasoner, false);
-	}
+		goCodes = new FindGoCodes(mapper, curieHandler);
+
+		mf = OBOUpperVocabulary.GO_molecular_function.getOWLClass(f);
+		cc = f.getOWLClass(curieHandler.getIRI("GO:0005575"));
+		bp = OBOUpperVocabulary.GO_biological_process.getOWLClass(f);
 	
-	protected static Set<OWLClass> getAllSubClasses(OWLClass cls, OWLGraphWrapper g, OWLReasoner r, boolean reflexive) {
+		bpSet = getAllSubClasses(bp, reasoner, true, "GO:", curieHandler);
+		mfSet = getAllSubClasses(mf, reasoner, true, "GO:", curieHandler);
+		ccSet = getAllSubClasses(cc, reasoner, false, "GO:", curieHandler);
+	
+		assignedBy = "GO_Noctua";
+	}
+
+	protected static Set<OWLClass> getAllSubClasses(OWLClass cls, OWLReasoner r, boolean reflexive, String idSpace, CurieHandler curieHandler) {
 		Set<OWLClass> allSubClasses = r.getSubClasses(cls, false).getFlattened();
 		Iterator<OWLClass> it = allSubClasses.iterator();
 		while (it.hasNext()) {
 			OWLClass current = it.next();
 			if (current.isBuiltIn()) {
 				it.remove();
+				continue;
+			}
+			String id = curieHandler.getCuri(current);
+			if (id.startsWith(idSpace) == false) {
+				it.remove();
+				continue;
 			}
 		}
 		if (reflexive) {
@@ -94,94 +85,56 @@ abstract class AbstractLegoTranslator {
 		return allSubClasses;
 	}
 
-	
 	protected static class Entry<T> {
 		T value;
 		Metadata metadata;
+		Set<OWLObjectSomeValuesFrom> expressions;
 		// TODO multi-species interactions
-	}
-	
-	protected static class Metadata {
-		OWLClass evidence = null;
-		String assignedBy = null;
-		String date = null;
-		Set<String> sources = null;
-		
-		Metadata copy() {
-			Metadata metadata = new Metadata();
-			metadata.evidence = this.evidence;
-			metadata.assignedBy = this.assignedBy;
-			metadata.date = this.date;
-			metadata.sources = copy(this.sources);
-			return metadata;
-		}
-		
-		private static Set<String> copy(Set<String> c) {
-			if (c == null) {
-				return null;
-			}
-			return new HashSet<String>(c);
-		}
-		
-		private static Metadata combine(Metadata primary, Metadata secondary) {
-			if (primary.evidence != null) {
-				return primary.copy();
-			}
-			if (secondary.evidence != null) {
-				return secondary.copy();
-			}
-			if (primary.sources != null && !primary.sources.isEmpty()) {
-				return primary.copy();
-			}
-			return secondary.copy();
-		}
 	}
 
 	protected class Summary {
-		
+
 		Set<Entry<OWLClass>> activities = null;
-		Set<Entry<OWLObjectSomeValuesFrom>> activityExpressions = null;
 		Set<Entry<OWLClass>> locations = null;
 		Set<Entry<OWLClass>> processes = null;
 		OWLClass entity = null;
 		String entityType = null;
 		String entityTaxon = null;
-		
-		void addMfOrBp(OWLClass cls, Metadata metadata) {
+
+		boolean addMf(OWLClass cls, Metadata metadata, Set<OWLObjectSomeValuesFrom> expressions) {
 			if (isMf(cls)) {
-				activities = addAnnotation(cls, metadata , activities);
+				activities = addAnnotation(cls, metadata, expressions, activities);
+				return true;
 			}
-			else if (isBp(cls)) {
-				processes = addAnnotation(cls, metadata, processes);
-			}
+			return false;
 		}
-		
-		void addMf(OWLClass cls, Metadata metadata) {
-			if (isMf(cls)) {
-				activities = addAnnotation(cls, metadata , activities);
-			}
-		}
-		
-		void addBp(OWLClass cls, Metadata metadata) {
+
+		boolean addBp(OWLClass cls, Metadata metadata, Set<OWLObjectSomeValuesFrom> expressions) {
 			if (isBp(cls)) {
-				processes = addAnnotation(cls, metadata, processes);
+				processes = addAnnotation(cls, metadata, expressions, processes);
+				return true;
 			}
+			return false;
 		}
-		
-		void addCc(OWLClassExpression ce, Metadata metadata) {
-			if (ce instanceof OWLClass) {
-				OWLClass cls = ce.asOWLClass();
-				locations = addAnnotation(cls, metadata, locations);
+
+		boolean addCc(OWLClass cls, Metadata metadata, Set<OWLObjectSomeValuesFrom> expressions) {
+			if (isCc(cls)) {
+				locations = addAnnotation(cls, metadata, expressions, locations);
+				return true;
 			}
+			return false;
 		}
-		
-		private <T> Set<Entry<T>> addAnnotation(T cls, Metadata metadata, Set<Entry<T>> set) {
+
+		private <T> Set<Entry<T>> addAnnotation(T cls, Metadata metadata, Set<OWLObjectSomeValuesFrom> expressions, Set<Entry<T>> set) {
 			if (set == null) {
 				set = new HashSet<Entry<T>>();
 			}
 			Entry<T> entry = new Entry<T>();
 			entry.value = cls;
 			entry.metadata = metadata.copy();
+			if (expressions != null) {
+				entry.expressions = expressions;
+			}
 			set.add(entry);
 			return set;
 		}
@@ -199,7 +152,7 @@ abstract class AbstractLegoTranslator {
 				}
 			}
 		}
-		
+
 		void addLocations(Set<Entry<OWLClass>> locations) {
 			if (locations != null) {
 				if (this.locations == null) {
@@ -210,55 +163,43 @@ abstract class AbstractLegoTranslator {
 				}
 			}
 		}
-		
-		void addExpression(OWLObjectPropertyExpression p, Collection<Entry<OWLClass>> entries, OWLDataFactory f) {
-			if (entries != null && !entries.isEmpty()) {
-				for (Entry<OWLClass> entry : entries) {
-					OWLObjectSomeValuesFrom svf = f.getOWLObjectSomeValuesFrom(p, entry.value);
-					activityExpressions = addAnnotation(svf, entry.metadata, activityExpressions);
-				}
-			}
-		}
-		
-		void addExpression(OWLObjectPropertyExpression p, OWLClass cls, Metadata metadata, OWLDataFactory f) {
-			OWLObjectSomeValuesFrom svf = f.getOWLObjectSomeValuesFrom(p, cls);
-			activityExpressions = addAnnotation(svf, metadata, activityExpressions);
-		}
 	}
-	
+
 	protected boolean isMf(OWLClass cls) {
 		return mfSet.contains(cls);
 	}
-	
+
 	protected boolean isBp(OWLClass cls) {
 		return bpSet.contains(cls);
 	}
-	
+
 	protected boolean isCc(OWLClass cls) {
 		return ccSet.contains(cls);
 	}
-	
+
 	public abstract void translate(OWLOntology modelAbox, GafDocument annotations, BioentityDocument entities, List<String> additionalRefs);
-	
+
 	/**
 	 * Get the type of an enabled by entity, e.g. gene, protein
 	 * 
 	 * @param modelGraph 
 	 * @param entity 
+	 * @param individual
 	 * @return type
 	 */
-	protected String getEntityType(OWLClass entity, OWLGraphWrapper modelGraph) {
+	protected String getEntityType(OWLClass entity, OWLNamedIndividual individual, OWLGraphWrapper modelGraph) {
 		String id = curieHandler.getCuri(entity);
 		if (id.startsWith("UniProtKB")) {
 			return "protein"; // TODO
 		}
 		return "gene";
 	}
-	
-	protected String getEntityTaxon(OWLClass entity, OWLNamedIndividual individual, OWLGraphWrapper modelGraph) {
-		return null; // TODO
+
+	protected String getEntityTaxon(OWLClass entity, OWLOntology model) {
+		FindTaxonTool tool = new FindTaxonTool(curieHandler, model.getOWLOntologyManager().getOWLDataFactory());
+		return tool.getEntityTaxon(curieHandler.getCuri(entity), model);
 	}
-	
+
 	public Pair<GafDocument, BioentityDocument> translate(String id, OWLOntology modelAbox, List<String> additionalReferences) {
 		final GafDocument annotations = new GafDocument(id, null);
 		final BioentityDocument entities = new BioentityDocument(id);
@@ -266,37 +207,60 @@ abstract class AbstractLegoTranslator {
 		return Pair.of(annotations, entities);
 	}
 
-	protected GeneAnnotation createAnnotation(Entry<OWLClass> e, Bioentity entity, String Aspect, OWLGraphWrapper g, Collection<OWLObjectSomeValuesFrom> c16) {
+	protected GeneAnnotation createAnnotation(Entry<OWLClass> e, Bioentity entity, String aspect,
+			List<String> additionalReferences,
+			OWLGraphWrapper g, Collection<OWLObjectSomeValuesFrom> c16) {
 		GeneAnnotation annotation = new GeneAnnotation();
 		annotation.setBioentityObject(entity);
 		annotation.setBioentity(entity.getId());
-		annotation.setAspect(Aspect);
-		
-		//annotation.setActsOnTaxonId(taxonRelPair) // TODO?
-		
-		if (e.metadata.assignedBy != null) {
-			annotation.setAssignedBy(e.metadata.assignedBy);
-		}
-
+		annotation.setAspect(aspect);
+		annotation.setAssignedBy(assignedBy);
 		annotation.setCls(curieHandler.getCuri(e.value));
 
 		if (e.metadata.evidence != null) {
 			String ecoId = curieHandler.getCuri(e.metadata.evidence);
 			if (ecoId != null) {
 				String goCode = null;
-				Pair<String, String> pair = mapper.getGoCode(ecoId);
+				Pair<String, String> pair = goCodes.findShortEvidence(e.metadata.evidence, ecoId, g.getSourceOntology());
 				if (pair != null) {
 					goCode = pair.getLeft();
+					String goRef = pair.getRight();
+					if (goRef != null) {
+						if (additionalReferences == null) {
+							additionalReferences = Collections.singletonList(goRef);
+						}
+						else {
+							additionalReferences = new ArrayList<String>(additionalReferences);
+							additionalReferences.add(goRef);
+						}
+					}
 				}
 				annotation.setEvidence(goCode, ecoId);
 			}
 		}
 		annotation.setLastUpdateDate(e.metadata.date);
-		//annotation.setRelation(relation); // TODO
+		if (e.metadata.with != null) {
+			List<String> withInfos = new ArrayList<>(e.metadata.with);
+			annotation.setWithInfos(withInfos);
+		}
+
+		String relation = "enables";
+		if ("C".equals(aspect)) {
+			relation = "part_of";
+		}
+		else if ("P".equals(aspect)) {
+			relation = "involved_in";
+		}
+		annotation.setRelation(relation);
 		if (e.metadata.sources != null) {
 			annotation.addReferenceIds(e.metadata.sources);
 		}
-		
+		if (additionalReferences != null) {
+			for (String ref : additionalReferences) {
+				annotation.addReferenceId(ref);
+			}
+		}
+
 		if (c16 != null && !c16.isEmpty()) {
 			List<ExtensionExpression> expressions = new ArrayList<ExtensionExpression>();
 			for (OWLObjectSomeValuesFrom svf : c16) {
@@ -314,7 +278,7 @@ abstract class AbstractLegoTranslator {
 		
 		return annotation;
 	}
-	
+
 	protected String getRelId(OWLObjectPropertyExpression p, OWLGraphWrapper graph) {
 		String relId = null;
 		for(OWLOntology ont : graph.getAllOntologies()) {
@@ -325,7 +289,7 @@ abstract class AbstractLegoTranslator {
 		}
 		return relId;
 	}
-	
+
 	protected Bioentity createBioentity(OWLClass entityCls, String entityType, String taxon, OWLGraphWrapper g) {
 		Bioentity bioentity = new Bioentity();
 		BioentityStrings strings = getBioentityStrings(entityCls, entityType, taxon, g);
@@ -336,18 +300,19 @@ abstract class AbstractLegoTranslator {
 		}
 		bioentity.setSymbol(strings.symbol);
 		bioentity.setTypeCls(strings.type);
-		bioentity.setNcbiTaxonId(taxon);
-		// TODO more bioentity content
+		if (taxon != null) {
+			bioentity.setNcbiTaxonId(taxon);	
+		}
 		return bioentity;
 	}
-	
+
 	protected static class BioentityStrings {
 		String id;
 		String db;
 		String symbol;
 		String type;
 	}
-	
+
 	protected BioentityStrings getBioentityStrings(OWLClass entityCls, String entityType, String taxon, OWLGraphWrapper g) {
 		BioentityStrings strings = new BioentityStrings();
 		strings.id = curieHandler.getCuri(entityCls);
@@ -362,64 +327,40 @@ abstract class AbstractLegoTranslator {
 	}
 
 	protected void addAnnotations(OWLGraphWrapper modelGraph,
-			Summary summary, 
+			Summary summary, List<String> additionalRefs,
 			GafDocument annotations, BioentityDocument entities) 
 	{
-		final OWLDataFactory f = modelGraph.getDataFactory();
 		Bioentity entity = createBioentity(summary.entity, summary.entityType, summary.entityTaxon , modelGraph);
 		entities.addBioentity(entity);
 		annotations.addBioentity(entity);
 		
 		if (summary.activities != null) {
 			for (Entry<OWLClass> e: summary.activities) {
-				List<OWLObjectSomeValuesFrom> c16 = new ArrayList<OWLObjectSomeValuesFrom>();
 				boolean renderActivity = true;
 				if (mf.equals(e.value)) {
 					// special handling for top level molecular functions
 					// only add as annotation, if there is more than one annotation
 					// otherwise they tend to be redundant with the bp or cc annotation
-					int count = 0;
-					if (summary.processes != null) {
-						count += summary.processes.size();
-					}
-					if (summary.locations != null) {
-						count += summary.locations.size();
-					}
-					if (count <= 1 && (summary.activityExpressions == null || summary.activityExpressions.isEmpty())) {
+					if (e.expressions == null || e.expressions.isEmpty()) {
 						renderActivity = false;
 					}
 				}
 				if (renderActivity) {
-					if (summary.processes != null) {
-						for (Entry<OWLClass> processEntry : summary.processes) {
-							c16.add(f.getOWLObjectSomeValuesFrom(partOf, processEntry.value));
-						}
-					}
-					if (summary.locations != null) {
-						for (Entry<OWLClass> locationEntry : summary.locations) {
-							c16.add(f.getOWLObjectSomeValuesFrom(occursIn, locationEntry.value));
-						}
-					}
-					if (summary.activityExpressions != null) {
-						for(Entry<OWLObjectSomeValuesFrom> expressionEntry : summary.activityExpressions) {
-							c16.add(expressionEntry.value);
-						}
-					}
-					GeneAnnotation annotation = createAnnotation(e, entity, "F", modelGraph, c16);
+					GeneAnnotation annotation = createAnnotation(e, entity, "F", additionalRefs, modelGraph, e.expressions);
 					annotations.addGeneAnnotation(annotation);
 				}
 			}
 		}
 		if (summary.processes != null) {
 			for (Entry<OWLClass> e : summary.processes) {
-				GeneAnnotation annotation = createAnnotation(e, entity, "P", modelGraph, null);
+				GeneAnnotation annotation = createAnnotation(e, entity, "P", additionalRefs, modelGraph, e.expressions);
 				annotations.addGeneAnnotation(annotation);
 			}
 		}
 		if (summary.locations != null) {
 			for (Entry<OWLClass> e : summary.locations) {
 				if (isCc(e.value)) {
-					GeneAnnotation annotation = createAnnotation(e, entity, "C", modelGraph, null);
+					GeneAnnotation annotation = createAnnotation(e, entity, "C", additionalRefs, modelGraph, e.expressions);
 					annotations.addGeneAnnotation(annotation);
 				}
 			}

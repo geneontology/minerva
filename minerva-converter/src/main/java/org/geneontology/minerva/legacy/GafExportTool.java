@@ -19,7 +19,6 @@ import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.gaf.io.GafWriter;
 import owltools.gaf.io.GpadWriter;
-import owltools.graph.OWLGraphWrapper;
 
 public class GafExportTool {
 
@@ -59,7 +58,7 @@ public class GafExportTool {
 			r = model.getReasoner();
 		}
 		
-		LegoAllIndividualToGeneAnnotationTranslator translator = new LegoAllIndividualToGeneAnnotationTranslator(new OWLGraphWrapper(model.getTboxOntology()), curieHandler, r, ecoMapper);
+		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(aBox, curieHandler, r, ecoMapper);
 		Pair<GafDocument,BioentityDocument> pair = translator.translate(model.getModelId().toString(), aBox, null);
 		ByteArrayOutputStream outputStream = null;
 		try {
