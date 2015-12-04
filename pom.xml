@@ -98,7 +98,7 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>2.18.1</version>
 				<configuration>
-					<argLine>-Xmx4200M</argLine>
+					<argLine>-Xmx5G</argLine>
 				</configuration>
 			</plugin>
 		</plugins>
