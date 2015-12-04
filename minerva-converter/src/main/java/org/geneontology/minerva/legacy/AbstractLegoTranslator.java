@@ -196,6 +196,9 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 	}
 
 	protected String getEntityTaxon(OWLClass entity, OWLOntology model) {
+		if (entity == null) {
+			return null;
+		}
 		FindTaxonTool tool = new FindTaxonTool(curieHandler, model.getOWLOntologyManager().getOWLDataFactory());
 		return tool.getEntityTaxon(curieHandler.getCuri(entity), model);
 	}

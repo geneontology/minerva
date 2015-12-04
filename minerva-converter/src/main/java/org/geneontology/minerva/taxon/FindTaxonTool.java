@@ -33,6 +33,9 @@ public class FindTaxonTool {
 	}
 	
 	public String getEntityTaxon(String curie, OWLOntology model) {
+		if (curie == null || curie.isEmpty()) {
+			return null;
+		}
 		OWLDataFactory df = model.getOWLOntologyManager().getOWLDataFactory();
 		OWLClass cls = df.getOWLClass(curieHandler.getIRI(curie));
 		String taxon = getEntityTaxon(cls, model);
