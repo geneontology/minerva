@@ -1,23 +1,50 @@
+<!-- MarkdownTOC -->
+
+- [About this document](#about-this-document)
+	- [Building the server](#building-the-server)
+		- [Prerequisites to build the code](#prerequisites-to-build-the-code)
+		- [Building the Minerva Server](#building-the-minerva-server)
+	- [Running the Minerva Server](#running-the-minerva-server)
+		- [Prerequisites](#prerequisites)
+		- [Start the MolecularModelManager server from the command line](#start-the-molecularmodelmanager-server-from-the-command-line)
+		- [Start Server via Eclipse:](#start-server-via-eclipse)
+	- [Running Tests](#running-tests)
+		- [Failing Tests](#failing-tests)
+		- [Quick Test via `curl`](#quick-test-via-curl)
+	- [Obtaining `owl-models` and `go-lego.owl`](#obtaining-owl-models-and-go-legoowl)
+		- [Useful source files for learning](#useful-source-files-for-learning)
+
+<!-- /MarkdownTOC -->
+
+# About this document
+
 This is a quick overview on how to setup a Java server for the MolecularModelManager (Minerva).
 
-Pre-Requisites to build the code:
+## Building the server
+
+### Prerequisites to build the code
+
  * Java (JDK 1.7 or later) as compiler
  * Maven (3.0.x) Build-Tool
 
-Build the code:
+### Building the Minerva Server
 
 ```
  ./build-server.sh
 ```
 
-Pre-Requisites to run the server
- * go-lego.owl (GO-SVN/trunk/ontology/extension/go-lego.owl) and catalog.xml to local copies
- * folder with model files (GO-SVN/trunk/experimental/lego/server/owl-models/)
+## Running the Minerva Server
 
-Start the MolecularModelManager server
- * Build the code, will result in a jar
- * Check memory settings in start-m3-server.sh, change as needed.
- * The start script is in the bin folder: start-m3-server.sh
+### Prerequisites
+
+* go-lego.owl (GO-SVN/trunk/ontology/extensionx/go-lego.owl) and catalog.xml to local copies
+* folder with model files (GO-SVN/trunk/experimental/lego/server/owl-models/)
+
+### Start the MolecularModelManager server from the command line
+
+* Build the code, will result in a jar
+* Check memory settings in start-m3-server.sh, change as needed.
+* The start script is in the bin folder: start-m3-server.sh
 
 The Minerva server expects parameters for:
 
@@ -39,8 +66,45 @@ start-m3-server.sh -c go-trunk/ontology/extensions/catalog-v001.xml \
 --port 6800
 ```
 
-## Alternative for developers:
+### Start Server via Eclipse:
 
- * Requires all data (go and models)
- * Build in eclipse, start as main with appropriate parameters.
+* Requires all data (go and models)
+* Build in eclipse, start as main with appropriate parameters.
+
+
+## Running Tests
+
+```
+	mvn -Dtest=FindGoCodesTest.testFindShortEvidence,LegoToGeneAnnotationTranslatorTest.testZfinExample test
+```
+
+### Failing Tests
+
+mvn -e -DfailIfNoTests=false -Dtest=FindGoCodesTest test
+
+https://raw.githubusercontent.com/evidenceontology/evidenceontology/master/gaf-eco-mapping.txt
+
+[Maven CLI](http://maven.apache.org/ref/3.3.9/maven-embedder/cli.html)
+
+
+### Quick Test via `curl`
+
+This assumes you are in the `minerva/` directory, which is the parent of `minerva-server/`.
+
+```
+curl localhost:6800/`cat minerva-server/src/test/resources/server-test/long-get.txt`
+```
+
+## Obtaining `owl-models` and `go-lego.owl`
+
+See [Monarch Ontology](https://github.com/monarch-initiative/monarch-ontology) and use the instructions there to generate a `catalog-v001.xml`.
+
+- ftp://ftp.geneontology.org/pub/go//experimental/lego/server/owl-models
+- ftp://ftp.geneontology.org/pub/go//ontology/extensions/go-lego.owl
+
+### Useful source files for learning
+
+- `/minerva-server/src/main/java/org/geneontology/minerva/server/handler/M3BatchHandler.java`
+
+
 
