@@ -219,7 +219,6 @@ public interface M3BatchHandler {
 			@QueryParam("intention") String intention,
 			@QueryParam("packet-id") String packetId,
 			@QueryParam("requests") String requests);
-	
 	/**
 	 * Jersey REST method for GET with three query parameters with privileged rights.
 	 * 
@@ -236,4 +235,5 @@ public interface M3BatchHandler {
 			@QueryParam("intention") String intention,
 			@QueryParam("packet-id") String packetId,
 			@QueryParam("requests") String requests);
+
 }

@@ -254,6 +254,13 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		if( response.message == null ){
 			response.message = "success";
 		}
+
+		if (useReasoner) {
+			if (reasoner != null) {
+				reasoner.dispose();
+			}
+		}
+
 		return response;
 	}
 
@@ -291,7 +298,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		}
 		return state;
 	}
-	
+
 	protected void checkPermissions(Entity entity, Operation operation, boolean isPrivileged) throws InsufficientPermissionsException {
 		// TODO make this configurable
 		if (isPrivileged == false) {
