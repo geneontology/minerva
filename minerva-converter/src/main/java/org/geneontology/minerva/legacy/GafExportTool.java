@@ -11,7 +11,6 @@ import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 import owltools.gaf.BioentityDocument;
 import owltools.gaf.GafDocument;
@@ -42,23 +41,15 @@ public class GafExportTool {
 	 * 
 	 * @param model
 	 * @param curieHandler
-	 * @param useModuleReasoner
 	 * @param format format name or null for default
 	 * @return modelContent
 	 * @throws IOException
 	 * @throws OWLOntologyCreationException
 	 */
-	public String exportModelLegacy(ModelContainer model, CurieHandler curieHandler, boolean useModuleReasoner, String format) throws IOException, OWLOntologyCreationException {
+	public String exportModelLegacy(ModelContainer model, CurieHandler curieHandler, String format) throws IOException, OWLOntologyCreationException {
 		final OWLOntology aBox = model.getAboxOntology();
-		OWLReasoner r;
-		if (useModuleReasoner) {
-			r = model.getModuleReasoner();
-		}
-		else {
-			r = model.getReasoner();
-		}
 		
-		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(aBox, curieHandler, r, ecoMapper);
+		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(aBox, curieHandler, ecoMapper);
 		Pair<GafDocument,BioentityDocument> pair = translator.translate(model.getModelId().toString(), aBox, null);
 		ByteArrayOutputStream outputStream = null;
 		try {

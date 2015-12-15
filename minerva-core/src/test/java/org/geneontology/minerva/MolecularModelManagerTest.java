@@ -17,13 +17,11 @@ import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.OWLToolsTestBasics;
 import owltools.graph.OWLGraphWrapper;
@@ -35,7 +33,6 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	// will be deleted after the test has run, by JUnit.
 	@Rule
     public TemporaryFolder folder = new TemporaryFolder();
-	private final OWLReasonerFactory rf = new ElkReasonerFactory();
 	private final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	
 	static{
@@ -43,7 +40,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	}
 	
 	private MolecularModelManager<Void> createM3(OWLGraphWrapper g) throws OWLOntologyCreationException {
-		return new MolecularModelManager<Void>(g, rf, curieHandler, "http://testmodel.geneontology.org/");
+		return new MolecularModelManager<Void>(g, curieHandler, "http://testmodel.geneontology.org/");
 	}
 
 	@Test

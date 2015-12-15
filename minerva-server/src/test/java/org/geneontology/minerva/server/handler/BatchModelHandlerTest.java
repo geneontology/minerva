@@ -24,25 +24,25 @@ import org.geneontology.minerva.json.JsonOwlObject.JsonOwlObjectType;
 import org.geneontology.minerva.json.JsonRelationInfo;
 import org.geneontology.minerva.json.JsonTools;
 import org.geneontology.minerva.lookup.ExternalLookupService;
-import org.geneontology.minerva.lookup.TableLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
+import org.geneontology.minerva.lookup.TableLookupService;
 import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Entity;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
+import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
+import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
@@ -86,14 +86,10 @@ public class BatchModelHandlerTest {
 		final String modelIdPrefix = "http://model.geneontology.org/";
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
-		OWLReasonerFactory rf = new ElkReasonerFactory();
-//		rf = new org.semanticweb.HermiT.Reasoner.ReasonerFactory();
-		models = new UndoAwareMolecularModelManager(graph, rf, curieHandler, modelIdPrefix);
+		InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false);
+		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix);
 		lookupService = createTestProteins(curieHandler);
-		boolean useReasoner = true;
-		boolean useModelReasoner = false;
-//		useModelReasoner = true;
-		handler = new JsonOrJsonpBatchHandler(models, "development", useReasoner, useModelReasoner, importantRelations, lookupService) {
+		handler = new JsonOrJsonpBatchHandler(models, "development", ipc, importantRelations, lookupService) {
 
 			@Override
 			protected String generateDateString() {
@@ -766,8 +762,6 @@ public class BatchModelHandlerTest {
 	@Test
 	public void testInferencesRedundant() throws Exception {
 		models.dispose();
-		assertTrue(handler.isUseReasoner());
-		
 		final String modelId = generateBlankModel();
 		
 		// GO:0009826 ! unidimensional cell growth

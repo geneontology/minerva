@@ -18,15 +18,14 @@ import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.JsonOwlIndividual;
 import org.geneontology.minerva.json.JsonRelationInfo;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
-import org.geneontology.minerva.server.handler.JsonOrJsonpBatchHandler;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Entity;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
+import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.Test;
-import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
@@ -47,7 +46,7 @@ public class DataPropertyTest {
 	private final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	
 	private UndoAwareMolecularModelManager createM3(OWLGraphWrapper g) throws OWLOntologyCreationException {
-		UndoAwareMolecularModelManager mmm = new UndoAwareMolecularModelManager(g, new ElkReasonerFactory(), curieHandler,
+		UndoAwareMolecularModelManager mmm = new UndoAwareMolecularModelManager(g, curieHandler,
 				"http://model.geneontology.org/");
 		return mmm;
 	}
@@ -95,7 +94,7 @@ public class DataPropertyTest {
 		
 		final ModelContainer model = m3.generateBlankModel(metadata);
 		final OWLNamedIndividual individual = m3.createIndividual(model, cls, metadata);
-		m3.addDataProperty(model, individual, prop, f.getOWLLiteral(10), false, metadata);
+		m3.addDataProperty(model, individual, prop, f.getOWLLiteral(10), metadata);
 		
 		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(model, null, curieHandler);
 		final JsonModel jsonModel = r.renderModel();
@@ -131,9 +130,8 @@ public class DataPropertyTest {
 		UndoAwareMolecularModelManager m3 = createM3(graph);
 		
 		// handler
-		boolean useReasoner = false;
-		boolean useModelReasoner = false;
-		JsonOrJsonpBatchHandler handler = new JsonOrJsonpBatchHandler(m3, "development", useReasoner, useModelReasoner, null, null);
+		InferenceProviderCreator ipc = null;
+		JsonOrJsonpBatchHandler handler = new JsonOrJsonpBatchHandler(m3, "development", ipc, null, null);
 		
 		// empty model
 		final ModelContainer model = m3.generateBlankModel(new UndoMetadata("foo-user"));

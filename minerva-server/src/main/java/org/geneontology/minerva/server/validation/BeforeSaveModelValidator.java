@@ -11,13 +11,10 @@ import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 public class BeforeSaveModelValidator {
 	
-	static boolean USE_CONSISTENCY_CHECKS = false;
-
-	public List<String> validateBeforeSave(ModelContainer model, boolean useModuleReasoner) throws OWLOntologyCreationException {
+	public List<String> validateBeforeSave(ModelContainer model) throws OWLOntologyCreationException {
 		// get model
 		List<String> errors = new ArrayList<String>(3);
 		// check that model has required meta data
@@ -47,20 +44,6 @@ public class BeforeSaveModelValidator {
 		}
 		if (hasContributor == false) {
 			errors.add("The model has no contributors. All models must have an association with their contributors.");
-		}
-		
-		// check that model is consistent
-		if (USE_CONSISTENCY_CHECKS) {
-			OWLReasoner reasoner;
-			if (useModuleReasoner) {
-				reasoner = model.getModuleReasoner();
-			}
-			else {
-				reasoner = model.getReasoner();
-			}
-			if (reasoner.isConsistent() == false) {
-				errors.add("The model is inconsistent. A Model must be consistent to be saved.");
-			}
 		}
 		
 		// require at least one declared instance

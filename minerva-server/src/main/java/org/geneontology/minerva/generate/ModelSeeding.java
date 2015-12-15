@@ -72,7 +72,7 @@ public class ModelSeeding<METADATA> {
 			// explicitly create OWL class for gene product
 			final IRI gpIRI = curieHandler.getIRI(gp.getId());
 			final OWLClass gpClass = f.getOWLClass(gpIRI);
-			manager.addAxiom(model, f.getOWLDeclarationAxiom(gpClass), false, metadata);
+			manager.addAxiom(model, f.getOWLDeclarationAxiom(gpClass), metadata);
 			
 			Set<OWLAnnotation> gpAnnotations = generateAnnotationAndEvidence(source, model, manager, metadata);
 			OWLNamedIndividual gpIndividual = manager.createIndividualNonReasoning(modelId, gp.getId(), gpAnnotations, metadata);
@@ -96,8 +96,8 @@ public class ModelSeeding<METADATA> {
 				Set<OWLAnnotation> mfAnnotations = generateAnnotationAndEvidence(mfGroup.getValue(),  model, manager, metadata);
 				OWLNamedIndividual mfIndividual = manager.createIndividualNonReasoning(modelId, mf, mfAnnotations , metadata);
 				mfIndividualList.add(mfIndividual);
-				manager.addFactNonReasoning(model, relations.enabled_by, mfIndividual, gpIndividual, mfAnnotations, metadata);
-				manager.addFactNonReasoning(model, relations.part_of, mfIndividual, bpIndividual, null, metadata);
+				manager.addFact(model, relations.enabled_by, mfIndividual, gpIndividual, mfAnnotations, metadata);
+				manager.addFact(model, relations.part_of, mfIndividual, bpIndividual, null, metadata);
 				
 				// TODO check c16 for 'occurs in'
 			}
@@ -116,7 +116,7 @@ public class ModelSeeding<METADATA> {
 		Set<Bioentity> unused = Sets.difference(geneProducts.keySet(), functions.keySet());
 		for(Bioentity gp : unused) {
 			OWLNamedIndividual gpIndividual = gpIndividuals.remove(gp);
-			manager.deleteIndividualNonReasoning(modelId, gpIndividual, metadata);
+			manager.deleteIndividual(modelId, gpIndividual, metadata);
 		}
 		
 		// add locations
@@ -133,7 +133,7 @@ public class ModelSeeding<METADATA> {
 				Set<OWLAnnotation> source = generateAnnotationAndEvidence(locationGroup.getValue(), model, manager, metadata);
 				for(OWLNamedIndividual relevantMfIndividual : relevantMfIndividuals) {
 					OWLNamedIndividual locationIndividual = manager.createIndividualNonReasoning(modelId, location, source, metadata);
-					manager.addFactNonReasoning(model, relations.occurs_in, relevantMfIndividual, locationIndividual, source, metadata);
+					manager.addFact(model, relations.occurs_in, relevantMfIndividual, locationIndividual, source, metadata);
 				}
 			}
 			
@@ -237,7 +237,7 @@ public class ModelSeeding<METADATA> {
 				OWLClass ecoCls = findEco(annotation, model);
 				if (ecoCls != null) {
 					final OWLNamedIndividual evidenceIndividual = manager.createIndividualNonReasoning(model, defaultAnnotations, metadata);
-					manager.addTypeNonReasoning(model, evidenceIndividual, ecoCls, metadata);
+					manager.addType(model, evidenceIndividual, ecoCls, metadata);
 					Set<OWLAnnotation> evidenceAnnotations = new HashSet<OWLAnnotation>();
 					List<String> referenceIds = annotation.getReferenceIds();
 					if (referenceIds != null) {

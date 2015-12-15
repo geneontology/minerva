@@ -13,9 +13,19 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.evidence.FindGoCodes;
 import org.geneontology.minerva.taxon.FindTaxonTool;
+import org.obolibrary.obo2owl.Obo2Owl;
 import org.obolibrary.obo2owl.Owl2Obo;
+import org.obolibrary.oboformat.parser.OBOFormatConstants.OboFormatTag;
+import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLAnnotationAssertionAxiom;
+import org.semanticweb.owlapi.model.OWLAnnotationProperty;
+import org.semanticweb.owlapi.model.OWLAnnotationValueVisitorEx;
+import org.semanticweb.owlapi.model.OWLAnonymousIndividual;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
+import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectPropertyExpression;
@@ -31,6 +41,7 @@ import owltools.gaf.GeneAnnotation;
 import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.graph.OWLGraphWrapper;
 import owltools.vocab.OBOUpperVocabulary;
+import uk.ac.manchester.cs.owl.owlapi.ImplUtils;
 
 abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTranslator.Summary> {
 
@@ -48,7 +59,7 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 
 	protected String assignedBy;
 
-	protected AbstractLegoTranslator(OWLOntology model, CurieHandler curieHandler, OWLReasoner reasoner, SimpleEcoMapper mapper) {
+	protected AbstractLegoTranslator(OWLOntology model, CurieHandler curieHandler, SimpleEcoMapper mapper) {
 		super(model.getOWLOntologyManager().getOWLDataFactory());
 		this.curieHandler = curieHandler;
 		goCodes = new FindGoCodes(mapper, curieHandler);
@@ -57,13 +68,64 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		cc = f.getOWLClass(curieHandler.getIRI("GO:0005575"));
 		bp = OBOUpperVocabulary.GO_biological_process.getOWLClass(f);
 	
-		bpSet = getAllSubClasses(bp, reasoner, true, "GO:", curieHandler);
-		mfSet = getAllSubClasses(mf, reasoner, true, "GO:", curieHandler);
-		ccSet = getAllSubClasses(cc, reasoner, false, "GO:", curieHandler);
+		bpSet = new HashSet<>();
+		mfSet = new HashSet<>();
+		ccSet = new HashSet<>();
 	
+		fillAspects(model, curieHandler, bpSet, mfSet, ccSet);
+
 		assignedBy = "GO_Noctua";
 	}
 
+	static void fillAspects(OWLOntology model, CurieHandler curieHandler, Set<OWLClass> bpSet, Set<OWLClass> mfSet, Set<OWLClass> ccSet) {
+		final IRI namespaceIRI = Obo2Owl.trTagToIRI(OboFormatTag.TAG_NAMESPACE.getTag());
+		final OWLDataFactory df = model.getOWLOntologyManager().getOWLDataFactory();
+		final OWLAnnotationProperty namespaceProperty = df.getOWLAnnotationProperty(namespaceIRI);
+		final Set<OWLOntology> ontologies = model.getImportsClosure();
+		for(OWLClass cls : model.getClassesInSignature(true)) {
+			if (cls.isBuiltIn()) {
+				continue;
+			}
+			String id = curieHandler.getCuri(cls);
+			if (id.startsWith("GO:") == false) {
+				continue;
+			}
+			for (OWLAnnotationAssertionAxiom ax : ImplUtils.getAnnotationAxioms(cls, ontologies)) {
+				OWLAnnotation annotation = ax.getAnnotation();
+				if (annotation.getProperty().equals(namespaceProperty)) {
+					String value = annotation.getValue().accept(new OWLAnnotationValueVisitorEx<String>() {
+
+						@Override
+						public String visit(IRI iri) {
+							return null;
+						}
+
+						@Override
+						public String visit(OWLAnonymousIndividual individual) {
+							return null;
+						}
+
+						@Override
+						public String visit(OWLLiteral literal) {
+							return literal.getLiteral();
+						}
+					});
+					if (value != null) {
+						if ("molecular_function".equals(value)) {
+							mfSet.add(cls);
+						}
+						else if ("biological_process".equals(value)) {
+							bpSet.add(cls);
+						}
+						else if ("cellular_component".equals(value)) {
+							ccSet.add(cls);
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	protected static Set<OWLClass> getAllSubClasses(OWLClass cls, OWLReasoner r, boolean reflexive, String idSpace, CurieHandler curieHandler) {
 		Set<OWLClass> allSubClasses = r.getSubClasses(cls, false).getFlattened();
 		Iterator<OWLClass> it = allSubClasses.iterator();

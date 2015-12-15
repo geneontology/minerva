@@ -9,7 +9,6 @@ import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 import owltools.gaf.BioentityDocument;
 import owltools.gaf.GafDocument;
@@ -18,8 +17,8 @@ import owltools.graph.OWLGraphWrapper;
 
 public class LegoToGeneAnnotationTranslator extends AbstractLegoTranslator {
 
-	public LegoToGeneAnnotationTranslator(OWLOntology model, CurieHandler curieHandler, OWLReasoner reasoner, SimpleEcoMapper mapper) {
-		super(model, curieHandler, reasoner, mapper);
+	public LegoToGeneAnnotationTranslator(OWLOntology model, CurieHandler curieHandler, SimpleEcoMapper mapper) {
+		super(model, curieHandler, mapper);
 	}
 
 	@Override

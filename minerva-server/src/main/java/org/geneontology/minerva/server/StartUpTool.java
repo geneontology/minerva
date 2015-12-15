@@ -22,16 +22,16 @@ import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.GolrExternalLookupService;
 import org.geneontology.minerva.server.handler.JsonOrJsonpBatchHandler;
 import org.geneontology.minerva.server.handler.JsonOrJsonpSeedHandler;
+import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
+import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
-import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObject;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectPropertyExpression;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLSubObjectPropertyOfAxiom;
-import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.cli.Opts;
 import owltools.gaf.eco.EcoMapperFactory;
@@ -63,20 +63,7 @@ public class StartUpTool {
 		public ExternalLookupService lookupService = null;
 		public boolean checkLiteralIds = true;
 
-		// reasoner settings
-		public boolean useReasoner = true;
-		
-		/*
-		 * If set to TRUE, this will use a different approach for the reasoner: It will create
-		 * a module from the abox using the individuals as seeds and only create a reasoner for
-		 * this new ontology.
-		 * 
-		 * This reduced set of axioms should consume less memory for each reasoner. 
-		 * The drawback is the additional CPU time (sequential) to generate the relevant 
-		 * subset. During tests this tripled the runtime of the test cases. 
-		 */
-		public boolean useModuleReasoner = false;
-		public OWLReasonerFactory rf = new ElkReasonerFactory();
+		public InferenceProviderCreator inferenceProviderCreator = null;
 		
 		public CurieHandler curieHandler;
 
@@ -171,19 +158,16 @@ public class StartUpTool {
 				conf.golrSeedUrl = opts.nextOpt();
 			}
 			else if (opts.nextEq("--no-reasoning|--no-reasoner")) {
-				conf.useReasoner = false;
+				conf.inferenceProviderCreator = null;
 			}
 			else if (opts.nextEq("--slme-hermit")) {
-				conf.rf = new org.semanticweb.HermiT.Reasoner.ReasonerFactory();
-				conf.useModuleReasoner = true;
+				conf.inferenceProviderCreator = CachingInferenceProviderCreatorImpl.createHermiT();
 			}
 			else if (opts.nextEq("--slme-elk")) {
-				conf.rf = new ElkReasonerFactory();
-				conf.useModuleReasoner = true;
+				conf.inferenceProviderCreator = CachingInferenceProviderCreatorImpl.createElk(true);
 			}
 			else if (opts.nextEq("--elk")) {
-				conf.rf = new ElkReasonerFactory();
-				conf.useModuleReasoner = false;
+				conf.inferenceProviderCreator = CachingInferenceProviderCreatorImpl.createElk(false);
 			}
 			else if (opts.nextEq("--use-request-logging|--request-logging")) {
 				conf.useRequestLogging = true;
@@ -305,7 +289,7 @@ public class StartUpTool {
 
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
-		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph, conf.rf,
+		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph,
 				conf.curieHandler, conf.modelIdPrefix);
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
@@ -333,8 +317,7 @@ public class StartUpTool {
 		}
 		//resourceConfig.register(AuthorizationRequestFilter.class);
 		
-		LOGGER.info("BatchHandler config useReasoner: "+conf.useReasoner);
-		LOGGER.info("BatchHandler config useModuleReasoner: "+conf.useModuleReasoner);
+		LOGGER.info("BatchHandler config inference provider: "+conf.inferenceProviderCreator);
 		LOGGER.info("BatchHandler config importantRelations: "+conf.importantRelations);
 		LOGGER.info("BatchHandler config lookupService: "+conf.lookupService);
 		LOGGER.info("BatchHandler config checkLiteralIds: "+conf.checkLiteralIds);
@@ -346,7 +329,7 @@ public class StartUpTool {
 		LOGGER.info("SeedHandler config golrUrl: "+conf.golrSeedUrl);
 		
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
-				conf.useReasoner, conf.useModuleReasoner, conf.importantRelations, conf.lookupService);
+				conf.inferenceProviderCreator, conf.importantRelations, conf.lookupService);
 		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
 		
 		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();

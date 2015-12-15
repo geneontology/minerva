@@ -31,7 +31,6 @@ import org.semanticweb.owlapi.model.OWLOntologyFormat;
 import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
-import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.gaf.parser.GafObjectsBuilder;
 import owltools.graph.OWLGraphWrapper;
@@ -61,13 +60,12 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	
 	/**
 	 * @param graph
-	 * @param rf
 	 * @param modelIdPrefix
 	 * @throws OWLOntologyCreationException
 	 */
-	public FileBasedMolecularModelManager(OWLGraphWrapper graph, OWLReasonerFactory rf,
+	public FileBasedMolecularModelManager(OWLGraphWrapper graph,
 			String modelIdPrefix) throws OWLOntologyCreationException {
-		super(graph, rf);
+		super(graph);
 		this.modelIdPrefix = modelIdPrefix;
 	}
 
@@ -142,7 +140,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 			createImports(abox, tbox.getOntologyID(), metadata);
 			
 			// generate model
-			model = new ModelContainer(modelId, tbox, abox, rf);
+			model = new ModelContainer(modelId, tbox, abox);
 		}
 		catch (OWLOntologyCreationException exception) {
 			if (abox != null) {
@@ -203,7 +201,6 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		}
 		File tempFile = null;
 		try {
-			m.setListenToOntologyChanges(false);
 			// create tempFile
 			String prefix = modelId.toString(); // TODO escape
 			tempFile = File.createTempFile(prefix, ".owl");
@@ -222,7 +219,6 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		finally {
 			// delete temp file
 			FileUtils.deleteQuietly(tempFile);
-			m.setListenToOntologyChanges(true);
 		}
 	}
 

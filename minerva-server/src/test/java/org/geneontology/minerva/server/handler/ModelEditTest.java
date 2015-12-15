@@ -30,18 +30,17 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.MetaResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
+import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
@@ -66,11 +65,9 @@ public class ModelEditTest {
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
 		
-		OWLReasonerFactory rf = new ElkReasonerFactory();
-		models = new UndoAwareMolecularModelManager(graph, rf, curieHandler, modelIdPrefix);
-		boolean useReasoner = false;
-		boolean useModelReasoner = false;
-		handler = new JsonOrJsonpBatchHandler(models, "development", useReasoner, useModelReasoner,
+		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix);
+		InferenceProviderCreator ipc = null;
+		handler = new JsonOrJsonpBatchHandler(models, "development", ipc,
 				Collections.<OWLObjectProperty>emptySet(), (ExternalLookupService) null);
 	}
 	

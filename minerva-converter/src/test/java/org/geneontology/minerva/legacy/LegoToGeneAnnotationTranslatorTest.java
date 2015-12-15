@@ -1,6 +1,8 @@
 package org.geneontology.minerva.legacy;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -17,7 +19,6 @@ import org.junit.Test;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.gaf.Bioentity;
@@ -120,17 +121,8 @@ public class LegoToGeneAnnotationTranslatorTest {
 	}
 	
 	private Pair<GafDocument,BioentityDocument> translate(OWLOntology model, String id) {
-		OWLReasoner reasoner = null;
-		try {
-			reasoner = rf.createReasoner(model);
-			LegoToGeneAnnotationTranslator t = new LegoToGeneAnnotationTranslator(model, curieHandler, reasoner, mapper);
-
-			return t.translate(id, model, null);
-		}finally {
-			if (reasoner != null) {
-				reasoner.dispose();
-			}
-		}
+		LegoToGeneAnnotationTranslator t = new LegoToGeneAnnotationTranslator(model, curieHandler, mapper);
+		return t.translate(id, model, null);
 	}
 
 }

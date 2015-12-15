@@ -1,11 +1,12 @@
 package org.geneontology.minerva;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.ChangeEvent;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -15,7 +16,6 @@ import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 
 import owltools.OWLToolsTestBasics;
@@ -32,8 +32,7 @@ public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
 	public static void beforeClass() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
 		g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
-		m3 = new UndoAwareMolecularModelManager(g, new ElkReasonerFactory(), curieHandler,
-				"http://testmodel.geneontology.org/");
+		m3 = new UndoAwareMolecularModelManager(g, curieHandler, "http://testmodel.geneontology.org/");
 	}
 	
 	@AfterClass

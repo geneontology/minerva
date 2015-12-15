@@ -14,15 +14,16 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
+import org.geneontology.minerva.json.InferenceProvider;
 import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.JsonOwlFact;
 import org.geneontology.minerva.json.JsonOwlIndividual;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
+import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.glassfish.jersey.server.JSONP;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
-import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 import com.google.common.reflect.TypeToken;
 
@@ -37,15 +38,15 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	
 	private static final Logger logger = Logger.getLogger(JsonOrJsonpBatchHandler.class);
 	
-	private final boolean useReasoner;
+	private final InferenceProviderCreator inferenceProviderCreator;
 	
 	public JsonOrJsonpBatchHandler(UndoAwareMolecularModelManager models,
-			String defaultModelStqte,
-			boolean useReasoner, boolean useModuleReasoner,
+			String defaultModelState,
+			InferenceProviderCreator inferenceProviderCreator,
 			Set<OWLObjectProperty> importantRelations,
 			ExternalLookupService externalLookupService) {
-		super(models, importantRelations, externalLookupService, defaultModelStqte, useModuleReasoner);
-		this.useReasoner = useReasoner;
+		super(models, importantRelations, externalLookupService, defaultModelState);
+		this.inferenceProviderCreator = inferenceProviderCreator;
 	}
 
 	private final Type requestType = new TypeToken<M3Request[]>(){
@@ -63,10 +64,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	@Override
 	boolean validateBeforeSave() {
 		return VALIDATE_BEFORE_SAVE;
-	}
-
-	boolean isUseReasoner() {
-		return useReasoner;
 	}
 
 	@Override
@@ -192,39 +189,18 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		if (values.model == null) {
 			return error(response, "Empty batch calls are not supported, at least one request is required.", null);
 		}
-//		// get model
-//		final ModelContainer model = m3.getModel(values.modelId);
-//		if (model == null) {
-//			throw new UnknownIdentifierException("Could not retrieve a model for id: "+values.modelId);
-//		}
 		// update reasoner
 		// report state
-		final OWLReasoner reasoner;
-		final boolean isConsistent;
-		if (useReasoner) {
-			if (useModuleReasoner) {
-				reasoner = values.model.getModuleReasoner();
-			}
-			else {
-				reasoner = values.model.getReasoner();
-				reasoner.flush();
-			}
-			isConsistent = reasoner.isConsistent();
-		}
-		else {
-			reasoner = null;
-			isConsistent = true;
+		InferenceProvider inferenceProvider = null;
+		boolean isConsistent = true;
+		if (inferenceProviderCreator != null) {
+			inferenceProvider = inferenceProviderCreator.create(values.model);
+			isConsistent = inferenceProvider.isConsistent();
 		}
 
 		// create response.data
 		response.data = new ResponseData();
-		final MolecularModelJsonRenderer renderer;
-		if (useReasoner && isConsistent) {
-			renderer = createModelRenderer(values.model, externalLookupService, reasoner, curieHandler);
-		}
-		else {
-			renderer = createModelRenderer(values.model, externalLookupService, null, curieHandler);
-		}
+		final MolecularModelJsonRenderer renderer = createModelRenderer(values.model, externalLookupService, inferenceProvider, curieHandler);
 		if (values.renderBulk) {
 			// render complete model
 			JsonModel jsonModel = renderer.renderModel();
@@ -254,13 +230,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		if( response.message == null ){
 			response.message = "success";
 		}
-
-		if (useReasoner) {
-			if (reasoner != null) {
-				reasoner.dispose();
-			}
-		}
-
 		return response;
 	}
 

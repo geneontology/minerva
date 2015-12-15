@@ -1,6 +1,7 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.net.URI;
 import java.util.Collections;
@@ -12,7 +13,6 @@ import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
-import org.geneontology.minerva.server.handler.JsonOrJsonpSeedHandler;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3SeedHandler.SeedRequest;
 import org.geneontology.minerva.server.handler.M3SeedHandler.SeedRequestArgument;
@@ -20,7 +20,6 @@ import org.geneontology.minerva.server.handler.M3SeedHandler.SeedResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
@@ -49,7 +48,7 @@ public class SeedHandlerTest {
 		final String modelIdPrefix = "http://model.geneontology.org/";
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
-		models = new UndoAwareMolecularModelManager(graph, new ElkReasonerFactory(), curieHandler, modelIdPrefix);
+		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix);
 		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
 		handler = new JsonOrJsonpSeedHandler(models, "unknown", golr, ecoMapper) {
 

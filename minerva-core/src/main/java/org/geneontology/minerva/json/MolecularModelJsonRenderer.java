@@ -43,7 +43,6 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyDocumentAlreadyExistsException;
 import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
-import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 import owltools.gaf.eco.EcoMapper;
 import owltools.gaf.eco.EcoMapperFactory;
@@ -66,7 +65,7 @@ public class MolecularModelJsonRenderer {
 	private final OWLOntology ont;
 	private final OWLGraphWrapper graph;
 	private final CurieHandler curieHandler;
-	private final OWLReasoner reasoner;
+	private final InferenceProvider inferenceProvider;
 	
 	public static final ThreadLocal<DateFormat> AnnotationTypeDateFormat = new ThreadLocal<DateFormat>(){
 
@@ -77,23 +76,23 @@ public class MolecularModelJsonRenderer {
 		
 	};
 
-	public MolecularModelJsonRenderer(ModelContainer model, OWLReasoner reasoner, CurieHandler curieHandler) {
-		this(model.getAboxOntology(), new OWLGraphWrapper(model.getAboxOntology()), reasoner, curieHandler);
+	public MolecularModelJsonRenderer(ModelContainer model, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+		this(model.getAboxOntology(), new OWLGraphWrapper(model.getAboxOntology()), inferenceProvider, curieHandler);
 	}
 	
-	public MolecularModelJsonRenderer(OWLOntology ontology, OWLReasoner reasoner, CurieHandler curieHandler) {
-		this(ontology, new OWLGraphWrapper(ontology), reasoner, curieHandler);
+	public MolecularModelJsonRenderer(OWLOntology ontology, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+		this(ontology, new OWLGraphWrapper(ontology), inferenceProvider, curieHandler);
 	}
 	
-	public MolecularModelJsonRenderer(OWLGraphWrapper graph, OWLReasoner reasoner, CurieHandler curieHandler) {
-		this(graph.getSourceOntology(), graph, reasoner, curieHandler);
+	public MolecularModelJsonRenderer(OWLGraphWrapper graph, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+		this(graph.getSourceOntology(), graph, inferenceProvider, curieHandler);
 	}
 
-	private MolecularModelJsonRenderer(OWLOntology ont, OWLGraphWrapper graph, OWLReasoner reasoner, CurieHandler curieHandler) {
+	private MolecularModelJsonRenderer(OWLOntology ont, OWLGraphWrapper graph, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
 		super();
 		this.ont = ont;
 		this.graph = graph;
-		this.reasoner = reasoner;
+		this.inferenceProvider = inferenceProvider;
 		this.curieHandler = curieHandler;
 	}
 	
@@ -203,9 +202,9 @@ public class MolecularModelJsonRenderer {
 		}
 		json.type = typeObjs.toArray(new JsonOwlObject[typeObjs.size()]);
 		
-		if (reasoner != null && reasoner.isConsistent()) {
+		if (inferenceProvider != null && inferenceProvider.isConsistent()) {
 			List<JsonOwlObject> inferredTypeObjs = new ArrayList<JsonOwlObject>();
-			Set<OWLClass> inferredTypes = reasoner.getTypes(i, true).getFlattened();
+			Set<OWLClass> inferredTypes = inferenceProvider.getTypes(i);
 			// optimization, do not render inferences, if they are equal to the asserted ones
 			if (assertedTypes.equals(inferredTypes) == false) {
 				for(OWLClass c : inferredTypes) {
@@ -463,12 +462,12 @@ public class MolecularModelJsonRenderer {
 		return relList;
 	}
 	
-	public static String renderToJson(OWLOntology ont, OWLReasoner reasoner, CurieHandler curieHandler) {
-		return renderToJson(ont, reasoner, curieHandler, false);
+	public static String renderToJson(OWLOntology ont, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+		return renderToJson(ont, inferenceProvider, curieHandler, false);
 	}
 	
-	public static String renderToJson(OWLOntology ont, OWLReasoner reasoner, CurieHandler curieHandler, boolean prettyPrint) {
-		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(ont, reasoner, curieHandler);
+	public static String renderToJson(OWLOntology ont, InferenceProvider inferenceProvider, CurieHandler curieHandler, boolean prettyPrint) {
+		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(ont, inferenceProvider, curieHandler);
 		JsonModel model = r.renderModel();
 		return renderToJson(model, prettyPrint);
 	}

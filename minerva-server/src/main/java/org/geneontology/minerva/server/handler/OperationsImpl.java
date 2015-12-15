@@ -63,15 +63,11 @@ abstract class OperationsImpl extends ModelCreator {
 	final BeforeSaveModelValidator beforeSaveValidator;
 	final ExternalLookupService externalLookupService;
 	
-	final boolean useModuleReasoner;
-	
 	OperationsImpl(UndoAwareMolecularModelManager models, 
 			Set<OWLObjectProperty> importantRelations,
 			ExternalLookupService externalLookupService,
-			String defaultModelState,
-			boolean useModuleReasoner) {
+			String defaultModelState) {
 		super(models, defaultModelState);
-		this.useModuleReasoner = useModuleReasoner;
 		this.importantRelations = importantRelations;
 		this.externalLookupService = externalLookupService;
 		this.beforeSaveValidator = new BeforeSaveModelValidator();
@@ -181,7 +177,7 @@ abstract class OperationsImpl extends ModelCreator {
 			if (individual != null) {
 				// add types
 				for (OWLClassExpression clsExpression : clsExpressions) {
-					m3.addTypeNonReasoning(values.model, individual, clsExpression, token);
+					m3.addType(values.model, individual, clsExpression, token);
 				}
 				
 				if (dataProperties.isEmpty() == false) {
@@ -197,7 +193,7 @@ abstract class OperationsImpl extends ModelCreator {
 			requireNotNull(request.arguments.individual, "request.arguments.individual");
 			OWLNamedIndividual i = getIndividual(request.arguments.individual, values);
 			
-			DeleteInformation dInfo = m3.deleteIndividualNonReasoning(values.model, i, token);
+			DeleteInformation dInfo = m3.deleteIndividual(values.model, i, token);
 			handleRemovedAnnotationIRIs(dInfo.usedIRIs, values.model, token);
 			updateAnnotationsForDelete(dInfo, values.model, userId, token, m3);
 			updateModelAnnotations(values.model, userId, token, m3);
@@ -214,7 +210,7 @@ abstract class OperationsImpl extends ModelCreator {
 			
 			for(JsonOwlObject expression : request.arguments.expressions) {
 				OWLClassExpression cls = parseM3Expression(expression, values);
-				m3.addTypeNonReasoning(values.model, i, cls, token);
+				m3.addType(values.model, i, cls, token);
 				values.relevantIndividuals.add(i);
 				values.addVariableValue(request.arguments.assignToVariable, i);
 				m3.addAnnotations(values.model, i, annotations, token);
@@ -233,7 +229,7 @@ abstract class OperationsImpl extends ModelCreator {
 			
 			for(JsonOwlObject expression : request.arguments.expressions) {
 				OWLClassExpression cls = parseM3Expression(expression, values);
-				m3.removeTypeNonReasoning(values.model, i, cls, token);
+				m3.removeType(values.model, i, cls, token);
 				values.relevantIndividuals.add(i);
 				values.addVariableValue(request.arguments.assignToVariable, i);
 				m3.addAnnotations(values.model, i, annotations, token);
@@ -350,12 +346,12 @@ abstract class OperationsImpl extends ModelCreator {
 			// optional: values
 			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, values, values.model);
 			addDateAnnotation(annotations, values.model.getOWLDataFactory());
-			m3.addFactNonReasoning(values.model, p, s, o, annotations, token);
+			m3.addFact(values.model, p, s, o, annotations, token);
 			updateModelAnnotations(values.model, userId, token, m3);
 		}
 		// remove edge
 		else if (Operation.remove == operation){
-			Set<IRI> removedIRIs = m3.removeFactNonReasoning(values.model, p, s, o, token);
+			Set<IRI> removedIRIs = m3.removeFact(values.model, p, s, o, token);
 			if (removedIRIs != null && removedIRIs.isEmpty() == false) {
 				// only render bulk, iff there were additional deletes (i.e. evidence removal)
 				values.renderBulk = true;
@@ -488,7 +484,7 @@ abstract class OperationsImpl extends ModelCreator {
 			values.model = checkModelId(values.model, request);
 			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, values, values.model);
 			if (validateBeforeSave()) {
-				List<String> issues = beforeSaveValidator.validateBeforeSave(values.model, useModuleReasoner);
+				List<String> issues = beforeSaveValidator.validateBeforeSave(values.model);
 				if (issues != null && !issues.isEmpty()) {
 					StringBuilder commentary = new StringBuilder();
 					for (Iterator<String> it = issues.iterator(); it.hasNext();) {
@@ -640,7 +636,7 @@ abstract class OperationsImpl extends ModelCreator {
 	
 	private void exportLegacy(M3BatchResponse response, ModelContainer model, String format, String userId) throws IOException, OWLOntologyCreationException {
 		final GafExportTool exportTool = GafExportTool.getInstance();
-		String exportModel = exportTool.exportModelLegacy(model, curieHandler, useModuleReasoner, format);
+		String exportModel = exportTool.exportModelLegacy(model, curieHandler, format);
 		initMetaResponse(response);
 		response.data.exportModel = exportModel;
 	}

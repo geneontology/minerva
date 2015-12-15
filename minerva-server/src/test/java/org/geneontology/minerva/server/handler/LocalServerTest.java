@@ -17,6 +17,7 @@ import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.StartUpTool.MinervaStartUpConfig;
+import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -24,8 +25,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.semanticweb.elk.owlapi.ElkReasonerFactory;
-import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
@@ -70,12 +69,10 @@ public class LocalServerTest {
 		final String modelIdPrefix = "http://model.geneontology.org/";
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
-		OWLReasonerFactory rf = new ElkReasonerFactory();
-		models = new UndoAwareMolecularModelManager(graph, rf, curieHandler, modelIdPrefix);
+		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix);
 		
 		MinervaStartUpConfig conf = new MinervaStartUpConfig();
-		conf.useReasoner = true;
-		conf.useModuleReasoner = false;
+		conf.inferenceProviderCreator = CachingInferenceProviderCreatorImpl.createElk(false);
 		conf.useRequestLogging = true;
 		conf.checkLiteralIds = false;
 		conf.lookupService = null;
