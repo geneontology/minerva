@@ -1,17 +1,5 @@
 package org.geneontology.minerva.util;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
-import java.util.UUID;
-
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 /**
