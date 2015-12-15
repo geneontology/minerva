@@ -12,27 +12,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxOntologyFormat;
 import org.geneontology.minerva.GafToLegoIndividualTranslator;
-import org.geneontology.minerva.GafToLegoTranslator;
-import org.geneontology.minerva.ModelContainer;
-import org.geneontology.minerva.ModelWriterHelper;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
-import org.geneontology.minerva.generate.LegoModelGenerator;
 import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
-import org.geneontology.minerva.lookup.CachingExternalLookupService;
-import org.geneontology.minerva.lookup.ExternalLookupService;
-import org.geneontology.minerva.lookup.GolrExternalLookupService;
 import org.geneontology.minerva.util.AnnotationShorthand;
-import org.geneontology.minerva.util.MinimalModelGenerator;
-import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
 import org.semanticweb.owlapi.io.RDFXMLOntologyFormat;
 import org.semanticweb.owlapi.model.IRI;
@@ -40,21 +30,11 @@ import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationValueVisitorEx;
 import org.semanticweb.owlapi.model.OWLAnonymousIndividual;
 import org.semanticweb.owlapi.model.OWLAxiom;
-import org.semanticweb.owlapi.model.OWLClass;
-import org.semanticweb.owlapi.model.OWLClassExpression;
-import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLEntity;
-import org.semanticweb.owlapi.model.OWLEquivalentClassesAxiom;
 import org.semanticweb.owlapi.model.OWLLiteral;
-import org.semanticweb.owlapi.model.OWLNamedIndividual;
-import org.semanticweb.owlapi.model.OWLObjectIntersectionOf;
-import org.semanticweb.owlapi.model.OWLObjectProperty;
-import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyFormat;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
-import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.cli.JsCommandRunner;
 import owltools.cli.Opts;
@@ -65,237 +45,11 @@ import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.gaf.io.GpadWriter;
 import owltools.graph.OWLGraphWrapper;
-import owltools.io.OWLPrettyPrinter;
-import owltools.vocab.OBOUpperVocabulary;
 import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
 import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
 
 public class MinervaCommandRunner extends JsCommandRunner {
 
-	private volatile MinimalModelGenerator mmg = null;
-	
-	
-	private synchronized MinimalModelGenerator getMinimalModelGenerator(String modelId, boolean isCreateNewAbox) throws OWLOntologyCreationException {
-
-		if (mmg == null) {
-			IRI modelIRI = IRI.create("foo://bar/"+modelId);
-			OWLReasonerFactory rf = new ElkReasonerFactory();
-			if (isCreateNewAbox) {
-				ModelContainer model = new ModelContainer(modelIRI, g.getSourceOntology(), rf);
-				mmg = new MinimalModelGenerator(model);
-			}
-			else {
-				ModelContainer model = new ModelContainer(modelIRI, g.getSourceOntology(), g.getSourceOntology(), rf);
-				mmg = new MinimalModelGenerator(model);
-			}
-		}
-		return mmg;
-	}
-	
-	@CLIMethod("--generate-minimal-model")
-	public void generateMinimalModel(Opts opts) throws Exception {
-		opts.info("[--no-collapse] [--no-reduce] [--reuse-tblox] [-x] [-a] [-s] CLASS", "Generates default/proto individuals for a class");
-		boolean isCollapse = true;
-		boolean isReduce = true;
-		boolean isExtractModule = false;
-		boolean isPrecomputePropertyClassCombinations = true;
-		boolean isCreateNewAbox = true;
-		boolean isAllIndividuals = false;
-		boolean isStrict = true;
-		Set<OWLObjectProperty> normProps = new HashSet<OWLObjectProperty>();
-		Set<OWLClass> preservedClassSet = null;
-		OWLClass c;
-		while (opts.hasOpts()) {
-			if (opts.nextEq("--no-collapse")) {
-				opts.info("", "if set, do not heuristically collapse individuals");
-				isCollapse = false;
-			}
-			else if (opts.nextEq("--no-reduce")) {
-				opts.info("", "if set, do not perform transitive reduction");
-				isReduce = false;
-			}
-			else if (opts.nextEq("--reuse-tbox")) {
-				opts.info("", "if set, place new individuals in the ontology");
-				isCreateNewAbox = false;
-			}
-			else if (opts.nextEq("-a|--all-individuals")) {
-				isAllIndividuals = true;
-			}
-			else if (opts.nextEq("-s|--is-strict")) {
-				isStrict = true;
-			}
-			else if (opts.nextEq("-x|--extract-module")) {
-				isExtractModule = true;
-			}
-			else if (opts.nextEq("-q|--quick")) {
-				isPrecomputePropertyClassCombinations = false;
-			}
-			else if (opts.nextEq("-p|--property")) {
-				normProps.add(this.resolveObjectProperty(opts.nextOpt()));
-			}
-			else if (opts.nextEq("-l|--plist")) {
-				normProps.addAll(this.resolveObjectPropertyList(opts));
-			}
-			else if (opts.nextEq("--lego")) {
-				preservedClassSet = new HashSet<OWLClass>();
-				preservedClassSet.add(g.getDataFactory().getOWLClass(OBOUpperVocabulary.GO_biological_process.getIRI()));
-				preservedClassSet.add(g.getDataFactory().getOWLClass(OBOUpperVocabulary.GO_molecular_function.getIRI()));
-			}
-
-			else {
-				break;
-			}
-		}
-		mmg = getMinimalModelGenerator("1", isCreateNewAbox);
-		if (isStrict) {
-			mmg.isStrict = true;
-		}
-		mmg.setPrecomputePropertyClassCombinations(isPrecomputePropertyClassCombinations);
-
-		if (isAllIndividuals) {
-			mmg.generateAllNecessaryIndividuals(isCollapse, isReduce);
-		}
-		else {
-			c = this.resolveClass(opts.nextOpt());
-			mmg.generateNecessaryIndividuals(c, isCollapse, isReduce);
-		}
-		for (OWLObjectProperty p : normProps) {
-			mmg.normalizeDirections(p);
-		}
-		if (preservedClassSet != null && preservedClassSet.size() > 0) {
-			mmg.anonymizeIndividualsNotIn(preservedClassSet);
-		}
-		if (isExtractModule) {
-			mmg.extractModule();
-		}
-		g.setSourceOntology(mmg.getModel().getAboxOntology());
-	}
-	
-	@CLIMethod("--most-specific-class-expression|--msce")
-	public void msce(Opts opts) throws Exception {
-		opts.info("[-c CLASS] INDIVIDUAL", "Generates MSCE for an individual using MinimalModelGenerator");
-		mmg = getMinimalModelGenerator("1", false);
-		OWLNamedIndividual ind;
-		OWLClass c = null;
-		while (opts.hasOpts()) {
-			if (opts.nextEq("-c|--class")) {
-				opts.info("CLASS", "if set will add equivalence axioms to CLASS");
-				c = this.resolveClass(opts.nextOpt());
-			}
-			else {
-				break;
-			}
-		}
-		ind =  (OWLNamedIndividual) this.resolveEntity(opts);
-		OWLClassExpression ce = mmg.getMostSpecificClassExpression(ind);
-
-		System.out.println(getPrettyPrinter().render(ce));
-		System.out.println(ce);
-
-		if (c != null) {
-			OWLEquivalentClassesAxiom ax = g.getDataFactory().getOWLEquivalentClassesAxiom(c, ce);
-			g.getManager().addAxiom(g.getSourceOntology(), ax);
-		}
-	}
-	
-	@CLIMethod("--modalize")
-	public void modalize(Opts opts) throws Exception {
-		opts.info("CLASS", "Take all instances of CLASS and make a generalized statement about them");
-		mmg = getMinimalModelGenerator("1", false);
-		OWLClass qc = null;
-		OWLObjectProperty p = null;
-		OWLDataFactory df = g.getDataFactory();
-		while (opts.hasOpts()) {
-			if (opts.nextEq("-p|--modal-property")) {
-				p = resolveObjectProperty(opts.nextOpt());
-				opts.info("CLASS", "if set will add equivalence axioms to CLASS");
-				//c = this.resolveClass(opts.nextOpt());
-			}
-			else {
-				break;
-			}
-		}
-		qc = this.resolveClass(opts.nextOpt());
-		Set<OWLNamedIndividual> inds = mmg.getModel().getReasoner().getInstances(qc, false).getFlattened();
-		for (OWLNamedIndividual ind : inds) {
-			OWLClassExpression ce = mmg.getMostSpecificClassExpression(ind);
-			if (ce instanceof OWLObjectIntersectionOf) {
-				for (OWLClassExpression x : ((OWLObjectIntersectionOf)ce).getOperands()) {
-					if (x instanceof OWLObjectSomeValuesFrom) {
-						OWLObjectSomeValuesFrom svf = ((OWLObjectSomeValuesFrom)x);
-
-					}
-				}
-			}
-			Set<OWLClass> types = mmg.getModel().getReasoner().getTypes(ind, true).getFlattened();
-
-			System.out.println(getPrettyPrinter().render(ce));
-			System.out.println(ce);
-			for (OWLClass c : types) {
-				df.getOWLSubClassOfAxiom(c, df.getOWLObjectSomeValuesFrom(p, ce));
-			}
-		}
-	}
-	
-	@CLIMethod("--gaf2lego")
-	@Deprecated
-	public void gaf2Lego(Opts opts) throws Exception {
-		String output = null;
-		boolean minimize = false;
-		OWLOntologyFormat format = new RDFXMLOntologyFormat();
-		while (opts.hasOpts()) {
-			if (opts.nextEq("-m|--minimize")) {
-				opts.info("", "If set, combine into one model");
-				minimize = true;
-			}
-			else if (opts.nextEq("-o|--output")) {
-				output = opts.nextOpt();
-			}
-			else if (opts.nextEq("--format")) {
-				String formatString = opts.nextOpt();
-				if ("manchester".equalsIgnoreCase(formatString)) {
-					format = new ManchesterOWLSyntaxOntologyFormat();
-				}
-			}
-			else {
-				break;
-			}
-		}
-		if (g != null && gafdoc != null && output != null) {
-			GafToLegoTranslator translator = new GafToLegoTranslator(g, null);
-			OWLOntology lego;
-			if (minimize) {
-				lego = translator.minimizedTranslate(gafdoc);
-			}
-			else {
-				lego = translator.translate(gafdoc);
-			}
-
-			OWLOntologyManager manager = lego.getOWLOntologyManager();
-			OutputStream outputStream = null;
-			try {
-				outputStream = new FileOutputStream(output);
-				manager.saveOntology(lego, format, outputStream);
-			}
-			finally {
-				IOUtils.closeQuietly(outputStream);
-			}
-		}
-		else {
-			if (output == null) {
-				System.err.println("No output file was specified.");
-			}
-			if (g == null) {
-				System.err.println("No graph available for gaf-run-check.");
-			}
-			if (gafdoc == null) {
-				System.err.println("No loaded gaf available for gaf-run-check.");
-			}
-			exit(-1);
-			return;
-		}
-	}
-	
 	/**
 	 * Translate the GeneAnnotations into a lego all individual OWL representation.
 	 * 
@@ -382,199 +136,6 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		}
 	}
 	
-	@CLIMethod("--generate-molecular-model")
-	@Deprecated
-	public void generateMolecularModel(Opts opts) throws Exception {
-		opts.info("[--owl FILE] [-s SEED-GENE-LIST] [-a] [-r] -p PROCESS", "Generates an activity network (aka lego) from existing GAF and ontology");
-		OWLClass processCls = null;
-		File owlOutputFile = null;
-		boolean isReplaceSourceOntology = false;
-		boolean isPrecomputePropertyClassCombinations = false;
-		boolean isExtractModule = false;
-		List<String> seedGenes = new ArrayList<String>();
-		while (opts.hasOpts()) {
-			if (opts.nextEq("-p")) {
-				processCls = this.resolveClass(opts.nextOpt());
-			}
-			else if (opts.nextEq("-r|--replace")) {
-				isReplaceSourceOntology = true;
-			}
-			else if (opts.nextEq("-q|--quick")) {
-				isPrecomputePropertyClassCombinations = false;
-			}
-			else if (opts.nextEq("-x|--extract-module")) {
-				isExtractModule = true;
-			}
-			else if (opts.nextEq("-a|--all-relation-class-pairs")) {
-				isPrecomputePropertyClassCombinations = true;
-			}
-			else if (opts.nextEq("-s|--seed")) {
-				seedGenes = opts.nextList();
-			}
-			else if (opts.nextEq("--owl")) {
-				owlOutputFile = opts.nextFile();
-			}
-			else {
-				break;
-			}
-		}
-		ModelContainer model = new ModelContainer(IRI.create("foo://bar/1"), g.getSourceOntology(), new ElkReasonerFactory());
-		LegoModelGenerator ni = new LegoModelGenerator(model);
-		ni.setPrecomputePropertyClassCombinations(isPrecomputePropertyClassCombinations);
-		ni.initialize(gafdoc, g);
-
-		String p = g.getIdentifier(processCls);
-		seedGenes.addAll(ni.getGenes(processCls));
-
-		ni.buildNetwork(p, seedGenes);
-
-
-		OWLOntology ont = model.getAboxOntology();
-		if (isExtractModule) {
-			ni.extractModule();
-		}
-		if (owlOutputFile != null) {
-			FileOutputStream os = new FileOutputStream(owlOutputFile);
-			g.getManager().saveOntology(ont, os);
-		}
-		if (isReplaceSourceOntology) {
-			g.setSourceOntology(model.getAboxOntology());
-		}
-	}
-	
-	@SuppressWarnings("unused")
-	@CLIMethod("--fetch-candidate-process")
-	@Deprecated
-	public void fetchCandidateProcess(Opts opts) throws Exception {
-		Double pvalThresh = 0.05;
-		Double pvalCorrectedThresh = 0.05;
-		Integer popSize = null;
-		boolean isDirect = false;
-		boolean isReflexive = false;
-		while (opts.hasOpts()) {
-			if (opts.nextEq("-p")) {
-				pvalCorrectedThresh = Double.valueOf(opts.nextOpt());
-			}
-			else if (opts.nextEq("--pval-uncorrected")) {
-				pvalThresh = Double.valueOf(opts.nextOpt());
-			}
-			else if (opts.nextEq("--pop-size")) {
-				popSize = Integer.valueOf(opts.nextOpt());
-			}
-			else if (opts.nextEq("-d")) {
-				isDirect = true;
-			}
-			else if (opts.nextEq("-r")) {
-				isReflexive = true;
-			}
-			else {
-				break;
-			}
-		}
-		OWLClass disease = this.resolveClass(opts.nextOpt());
-
-		OWLPrettyPrinter owlpp = new OWLPrettyPrinter(g);
-		ModelContainer model = new ModelContainer(IRI.create("foo://bar/1"), g.getSourceOntology(), new ElkReasonerFactory());
-		LegoModelGenerator ni = new LegoModelGenerator(model);
-		ni.setPrecomputePropertyClassCombinations(false);
-
-		ni.initialize(gafdoc, g);
-		OWLClass nothing = g.getDataFactory().getOWLNothing();
-		Map<OWLClass, Double> smap = ni.fetchScoredCandidateProcesses(disease, popSize);
-		int MAX = 500;
-		int n=0;
-		for (Map.Entry<OWLClass, Double> e : smap.entrySet()) {
-			n++;
-			if (n > MAX) {
-				break;
-			}
-			Double score = e.getValue();
-			OWLClass c = e .getKey();
-			System.out.println("PROC\t"+owlpp.render(c)+"\t"+score);
-		}
-	}
-
-	@CLIMethod("--go-multi-enrichment")
-	@Deprecated
-	public void goMultiEnrichment(Opts opts) throws Exception {
-		opts.info("P1 P2", "Generates an activity network (aka lego) from existing GAF and ontology");
-		Double pvalThresh = 0.05;
-		Double pvalCorrectedThresh = 0.05;
-		Integer popSize = null;
-		boolean isDirect = false;
-		boolean isReflexive = false;
-		while (opts.hasOpts()) {
-			if (opts.nextEq("-p")) {
-				pvalCorrectedThresh = Double.valueOf(opts.nextOpt());
-			}
-			else if (opts.nextEq("--pval-uncorrected")) {
-				pvalThresh = Double.valueOf(opts.nextOpt());
-			}
-			else if (opts.nextEq("--pop-size")) {
-				popSize = Integer.valueOf(opts.nextOpt());
-			}
-			else if (opts.nextEq("-d")) {
-				isDirect = true;
-			}
-			else if (opts.nextEq("-r")) {
-				isReflexive = true;
-			}
-			else {
-				break;
-			}
-		}
-		OWLClass rc1 = this.resolveClass(opts.nextOpt());
-		OWLClass rc2 = this.resolveClass(opts.nextOpt());
-		ModelContainer model = new ModelContainer(IRI.create("foo://bar/1"), g.getSourceOntology(), new ElkReasonerFactory());
-		LegoModelGenerator ni = new LegoModelGenerator(model);
-
-		ni.initialize(gafdoc, g);
-		OWLPrettyPrinter owlpp = new OWLPrettyPrinter(g);
-		OWLClass nothing = g.getDataFactory().getOWLNothing();
-		Set<OWLClass> sampleSet = model.getReasoner().getSubClasses(rc2, false).getFlattened();
-		sampleSet.remove(nothing);
-		if (isDirect) {
-			sampleSet = Collections.singleton(rc2);
-		}
-		if (isReflexive) {
-			sampleSet.add(rc2);
-		}
-
-		// calc correction factor
-		int numHypotheses = 0;
-		for (OWLClass c1 : model.getReasoner().getSubClasses(rc1, false).getFlattened()) {
-			if (c1.equals(nothing))
-				continue;
-			if (ni.getGenes(c1).size() < 2) {
-				continue;
-			}
-			for (OWLClass c2 : sampleSet) {
-				if (ni.getGenes(c2).size() < 2) {
-					continue;
-				}
-				numHypotheses++;
-			}
-		}
-
-
-		for (OWLClass c1 : model.getReasoner().getSubClasses(rc1, false).getFlattened()) {
-			if (c1.equals(nothing))
-				continue;
-			System.out.println("Sample: "+c1);
-			for (OWLClass c2 : sampleSet) {
-				if (c2.equals(nothing))
-					continue;
-				Double pval = ni.calculatePairwiseEnrichment(c1, c2, popSize);
-				if (pval == null || pval > pvalThresh)
-					continue;
-				Double pvalCorrected = pval * numHypotheses;
-				if (pvalCorrected == null || pvalCorrected > pvalCorrectedThresh)
-					continue;
-				System.out.println("enrich\t"+owlpp.render(c1)+"\t"+owlpp.render(c2)+"\t"+pval+"\t"+pvalCorrected);
-			}
-		}
-	}
-	
 	@CLIMethod("--lego-to-gpad")
 	public void legoToAnnotations(Opts opts) throws Exception {
 		String modelIdPrefix = "http://model.geneontology.org/";
@@ -614,7 +175,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
 
 		SimpleEcoMapper mapper = EcoMapperFactory.createSimple();
-		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(g.getSourceOntology(), curieHandler, reasoner, mapper);
+		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(g.getSourceOntology(), curieHandler, mapper);
 		Set<String> modelStates = new HashSet<>();
 		Map<String, GafDocument> typedAnnotations = new HashMap<>();
 		Map<String, BioentityDocument> typedEntities = new HashMap<>();
@@ -733,94 +294,5 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			addtitionalRefs = defaultRefs;
 		}
 		return addtitionalRefs;
-	}
-
-	@CLIMethod("--enrich-models-for-golr")
-	@Deprecated
-	public void enrichModelsForGolrLoad(Opts opts) throws Exception {
-		// defaults
-		String modelFolder = null;
-		String outputFolder = null;
-		String modelIdPrefix = "http://model.geneontology.org/";
-		String modelIdcurie = "gomodel";
-		String golrUrl = null;
-		int golrCacheSize = 100000;
-		long golrCacheDuration = 24l;
-		TimeUnit golrCacheDurationUnit = TimeUnit.HOURS;
-		
-		// check parameters
-		while (opts.hasArgs()) {
-			if (opts.nextEq("-i|--model-folder")) {
-				modelFolder = opts.nextOpt();
-			}
-			if (opts.nextEq("-o|--output-folder")) {
-				outputFolder = opts.nextOpt();
-			}
-			else if (opts.nextEq("--model-id-prefix")) {
-				modelIdPrefix = opts.nextOpt();
-			}
-			else if (opts.nextEq("--model-id-curie")) {
-				modelIdcurie = opts.nextOpt();
-			}
-			else if (opts.nextEq("--golr-cache-size")) {
-				String sizeString = opts.nextOpt();
-				golrCacheSize = Integer.parseInt(sizeString);
-			}
-			else if (opts.nextEq("--golr-url")) {
-				golrUrl = opts.nextOpt();
-			}
-			else {
-				break;
-			}
-		}
-		// minimal requirements
-		if (modelFolder == null) {
-			System.err.println("No model folder available");
-			System.exit(-1);
-		}
-		if (outputFolder == null) {
-			System.err.println("No output folder available");
-			System.exit(-1);
-		}
-		if (golrUrl == null) {
-			System.err.println("No golr url found");
-			System.exit(-1);
-		}
-		
-		// set curie handler
-		CurieMappings defaultMappings = DefaultCurieHandler.getMappings();
-		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
-		CurieHandler curieHandler = new MappedCurieHandler(defaultMappings, localMappings);
-		
-		// cached golr lookup
-		ExternalLookupService lookupService = new GolrExternalLookupService(golrUrl, curieHandler);
-		lookupService = new CachingExternalLookupService(lookupService, golrCacheSize, golrCacheDuration, golrCacheDurationUnit);
-
-		File[] modelFiles = new File(modelFolder).getCanonicalFile().listFiles(new FilenameFilter() {
-			
-			@Override
-			public boolean accept(File dir, String name) {
-				return StringUtils.isAlphanumeric(name);
-			}
-		});
-		File outputFolderFile = new File(outputFolder);
-		outputFolderFile.mkdirs();
-		ModelWriterHelper writerHelper = new ModelWriterHelper(curieHandler, lookupService);
-		for (File modelFile : modelFiles) {
-			OWLOntology model = null;
-			try {
-				System.out.println("Model: "+modelFile.getName());
-				model = pw.parseOWL(IRI.create(modelFile));
-				writerHelper.handle(model);
-				File outputFile = new File(outputFolderFile, modelFile.getName()).getCanonicalFile();
-				pw.getManager().saveOntology(model, IRI.create(outputFile));
-				System.out.println("Finished saving: "+outputFile);
-			}
-			finally {
-				if (model != null) {
-					model.getOWLOntologyManager().removeOntology(model);
-				}
-			}
-		}
 	}
 }
