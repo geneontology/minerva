@@ -208,7 +208,14 @@ public class StartUpTool {
 			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
 		}
 		
-		startUp(conf);
+		Server server = startUp(conf);
+		try {
+			server.join();
+		}
+		finally {
+			server.stop();
+			server.destroy();
+		}
 	}
 	
 	/**
@@ -259,7 +266,7 @@ public class StartUpTool {
 		return properties;
 	}
 
-	public static void startUp(final MinervaStartUpConfig conf) 
+	public static Server startUp(final MinervaStartUpConfig conf) 
 			throws Exception {
 		// load ontology
 		LOGGER.info("Start loading ontology: "+conf.ontology);
@@ -301,7 +308,7 @@ public class StartUpTool {
 		
 		// start server
 		Server server = startUp(models, conf);
-		server.join();
+		return server;
 	}
 	
 	public static Server startUp(UndoAwareMolecularModelManager models, MinervaStartUpConfig conf)
