@@ -1,11 +1,15 @@
 package org.geneontology.minerva.server.handler;
 
+import static org.junit.Assert.*;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.Collections;
-import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -15,8 +19,14 @@ import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
+import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.StartUpTool.MinervaStartUpConfig;
+import org.geneontology.minerva.server.handler.M3BatchHandler.Entity;
+import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
+import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
+import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
+import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -25,6 +35,9 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
@@ -88,10 +101,56 @@ public class LocalServerTest {
 		String longGetSuffix = FileUtils.readFileToString(new File("src/test/resources/server-test/long-get.txt"));
 		String urlString = urlPrefix + longGetSuffix;
 		URL url = new URL(urlString);
-		InputStream stream = url.openStream();
-		List<String> lines = IOUtils.readLines(stream);
-		for (String string : lines) {
-			System.out.println(string);
+		String responseString = IOUtils.toString(url.openStream());
+		M3BatchResponse response = parseResponse(responseString);
+		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
+	}
+	
+	@Test
+	public void testPost() throws Exception {
+		String urlString = urlPrefix + "m3Batch";
+		final URL url = new URL(urlString); 
+	
+		final Map<String,String> params = new LinkedHashMap<>();
+		params.put("uid", "uid-1");
+		params.put("intention", "query");
+		params.put("requests", createMetaGetRequest());
+
+		StringBuilder postData = new StringBuilder();
+		for (Map.Entry<String,String> param : params.entrySet()) {
+			if (postData.length() != 0) postData.append('&');
+			postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
+			postData.append('=');
+			postData.append(URLEncoder.encode(param.getValue(), "UTF-8"));
 		}
+		byte[] postDataBytes = postData.toString().getBytes("UTF-8");
+		
+		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+		conn.setRequestMethod("POST");
+		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+		conn.setRequestProperty("Content-Length", String.valueOf(postDataBytes.length));
+		conn.setDoOutput(true);
+		conn.getOutputStream().write(postDataBytes);
+
+		String responseString = IOUtils.toString(conn.getInputStream(), "UTF-8");
+		M3BatchResponse response = parseResponse(responseString);
+		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
+		
+	}
+	
+	private M3BatchResponse parseResponse(String responseString) {
+		Gson gson = new GsonBuilder().create();
+		M3BatchResponse response = gson.fromJson(responseString, M3BatchResponse.class);
+		return response;
+	}
+	
+	private String createMetaGetRequest() {
+		M3Request r = new M3Request();
+		r.entity = Entity.meta;
+		r.operation = Operation.get;
+		r.arguments = new M3Argument();
+		String json = MolecularModelJsonRenderer.renderToJson(new M3Request[]{r}, false);
+		return json;
+		
 	}
 }
