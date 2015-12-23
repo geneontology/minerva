@@ -9,6 +9,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
@@ -41,16 +42,17 @@ public class GafExportTool {
 	 * 
 	 * @param model
 	 * @param curieHandler
+	 * @param lookup
 	 * @param format format name or null for default
 	 * @return modelContent
 	 * @throws IOException
 	 * @throws OWLOntologyCreationException
 	 */
-	public String exportModelLegacy(ModelContainer model, CurieHandler curieHandler, String format) throws IOException, OWLOntologyCreationException {
+	public String exportModelLegacy(ModelContainer model, CurieHandler curieHandler, ExternalLookupService lookup, String format) throws IOException, OWLOntologyCreationException {
 		final OWLOntology aBox = model.getAboxOntology();
 		
 		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(aBox, curieHandler, ecoMapper);
-		Pair<GafDocument,BioentityDocument> pair = translator.translate(model.getModelId().toString(), aBox, null);
+		Pair<GafDocument,BioentityDocument> pair = translator.translate(model.getModelId().toString(), aBox, lookup, null);
 		ByteArrayOutputStream outputStream = null;
 		try {
 			outputStream = new ByteArrayOutputStream();

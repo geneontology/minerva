@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
@@ -28,25 +29,25 @@ public class LegoToGeneAnnotationTranslator extends AbstractLegoTranslator {
 	}
 
 	@Override
-	public void translate(OWLOntology modelAbox, GafDocument annotations, BioentityDocument entities, List<String> additionalRefs) {
+	public void translate(OWLOntology modelAbox, ExternalLookupService lookup, GafDocument annotations, BioentityDocument entities, List<String> additionalRefs) {
 		Set<Summary> summaries = new HashSet<Summary>();
-		walkModel(modelAbox, summaries);
+		walkModel(modelAbox, lookup, summaries);
 		
 		final OWLGraphWrapper modelGraph = new OWLGraphWrapper(modelAbox);
 		for(Summary summary : summaries) {
 			if (summary.entity != null) {
-				addAnnotations(modelGraph, summary, additionalRefs, annotations, entities);
+				addAnnotations(modelGraph, lookup, summary, additionalRefs, annotations, entities);
 			}
 		}
 	}
 
 	@Override
 	protected Summary initPayload(OWLNamedIndividual object,
-			OWLClass objectType, OWLOntology model, OWLGraphWrapper modelGraph) {
+			OWLClass objectType, OWLOntology model, OWLGraphWrapper modelGraph, ExternalLookupService lookup) {
 		Summary summary = new Summary();
 		summary.entity = objectType;
 		summary.entityTaxon = getEntityTaxon(objectType, model);
-		summary.entityType = getEntityType(objectType, object, modelGraph);
+		summary.entityType = getEntityType(objectType, object, modelGraph, lookup);
 		return summary;
 	}
 

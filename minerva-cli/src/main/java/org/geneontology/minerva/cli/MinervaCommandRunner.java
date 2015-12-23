@@ -22,6 +22,7 @@ import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
+import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
 import org.semanticweb.owlapi.io.RDFXMLOntologyFormat;
@@ -173,6 +174,8 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		// create curie handler
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
+		
+		ExternalLookupService lookup= null;
 
 		SimpleEcoMapper mapper = EcoMapperFactory.createSimple();
 		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(g.getSourceOntology(), curieHandler, mapper);
@@ -214,7 +217,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				}
 				
 				// translate
-				translator.translate(model, annotations, entities, addtitionalRefs);	
+				translator.translate(model, lookup, annotations, entities, addtitionalRefs);	
 			}
 		}
 

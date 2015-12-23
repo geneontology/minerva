@@ -12,6 +12,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.evidence.FindGoCodes;
+import org.geneontology.minerva.lookup.ExternalLookupService;
+import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.geneontology.minerva.taxon.FindTaxonTool;
 import org.obolibrary.obo2owl.Obo2Owl;
 import org.obolibrary.obo2owl.Owl2Obo;
@@ -239,7 +241,7 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		return ccSet.contains(cls);
 	}
 
-	public abstract void translate(OWLOntology modelAbox, GafDocument annotations, BioentityDocument entities, List<String> additionalRefs);
+	public abstract void translate(OWLOntology modelAbox, ExternalLookupService lookup, GafDocument annotations, BioentityDocument entities, List<String> additionalRefs);
 
 	/**
 	 * Get the type of an enabled by entity, e.g. gene, protein
@@ -247,12 +249,19 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 	 * @param modelGraph 
 	 * @param entity 
 	 * @param individual
+	 * @param lookup
 	 * @return type
 	 */
-	protected String getEntityType(OWLClass entity, OWLNamedIndividual individual, OWLGraphWrapper modelGraph) {
-		String id = curieHandler.getCuri(entity);
-		if (id.startsWith("UniProtKB")) {
-			return "protein"; // TODO
+	protected String getEntityType(OWLClass entity, OWLNamedIndividual individual, OWLGraphWrapper modelGraph, ExternalLookupService lookup) {
+		List<LookupEntry> result = lookup.lookup(entity.getIRI());
+		if (result.isEmpty() == false) {
+			LookupEntry entry = result.get(0);
+			if ("protein".equalsIgnoreCase(entry.type)) {
+				return "protein";
+			}
+			else if ("gene".equalsIgnoreCase(entry.type)) {
+				return "gene";
+			}
 		}
 		return "gene";
 	}
@@ -265,10 +274,10 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		return tool.getEntityTaxon(curieHandler.getCuri(entity), model);
 	}
 
-	public Pair<GafDocument, BioentityDocument> translate(String id, OWLOntology modelAbox, List<String> additionalReferences) {
+	public Pair<GafDocument, BioentityDocument> translate(String id, OWLOntology modelAbox, ExternalLookupService lookup, List<String> additionalReferences) {
 		final GafDocument annotations = new GafDocument(id, null);
 		final BioentityDocument entities = new BioentityDocument(id);
-		translate(modelAbox, annotations, entities, additionalReferences);
+		translate(modelAbox, lookup, annotations, entities, additionalReferences);
 		return Pair.of(annotations, entities);
 	}
 
@@ -303,7 +312,19 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 				annotation.setEvidence(goCode, ecoId);
 			}
 		}
-		annotation.setLastUpdateDate(e.metadata.date);
+		if (e.metadata.date != null) {
+			// assumes that the date is YYYY-MM-DD
+			// gene annotations require YYYYMMDD
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < e.metadata.date.length(); i++) {
+				char c = e.metadata.date.charAt(i);
+				if (Character.isDigit(c)) {
+					sb.append(c);
+				}
+			}
+			annotation.setLastUpdateDate(sb.toString());
+		}
+		
 		if (e.metadata.with != null) {
 			List<String> withInfos = new ArrayList<>(e.metadata.with);
 			annotation.setWithInfos(withInfos);
@@ -355,9 +376,9 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		return relId;
 	}
 
-	protected Bioentity createBioentity(OWLClass entityCls, String entityType, String taxon, OWLGraphWrapper g) {
+	protected Bioentity createBioentity(OWLClass entityCls, String entityType, String taxon, OWLGraphWrapper g, ExternalLookupService lookup) {
 		Bioentity bioentity = new Bioentity();
-		BioentityStrings strings = getBioentityStrings(entityCls, entityType, taxon, g);
+		BioentityStrings strings = getBioentityStrings(entityCls, entityType, taxon, g, lookup);
 		String id = strings.id;
 		bioentity.setId(id);
 		if (strings.db != null) {
@@ -378,7 +399,7 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		String type;
 	}
 
-	protected BioentityStrings getBioentityStrings(OWLClass entityCls, String entityType, String taxon, OWLGraphWrapper g) {
+	protected BioentityStrings getBioentityStrings(OWLClass entityCls, String entityType, String taxon, OWLGraphWrapper g, ExternalLookupService lookup) {
 		BioentityStrings strings = new BioentityStrings();
 		strings.id = curieHandler.getCuri(entityCls);
 		strings.db = null;
@@ -386,16 +407,28 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		if (split.length == 2) {
 			strings.db = split[0];
 		}
-		strings.symbol = g.getLabel(entityCls);
+		strings.symbol = getLabelForBioentity(entityCls, entityType, taxon, g, lookup);
 		strings.type = entityType;
 		return strings;
 	}
 
-	protected void addAnnotations(OWLGraphWrapper modelGraph,
+	private String getLabelForBioentity(OWLClass entityCls, String entityType, String taxon, OWLGraphWrapper g, ExternalLookupService lookup) {
+		String lbl = g.getLabel(entityCls);
+		if (lbl == null && lookup != null) {
+			List<LookupEntry> result = lookup.lookup(entityCls.getIRI());
+			if (!result.isEmpty()) {
+				LookupEntry entry = result.get(0);
+				lbl = entry.label;
+			}
+		}
+		return lbl;
+	}
+
+	protected void addAnnotations(OWLGraphWrapper modelGraph, ExternalLookupService lookup,
 			Summary summary, List<String> additionalRefs,
 			GafDocument annotations, BioentityDocument entities) 
 	{
-		Bioentity entity = createBioentity(summary.entity, summary.entityType, summary.entityTaxon , modelGraph);
+		Bioentity entity = createBioentity(summary.entity, summary.entityType, summary.entityTaxon , modelGraph, lookup);
 		entities.addBioentity(entity);
 		annotations.addBioentity(entity);
 		

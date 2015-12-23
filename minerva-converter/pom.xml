@@ -12,7 +12,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.geneontology</groupId>
-			<artifactId>minerva-core</artifactId>
+			<artifactId>minerva-lookup</artifactId>
 			<version>${project.parent.version}</version>
 		</dependency>
 		<dependency>

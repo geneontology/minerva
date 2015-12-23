@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
@@ -144,7 +145,7 @@ abstract class LegoModelWalker<PAYLOAD> {
 		}
 	}
 
-	public void walkModel(OWLOntology model, Collection<PAYLOAD> allPayloads) {
+	public void walkModel(OWLOntology model, ExternalLookupService lookup, Collection<PAYLOAD> allPayloads) {
 		final OWLGraphWrapper modelGraph = new OWLGraphWrapper(model);
 
 		final Set<OWLNamedIndividual> annotationIndividuals = new HashSet<OWLNamedIndividual>();
@@ -179,7 +180,7 @@ abstract class LegoModelWalker<PAYLOAD> {
 				Set<OWLObjectSomeValuesFrom> expressions = getSvfTypes(object, model);
 				Set<OWLClass> objectTypes = getTypes(object, model);
 				for (OWLClass objectType : objectTypes) {
-					final PAYLOAD payload = initPayload(object, objectType, model, modelGraph);
+					final PAYLOAD payload = initPayload(object, objectType, model, modelGraph, lookup);
 					allPayloads.add(payload);
 
 					final OWLNamedIndividual subject = axiom.getSubject().asOWLNamedIndividual();
@@ -296,7 +297,7 @@ abstract class LegoModelWalker<PAYLOAD> {
 		return result;
 	}
 	
-	protected abstract PAYLOAD initPayload(OWLNamedIndividual object, OWLClass objectType, OWLOntology model, OWLGraphWrapper modelGraph);
+	protected abstract PAYLOAD initPayload(OWLNamedIndividual object, OWLClass objectType, OWLOntology model, OWLGraphWrapper modelGraph, ExternalLookupService lookup);
 	
 	protected abstract boolean handleCC(PAYLOAD payload, OWLClass cls, Metadata metadata, Set<OWLObjectSomeValuesFrom> expressions);
 	
