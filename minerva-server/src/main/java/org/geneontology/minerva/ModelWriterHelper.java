@@ -162,7 +162,13 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 				allChanges.add(new AddAxiom(model, axiom));
 			}
 		}
-		
+		if (allChanges.isEmpty() == false) {
+			// add declaration axioms for annotation properties
+			// this is a bug fix
+			allChanges.add(new AddAxiom(model, df.getOWLDeclarationAxiom(tagProperty)));
+			allChanges.add(new AddAxiom(model, df.getOWLDeclarationAxiom(shortIdProp)));
+			allChanges.add(new AddAxiom(model, df.getOWLDeclarationAxiom(displayLabelProp)));
+		}
 		return allChanges;
 	}
 
