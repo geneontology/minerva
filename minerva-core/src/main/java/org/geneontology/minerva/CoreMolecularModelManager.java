@@ -12,9 +12,13 @@ import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
+import org.coode.owlapi.obo12.parser.OBO12ParserFactory;
+import org.coode.owlapi.oboformat.OBOFormatParserFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.io.IRIDocumentSource;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentSource;
+import org.semanticweb.owlapi.io.OWLParserFactory;
+import org.semanticweb.owlapi.io.OWLParserFactoryRegistry;
 import org.semanticweb.owlapi.io.StringDocumentSource;
 import org.semanticweb.owlapi.model.AddAxiom;
 import org.semanticweb.owlapi.model.AddImport;
@@ -78,7 +82,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	private final IRI tboxIRI;
 	final Map<IRI, ModelContainer> modelMap = new HashMap<IRI, ModelContainer>();
 	Set<IRI> additionalImports;
-
+	
 	/**
 	 * Use start up time to create a unique prefix for id generation
 	 */
@@ -156,7 +160,35 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		tboxIRI = getTboxIRI(graph);
 		init();
 	}
+
+	private static synchronized List<OWLParserFactory> removeOBOParserFactories() {
+		// hacky workaround: remove the too liberal OBO parsers
+		OWLParserFactoryRegistry registry = OWLParserFactoryRegistry.getInstance();
+		List<OWLParserFactory> factories = new ArrayList<OWLParserFactory>(registry.getParserFactories());
+		for (OWLParserFactory factory : factories) {
+			Class<?> cls = factory.getClass();
+			boolean remove = false;
+			if (OBO12ParserFactory.class.equals(cls)) {
+				remove = true;
+			}
+			else if (OBOFormatParserFactory.class.equals(cls)) {
+				remove = true;
+			}
+			if (remove) {
+				registry.unregisterParserFactory(factory);
+			}
+		}
+		return factories;
+	}
 	
+	private static synchronized void resetOBOParserFactories(List<OWLParserFactory> factories) {
+		OWLParserFactoryRegistry registry = OWLParserFactoryRegistry.getInstance();
+		registry.clearParserFactories();
+		for (OWLParserFactory factory : factories) {
+			registry.registerParserFactory(factory);	
+		}
+	}
+
 	/**
 	 * Executed before the init call {@link #init()}.
 	 * 
@@ -1072,44 +1104,52 @@ public abstract class CoreMolecularModelManager<METADATA> {
 			List<OWLOntologyChange> appliedChanges, METADATA metadata) {
 		// do nothing, for now
 	}
-	
+
 	protected OWLOntology loadOntologyIRI(final IRI sourceIRI, boolean minimal) throws OWLOntologyCreationException {
+		return loadOntologyIRI(sourceIRI, minimal, graph.getManager());
+	}
+
+	static OWLOntology loadOntologyIRI(final IRI sourceIRI, boolean minimal, OWLOntologyManager manager) throws OWLOntologyCreationException {
 		// silence the OBO parser in the OWL-API
 		java.util.logging.Logger.getLogger("org.obolibrary").setLevel(java.util.logging.Level.SEVERE);
-		
-		// load model from source
-		OWLOntologyDocumentSource source = new IRIDocumentSource(sourceIRI);
-		if (minimal == false) {
-			// add the obsolete imports to the ignored imports
-			OWLOntology abox = graph.getManager().loadOntologyFromOntologyDocument(source);
-			return abox;
-		}
-		else {
-			// only load the model, skip imports
-			// approach: return an empty ontology IRI for any IRI mapping request using.
-			final OWLOntologyManager m = OWLManager.createOWLOntologyManager();
-			final Set<IRI> emptyOntologies = new HashSet<IRI>();
-			m.addIRIMapper(new OWLOntologyIRIMapper() {
-				
-				@Override
-				public IRI getDocumentIRI(IRI ontologyIRI) {
-					
-					// quick check:
-					// do nothing for the original IRI and known empty ontologies
-					if (sourceIRI.equals(ontologyIRI) || emptyOntologies.contains(ontologyIRI)) {
-						return null;
+		final List<OWLParserFactory> originalFactories = removeOBOParserFactories();
+		try {
+			// load model from source
+			OWLOntologyDocumentSource source = new IRIDocumentSource(sourceIRI);
+			if (minimal == false) {
+				// add the obsolete imports to the ignored imports
+				OWLOntology abox = manager.loadOntologyFromOntologyDocument(source);
+				return abox;
+			}
+			else {
+				// only load the model, skip imports
+				// approach: return an empty ontology IRI for any IRI mapping request using.
+				final OWLOntologyManager m = OWLManager.createOWLOntologyManager();
+				final Set<IRI> emptyOntologies = new HashSet<IRI>();
+				m.addIRIMapper(new OWLOntologyIRIMapper() {
+
+					@Override
+					public IRI getDocumentIRI(IRI ontologyIRI) {
+
+						// quick check:
+						// do nothing for the original IRI and known empty ontologies
+						if (sourceIRI.equals(ontologyIRI) || emptyOntologies.contains(ontologyIRI)) {
+							return null;
+						}
+						emptyOntologies.add(ontologyIRI);
+						try {
+							OWLOntology emptyOntology = m.createOntology(ontologyIRI);
+							return emptyOntology.getOntologyID().getDefaultDocumentIRI();
+						} catch (OWLOntologyCreationException e) {
+							throw new RuntimeException(e);
+						}
 					}
-					emptyOntologies.add(ontologyIRI);
-					try {
-						OWLOntology emptyOntology = m.createOntology(ontologyIRI);
-						return emptyOntology.getOntologyID().getDefaultDocumentIRI();
-					} catch (OWLOntologyCreationException e) {
-						throw new RuntimeException(e);
-					}
-				}
-			});
-			OWLOntology minimalAbox = m.loadOntologyFromOntologyDocument(source);
-			return minimalAbox;
+				});
+				OWLOntology minimalAbox = m.loadOntologyFromOntologyDocument(source);
+				return minimalAbox;
+			}
+		} finally {
+			resetOBOParserFactories(originalFactories);
 		}
 	}
 	
