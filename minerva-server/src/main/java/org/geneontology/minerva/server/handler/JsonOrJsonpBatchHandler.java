@@ -68,26 +68,26 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public M3BatchResponse m3BatchGet(String intention, String packetId, String requestString) {
-		return m3Batch(null, intention, packetId, requestString, false);
+	public M3BatchResponse m3BatchGet(String intention, String packetId, String requestString, String useReasoner) {
+		return m3Batch(null, intention, packetId, requestString, useReasoner, false);
 	}
 	
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public M3BatchResponse m3BatchGetPrivileged(String uid, String intention, String packetId, String requestString) {
-		return m3Batch(uid, intention, packetId, requestString, true);
+	public M3BatchResponse m3BatchGetPrivileged(String uid, String intention, String packetId, String requestString, String useReasoner) {
+		return m3Batch(uid, intention, packetId, requestString, useReasoner, true);
 	}
 
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public M3BatchResponse m3BatchPost(String intention, String packetId, String requestString) {
-		return m3Batch(null, intention, packetId, requestString, false);
+	public M3BatchResponse m3BatchPost(String intention, String packetId, String requestString, String useReasoner) {
+		return m3Batch(null, intention, packetId, requestString, useReasoner, false);
 	}
 	
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public M3BatchResponse m3BatchPostPrivileged(String uid, String intention, String packetId, String requestString) {
-		return m3Batch(uid, intention, packetId, requestString, true);
+	public M3BatchResponse m3BatchPostPrivileged(String uid, String intention, String packetId, String requestString, String useReasoner) {
+		return m3Batch(uid, intention, packetId, requestString, useReasoner, true);
 	}
 
 	private static String checkPacketId(String packetId) {
@@ -98,13 +98,13 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	}
 	
 	@Override
-	public M3BatchResponse m3Batch(String uid, String intention, String packetId, M3Request[] requests, boolean isPrivileged) {
+	public M3BatchResponse m3Batch(String uid, String intention, String packetId, M3Request[] requests, boolean useReasoner, boolean isPrivileged) {
 		M3BatchResponse response = new M3BatchResponse(uid, intention, checkPacketId(packetId));
 		if (requests == null) {
 			return error(response, "The batch contains no requests: null value for request array", null);
 		}
 		try {
-			return m3Batch(response, requests, uid, isPrivileged);
+			return m3Batch(response, requests, uid, useReasoner, isPrivileged);
 		} catch (InsufficientPermissionsException e) {
 			return error(response, e.getMessage(), null);
 		} catch (Exception e) {
@@ -115,7 +115,12 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		}
 	}
 	
-	private M3BatchResponse m3Batch(String uid, String intention, String packetId, String requestString, boolean isPrivileged) {
+	private M3BatchResponse m3Batch(String uid, String intention, String packetId, String requestString, String useReasonerString, boolean isPrivileged) {
+		boolean useReasoner = false;
+		if (inferenceProviderCreator != null) {
+			useReasonerString = StringUtils.trimToNull(useReasonerString);
+			useReasoner = "true".equalsIgnoreCase(useReasonerString);
+		}
 		M3BatchResponse response = new M3BatchResponse(uid, intention, checkPacketId(packetId));
 		requestString = StringUtils.trimToNull(requestString);
 		if (requestString == null) {
@@ -123,7 +128,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		}
 		try {
 			M3Request[] requests = MolecularModelJsonRenderer.parseFromJson(requestString, requestType);
-			return m3Batch(response, requests, uid, isPrivileged);
+			return m3Batch(response, requests, uid, useReasoner, isPrivileged);
 		} catch (Exception e) {
 			return error(response, "Could not successfully handle batch request.", e);
 		} catch (Throwable t) {
@@ -132,7 +137,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		}
 	}
 	
-	private M3BatchResponse m3Batch(M3BatchResponse response, M3Request[] requests, String userId, boolean isPrivileged) throws InsufficientPermissionsException, Exception {
+	private M3BatchResponse m3Batch(M3BatchResponse response, M3Request[] requests, String userId, boolean useReasoner, boolean isPrivileged) throws InsufficientPermissionsException, Exception {
 		userId = normalizeUserId(userId);
 		UndoMetadata token = new UndoMetadata(userId);
 		
@@ -193,9 +198,10 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		// report state
 		InferenceProvider inferenceProvider = null;
 		boolean isConsistent = true;
-		if (inferenceProviderCreator != null) {
+		if (inferenceProviderCreator != null && useReasoner) {
 			inferenceProvider = inferenceProviderCreator.create(values.model);
 			isConsistent = inferenceProvider.isConsistent();
+			response.setReasoned(true);
 		}
 
 		// create response.data

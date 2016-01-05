@@ -7,6 +7,10 @@ public abstract class MinervaResponse<DATA> {
 	@SerializedName("packet-id")
 	final String packetId; // generated or pass-through
 	final String uid; // pass-through
+	
+	@SerializedName("is-reasoned")
+	boolean isReasoned = false;
+	
 	/*
 	 * pass-through; model:
 	 * "query", "action" //, "location"
@@ -49,5 +53,12 @@ public abstract class MinervaResponse<DATA> {
 		this.uid = uid;
 		this.intention = intention;
 		this.packetId = packetId;
+	}
+
+	/**
+	 * @param isReasoned the isReasoned to set
+	 */
+	public void setReasoned(boolean isReasoned) {
+		this.isReasoned = isReasoned;
 	}
 }

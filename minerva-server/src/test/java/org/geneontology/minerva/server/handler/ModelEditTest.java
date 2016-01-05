@@ -161,7 +161,7 @@ public class ModelEditTest {
 		}
 		
 		// get model, check that the model indicated as not modified
-		M3BatchResponse resp1 = BatchTestTools.getModel(handler, modelId);
+		M3BatchResponse resp1 = BatchTestTools.getModel(handler, modelId, false);
 		assertFalse(resp1.data.modifiedFlag);
 		
 		// modify model
@@ -215,7 +215,7 @@ public class ModelEditTest {
 	
 	private M3BatchResponse executeBatch(List<M3Request> batch) {
 		M3BatchResponse response = handler.m3Batch("test-user", "test-intention", "foo-packet-id",
-				batch.toArray(new M3Request[batch.size()]), true);
+				batch.toArray(new M3Request[batch.size()]), false, true);
 		assertEquals("test-user", response.uid);
 		assertEquals("test-intention", response.intention);
 		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);

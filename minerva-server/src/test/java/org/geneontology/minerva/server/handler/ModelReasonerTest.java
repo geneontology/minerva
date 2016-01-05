@@ -121,7 +121,7 @@ public class ModelReasonerTest {
 	
 	private M3BatchResponse executeBatch(List<M3Request> batch) {
 		M3BatchResponse response = handler.m3Batch("test-user", "test-intention", "foo-packet-id",
-				batch.toArray(new M3Request[batch.size()]), true);
+				batch.toArray(new M3Request[batch.size()]), true, true);
 		assertEquals("test-user", response.uid);
 		assertEquals("test-intention", response.intention);
 		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
