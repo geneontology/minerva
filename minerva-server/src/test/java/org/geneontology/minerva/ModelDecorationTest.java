@@ -63,9 +63,9 @@ public class ModelDecorationTest {
 		
 		// model annotations
 		// id and label for cls
-		assertEquals(3, changes.size());
+		assertEquals(6, changes.size()); // 3 + 3 declarations
 		
-		assertEquals(2+originalAxiomCount, model.getAxiomCount());
+		assertEquals(5+originalAxiomCount, model.getAxiomCount());
 		assertEquals(1+originalAnnotationCount, model.getAnnotations().size());
 		
 		
@@ -73,7 +73,7 @@ public class ModelDecorationTest {
 		
 		ModelReaderHelper.INSTANCE.filter(model);
 		
-		assertEquals(originalAxiomCount, model.getAxiomCount());
+		assertEquals(originalAxiomCount+3, model.getAxiomCount()); // declarations are fine
 		assertEquals(originalAnnotationCount, model.getAnnotations().size());
 		
 		//System.out.println(render(model));
