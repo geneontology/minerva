@@ -149,13 +149,6 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		return allSubClasses;
 	}
 
-	protected static class Entry<T> {
-		T value;
-		Metadata metadata;
-		Set<OWLObjectSomeValuesFrom> expressions;
-		// TODO multi-species interactions
-	}
-
 	protected class Summary {
 
 		Set<Entry<OWLClass>> activities = null;
