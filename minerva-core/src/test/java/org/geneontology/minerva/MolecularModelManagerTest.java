@@ -96,9 +96,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		
 		// export
 		final String modelContent = mmm.exportModel(model);
-		System.out.println("-------------------");
-		System.out.println(modelContent);
-		System.out.println("-------------------");
+		final IRI modelId1 = model.getModelId();
 		
 		// add an additional individual to model after export
 		final OWLNamedIndividual i3 = mmm.createIndividual(model.getModelId(), "GO:0008233", null, null);
@@ -106,10 +104,13 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 
 		
 		// import
-		final ModelContainer modelId2 = mmm.importModel(modelContent);
+		final ModelContainer model2 = mmm.importModel(modelContent);
 		
-		assertEquals(model.getModelId(), modelId2.getModelId());
-		Set<OWLNamedIndividual> loaded = mmm.getIndividuals(modelId2.getModelId());
+		final String modelContent2 = mmm.exportModel(model2);
+		assertEquals(modelContent, modelContent2);
+		
+		assertEquals(modelId1, model2.getModelId());
+		Set<OWLNamedIndividual> loaded = mmm.getIndividuals(model2.getModelId());
 		assertEquals(2, loaded.size());
 		for (OWLNamedIndividual i : loaded) {
 			IRI iri = i.getIRI();

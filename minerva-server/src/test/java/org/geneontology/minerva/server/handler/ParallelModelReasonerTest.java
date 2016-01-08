@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -89,8 +90,8 @@ public class ParallelModelReasonerTest {
 			validateResponse(thread.response);
 		}
 		System.out.println("Hit: "+ipc.hit+" Miss: "+ipc.miss);
-		assertTrue(ipc.hit >= 9); // most should be hits
-		assertTrue(ipc.miss >= 1); // at least one miss
+		assertTrue(ipc.hit.get() >= 9); // most should be hits
+		assertTrue(ipc.miss.get() >= 1); // at least one miss
 	}
 	
 	@Test
@@ -110,34 +111,32 @@ public class ParallelModelReasonerTest {
 			validateResponse(thread.response);
 		}
 		System.out.println("Hit: "+ipc.hit+" Miss: "+ipc.miss);
-		assertTrue(ipc.miss >= 10); // ten changes, at least ten cache miss
-		assertTrue(ipc.hit >= 1); // at least one hit
-		
+		assertTrue(ipc.miss.get() >= 10); // ten changes, at least ten cache miss
 	}
 	
 	private static final class CountingCachingInferenceProvider extends CachingInferenceProviderCreatorImpl {
 		
-		long hit = 0;
-		long miss = 0;
+		final AtomicLong hit = new AtomicLong(0L);
+		final AtomicLong miss = new AtomicLong(0L);
 		
 		private CountingCachingInferenceProvider(boolean useSLME) {
 			super(new ElkReasonerFactory(), 1, useSLME, "Counting Caching ELK");
 		}
 
 		@Override
-		protected synchronized void addHit() {
-			hit+=1;
+		protected void addHit() {
+			hit.incrementAndGet();
 		}
 
 		@Override
-		protected synchronized void addMiss() {
-			miss += 1;
+		protected void addMiss() {
+			miss.incrementAndGet();
 		}
 		
 		protected void clear() {
 			super.clear();
-			hit = 0;
-			miss = 0;
+			hit.set(0);
+			miss.set(0);
 		}
 	}
 
