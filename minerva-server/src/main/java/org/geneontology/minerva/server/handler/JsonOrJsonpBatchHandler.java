@@ -202,6 +202,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			inferenceProvider = inferenceProviderCreator.create(values.model);
 			isConsistent = inferenceProvider.isConsistent();
 			response.setReasoned(true);
+			values.renderBulk = true; // to ensure that all indivuduals are in the response
 		}
 
 		// create response.data
