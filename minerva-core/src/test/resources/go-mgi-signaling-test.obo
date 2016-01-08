@@ -1,5 +1,5 @@
 format-version: 1.2
-ontology: owlapi:ontology:ont2
+ontology: go-mgi-signaling-test
 
 [Term]
 id: GO:0000003

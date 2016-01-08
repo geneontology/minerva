@@ -58,7 +58,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 
 		OWLNamedIndividual i2 = mmm.createIndividual(model.getModelId(), "GO:0042803", null, null);
 
-		addPartOf(model, i1, i2, mmm, g);
+		addPartOf(model, i1, i2, mmm);
 
 		//		String js = renderJSON(modelId);
 		//		System.out.println("-------------");
@@ -92,7 +92,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 
 		final OWLNamedIndividual i2 = mmm.createIndividual(model.getModelId(), "GO:0042803", null, null);
 
-		addPartOf(model, i1, i2, mmm, g);
+		addPartOf(model, i1, i2, mmm);
 		
 		// export
 		final String modelContent = mmm.exportModel(model);
@@ -137,7 +137,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 
 		final OWLNamedIndividual i2 = mmm.createIndividual(model.getModelId(), "GO:0042803", null, null);
 
-		addPartOf(model, i1, i2, mmm, g);
+		addPartOf(model, i1, i2, mmm);
 		
 		// save
 		mmm.saveModel(model, null, null);
@@ -189,7 +189,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		
 		OWLNamedIndividual mit = mmm.createIndividual(model.getModelId(), "GO:0007166", null, null); // cell surface receptor signaling pathway
 
-		addPartOf(model, mit, cc, mmm, g);
+		addPartOf(model, mit, cc, mmm);
 
 		// we expect inference to be to: GO:0038023  signaling receptor activity
 		// See discussion here: https://github.com/kltm/go-mme/issues/3
@@ -198,10 +198,10 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		//assertEquals(1, individuals.size());
 	}
 	
-	private static void addPartOf(ModelContainer model, OWLNamedIndividual i1, OWLNamedIndividual i2, 
-			MolecularModelManager<Void> m3, OWLGraphWrapper g) {
-		final OWLObjectProperty partOf = g.getOWLObjectPropertyByIdentifier("BFO:0000050");
-		assertNotNull(partOf);
+	private void addPartOf(ModelContainer model, OWLNamedIndividual i1, OWLNamedIndividual i2, 
+			MolecularModelManager<Void> m3) {
+		IRI partOfIRI = curieHandler.getIRI("BFO:0000050");
+		final OWLObjectProperty partOf = model.getOWLDataFactory().getOWLObjectProperty(partOfIRI);
 		m3.addFact(model, partOf, i1, i2, Collections.<OWLAnnotation>emptySet(), null);
 	}
 
