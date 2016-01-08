@@ -713,6 +713,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		final OWLOntologyManager manager = graph.getManager();
 		final OWLOntologyDocumentSource documentSource = new StringDocumentSource(modelData);
 		OWLOntology modelOntology;
+		final List<OWLParserFactory> originalFactories = removeOBOParserFactories();
 		try {
 			modelOntology = manager.loadOntologyFromOntologyDocument(documentSource);
 		}
@@ -726,6 +727,9 @@ public abstract class CoreMolecularModelManager<METADATA> {
 
 			// try loading the import version (again)
 			modelOntology = manager.loadOntologyFromOntologyDocument(documentSource);
+		}
+		finally {
+			resetOBOParserFactories(originalFactories);
 		}
 		
 		// try to extract modelId
