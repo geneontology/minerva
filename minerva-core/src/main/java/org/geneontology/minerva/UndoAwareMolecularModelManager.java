@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
@@ -88,6 +89,8 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 	}
 	
 	public static class UndoMetadata {
+		private static final AtomicLong instanceCounter = new AtomicLong(0L);
+		
 		public final String userId;
 		public final long requestToken;
 		
@@ -96,7 +99,7 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 		 */
 		public UndoMetadata(String userId) {
 			this.userId = userId;
-			this.requestToken = System.currentTimeMillis();
+			this.requestToken = instanceCounter.getAndIncrement();
 		}
 
 		@Override
