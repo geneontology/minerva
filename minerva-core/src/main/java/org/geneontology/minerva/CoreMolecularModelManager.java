@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
@@ -87,7 +88,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 * Use start up time to create a unique prefix for id generation
 	 */
 	static String uniqueTop = Long.toHexString(Math.abs((System.currentTimeMillis()/1000)));
-	static long instanceCounter = 0;
+	static final AtomicLong instanceCounter = new AtomicLong(0L);
 	
 	/**
 	 * Generate a new id from the unique server prefix and a global counter
@@ -95,8 +96,8 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 * @return id
 	 */
 	private static String localUnique(){
-		instanceCounter++;
-		String unique = uniqueTop + String.format("%08d", instanceCounter);
+		final long counterValue = instanceCounter.getAndIncrement();
+		String unique = uniqueTop + String.format("%08d", counterValue);
 		return unique;		
 	}
 	
