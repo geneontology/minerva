@@ -21,7 +21,7 @@ public class FindTaxonToolTest {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
-		NEO = pw.parse("http://build.berkeleybop.org/job/build-noctua-entity-ontology/lastStableBuild/artifact/neo.obo");
+		NEO = pw.parse("http://purl.obolibrary.org/obo/go/noctua/neo.owl");
 		curieHandler  = DefaultCurieHandler.getDefaultHandler();
 	}
 
