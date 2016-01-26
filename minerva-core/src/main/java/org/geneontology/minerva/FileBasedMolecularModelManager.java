@@ -321,7 +321,6 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		Set<IRI> allModelIds = new HashSet<>();
 		File modelFolder = new File(pathTo);
 		File[] modelFiles = modelFolder.listFiles(new FilenameFilter() {
-			
 			@Override
 			public boolean accept(File dir, String name) {
 				return isLocalUnique(name);

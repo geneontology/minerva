@@ -21,6 +21,7 @@ import org.geneontology.minerva.lookup.CachingExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.GolrExternalLookupService;
 import org.geneontology.minerva.lookup.MonarchExternalLookupService;
+import org.geneontology.minerva.server.handler.StatusHandler;
 import org.geneontology.minerva.server.handler.JsonOrJsonpBatchHandler;
 import org.geneontology.minerva.server.handler.JsonOrJsonpSeedHandler;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
@@ -43,7 +44,7 @@ import owltools.io.ParserWrapper;
 
 
 public class StartUpTool {
-	
+
 	private static final Logger LOGGER = Logger.getLogger(StartUpTool.class);
 
 	public static class MinervaStartUpConfig {
@@ -53,9 +54,9 @@ public class StartUpTool {
 		public String modelFolder = null;
 		public String modelIdPrefix = "http://model.geneontology.org/";
 		public String modelIdcurie = "gomodel";
-		
+
 		public String defaultModelState = "development";
-		
+
 		public String golrUrl = null;
 		public String monarchUrl = null;
 		public String golrSeedUrl = null;
@@ -66,7 +67,7 @@ public class StartUpTool {
 		public boolean checkLiteralIds = true;
 
 		public InferenceProviderCreator inferenceProviderCreator = null;
-		
+
 		public CurieHandler curieHandler;
 
 		// The subset of highly relevant relations is configured using super property
@@ -75,24 +76,24 @@ public class StartUpTool {
 		public Set<OWLObjectProperty> importantRelations = null;
 
 		// server configuration
-		public int port = 6800; 
+		public int port = 6800;
 		public String contextPrefix = null; // root context by default
 		public String contextString = null;
-		
+
 		// increase default size to deal with large HTTP GET requests
 		public int requestHeaderSize = 64*1024;
 		public int requestBufferSize = 128*1024;
-		
+
 		public boolean useRequestLogging = false;
-		
+
 		public boolean useGolrUrlLogging = false;
 	}
-	
+
 	public static void main(String[] args) throws Exception {
 		Opts opts = new Opts(args);
 		MinervaStartUpConfig conf = new MinervaStartUpConfig();
-		
-		
+
+
 		while (opts.hasArgs()) {
 			if (opts.nextEq("-g|--graph")) {
 				conf.ontology = opts.nextOpt();
@@ -180,7 +181,15 @@ public class StartUpTool {
 			else if (opts.nextEq("--use-golr-url-logging|--golr-url-logging")) {
 				conf.useGolrUrlLogging = true;
 			}
-			else {
+  			else if (opts.nextEq("--version")) {
+  				System.err.println(args[0] + " version: " + "0.0.1");
+  				System.exit(-1);
+  			}
+  			else if (opts.nextEq("--help")) {
+  				System.err.println(args[0] + " help: " + "No Help Available");
+  				System.exit(-1);
+  			}
+  			else {
 				break;
 			}
 		}
@@ -191,16 +200,16 @@ public class StartUpTool {
 		if (conf.modelFolder == null) {
 			System.err.println("No model folder available");
 			System.exit(-1);
-		} 
+		}
 		conf.contextString = "/";
 		if (conf.contextPrefix != null) {
 			conf.contextString = "/"+conf.contextPrefix;
 		}
-		
+
 		// set curie handler
 		CurieMappings defaultMappings = DefaultCurieHandler.getMappings();
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(conf.modelIdcurie, conf.modelIdPrefix));
-		
+
 		// TODO make the modules configurable
 		conf.curieHandler = new MappedCurieHandler(defaultMappings, localMappings);
 
@@ -229,10 +238,10 @@ public class StartUpTool {
 			server.destroy();
 		}
 	}
-	
+
 	/**
 	 * Try to resolve the given string into an {@link OWLObjectProperty}.
-	 * 
+	 *
 	 * @param rel
 	 * @param g
 	 * @return property or null
@@ -256,10 +265,10 @@ public class StartUpTool {
 		}
 		return p;
 	}
-	
+
 	/**
 	 * Find all asserted direct sub properties of the parent property.
-	 * 
+	 *
 	 * @param parent
 	 * @param g
 	 * @return set
@@ -278,7 +287,7 @@ public class StartUpTool {
 		return properties;
 	}
 
-	public static Server startUp(final MinervaStartUpConfig conf) 
+	public static Server startUp(final MinervaStartUpConfig conf)
 			throws Exception {
 		// load ontology
 		LOGGER.info("Start loading ontology: "+conf.ontology);
@@ -289,7 +298,7 @@ public class StartUpTool {
 			pw.addIRIMapper(new CatalogXmlIRIMapper(conf.catalog));
 		}
 		OWLGraphWrapper graph = pw.parseToOWLGraph(conf.ontology);
-		
+
 		// try to get important relations
 		if (conf.importantRelationParent != null) {
 			// try to find parent property
@@ -313,16 +322,16 @@ public class StartUpTool {
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
 		models.addPreFileSaveHandler(new ModelWriterHelper(conf.curieHandler, conf.lookupService));
-		
+
 		// set folder to  models
 		LOGGER.info("Model path: "+conf.modelFolder);
 		models.setPathToOWLFiles(conf.modelFolder);
-		
+
 		// start server
 		Server server = startUp(models, conf);
 		return server;
 	}
-	
+
 	public static Server startUp(UndoAwareMolecularModelManager models, MinervaStartUpConfig conf)
 			throws Exception {
 		LOGGER.info("Setup Jetty config.");
@@ -335,7 +344,7 @@ public class StartUpTool {
 			resourceConfig.register(LoggingApplicationEventListener.class);
 		}
 		//resourceConfig.register(AuthorizationRequestFilter.class);
-		
+
 		LOGGER.info("BatchHandler config inference provider: "+conf.inferenceProviderCreator);
 		LOGGER.info("BatchHandler config importantRelations: "+conf.importantRelations);
 		LOGGER.info("BatchHandler config lookupService: "+conf.lookupService);
@@ -346,14 +355,16 @@ public class StartUpTool {
 			conf.golrSeedUrl = conf.golrUrl;
 		}
 		LOGGER.info("SeedHandler config golrUrl: "+conf.golrSeedUrl);
-		
+
+		StatusHandler statusHandler = new StatusHandler();
+
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
 				conf.inferenceProviderCreator, conf.importantRelations, conf.lookupService);
 		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
-		
+
 		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
 		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
-		resourceConfig = resourceConfig.registerInstances(batchHandler, seedHandler);
+		resourceConfig = resourceConfig.registerInstances(statusHandler, batchHandler, seedHandler);
 
 		// setup jetty server port, buffers and context path
 		Server server = new Server();

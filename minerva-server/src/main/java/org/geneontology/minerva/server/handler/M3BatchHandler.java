@@ -24,114 +24,111 @@ public interface M3BatchHandler {
 	public static class M3Request extends MinervaRequest<Operation, Entity, M3Argument> {
 		// wrapper to conform to minerva request standard
 	}
-	
+
 	public static enum Entity {
 		individual,
 		edge,
 		model,
 		meta;
 	}
-	
+
 	public static enum Operation {
 		// generic operations
 		get,
-		
+
 		@SerializedName("add-type")
 		addType,
-		
+
 		@SerializedName("remove-type")
 		removeType,
-		
+
 		add,
-		
+
 		remove,
-		
+
 		@SerializedName("add-annotation")
 		addAnnotation,
-		
+
 		@SerializedName("remove-annotation")
 		removeAnnotation,
-		
+
 		// model specific operations
 		@SerializedName("export")
 		exportModel,
-		
+
 		@SerializedName("export-legacy")
 		exportModelLegacy,
-		
+
 		@SerializedName("import")
 		importModel,
-		
+
 		@SerializedName("store")
 		storeModel,
-		
+
 		@SerializedName("update-imports")
 		updateImports,
-		
+
 		// undo operations for models
 		undo, // undo the latest op
 		redo, // redo the latest undo
 		@SerializedName("get-undo-redo")
 		getUndoRedo, // get a list of all currently available undo and redo for a model
-		
+
 	}
-	
+
 	public static class M3Argument extends MinervaRequest.MinervaArgument {
-		
+
 		 @SerializedName("model-id")
 		String modelId;
 		String subject;
 		String object;
 		String predicate;
 		String individual;
-		
+
 		@SerializedName("individual-iri")
 		String individualIRI;
-		
+
 		@SerializedName("taxon-id")
 		String taxonId;
-		
+
 		@SerializedName("import-model")
 		String importModel;
 		String format;
-		
+
 		@SerializedName("assign-to-variable")
 		String assignToVariable;
-		
+
 		JsonOwlObject[] expressions;
 		JsonAnnotation[] values;
 	}
-	
+
 	public static class M3BatchResponse extends MinervaResponse<M3BatchResponse.ResponseData>{
-		
 		public static class ResponseData extends JsonModel {
-			
 			@SerializedName("inconsistent-p")
 			public Boolean inconsistentFlag;
-			
+
 			@SerializedName("modified-p")
 			public Boolean modifiedFlag;
-			
 			public Object undo;
 			public Object redo;
-			
+
 			@SerializedName("export-model")
 			public String exportModel;
-			
+
 			public MetaResponse meta;
 		}
-		
+
 		public static class MetaResponse {
 			public JsonRelationInfo[] relations;
-			
+
 			@SerializedName("data-properties")
 			public JsonRelationInfo[] dataProperties;
-			
+
 			public JsonEvidenceInfo[] evidence;
-			
+
 			@SerializedName("models-meta")
 			public Map<String,List<JsonAnnotation>> modelsMeta;
-			
+
 			@SerializedName("models-meta-read-only")
 			public Map<String, Map<String,Object>> modelsReadOnly;
 		}
@@ -144,13 +141,13 @@ public interface M3BatchHandler {
 		public M3BatchResponse(String uid, String intention, String packetId) {
 			super(uid, intention, packetId);
 		}
-		
+
 	}
-	
-	
+
+
 	/**
 	 * Process a batch request. The parameters uid and intention are round-tripped for the JSONP.
-	 * 
+	 *
 	 * @param uid user id, JSONP relevant
 	 * @param intention JSONP relevant
 	 * @param packetId response relevant, may be null
@@ -160,10 +157,10 @@ public interface M3BatchHandler {
 	 * @return response object, never null
 	 */
 	public M3BatchResponse m3Batch(String uid, String intention, String packetId, M3Request[] requests, boolean useReasoner, boolean isPrivileged);
-	
+
 	/**
 	 * Jersey REST method for POST with three form parameters.
-	 * 
+	 *
 	 * @param intention JSONP relevant
 	 * @param packetId
 	 * @param requests JSON string of the batch request
@@ -178,10 +175,10 @@ public interface M3BatchHandler {
 			@FormParam("packet-id") String packetId,
 			@FormParam("requests") String requests,
 			@FormParam("use-reasoner") String useReasoner);
-	
+
 	/**
 	 * Jersey REST method for POST with three form parameters with privileged rights.
-	 * 
+	 *
 	 * @param uid user id, JSONP relevant
 	 * @param intention JSONP relevant
 	 * @param packetId
@@ -198,13 +195,13 @@ public interface M3BatchHandler {
 			@FormParam("packet-id") String packetId,
 			@FormParam("requests") String requests,
 			@FormParam("use-reasoner") String useReasoner);
-	
-	
+
+
 	/**
 	 * Jersey REST method for GET with three query parameters.
-	 * 
+	 *
 	 * @param intention JSONP relevant
-	 * @param packetId 
+	 * @param packetId
 	 * @param requests JSON string of the batch request
 	 * @param useReasoner
 	 * @return response convertible to JSON(P)
@@ -218,10 +215,10 @@ public interface M3BatchHandler {
 			@QueryParam("use-reasoner") String useReasoner);
 	/**
 	 * Jersey REST method for GET with three query parameters with privileged rights.
-	 * 
+	 *
 	 * @param uid user id, JSONP relevant
 	 * @param intention JSONP relevant
-	 * @param packetId 
+	 * @param packetId
 	 * @param requests JSON string of the batch request
 	 * @param useReasoner
 	 * @return response convertible to JSON(P)
@@ -234,5 +231,4 @@ public interface M3BatchHandler {
 			@QueryParam("packet-id") String packetId,
 			@QueryParam("requests") String requests,
 			@QueryParam("use-reasoner") String useReasoner);
-
 }

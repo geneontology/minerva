@@ -31,6 +31,7 @@ import owltools.gaf.GeneAnnotation;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.io.ParserWrapper;
+import owltools.io.CatalogXmlIRIMapper;
 
 public class LegoToGeneAnnotationTranslatorTest {
 	
@@ -42,6 +43,13 @@ public class LegoToGeneAnnotationTranslatorTest {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		pw = new ParserWrapper();
+
+		// if available, set catalog
+        String envCatalog = System.getenv().get("GENEONTOLOGY_CATALOG");
+        if (envCatalog != null) {
+        	pw.addIRIMapper(new CatalogXmlIRIMapper(envCatalog));
+        }
+
 		mapper = EcoMapperFactory.createSimple();
 	}
 

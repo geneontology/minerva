@@ -25,6 +25,7 @@ import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
+import owltools.io.CatalogXmlIRIMapper;
 
 public class SeedHandlerTest {
 
@@ -38,7 +39,15 @@ public class SeedHandlerTest {
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		init(new ParserWrapper(), "http://golr.geneontology.org/solr");
+		ParserWrapper pw = new ParserWrapper();
+
+		// if available, set catalog
+        String envCatalog = System.getenv().get("GENEONTOLOGY_CATALOG");
+        if (envCatalog != null) {
+        	pw.addIRIMapper(new CatalogXmlIRIMapper(envCatalog));
+        }
+
+		init(pw, "http://golr.geneontology.org/solr");
 	}
 
 	static void init(ParserWrapper pw, String golr) throws Exception {

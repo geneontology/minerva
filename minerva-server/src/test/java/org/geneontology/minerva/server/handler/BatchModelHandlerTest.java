@@ -48,6 +48,7 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
+import owltools.io.CatalogXmlIRIMapper;
 
 @SuppressWarnings("unchecked")
 public class BatchModelHandlerTest {
@@ -69,7 +70,14 @@ public class BatchModelHandlerTest {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		init(new ParserWrapper());
+		// if available, set catalog
+        String envCatalog = System.getenv().get("GENEONTOLOGY_CATALOG");
+        ParserWrapper pw = new ParserWrapper();
+
+        if (envCatalog != null) {
+        	pw.addIRIMapper(new CatalogXmlIRIMapper(envCatalog));
+        }
+		init(pw);
 	}
 
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {

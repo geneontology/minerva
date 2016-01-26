@@ -26,6 +26,7 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import owltools.OWLToolsTestBasics;
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
+import owltools.io.CatalogXmlIRIMapper;
 
 public class MolecularModelManagerTest extends OWLToolsTestBasics {
 
@@ -46,6 +47,13 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	@Test
 	public void testDeleteIndividual() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
+
+		// if available, set catalog
+        String envCatalog = System.getenv().get("GENEONTOLOGY_CATALOG");
+        if (envCatalog != null) {
+        	pw.addIRIMapper(new CatalogXmlIRIMapper(envCatalog));
+        }
+
 		OWLGraphWrapper g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
 
 		// GO:0038024 ! cargo receptor activity
@@ -79,6 +87,13 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	@Test
 	public void testExportImport() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
+
+		// if available, set catalog
+        String envCatalog = System.getenv().get("GENEONTOLOGY_CATALOG");
+        if (envCatalog != null) {
+        	pw.addIRIMapper(new CatalogXmlIRIMapper(envCatalog));
+        }
+
 		OWLGraphWrapper g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
 
 		// GO:0038024 ! cargo receptor activity
@@ -124,6 +139,13 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	public void testSaveModel() throws Exception {
 		final File saveFolder = folder.newFolder();
 		final ParserWrapper pw1 = new ParserWrapper();
+
+		// if available, set catalog
+        String envCatalog = System.getenv().get("GENEONTOLOGY_CATALOG");
+        if (envCatalog != null) {
+        	pw1.addIRIMapper(new CatalogXmlIRIMapper(envCatalog));
+        }
+
 		OWLGraphWrapper g = pw1.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
 
 		MolecularModelManager<Void> mmm = createM3(g);
@@ -152,6 +174,12 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		mmm = null;
 		
 		final ParserWrapper pw2 = new ParserWrapper();
+
+		// if available, set catalog
+        if (envCatalog != null) {
+        	pw2.addIRIMapper(new CatalogXmlIRIMapper(envCatalog));
+        }
+
 		g = pw2.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
 		
 		
@@ -177,6 +205,13 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	@Test
 	public void testInferredType() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
+
+		// if available, set catalog
+        String envCatalog = System.getenv().get("GENEONTOLOGY_CATALOG");
+        if (envCatalog != null) {
+        	pw.addIRIMapper(new CatalogXmlIRIMapper(envCatalog));
+        }
+
 		OWLGraphWrapper g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
 
 		// GO:0038024 ! cargo receptor activity

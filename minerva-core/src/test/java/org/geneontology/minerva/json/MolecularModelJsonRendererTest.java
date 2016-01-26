@@ -37,6 +37,7 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
+import owltools.io.CatalogXmlIRIMapper;
 
 public class MolecularModelJsonRendererTest {
 
@@ -49,6 +50,13 @@ public class MolecularModelJsonRendererTest {
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
+
+		// if available, set catalog
+        String envCatalog = System.getenv().get("GENEONTOLOGY_CATALOG");
+        if (envCatalog != null) {
+        	pw.addIRIMapper(new CatalogXmlIRIMapper(envCatalog));
+        }
+
 		File file = new File("src/test/resources/mgi-go.obo").getCanonicalFile();
 		OWLOntology ont = pw.parseOWL(IRI.create(file));
 		g = new OWLGraphWrapper(ont);
