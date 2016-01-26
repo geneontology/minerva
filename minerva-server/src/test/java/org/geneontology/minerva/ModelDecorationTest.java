@@ -6,7 +6,9 @@ import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
+import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxOntologyFormat;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
@@ -17,6 +19,7 @@ import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.junit.Test;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
@@ -62,18 +65,19 @@ public class ModelDecorationTest {
 		List<OWLOntologyChange> changes = w.handle(model);
 		
 		// model annotations
-		// id and label for cls
-		assertEquals(6, changes.size()); // 3 + 3 declarations
+		// id, label, and json-model for cls
+		assertEquals(8, changes.size()); // 4 + 4 declarations
 		
-		assertEquals(5+originalAxiomCount, model.getAxiomCount());
-		assertEquals(1+originalAnnotationCount, model.getAnnotations().size());
+		assertEquals(6+originalAxiomCount, model.getAxiomCount());
+		final Set<OWLAnnotation> modelAnnotationsAfter = model.getAnnotations();
+		assertEquals(2+originalAnnotationCount, modelAnnotationsAfter.size());
 		
 		
 		//System.out.println(render(model));
 		
 		ModelReaderHelper.INSTANCE.filter(model);
 		
-		assertEquals(originalAxiomCount+3, model.getAxiomCount()); // declarations are fine
+		assertEquals(originalAxiomCount+4, model.getAxiomCount()); // declarations are fine
 		assertEquals(originalAnnotationCount, model.getAnnotations().size());
 		
 		//System.out.println(render(model));
@@ -81,7 +85,7 @@ public class ModelDecorationTest {
 	
 	static String render(OWLOntology o) throws Exception {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		o.getOWLOntologyManager().saveOntology(o, outputStream);
+		o.getOWLOntologyManager().saveOntology(o, new ManchesterOWLSyntaxOntologyFormat(), outputStream);
 		outputStream.flush();
 		outputStream.close();
 		String s = outputStream.toString();

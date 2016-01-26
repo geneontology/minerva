@@ -8,8 +8,11 @@ import java.util.Set;
 
 import org.geneontology.minerva.FileBasedMolecularModelManager.PreFileSaveHandler;
 import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.json.JsonModel;
+import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
+import org.geneontology.minerva.server.handler.OperationsTools;
 import org.geneontology.minerva.taxon.FindTaxonTool;
 import org.obolibrary.obo2owl.Obo2OWLConstants;
 import org.semanticweb.owlapi.model.AddAxiom;
@@ -33,13 +36,17 @@ import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.util.OWLClassExpressionVisitorAdapter;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import owltools.vocab.OBOUpperVocabulary;
 
 public class ModelWriterHelper implements PreFileSaveHandler {
-	
+
 	public static final IRI DERIVED_IRI = IRI.create("http://geneontology.org/lego/derived");
 	public static final String DERIVED_VALUE = "true";
-	
+	public static final IRI JSON_MODEL_IRI = IRI.create("http://geneontology.org/lego/json-model");
+
 	private final CurieHandler curieHandler;
 	private final ExternalLookupService lookupService;
 	private final IRI shortIdPropIRI;
@@ -61,6 +68,7 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 		IRI displayLabelPropIri = df.getRDFSLabel().getIRI();
 		OWLAnnotationProperty shortIdProp = df.getOWLAnnotationProperty(shortIdPropIRI);
 		OWLAnnotationProperty displayLabelProp = df.getOWLAnnotationProperty(displayLabelPropIri);
+		OWLAnnotationProperty jsonProp = df.getOWLAnnotationProperty(JSON_MODEL_IRI);
 		OWLObjectProperty enabledByProp = df.getOWLObjectProperty(enabledByIRI);
 		// annotations to mark the axiom as generated
 		final OWLAnnotationProperty tagProperty = df.getOWLAnnotationProperty(DERIVED_IRI);
@@ -69,13 +77,21 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 		// collect changes
 		List<OWLOntologyChange> allChanges = new ArrayList<OWLOntologyChange>();
 		
-		// set model id
+		// set model id and json model
 		if (curieHandler != null) {
 			final String modelId = curieHandler.getCuri(model.getOntologyID().getOntologyIRI());
 			final OWLAnnotation modelAnnotation = df.getOWLAnnotation(shortIdProp, df.getOWLLiteral(modelId), tags);
 			allChanges.add(new AddOntologyAnnotation(model, modelAnnotation));
+			
+			// WARNING dirty work-around
+			// we add the json model (without inferences) to each saved model as a model annotation
+			final MolecularModelJsonRenderer renderer = OperationsTools.createModelRenderer(model, lookupService, null, curieHandler);
+			final JsonModel jsonModel = renderer.renderModel();
+			final Gson gson = new GsonBuilder().create();
+			final String json = gson.toJson(jsonModel);
+			final OWLAnnotation jsonAnnotation = df.getOWLAnnotation(jsonProp, df.getOWLLiteral(json), tags);
+			allChanges.add(new AddOntologyAnnotation(model, jsonAnnotation));
 		}
-		
 		
 		// find relevant classes
 		final Set<OWLOntology> importsClosure = model.getImportsClosure();
@@ -166,6 +182,7 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 			// add declaration axioms for annotation properties
 			// this is a bug fix
 			allChanges.add(new AddAxiom(model, df.getOWLDeclarationAxiom(tagProperty)));
+			allChanges.add(new AddAxiom(model, df.getOWLDeclarationAxiom(jsonProp)));
 			allChanges.add(new AddAxiom(model, df.getOWLDeclarationAxiom(shortIdProp)));
 			allChanges.add(new AddAxiom(model, df.getOWLDeclarationAxiom(displayLabelProp)));
 		}

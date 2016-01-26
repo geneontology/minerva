@@ -10,8 +10,9 @@ import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.semanticweb.owlapi.model.OWLNamedObject;
+import org.semanticweb.owlapi.model.OWLOntology;
 
-class OperationsTools {
+public class OperationsTools {
 
 	static void requireNotNull(Object value, String msg) throws MissingParameterException {
 		if (value == null) {
@@ -57,15 +58,15 @@ class OperationsTools {
 	 * @param curieHandler
 	 * @return renderer
 	 */
-	static MolecularModelJsonRenderer createModelRenderer(
-			final ModelContainer model, 
+	public static MolecularModelJsonRenderer createModelRenderer(
+			final OWLOntology model, 
 			final ExternalLookupService externalLookupService,
 			final InferenceProvider inferenceProvider,
 			final CurieHandler curieHandler) {
 		
 		MolecularModelJsonRenderer renderer;
 		if (externalLookupService != null) {
-			renderer = new MolecularModelJsonRenderer(model.getAboxOntology(), inferenceProvider, curieHandler) {
+			renderer = new MolecularModelJsonRenderer(model, inferenceProvider, curieHandler) {
 
 				@Override
 				protected String getLabel(OWLNamedObject i, String id) {
@@ -82,8 +83,23 @@ class OperationsTools {
 			};
 		}
 		else {
-			renderer = new MolecularModelJsonRenderer(model.getAboxOntology(), inferenceProvider, curieHandler);
+			renderer = new MolecularModelJsonRenderer(model, inferenceProvider, curieHandler);
 		}
 		return renderer;
+	}
+	
+	/**
+	 * @param model
+	 * @param externalLookupService
+	 * @param inferenceProvider
+	 * @param curieHandler
+	 * @return renderer
+	 */
+	static MolecularModelJsonRenderer createModelRenderer(
+			final ModelContainer model, 
+			final ExternalLookupService externalLookupService,
+			final InferenceProvider inferenceProvider,
+			final CurieHandler curieHandler) {
+		return createModelRenderer(model, externalLookupService, inferenceProvider, curieHandler);
 	}
 }
