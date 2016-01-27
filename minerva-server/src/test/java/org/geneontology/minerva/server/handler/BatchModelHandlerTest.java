@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -322,6 +323,71 @@ public class BatchModelHandlerTest {
 		final JsonAnnotation[] annotations3 = getModelAnnotations(modelId);
 		assertNotNull(annotations3);
 		assertEquals(4, annotations3.length);
+	}
+	
+	@Test
+	public void testModelAnnotationsTemplate() throws Exception {
+		final String modelId = generateBlankModel();
+		final JsonAnnotation[] annotations1 = getModelAnnotations(modelId);
+		// creation date
+		// user id
+		// model state
+		assertEquals(3, annotations1.length);
+		
+		// create template annotation
+		final M3Request r1 = new M3Request();
+		r1.entity = Entity.model;
+		r1.operation = Operation.addAnnotation;
+		r1.arguments = new M3Argument();
+		r1.arguments.modelId = modelId;
+
+		r1.arguments.values = new JsonAnnotation[1];
+		r1.arguments.values[0] = new JsonAnnotation();
+		r1.arguments.values[0].key = AnnotationShorthand.templatestate.getShorthand();
+		r1.arguments.values[0].value = Boolean.TRUE.toString();
+
+		execute(r1, false);
+		
+		final JsonAnnotation[] annotations2 = getModelAnnotations(modelId);
+		assertNotNull(annotations2);
+		assertEquals(4, annotations2.length);
+		
+		// remove one annotation
+		final M3Request r2 = new M3Request();
+		r2.entity = Entity.model;
+		r2.operation = Operation.removeAnnotation;
+		r2.arguments = new M3Argument();
+		r2.arguments.modelId = modelId;
+
+		r2.arguments.values = new JsonAnnotation[1];
+		r2.arguments.values[0] = new JsonAnnotation();
+		r2.arguments.values[0].key = AnnotationShorthand.modelstate.getShorthand();
+		r2.arguments.values[0].value = "development";
+		
+		final M3Request r3 = new M3Request();
+		r3.entity = Entity.model;
+		r3.operation = Operation.addAnnotation;
+		r3.arguments = new M3Argument();
+		r3.arguments.modelId = modelId;
+
+		r3.arguments.values = new JsonAnnotation[1];
+		r3.arguments.values[0] = new JsonAnnotation();
+		r3.arguments.values[0].key = AnnotationShorthand.modelstate.getShorthand();
+		r3.arguments.values[0].value = "review";
+		
+		executeBatch(Arrays.asList(r2, r3), false);
+		
+		final JsonAnnotation[] annotations3 = getModelAnnotations(modelId);
+		assertNotNull(annotations3);
+		assertEquals(4, annotations3.length);
+		String foundModelState = null;
+		for (JsonAnnotation annotation : annotations3) {
+			if (AnnotationShorthand.modelstate.getShorthand().equals(annotation.key)) {
+				assertNull("Multiple model states are not allowed", foundModelState);
+				foundModelState = annotation.value;
+			}
+		}
+		assertEquals("review", foundModelState);
 	}
 
 	@Test

@@ -24,6 +24,7 @@ public enum AnnotationShorthand {
 	contributor(IRI.create("http://purl.org/dc/elements/1.1/contributor")), // who contributed to the annotation
 	title(IRI.create("http://purl.org/dc/elements/1.1/title")), // title (of the model)
 	deprecated(OWLRDFVocabulary.OWL_DEPRECATED.getIRI()), // model annotation to indicate deprecated models
+	templatestate(IRI.create("http://geneontology.org/lego/templatestate"), "template"), // designate a model as a template
 	modelstate(IRI.create("http://geneontology.org/lego/modelstate"), "state");
 	
 	
