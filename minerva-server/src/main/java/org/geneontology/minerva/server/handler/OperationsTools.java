@@ -100,6 +100,6 @@ public class OperationsTools {
 			final ExternalLookupService externalLookupService,
 			final InferenceProvider inferenceProvider,
 			final CurieHandler curieHandler) {
-		return createModelRenderer(model, externalLookupService, inferenceProvider, curieHandler);
+		return createModelRenderer(model.getAboxOntology(), externalLookupService, inferenceProvider, curieHandler);
 	}
 }
