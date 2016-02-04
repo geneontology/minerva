@@ -103,7 +103,7 @@ public class MolecularModelJsonRendererTest {
 	public void testAnnotations() throws Exception {
 		// setup test model/ontology
 		OWLOntology o = m.createOntology();
-		OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(g.getSourceOntology().getOntologyID().getOntologyIRI());
+		OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(g.getSourceOntology().getOntologyID().getOntologyIRI().get());
 		m.applyChange(new AddImport(o, importDeclaration));
 		
 		final IRI i1IRI = IRI.generateDocumentIRI();
@@ -138,7 +138,7 @@ public class MolecularModelJsonRendererTest {
 	private void testSimpleClassExpression(OWLClassExpression ce, String expectedJsonType) throws Exception {
 		// setup test model/ontology
 		OWLOntology o = m.createOntology();
-		OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(g.getSourceOntology().getOntologyID().getOntologyIRI());
+		OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(g.getSourceOntology().getOntologyID().getOntologyIRI().get());
 		m.applyChange(new AddImport(o, importDeclaration));
 		
 		// create indivdual with a ce type
@@ -170,7 +170,7 @@ public class MolecularModelJsonRendererTest {
 	@Test
 	public void testPartialRenderer() throws Exception {
 		OWLOntology o = m.createOntology();
-		OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(g.getSourceOntology().getOntologyID().getOntologyIRI());
+		OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(g.getSourceOntology().getOntologyID().getOntologyIRI().get());
 		m.applyChange(new AddImport(o, importDeclaration));
 		
 		// individuals

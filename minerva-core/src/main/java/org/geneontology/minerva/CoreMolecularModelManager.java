@@ -13,13 +13,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
-import org.coode.owlapi.obo12.parser.OBO12ParserFactory;
-import org.coode.owlapi.oboformat.OBOFormatParserFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.io.IRIDocumentSource;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentSource;
 import org.semanticweb.owlapi.io.OWLParserFactory;
-import org.semanticweb.owlapi.io.OWLParserFactoryRegistry;
 import org.semanticweb.owlapi.io.StringDocumentSource;
 import org.semanticweb.owlapi.model.AddAxiom;
 import org.semanticweb.owlapi.model.AddImport;
@@ -40,6 +37,7 @@ import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLDataProperty;
 import org.semanticweb.owlapi.model.OWLDataPropertyAssertionAxiom;
+import org.semanticweb.owlapi.model.OWLDocumentFormat;
 import org.semanticweb.owlapi.model.OWLImportsDeclaration;
 import org.semanticweb.owlapi.model.OWLIndividual;
 import org.semanticweb.owlapi.model.OWLLiteral;
@@ -52,7 +50,6 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyAlreadyExistsException;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.model.OWLOntologyFormat;
 import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
@@ -60,6 +57,11 @@ import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.model.RemoveAxiom;
 import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
 import org.semanticweb.owlapi.model.SetOntologyID;
+import org.semanticweb.owlapi.model.parameters.Imports;
+import org.semanticweb.owlapi.oboformat.OBOFormatOWLAPIParserFactory;
+import org.semanticweb.owlapi.util.PriorityCollection;
+
+import com.google.common.base.Optional;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.vocab.OBOUpperVocabulary;
@@ -162,32 +164,28 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		init();
 	}
 
-	private static synchronized List<OWLParserFactory> removeOBOParserFactories() {
-		// hacky workaround: remove the too liberal OBO parsers
-		OWLParserFactoryRegistry registry = OWLParserFactoryRegistry.getInstance();
-		List<OWLParserFactory> factories = new ArrayList<OWLParserFactory>(registry.getParserFactories());
+	private static synchronized Set<OWLParserFactory> removeOBOParserFactories(OWLOntologyManager m) {
+		// hacky workaround: remove the too liberal OBO parser
+		PriorityCollection<OWLParserFactory> factories = m.getOntologyParsers();
+		Set<OWLParserFactory> copied = new HashSet<>();
 		for (OWLParserFactory factory : factories) {
+			copied.add(factory);
+		}
+		for (OWLParserFactory factory : copied) {
 			Class<?> cls = factory.getClass();
 			boolean remove = false;
-			if (OBO12ParserFactory.class.equals(cls)) {
-				remove = true;
-			}
-			else if (OBOFormatParserFactory.class.equals(cls)) {
+			if (OBOFormatOWLAPIParserFactory.class.equals(cls)) {
 				remove = true;
 			}
 			if (remove) {
-				registry.unregisterParserFactory(factory);
+				factories.remove(factory);
 			}
 		}
-		return factories;
+		return copied;
 	}
 	
-	private static synchronized void resetOBOParserFactories(List<OWLParserFactory> factories) {
-		OWLParserFactoryRegistry registry = OWLParserFactoryRegistry.getInstance();
-		registry.clearParserFactories();
-		for (OWLParserFactory factory : factories) {
-			registry.registerParserFactory(factory);	
-		}
+	private static synchronized void resetOBOParserFactories(OWLOntologyManager m, Set<OWLParserFactory> factories) {
+		m.setOntologyParsers(factories);
 	}
 
 	/**
@@ -201,9 +199,9 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		OWLOntology tbox = graph.getSourceOntology();
 		OWLOntologyID ontologyID = tbox.getOntologyID();
 		if (ontologyID != null) {
-			IRI ontologyIRI = ontologyID.getOntologyIRI();
-			if (ontologyIRI != null) {
-				return ontologyIRI;
+			Optional<IRI> ontologyIRI = ontologyID.getOntologyIRI();
+			if (ontologyIRI.isPresent()) {
+				return ontologyIRI.get();
 			}
 		}
 		throw new OWLOntologyCreationException("No ontology id available for tbox. An ontology IRI is required for the import into the abox.");
@@ -355,7 +353,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		toRemoveAxioms.add(model.getOWLDataFactory().getOWLDeclarationAxiom(i));
 		
 		// Logic axiom
-		for (OWLAxiom ax : ont.getAxioms(i)) {
+		for (OWLAxiom ax : ont.getAxioms(i, Imports.EXCLUDED)) {
 			extractIRIValues(ax.getAnnotations(), deleteInformation.usedIRIs);
 			toRemoveAxioms.add(ax);
 		}
@@ -663,20 +661,19 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 * @return modelContent
 	 * @throws OWLOntologyStorageException
 	 */
-	public String exportModel(ModelContainer model, OWLOntologyFormat ontologyFormat) throws OWLOntologyStorageException {
+	public String exportModel(ModelContainer model, OWLDocumentFormat ontologyFormat) throws OWLOntologyStorageException {
 		final OWLOntology aBox = model.getAboxOntology();
 		final OWLOntologyManager manager = aBox.getOWLOntologyManager();
 		
 		// make sure the exported ontology has an ontologyId and that it maps to the modelId
 		final IRI expectedABoxIRI = model.getModelId();
-		OWLOntologyID ontologyID = aBox.getOntologyID();
-		if (ontologyID == null) {
+		Optional<IRI> currentABoxIRI = aBox.getOntologyID().getOntologyIRI();
+		if (currentABoxIRI.isPresent() == false) {
 			manager.applyChange(new SetOntologyID(aBox, expectedABoxIRI));
 		}
 		else {
-			IRI currentABoxIRI = ontologyID.getOntologyIRI();
 			if (expectedABoxIRI.equals(currentABoxIRI) == false) {
-				ontologyID = new OWLOntologyID(expectedABoxIRI, ontologyID.getVersionIRI());
+				OWLOntologyID ontologyID = new OWLOntologyID(Optional.of(expectedABoxIRI), Optional.of(expectedABoxIRI));
 				manager.applyChange(new SetOntologyID(aBox, ontologyID));
 			}
 		}
@@ -713,14 +710,14 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		final OWLOntologyManager manager = graph.getManager();
 		final OWLOntologyDocumentSource documentSource = new StringDocumentSource(modelData);
 		OWLOntology modelOntology;
-		final List<OWLParserFactory> originalFactories = removeOBOParserFactories();
+		final Set<OWLParserFactory> originalFactories = removeOBOParserFactories(manager);
 		try {
 			modelOntology = manager.loadOntologyFromOntologyDocument(documentSource);
 		}
 		catch (OWLOntologyAlreadyExistsException e) {
 			// exception is thrown if there is an ontology with the same ID already in memory 
 			OWLOntologyID id = e.getOntologyID();
-			IRI existingModelId = id.getOntologyIRI();
+			IRI existingModelId = id.getOntologyIRI().orNull();
 
 			// remove the existing memory model
 			unlinkModel(existingModelId);
@@ -729,14 +726,14 @@ public abstract class CoreMolecularModelManager<METADATA> {
 			modelOntology = manager.loadOntologyFromOntologyDocument(documentSource);
 		}
 		finally {
-			resetOBOParserFactories(originalFactories);
+			resetOBOParserFactories(manager, originalFactories);
 		}
 		
 		// try to extract modelId
 		IRI modelId = null;
-		OWLOntologyID ontologyId = modelOntology.getOntologyID();
-		if (ontologyId != null) {
-			modelId = ontologyId.getOntologyIRI();
+		Optional<IRI> ontologyIRI = modelOntology.getOntologyID().getOntologyIRI();
+		if (ontologyIRI.isPresent()) {
+			modelId = ontologyIRI.get();
 		}
 		if (modelId == null) {
 			throw new OWLOntologyCreationException("Could not extract the modelId from the given model");
@@ -1117,7 +1114,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	static OWLOntology loadOntologyIRI(final IRI sourceIRI, boolean minimal, OWLOntologyManager manager) throws OWLOntologyCreationException {
 		// silence the OBO parser in the OWL-API
 		java.util.logging.Logger.getLogger("org.obolibrary").setLevel(java.util.logging.Level.SEVERE);
-		final List<OWLParserFactory> originalFactories = removeOBOParserFactories();
+		final Set<OWLParserFactory> originalFactories = removeOBOParserFactories(manager);
 		try {
 			// load model from source
 			OWLOntologyDocumentSource source = new IRIDocumentSource(sourceIRI);
@@ -1131,7 +1128,10 @@ public abstract class CoreMolecularModelManager<METADATA> {
 				// approach: return an empty ontology IRI for any IRI mapping request using.
 				final OWLOntologyManager m = OWLManager.createOWLOntologyManager();
 				final Set<IRI> emptyOntologies = new HashSet<IRI>();
-				m.addIRIMapper(new OWLOntologyIRIMapper() {
+				m.getIRIMappers().add(new OWLOntologyIRIMapper() {
+
+					// generated
+					private static final long serialVersionUID = -8200679663396870351L;
 
 					@Override
 					public IRI getDocumentIRI(IRI ontologyIRI) {
@@ -1144,7 +1144,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 						emptyOntologies.add(ontologyIRI);
 						try {
 							OWLOntology emptyOntology = m.createOntology(ontologyIRI);
-							return emptyOntology.getOntologyID().getDefaultDocumentIRI();
+							return emptyOntology.getOntologyID().getDefaultDocumentIRI().orNull();
 						} catch (OWLOntologyCreationException e) {
 							throw new RuntimeException(e);
 						}
@@ -1154,7 +1154,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 				return minimalAbox;
 			}
 		} finally {
-			resetOBOParserFactories(originalFactories);
+			resetOBOParserFactories(manager, originalFactories);
 		}
 	}
 	

@@ -12,6 +12,9 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.parameters.ChangeApplied;
+
+import com.google.common.base.Optional;
 
 public class ModelContainer {
 
@@ -65,23 +68,28 @@ public class ModelContainer {
 		// abox -> tbox
 		if (aboxOntology == null) {
 			LOG.debug("Creating abox ontology. mgr = "+getOWLOntologyManager());
-			IRI ontologyIRI = IRI.create(tboxOntology.getOntologyID().getOntologyIRI()+"__abox");
-			aboxOntology = getOWLOntologyManager().getOntology(ontologyIRI);
-			if (aboxOntology != null) {
-				LOG.warn("Clearing existing abox ontology");
-				getOWLOntologyManager().removeOntology(aboxOntology);
+			Optional<IRI> tBoxIRI = tboxOntology.getOntologyID().getOntologyIRI();
+			if (tBoxIRI.isPresent()) {
+				IRI ontologyIRI = IRI.create(tBoxIRI.get()+"__abox");
+				aboxOntology = getOWLOntologyManager().getOntology(ontologyIRI);
+				if (aboxOntology != null) {
+					LOG.warn("Clearing existing abox ontology");
+					getOWLOntologyManager().removeOntology(aboxOntology);
+				}
+				aboxOntology = getOWLOntologyManager().createOntology(ontologyIRI);
+				AddImport ai = new AddImport(aboxOntology, 
+						getOWLDataFactory().getOWLImportsDeclaration(tBoxIRI.get()));
+				getOWLOntologyManager().applyChange(ai);
 			}
-			aboxOntology = getOWLOntologyManager().createOntology(ontologyIRI);
-			AddImport ai = new AddImport(aboxOntology, 
-					getOWLDataFactory().getOWLImportsDeclaration(tboxOntology.getOntologyID().getOntologyIRI()));
-			getOWLOntologyManager().applyChange(ai);
-			
+			else {
+				aboxOntology = getOWLOntologyManager().createOntology();
+			}
 		}
 		if (LOG.isDebugEnabled()) {
 			LOG.debug(modelId+" manager(T) = "+tboxOntology.getOWLOntologyManager());
 			LOG.debug(modelId+" manager(A) = "+aboxOntology.getOWLOntologyManager());
-			LOG.debug(modelId+" id(T) = "+tboxOntology.getOntologyID().getOntologyIRI());
-			LOG.debug(modelId+" id(A) = "+aboxOntology.getOntologyID().getOntologyIRI());
+			LOG.debug(modelId+" id(T) = "+tboxOntology.getOntologyID());
+			LOG.debug(modelId+" id(A) = "+aboxOntology.getOntologyID());
 		}
 	}
 
@@ -137,10 +145,10 @@ public class ModelContainer {
 	}
 	
 	public List<OWLOntologyChange> applyChanges(List<? extends OWLOntologyChange> changes) {
-		List<OWLOntologyChange> done = getOWLOntologyManager().applyChanges(changes);
-		if (done.isEmpty() == false) {
+		ChangeApplied applied = getOWLOntologyManager().applyChanges(changes);
+		if (applied == ChangeApplied.SUCCESSFULLY) {
 			List<OWLOntologyChange> relevantChanges = new ArrayList<>();
-			for (OWLOntologyChange change : done) {
+			for (OWLOntologyChange change : changes) {
 				if (aboxOntology.equals(change.getOntology())) {
 					aboxModified = true;
 					relevantChanges.add(change);
@@ -152,7 +160,7 @@ public class ModelContainer {
 				}
 			}
 		}
-		return done;
+		return new ArrayList<OWLOntologyChange>(changes);
 	}
 
 	public boolean isModified() {

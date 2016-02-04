@@ -5,9 +5,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
-import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxEditorParser;
+import org.semanticweb.owlapi.OWLAPIConfigProvider;
 import org.semanticweb.owlapi.expression.OWLEntityChecker;
-import org.semanticweb.owlapi.expression.ParserException;
+import org.semanticweb.owlapi.manchestersyntax.parser.ManchesterOWLSyntaxParserImpl;
+import org.semanticweb.owlapi.manchestersyntax.renderer.ParserException;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -18,6 +19,7 @@ import org.semanticweb.owlapi.model.OWLDatatype;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObject;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
+import org.semanticweb.owlapi.util.mansyntax.ManchesterOWLSyntaxParser;
 
 import owltools.graph.OWLGraphWrapper;
 
@@ -27,6 +29,8 @@ import owltools.graph.OWLGraphWrapper;
  * This is a simplified re-implementation.
  */
 public class ManchesterSyntaxTool {
+
+	private static final OWLAPIConfigProvider CONFIGURATION_PROVIDER = new OWLAPIConfigProvider();
 
 	private final OWLDataFactory dataFactory;
 	private final OWLEntityChecker entityChecker;
@@ -60,18 +64,15 @@ public class ManchesterSyntaxTool {
 	 * @throws ParserException
 	 */
 	public OWLClassExpression parseManchesterExpression(String expression) throws ParserException {
-		ManchesterOWLSyntaxEditorParser parser = createParser(expression);
-		OWLClassExpression ce = parser.parseClassExpression();
+		ManchesterOWLSyntaxParser parser = createParser();
+		OWLClassExpression ce = parser.parseClassExpression(expression);
 		return ce;
 	}
 
 
-	private ManchesterOWLSyntaxEditorParser createParser(String expression) {
-		ManchesterOWLSyntaxEditorParser parser = 
-			new ManchesterOWLSyntaxEditorParser(dataFactory, expression);
-
+	private ManchesterOWLSyntaxParser createParser() {
+		ManchesterOWLSyntaxParserImpl parser = new ManchesterOWLSyntaxParserImpl(CONFIGURATION_PROVIDER, dataFactory);
 		parser.setOWLEntityChecker(entityChecker);
-
 		return parser;
 	}
 

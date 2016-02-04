@@ -15,7 +15,6 @@ import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxOntologyFormat;
 import org.geneontology.minerva.GafToLegoIndividualTranslator;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
@@ -24,18 +23,21 @@ import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.util.AnnotationShorthand;
-import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
-import org.semanticweb.owlapi.io.RDFXMLOntologyFormat;
+import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
+import org.semanticweb.owlapi.formats.ManchesterSyntaxDocumentFormat;
+import org.semanticweb.owlapi.formats.RDFXMLDocumentFormat;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationValueVisitorEx;
 import org.semanticweb.owlapi.model.OWLAnonymousIndividual;
 import org.semanticweb.owlapi.model.OWLAxiom;
+import org.semanticweb.owlapi.model.OWLDocumentFormat;
 import org.semanticweb.owlapi.model.OWLEntity;
 import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.model.OWLOntologyFormat;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+
+import com.google.common.base.Optional;
 
 import owltools.cli.JsCommandRunner;
 import owltools.cli.Opts;
@@ -66,7 +68,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		boolean minimize = false;
 		String output = null;
 		CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
-		OWLOntologyFormat format = new RDFXMLOntologyFormat();
+		OWLDocumentFormat format = new RDFXMLDocumentFormat();
 		while (opts.hasOpts()) {
 			if (opts.nextEq("-o|--output")) {
 				output = opts.nextOpt();
@@ -74,10 +76,10 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			else if (opts.nextEq("--format")) {
 				String formatString = opts.nextOpt();
 				if ("manchester".equalsIgnoreCase(formatString)) {
-					format = new ManchesterOWLSyntaxOntologyFormat();
+					format = new ManchesterSyntaxDocumentFormat();
 				}
 				else if ("functional".equalsIgnoreCase(formatString)) {
-					format = new OWLFunctionalSyntaxOntologyFormat();
+					format = new FunctionalSyntaxDocumentFormat();
 				}
 			}
 			else if (opts.nextEq("--add-line-number")) {
@@ -274,9 +276,9 @@ public class MinervaCommandRunner extends JsCommandRunner {
 	private static String getModelCurie(OWLOntology model, CurieHandler curieHandler, String defaultValue) {
 		// get model curie from ontology IRI
 		String modelCurie = defaultValue;
-		IRI ontologyIRI = model.getOntologyID().getOntologyIRI();
-		if (ontologyIRI != null) {
-			modelCurie = curieHandler.getCuri(ontologyIRI);
+		Optional<IRI> ontologyIRI = model.getOntologyID().getOntologyIRI();
+		if (ontologyIRI.isPresent()) {
+			modelCurie = curieHandler.getCuri(ontologyIRI.get());
 		}
 		return modelCurie;
 	}

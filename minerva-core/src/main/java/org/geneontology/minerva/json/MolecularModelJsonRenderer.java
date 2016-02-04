@@ -48,6 +48,7 @@ import owltools.gaf.eco.EcoMapper;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.EcoMapperFactory.OntologyMapperPair;
 import owltools.graph.OWLGraphWrapper;
+import owltools.util.OwlHelper;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -196,7 +197,7 @@ public class MolecularModelJsonRenderer {
 		json.id = curieHandler.getCuri(i);
 		
 		List<JsonOwlObject> typeObjs = new ArrayList<JsonOwlObject>();
-		Set<OWLClassExpression> assertedTypes = i.getTypes(ont);
+		Set<OWLClassExpression> assertedTypes = OwlHelper.getTypes(i, ont);
 		for (OWLClassExpression x : assertedTypes) {
 			typeObjs.add(renderObject(x));
 		}

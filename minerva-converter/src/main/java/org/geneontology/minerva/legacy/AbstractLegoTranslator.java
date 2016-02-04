@@ -20,7 +20,6 @@ import org.obolibrary.obo2owl.Owl2Obo;
 import org.obolibrary.oboformat.parser.OBOFormatConstants.OboFormatTag;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
-import org.semanticweb.owlapi.model.OWLAnnotationAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLAnnotationValueVisitorEx;
 import org.semanticweb.owlapi.model.OWLAnonymousIndividual;
@@ -33,6 +32,7 @@ import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectPropertyExpression;
 import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 import owltools.gaf.Bioentity;
@@ -42,8 +42,8 @@ import owltools.gaf.GafDocument;
 import owltools.gaf.GeneAnnotation;
 import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.graph.OWLGraphWrapper;
+import owltools.util.OwlHelper;
 import owltools.vocab.OBOUpperVocabulary;
-import uk.ac.manchester.cs.owl.owlapi.ImplUtils;
 
 abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTranslator.Summary> {
 
@@ -84,7 +84,7 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		final OWLDataFactory df = model.getOWLOntologyManager().getOWLDataFactory();
 		final OWLAnnotationProperty namespaceProperty = df.getOWLAnnotationProperty(namespaceIRI);
 		final Set<OWLOntology> ontologies = model.getImportsClosure();
-		for(OWLClass cls : model.getClassesInSignature(true)) {
+		for(OWLClass cls : model.getClassesInSignature(Imports.INCLUDED)) {
 			if (cls.isBuiltIn()) {
 				continue;
 			}
@@ -92,8 +92,7 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 			if (id.startsWith("GO:") == false) {
 				continue;
 			}
-			for (OWLAnnotationAssertionAxiom ax : ImplUtils.getAnnotationAxioms(cls, ontologies)) {
-				OWLAnnotation annotation = ax.getAnnotation();
+			for (OWLAnnotation annotation : OwlHelper.getAnnotations(cls, ontologies)) {
 				if (annotation.getProperty().equals(namespaceProperty)) {
 					String value = annotation.getValue().accept(new OWLAnnotationValueVisitorEx<String>() {
 

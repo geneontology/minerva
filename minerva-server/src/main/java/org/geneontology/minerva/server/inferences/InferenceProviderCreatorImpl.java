@@ -53,7 +53,7 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 	}
 	
 	public static InferenceProviderCreator createHermiT(int maxConcurrent) {
-		return new InferenceProviderCreatorImpl(new org.semanticweb.HermiT.Reasoner.ReasonerFactory(), maxConcurrent, true, "Hermit-SLME");
+		return new InferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(), maxConcurrent, true, "Hermit-SLME");
 	}
 
 	@Override

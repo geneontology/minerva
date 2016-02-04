@@ -36,9 +36,11 @@ import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.util.OWLClassExpressionVisitorAdapter;
 
+import com.google.common.base.Optional;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import owltools.util.OwlHelper;
 import owltools.vocab.OBOUpperVocabulary;
 
 public class ModelWriterHelper implements PreFileSaveHandler {
@@ -79,9 +81,12 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 		
 		// set model id and json model
 		if (curieHandler != null) {
-			final String modelId = curieHandler.getCuri(model.getOntologyID().getOntologyIRI());
-			final OWLAnnotation modelAnnotation = df.getOWLAnnotation(shortIdProp, df.getOWLLiteral(modelId), tags);
-			allChanges.add(new AddOntologyAnnotation(model, modelAnnotation));
+			Optional<IRI> ontologyIRI = model.getOntologyID().getOntologyIRI();
+			if (ontologyIRI.isPresent()) {
+				final String modelId = curieHandler.getCuri(ontologyIRI.get());
+				final OWLAnnotation modelAnnotation = df.getOWLAnnotation(shortIdProp, df.getOWLLiteral(modelId), tags);
+				allChanges.add(new AddOntologyAnnotation(model, modelAnnotation));
+			}
 			
 			// WARNING dirty work-around
 			// we add the json model (without inferences) to each saved model as a model annotation
@@ -113,7 +118,7 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 				if (object.isNamed()) {
 					// assume named object for enabled_by is a bioentity
 					OWLNamedIndividual o = object.asOWLNamedIndividual();
-					Set<OWLClassExpression> types = o.getTypes(model);
+					Set<OWLClassExpression> types = OwlHelper.getTypes(o, model);
 					for (OWLClassExpression ce : types) {
 						ce.accept(new OWLClassExpressionVisitorAdapter(){
 
@@ -192,7 +197,7 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 	@Override
 	public List<OWLOntologyChange> handle(OWLOntology model) {
 		List<OWLOntologyChange> allChanges = generateLabelsAndIds(model, lookupService);
-		List<OWLOntologyChange> appliedChanges = model.getOWLOntologyManager().applyChanges(allChanges);
-		return appliedChanges;
+		model.getOWLOntologyManager().applyChanges(allChanges);
+		return allChanges;
 	}
 }
