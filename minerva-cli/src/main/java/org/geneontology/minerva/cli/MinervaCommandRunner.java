@@ -15,12 +15,16 @@ import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
 import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxOntologyFormat;
 import org.geneontology.minerva.GafToLegoIndividualTranslator;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
+import org.geneontology.minerva.json.InferenceProvider;
+import org.geneontology.minerva.json.JsonModel;
+import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.util.AnnotationShorthand;
@@ -37,6 +41,9 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyFormat;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import owltools.cli.JsCommandRunner;
 import owltools.cli.Opts;
 import owltools.cli.tools.CLIMethod;
@@ -50,6 +57,91 @@ import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
 import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
 
 public class MinervaCommandRunner extends JsCommandRunner {
+	
+	private static final Logger LOGGER = Logger.getLogger(MinervaCommandRunner.class);
+
+	@CLIMethod("--owl-lego-to-json")
+	public void owl2LegoJson(Opts opts) throws Exception {
+		// parameters
+		String input = null;
+		String output = null;
+		boolean usePretty = true;
+
+		// parse opts
+		while (opts.hasOpts()) {
+			if (opts.nextEq("-o|--output")) {
+				opts.info("output", "Sets the output file for the json");
+				output = opts.nextOpt();
+			}
+			else if (opts.nextEq("-i|--input")) {
+				opts.info("input", "Sets the input file for the model");
+				input = opts.nextOpt();
+			}
+			else if (opts.nextEq("--pretty-json")) {
+				opts.info("", "pretty print the output json");
+				usePretty = true;
+			}
+			else if (opts.nextEq("--compact-json")) {
+				opts.info("", "compact print the output json");
+				usePretty = false;
+			}
+			else {
+				break;
+			}
+		}
+		
+		// minimal inputs
+		if (input == null) {
+			System.err.println("No input model was configured.");
+			exit(-1);
+			return;
+		}
+		if (output == null) {
+			System.err.println("No output file was configured.");
+			exit(-1);
+			return;
+		}
+		
+		// configuration
+		CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
+		GsonBuilder gsonBuilder = new GsonBuilder();
+		if (usePretty) {
+			gsonBuilder.setPrettyPrinting();
+		}
+		Gson gson = gsonBuilder.create();
+		
+		// process each model
+		if (LOGGER.isInfoEnabled()) {
+			LOGGER.info("Loading model from file: "+input);
+		}
+		OWLOntology model = null;
+		final JsonModel jsonModel;
+		try {
+			// load model
+			model = pw.parseOWL(IRI.create(new File(input).getCanonicalFile()));
+			InferenceProvider inferenceProvider = null; // TODO decide if we need reasoning
+
+			// render json
+			final MolecularModelJsonRenderer renderer = new MolecularModelJsonRenderer(model, inferenceProvider, curieHandler);
+			jsonModel = renderer.renderModel();
+		}
+		finally {
+			if (model != null) {
+				pw.getManager().removeOntology(model);
+				model = null;
+			}
+		}
+
+		// save as json string
+		final String json = gson.toJson(jsonModel);
+		final File outputFile = new File(output).getCanonicalFile();
+		try (OutputStream outputStream = new FileOutputStream(outputFile)) {
+			if (LOGGER.isInfoEnabled()) {
+				LOGGER.info("Saving json to file: "+outputFile);
+			}
+			IOUtils.write(json, outputStream);
+		}
+	}
 
 	/**
 	 * Translate the GeneAnnotations into a lego all individual OWL representation.
