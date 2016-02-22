@@ -120,9 +120,14 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			// load model
 			model = pw.parseOWL(IRI.create(new File(input).getCanonicalFile()));
 			InferenceProvider inferenceProvider = null; // TODO decide if we need reasoning
+			String modelId = null;
+			IRI ontologyIRI = model.getOntologyID().getOntologyIRI();
+			if (ontologyIRI != null) {
+				modelId = curieHandler.getCuri(ontologyIRI);
+			}
 
 			// render json
-			final MolecularModelJsonRenderer renderer = new MolecularModelJsonRenderer(model, inferenceProvider, curieHandler);
+			final MolecularModelJsonRenderer renderer = new MolecularModelJsonRenderer(modelId, model, inferenceProvider, curieHandler);
 			jsonModel = renderer.renderModel();
 		}
 		finally {

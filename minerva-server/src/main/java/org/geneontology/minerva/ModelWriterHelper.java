@@ -85,7 +85,7 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 			
 			// WARNING dirty work-around
 			// we add the json model (without inferences) to each saved model as a model annotation
-			final MolecularModelJsonRenderer renderer = OperationsTools.createModelRenderer(model, lookupService, null, curieHandler);
+			final MolecularModelJsonRenderer renderer = OperationsTools.createModelRenderer(modelId, model, lookupService, null, curieHandler);
 			final JsonModel jsonModel = renderer.renderModel();
 			final Gson gson = new GsonBuilder().create();
 			final String json = gson.toJson(jsonModel);

@@ -2,7 +2,12 @@ package org.geneontology.minerva.json;
 
 import java.util.Arrays;
 
+import com.google.gson.annotations.SerializedName;
+
 public class JsonModel extends JsonAnnotatedObject {
+	
+	@SerializedName("id")
+	public String modelId;
 	public JsonOwlIndividual[] individuals;
 	public JsonOwlFact[] facts;
 	public JsonOwlObject[] properties;

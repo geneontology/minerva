@@ -149,7 +149,7 @@ public class BatchTestTools {
 	static String responseId(M3BatchResponse response) {
 		assertNotNull(response);
 		assertNotNull(response.data);
-		return (String) response.data.id;
+		return response.data.modelId;
 	}
 	
 	static JsonRelationInfo[] responseRelations(M3BatchResponse response) {

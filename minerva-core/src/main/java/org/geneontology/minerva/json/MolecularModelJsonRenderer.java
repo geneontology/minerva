@@ -62,6 +62,7 @@ public class MolecularModelJsonRenderer {
 	
 	private static Logger LOG = Logger.getLogger(MolecularModelJsonRenderer.class);
 
+	private final String modelId;
 	private final OWLOntology ont;
 	private final OWLGraphWrapper graph;
 	private final CurieHandler curieHandler;
@@ -77,19 +78,23 @@ public class MolecularModelJsonRenderer {
 	};
 
 	public MolecularModelJsonRenderer(ModelContainer model, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
-		this(model.getAboxOntology(), new OWLGraphWrapper(model.getAboxOntology()), inferenceProvider, curieHandler);
+		this(curieHandler.getCuri(model.getModelId()),
+				model.getAboxOntology(),
+				new OWLGraphWrapper(model.getAboxOntology()), 
+				inferenceProvider, curieHandler);
 	}
 	
-	public MolecularModelJsonRenderer(OWLOntology ontology, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
-		this(ontology, new OWLGraphWrapper(ontology), inferenceProvider, curieHandler);
+	public MolecularModelJsonRenderer(String modelId, OWLOntology ontology, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+		this(modelId, ontology, new OWLGraphWrapper(ontology), inferenceProvider, curieHandler);
 	}
 	
-	public MolecularModelJsonRenderer(OWLGraphWrapper graph, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
-		this(graph.getSourceOntology(), graph, inferenceProvider, curieHandler);
+	public MolecularModelJsonRenderer(String modelId, OWLGraphWrapper graph, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+		this(modelId, graph.getSourceOntology(), graph, inferenceProvider, curieHandler);
 	}
 
-	private MolecularModelJsonRenderer(OWLOntology ont, OWLGraphWrapper graph, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+	private MolecularModelJsonRenderer(String modelId, OWLOntology ont, OWLGraphWrapper graph, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
 		super();
+		this.modelId = modelId;
 		this.ont = ont;
 		this.graph = graph;
 		this.inferenceProvider = inferenceProvider;
@@ -101,6 +106,7 @@ public class MolecularModelJsonRenderer {
 	 */
 	public JsonModel renderModel() {
 		JsonModel json = new JsonModel();
+		json.modelId = modelId;
 		
 		// per-Individual
 		List<JsonOwlIndividual> iObjs = new ArrayList<JsonOwlIndividual>();
@@ -462,12 +468,12 @@ public class MolecularModelJsonRenderer {
 		return relList;
 	}
 	
-	public static String renderToJson(OWLOntology ont, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
-		return renderToJson(ont, inferenceProvider, curieHandler, false);
+	public static String renderToJson(String modelId, OWLOntology ont, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+		return renderToJson(modelId, ont, inferenceProvider, curieHandler, false);
 	}
 	
-	public static String renderToJson(OWLOntology ont, InferenceProvider inferenceProvider, CurieHandler curieHandler, boolean prettyPrint) {
-		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(ont, inferenceProvider, curieHandler);
+	public static String renderToJson(String modelId, OWLOntology ont, InferenceProvider inferenceProvider, CurieHandler curieHandler, boolean prettyPrint) {
+		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(modelId, ont, inferenceProvider, curieHandler);
 		JsonModel model = r.renderModel();
 		return renderToJson(model, prettyPrint);
 	}

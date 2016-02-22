@@ -52,6 +52,7 @@ public class OperationsTools {
 	}
 	
 	/**
+	 * @param modelId
 	 * @param model
 	 * @param externalLookupService
 	 * @param inferenceProvider
@@ -59,6 +60,7 @@ public class OperationsTools {
 	 * @return renderer
 	 */
 	public static MolecularModelJsonRenderer createModelRenderer(
+			final String modelId,
 			final OWLOntology model, 
 			final ExternalLookupService externalLookupService,
 			final InferenceProvider inferenceProvider,
@@ -66,7 +68,7 @@ public class OperationsTools {
 		
 		MolecularModelJsonRenderer renderer;
 		if (externalLookupService != null) {
-			renderer = new MolecularModelJsonRenderer(model, inferenceProvider, curieHandler) {
+			renderer = new MolecularModelJsonRenderer(modelId, model, inferenceProvider, curieHandler) {
 
 				@Override
 				protected String getLabel(OWLNamedObject i, String id) {
@@ -83,7 +85,7 @@ public class OperationsTools {
 			};
 		}
 		else {
-			renderer = new MolecularModelJsonRenderer(model, inferenceProvider, curieHandler);
+			renderer = new MolecularModelJsonRenderer(modelId, model, inferenceProvider, curieHandler);
 		}
 		return renderer;
 	}
@@ -100,6 +102,7 @@ public class OperationsTools {
 			final ExternalLookupService externalLookupService,
 			final InferenceProvider inferenceProvider,
 			final CurieHandler curieHandler) {
-		return createModelRenderer(model.getAboxOntology(), externalLookupService, inferenceProvider, curieHandler);
+		return createModelRenderer(curieHandler.getCuri(model.getModelId()), model.getAboxOntology(),
+				externalLookupService, inferenceProvider, curieHandler);
 	}
 }

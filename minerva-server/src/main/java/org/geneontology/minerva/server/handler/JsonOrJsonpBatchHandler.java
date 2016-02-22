@@ -224,10 +224,10 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			}
 			// add model annotations
 			response.data.annotations = MolecularModelJsonRenderer.renderModelAnnotations(values.model.getAboxOntology(), curieHandler);
+			response.data.modelId = curieHandler.getCuri(values.model.getModelId());
 		}
 		
 		// add other infos to data
-		response.data.id = curieHandler.getCuri(values.model.getModelId());
 		if (!isConsistent) {
 			response.data.inconsistentFlag =  Boolean.TRUE;
 		}
@@ -241,6 +241,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	}
 
 	public static void initResponseData(JsonModel jsonModel, ResponseData data) {
+		data.modelId = jsonModel.modelId;
 		data.individuals = jsonModel.individuals;
 		data.facts = jsonModel.facts;
 		data.properties = jsonModel.properties;
