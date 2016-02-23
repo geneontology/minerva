@@ -283,6 +283,20 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		annotation.setAspect(aspect);
 		annotation.setAssignedBy(assignedBy);
 		annotation.setCls(curieHandler.getCuri(e.value));
+		
+		if (e.metadata.modelId != null) {
+			annotation.addProperty("lego-model-id", e.metadata.modelId);
+		}
+		if (e.metadata.contributors != null) {
+			for(String contributor : e.metadata.contributors) {
+				annotation.addProperty("contributor", contributor);
+			}
+		}
+		if (e.metadata.individualIds != null) {
+			for(IRI individual : e.metadata.individualIds) {
+				annotation.addProperty("individual", individual.toString());
+			}
+		}
 
 		if (e.metadata.evidence != null) {
 			String ecoId = curieHandler.getCuri(e.metadata.evidence);
