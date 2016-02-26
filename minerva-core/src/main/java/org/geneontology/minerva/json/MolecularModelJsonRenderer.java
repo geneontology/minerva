@@ -128,13 +128,6 @@ public class MolecularModelJsonRenderer {
 		}
 		json.facts = aObjs.toArray(new JsonOwlFact[aObjs.size()]);
 
-		// per-Property
-		List<JsonOwlObject> pObjs = new ArrayList<JsonOwlObject>();
-		for (OWLObjectProperty p : usedProps) {
-			pObjs.add(renderObject(p));
-		}
-		json.properties  = pObjs.toArray(new JsonOwlObject[pObjs.size()]);
-
 		JsonAnnotation[] anObjs = renderAnnotations(ont.getAnnotations(), curieHandler);
 		if (anObjs != null && anObjs.length > 0) {
 			json.annotations = anObjs;
@@ -258,13 +251,14 @@ public class MolecularModelJsonRenderer {
 
 		JsonOwlFact fact = null;
 		if (opa.getSubject().isNamed() && opa.getObject().isNamed() && opa.getProperty().isAnonymous() == false) {
-			subject = (OWLNamedIndividual) opa.getSubject();
-			property = (OWLObjectProperty) opa.getProperty();
-			object = (OWLNamedIndividual) opa.getObject();
+			subject = opa.getSubject().asOWLNamedIndividual();
+			property = opa.getProperty().asOWLObjectProperty();
+			object = opa.getObject().asOWLNamedIndividual();
 	
 			fact = new JsonOwlFact();
 			fact.subject = curieHandler.getCuri(subject);
 			fact.property = curieHandler.getCuri(property);
+			fact.propertyLabel = graph.getLabel(property);
 			fact.object = curieHandler.getCuri(object);
 			
 			JsonAnnotation[] anObjs = renderAnnotations(opa.getAnnotations(), curieHandler);

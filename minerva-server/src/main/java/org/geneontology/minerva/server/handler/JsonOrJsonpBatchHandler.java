@@ -244,7 +244,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		data.modelId = jsonModel.modelId;
 		data.individuals = jsonModel.individuals;
 		data.facts = jsonModel.facts;
-		data.properties = jsonModel.properties;
 		data.annotations = jsonModel.annotations;
 	}
 	

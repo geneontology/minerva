@@ -10,7 +10,6 @@ public class JsonModel extends JsonAnnotatedObject {
 	public String modelId;
 	public JsonOwlIndividual[] individuals;
 	public JsonOwlFact[] facts;
-	public JsonOwlObject[] properties;
 
 	@Override
 	public int hashCode() {
@@ -18,7 +17,6 @@ public class JsonModel extends JsonAnnotatedObject {
 		int result = super.hashCode();
 		result = prime * result + Arrays.hashCode(facts);
 		result = prime * result + Arrays.hashCode(individuals);
-		result = prime * result + Arrays.hashCode(properties);
 		return result;
 	}
 
@@ -38,9 +36,6 @@ public class JsonModel extends JsonAnnotatedObject {
 			return false;
 		}
 		if (!Arrays.equals(individuals, other.individuals)) {
-			return false;
-		}
-		if (!Arrays.equals(properties, other.properties)) {
 			return false;
 		}
 		return true;
