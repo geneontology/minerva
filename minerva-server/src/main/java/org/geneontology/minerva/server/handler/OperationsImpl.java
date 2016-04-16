@@ -636,9 +636,16 @@ abstract class OperationsImpl extends ModelCreator {
 	
 	private void exportLegacy(M3BatchResponse response, ModelContainer model, String format, String userId) throws IOException, OWLOntologyCreationException {
 		final GafExportTool exportTool = GafExportTool.getInstance();
-		String exportModel = exportTool.exportModelLegacy(model, curieHandler, externalLookupService, format);
+		if (format == null) {
+			format = "gaf"; // set a default format, if necessary
+		}
+		Map<String, String> allExported = exportTool.exportModelLegacy(model, curieHandler, externalLookupService, Collections.singleton(format));
+		String exported = allExported.get(format);
+		if (exported == null) {
+			throw new IOException("Unknown export format: "+format);
+		}
 		initMetaResponse(response);
-		response.data.exportModel = exportModel;
+		response.data.exportModel = exported;
 	}
 	
 

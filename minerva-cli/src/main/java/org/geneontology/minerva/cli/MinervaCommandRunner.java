@@ -1,11 +1,11 @@
 package org.geneontology.minerva.cli;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,18 +25,14 @@ import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.json.InferenceProvider;
 import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
+import org.geneontology.minerva.legacy.GroupingTranslator;
 import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
 import org.geneontology.minerva.lookup.ExternalLookupService;
-import org.geneontology.minerva.util.AnnotationShorthand;
 import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
 import org.semanticweb.owlapi.io.RDFXMLOntologyFormat;
 import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLAnnotation;
-import org.semanticweb.owlapi.model.OWLAnnotationValueVisitorEx;
-import org.semanticweb.owlapi.model.OWLAnonymousIndividual;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLEntity;
-import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyFormat;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
@@ -47,10 +43,10 @@ import com.google.gson.GsonBuilder;
 import owltools.cli.JsCommandRunner;
 import owltools.cli.Opts;
 import owltools.cli.tools.CLIMethod;
-import owltools.gaf.BioentityDocument;
 import owltools.gaf.GafDocument;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
+import owltools.gaf.io.GafWriter;
 import owltools.gaf.io.GpadWriter;
 import owltools.graph.OWLGraphWrapper;
 import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
@@ -239,21 +235,24 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		String modelIdPrefix = "http://model.geneontology.org/";
 		String modelIdcurie = "gomodel";
 		String inputFolder = null;
-		String outputFolder = null;
-		List<String> defaultRefs = null;
+		String singleFile = null;
+		String gpadOutputFolder = null;
+		String gafOutputFolder = null;
+		Map<String, String> taxonGroups = null;
+		String defaultTaxonGroup = "other";
 		boolean addLegoModelId = true;
 		while (opts.hasOpts()) {
 			if (opts.nextEq("-i|--input")) {
 				inputFolder = opts.nextOpt();
 			}
-			else if (opts.nextEq("-o|--output")) {
-				outputFolder = opts.nextOpt();
+			else if (opts.nextEq("--input-single-file")) {
+				singleFile = opts.nextOpt();
 			}
-			else if (opts.nextEq("--add-default-ref")) {
-				if (defaultRefs == null) {
-					defaultRefs = new ArrayList<String>();
-				}
-				defaultRefs.add(opts.nextOpt());
+			else if (opts.nextEq("--gpad-output")) {
+				gpadOutputFolder = opts.nextOpt();
+			}
+			else if (opts.nextEq("--gaf-output")) {
+				gafOutputFolder = opts.nextOpt();
 			}
 			else if (opts.nextEq("--remove-lego-model-ids")) {
 				addLegoModelId = false;
@@ -263,6 +262,41 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			}
 			else if (opts.nextEq("--model-id-curie")) {
 				modelIdcurie = opts.nextOpt();
+			}
+			else if (opts.nextEq("--group-by-model-organisms")) {
+				if (taxonGroups == null) {
+					taxonGroups = new HashMap<>();
+				}
+				// get the pre-defined groups from the model-organism-groups.tsv resource
+				List<String> lines = IOUtils.readLines(MinervaCommandRunner.class.getResourceAsStream("/model-organism-groups.tsv"));
+				for (String line : lines) {
+					line = StringUtils.trimToEmpty(line);
+					if (line.isEmpty() == false && line.charAt(0) != '#') {
+						String[] split = StringUtils.splitByWholeSeparator(line, "\t");
+						if (split.length > 1) {
+							String group = split[0];
+							Set<String> taxonIds = new HashSet<>();
+							for (int i = 1; i < split.length; i++) {
+								taxonIds.add(split[i]);
+							}
+							for(String taxonId : taxonIds) {
+								taxonGroups.put(taxonId, group);
+							}
+						}
+					}
+					
+				}
+			}
+			else if (opts.nextEq("--add-model-organism-group")) {
+				if (taxonGroups == null) {
+					taxonGroups = new HashMap<>();
+				}
+				String group = opts.nextOpt();
+				String taxon = opts.nextOpt();
+				taxonGroups.put(taxon, group);
+			}
+			else if (opts.nextEq("--set-default-model-group")) {
+				defaultTaxonGroup = opts.nextOpt();
 			}
 			else {
 				break;
@@ -276,123 +310,82 @@ public class MinervaCommandRunner extends JsCommandRunner {
 
 		SimpleEcoMapper mapper = EcoMapperFactory.createSimple();
 		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(g.getSourceOntology(), curieHandler, mapper);
-		Set<String> modelStates = new HashSet<>();
-		Map<String, GafDocument> typedAnnotations = new HashMap<>();
-		Map<String, BioentityDocument> typedEntities = new HashMap<>();
+		GroupingTranslator groupingTranslator = new GroupingTranslator(translator, lookup, taxonGroups, defaultTaxonGroup, addLegoModelId);
 
-		File inputFile = new File(inputFolder).getCanonicalFile();
-		OWLOntologyManager m = g.getManager();
-		if (inputFile.isDirectory()) {
-			File[] files = inputFile.listFiles(new FilenameFilter() {
-
-				@Override
-				public boolean accept(File dir, String name) {
-					return StringUtils.isAlphanumeric(name);
-				}
-			});
-			for (File file : files) {
-				OWLOntology model = m.loadOntology(IRI.create(file));
-				
-				// get curie
-				String modelCurie = getModelCurie(model, curieHandler, null);
-				
-				List<String> addtitionalRefs = handleRefs(defaultRefs, addLegoModelId, modelCurie);
-				
-				// get state
-				final String modelState = getModelState(model, "unknown");
-				modelStates.add(modelState);
-				
-				// get appropriate annotation containers
-				GafDocument annotations = typedAnnotations.get(modelState);
-				if (annotations == null) {
-					annotations = new GafDocument(null, null);
-					typedAnnotations.put(modelState, annotations);
-				}
-				BioentityDocument entities = typedEntities.get(modelState);
-				if (entities == null) {
-					entities = new BioentityDocument(null);
-				}
-				
-				// translate
-				translator.translate(model, lookup, annotations, entities, addtitionalRefs);	
-			}
+		final OWLOntologyManager m = g.getManager();
+		if (singleFile != null) {
+			File file = new File(singleFile).getCanonicalFile();
+			OWLOntology model = m.loadOntology(IRI.create(file));
+			groupingTranslator.translate(model);
 		}
-
-		for(String modelState : modelStates) {
-			// write GPAD to avoid bioentity data issues
-			GafDocument annotations = typedAnnotations.get(modelState);
-			if (annotations != null) {
-				PrintWriter fileWriter = null;
-				File outputFile = new File(outputFolder, modelState+".gpad");
-				try {
-					outputFile.getParentFile().mkdirs();
-					fileWriter = new PrintWriter(outputFile);
-					GpadWriter writer = new GpadWriter(fileWriter, 1.2d);
-					writer.write(annotations);
-				}
-				finally {
-					IOUtils.closeQuietly(fileWriter);	
-				}
-			}
-		}
-	}
-	
-	private static String getModelState(OWLOntology model, String defaultValue) {
-		String modelState = defaultValue;
-		Set<OWLAnnotation> modelAnnotations = model.getAnnotations();
-		for (OWLAnnotation modelAnnotation : modelAnnotations) {
-			IRI propIRI = modelAnnotation.getProperty().getIRI();
-			if (AnnotationShorthand.modelstate.getAnnotationProperty().equals(propIRI)) {
-				String value = modelAnnotation.getValue().accept(new OWLAnnotationValueVisitorEx<String>() {
+		else if (inputFolder != null) {
+			File inputFile = new File(inputFolder).getCanonicalFile();
+			if (inputFile.isDirectory()) {
+				File[] files = inputFile.listFiles(new FilenameFilter() {
 
 					@Override
-					public String visit(IRI iri) {
-						return null;
-					}
-
-					@Override
-					public String visit(OWLAnonymousIndividual individual) {
-						return null;
-					}
-
-					@Override
-					public String visit(OWLLiteral literal) {
-						return literal.getLiteral();
+					public boolean accept(File dir, String name) {
+						return StringUtils.isAlphanumeric(name);
 					}
 				});
-				if (value != null) {
-					modelState = value;
+				for (File file : files) {
+					OWLOntology model = m.loadOntology(IRI.create(file));
+					groupingTranslator.translate(model);
 				}
 			}
 		}
-		return modelState;
-	}
-	
-	private static String getModelCurie(OWLOntology model, CurieHandler curieHandler, String defaultValue) {
-		// get model curie from ontology IRI
-		String modelCurie = defaultValue;
-		IRI ontologyIRI = model.getOntologyID().getOntologyIRI();
-		if (ontologyIRI != null) {
-			modelCurie = curieHandler.getCuri(ontologyIRI);
-		}
-		return modelCurie;
-	}
-	
-	List<String> handleRefs(List<String> defaultRefs, boolean addLegoModelId, String modelCurie) {
-		List<String> addtitionalRefs;
-		if (addLegoModelId && modelCurie != null) {
-			if (defaultRefs == null) {
-				addtitionalRefs = Collections.singletonList(modelCurie);
-			}
-			else {
-				addtitionalRefs = new ArrayList<String>(defaultRefs.size() + 1);
-				addtitionalRefs.addAll(defaultRefs);
-				addtitionalRefs.add(modelCurie);
+
+		// by state
+		for(String modelState : groupingTranslator.getModelStates()) {
+			GafDocument annotations = groupingTranslator.getAnnotationsByState(modelState);
+			if (annotations != null) {
+				if (gpadOutputFolder != null) {
+					writeGpad(annotations, gpadOutputFolder, "all-"+modelState);
+				}
+				if (gafOutputFolder != null) {
+					writeGaf(annotations, gafOutputFolder, "all-"+modelState);
+				}
 			}
 		}
-		else {
-			addtitionalRefs = defaultRefs;
+		
+		// by organism
+		if (taxonGroups != null) {
+			for(String group : groupingTranslator.getTaxonGroups()) {
+				GafDocument filtered = groupingTranslator.getAnnotationsByGroup(group);
+				if (gpadOutputFolder != null) {
+					writeGpad(filtered, gpadOutputFolder, group);
+				}
+				if (gafOutputFolder != null) {
+					writeGaf(filtered, gafOutputFolder, group);
+				}
+			}
 		}
-		return addtitionalRefs;
+	}
+
+	private void writeGaf(GafDocument annotations, String outputFolder, String fileName) {
+		File outputFile = new File(outputFolder, fileName+".gaf");
+		GafWriter writer = new GafWriter();
+		try {
+			outputFile.getParentFile().mkdirs();
+			writer.setStream(outputFile);
+			writer.write(annotations);
+		}
+		finally {
+			IOUtils.closeQuietly(writer);	
+		}
+	}
+
+	private void writeGpad(GafDocument annotations, String outputFolder, String fileName) throws FileNotFoundException {
+		PrintWriter fileWriter = null;
+		File outputFile = new File(outputFolder, fileName+".gpad");
+		try {
+			outputFile.getParentFile().mkdirs();
+			fileWriter = new PrintWriter(outputFile);
+			GpadWriter writer = new GpadWriter(fileWriter, 1.2d);
+			writer.write(annotations);
+		}
+		finally {
+			IOUtils.closeQuietly(fileWriter);	
+		}
 	}
 }

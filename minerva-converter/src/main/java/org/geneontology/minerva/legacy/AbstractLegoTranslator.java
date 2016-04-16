@@ -36,7 +36,6 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 import owltools.gaf.Bioentity;
-import owltools.gaf.BioentityDocument;
 import owltools.gaf.ExtensionExpression;
 import owltools.gaf.GafDocument;
 import owltools.gaf.GeneAnnotation;
@@ -234,7 +233,7 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		return ccSet.contains(cls);
 	}
 
-	public abstract void translate(OWLOntology modelAbox, ExternalLookupService lookup, GafDocument annotations, BioentityDocument entities, List<String> additionalRefs);
+	public abstract void translate(OWLOntology modelAbox, ExternalLookupService lookup, GafDocument annotations, List<String> additionalRefs);
 
 	/**
 	 * Get the type of an enabled by entity, e.g. gene, protein
@@ -246,14 +245,16 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 	 * @return type
 	 */
 	protected String getEntityType(OWLClass entity, OWLNamedIndividual individual, OWLGraphWrapper modelGraph, ExternalLookupService lookup) {
-		List<LookupEntry> result = lookup.lookup(entity.getIRI());
-		if (result.isEmpty() == false) {
-			LookupEntry entry = result.get(0);
-			if ("protein".equalsIgnoreCase(entry.type)) {
-				return "protein";
-			}
-			else if ("gene".equalsIgnoreCase(entry.type)) {
-				return "gene";
+		if (lookup != null) {
+			List<LookupEntry> result = lookup.lookup(entity.getIRI());
+			if (result.isEmpty() == false) {
+				LookupEntry entry = result.get(0);
+				if ("protein".equalsIgnoreCase(entry.type)) {
+					return "protein";
+				}
+				else if ("gene".equalsIgnoreCase(entry.type)) {
+					return "gene";
+				}
 			}
 		}
 		return "gene";
@@ -267,11 +268,10 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		return tool.getEntityTaxon(curieHandler.getCuri(entity), model);
 	}
 
-	public Pair<GafDocument, BioentityDocument> translate(String id, OWLOntology modelAbox, ExternalLookupService lookup, List<String> additionalReferences) {
+	public GafDocument translate(String id, OWLOntology modelAbox, ExternalLookupService lookup, List<String> additionalReferences) {
 		final GafDocument annotations = new GafDocument(id, null);
-		final BioentityDocument entities = new BioentityDocument(id);
-		translate(modelAbox, lookup, annotations, entities, additionalReferences);
-		return Pair.of(annotations, entities);
+		translate(modelAbox, lookup, annotations, additionalReferences);
+		return annotations;
 	}
 
 	protected GeneAnnotation createAnnotation(Entry<OWLClass> e, Bioentity entity, String aspect,
@@ -433,12 +433,11 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 
 	protected void addAnnotations(OWLGraphWrapper modelGraph, ExternalLookupService lookup,
 			Summary summary, List<String> additionalRefs,
-			GafDocument annotations, BioentityDocument entities) 
+			GafDocument annotations) 
 	{
 		Bioentity entity = createBioentity(summary.entity, summary.entityType, summary.entityTaxon , modelGraph, lookup);
-		entities.addBioentity(entity);
-		annotations.addBioentity(entity);
-		
+		entity = annotations.addBioentity(entity);
+
 		if (summary.activities != null) {
 			for (Entry<OWLClass> e: summary.activities) {
 				boolean renderActivity = true;
