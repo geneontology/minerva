@@ -7,6 +7,7 @@ import java.io.FilenameFilter;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -44,6 +45,7 @@ import owltools.cli.JsCommandRunner;
 import owltools.cli.Opts;
 import owltools.cli.tools.CLIMethod;
 import owltools.gaf.GafDocument;
+import owltools.gaf.GeneAnnotation;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.gaf.io.GafWriter;
@@ -338,6 +340,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		// by state
 		for(String modelState : groupingTranslator.getModelStates()) {
 			GafDocument annotations = groupingTranslator.getAnnotationsByState(modelState);
+			sortAnnotations(annotations);
 			if (annotations != null) {
 				if (gpadOutputFolder != null) {
 					writeGpad(annotations, gpadOutputFolder, "all-"+modelState);
@@ -352,6 +355,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		if (taxonGroups != null) {
 			for(String group : groupingTranslator.getTaxonGroups()) {
 				GafDocument filtered = groupingTranslator.getAnnotationsByGroup(group);
+				sortAnnotations(filtered);
 				if (gpadOutputFolder != null) {
 					writeGpad(filtered, gpadOutputFolder, group);
 				}
@@ -360,6 +364,31 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				}
 			}
 		}
+		
+		// production only by organism
+		if (taxonGroups != null) {
+			for(String group : groupingTranslator.getProductionTaxonGroups()) {
+				GafDocument filtered = groupingTranslator.getProductionAnnotationsByGroup(group);
+				sortAnnotations(filtered);
+				if (gpadOutputFolder != null) {
+					String productionFolder = new File(gpadOutputFolder, "production").getAbsolutePath();
+					writeGpad(filtered, productionFolder+"", group);
+				}
+				if (gafOutputFolder != null) {
+					String productionFolder = new File(gafOutputFolder, "production").getAbsolutePath();
+					writeGaf(filtered, productionFolder, group);
+				}
+			}
+		}
+	}
+	
+	static void sortAnnotations(GafDocument annotations) {
+		Collections.sort(annotations.getGeneAnnotations(), new Comparator<GeneAnnotation>() {
+			@Override
+			public int compare(GeneAnnotation a1, GeneAnnotation a2) {
+				return a1.toString().compareTo(a2.toString());
+			}
+		});
 	}
 
 	private void writeGaf(GafDocument annotations, String outputFolder, String fileName) {

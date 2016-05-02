@@ -28,11 +28,15 @@ import owltools.gaf.GeneAnnotation;
 public class GroupingTranslator {
 
 	final Set<String> modelStates = new HashSet<>();
+	
+	private String defaultState = "unknown";
+	private String productionState = "production";
+	
 	final Map<String, List<GeneAnnotation>> typedAnnotations = new HashMap<>();
 	final Map<String, List<Bioentity>> typedEntities = new HashMap<>();
 
-	final Map<String, List<GeneAnnotation>> modelGroupAnnotations = new HashMap<>();
-	final Map<String, List<Bioentity>> modelGroupEntities = new HashMap<>();
+	final TaxonGroupContent modelGroups = new TaxonGroupContent();
+	final TaxonGroupContent productionModelGroups = new TaxonGroupContent();
 	
 	private final Map<String, String> taxonGroups;
 	private final String defaultTaxonGroup;
@@ -42,6 +46,52 @@ public class GroupingTranslator {
 	private final CurieHandler curieHandler;
 	
 	private final boolean addLegoModelId;
+	
+	private static class TaxonGroupContent {
+
+		final Map<String, List<GeneAnnotation>> annotations = new HashMap<>();
+		final Map<String, List<Bioentity>> entities = new HashMap<>();
+
+		void addAnnotations(GafDocument input, Bioentity entity, String taxonGroup) {
+			List<GeneAnnotation> groupDocument = annotations.get(taxonGroup);
+			if (groupDocument == null) {
+				groupDocument = new ArrayList<>();
+				annotations.put(taxonGroup, groupDocument);
+			}
+			List<Bioentity> groupEntities = entities.get(taxonGroup);
+			if (groupEntities == null) {
+				groupEntities = new ArrayList<>();
+				entities.put(taxonGroup, groupEntities);
+			}
+			if (!groupEntities.contains(entity)) {
+				groupEntities.add(entity);
+			}
+			for (GeneAnnotation ann : input.getGeneAnnotations()) {
+				if (ann.getBioentity().equals(entity.getId())) {
+					groupDocument.add(ann);
+				}
+			}
+		}
+
+		GafDocument getAnnotationsByGroup(String taxonGroup) {
+			GafDocument result = new GafDocument(null, null);
+			List<GeneAnnotation> annotations = this.annotations.get(taxonGroup);
+			List<Bioentity> entities = this.entities.get(taxonGroup);
+			if (annotations != null && entities != null) {
+				for(Bioentity entity : entities) {
+					result.addBioentity(entity);
+				}
+				for(GeneAnnotation annotation : annotations) {
+					result.addGeneAnnotation(annotation);
+				}
+			}
+			return result;
+		}
+		
+		Set<String> getGroups() {
+			return Collections.unmodifiableSet(annotations.keySet());
+		}
+	}
 	
 	public GroupingTranslator(LegoToGeneAnnotationTranslator translator, ExternalLookupService lookup,
 			Map<String, String> taxonGroups, String defaultTaxonGroup, boolean addLegoModelId)
@@ -63,7 +113,7 @@ public class GroupingTranslator {
 		List<String> addtitionalRefs = handleRefs(addLegoModelId, modelCurie);
 		
 		// get state
-		final String modelState = getModelState(model, "unknown");
+		final String modelState = getModelState(model, defaultState);
 		modelStates.add(modelState);
 
 		// create containers
@@ -103,23 +153,10 @@ public class GroupingTranslator {
 				if (group == null) {
 					group = defaultTaxonGroup;
 				}
-				List<GeneAnnotation> groupDocument = modelGroupAnnotations.get(group);
-				if (groupDocument == null) {
-					groupDocument = new ArrayList<>();
-					modelGroupAnnotations.put(group, groupDocument);
-				}
-				List<Bioentity> groupEntities = modelGroupEntities.get(group);
-				if (groupEntities == null) {
-					groupEntities = new ArrayList<>();
-					modelGroupEntities.put(group, groupEntities);
-				}
-				if (!groupEntities.contains(entity)) {
-					groupEntities.add(entity);
-				}
-				for (GeneAnnotation ann : annotations.getGeneAnnotations()) {
-					if (ann.getBioentity().equals(entity.getId())) {
-						groupDocument.add(ann);
-					}
+				modelGroups.addAnnotations(annotations, entity, group);
+
+				if (productionState.equals(modelState)) {
+					productionModelGroups.addAnnotations(annotations, entity, group);
 				}
 			}
 		}
@@ -143,26 +180,23 @@ public class GroupingTranslator {
 		}
 		return result;
 	}
-	
+
 	public GafDocument getAnnotationsByGroup(String taxonGroup) {
-		GafDocument result = new GafDocument(null, null);
-		List<GeneAnnotation> annotations = modelGroupAnnotations.get(taxonGroup);
-		List<Bioentity> entities = modelGroupEntities.get(taxonGroup);
-		if (annotations != null && entities != null) {
-			for(Bioentity entity : entities) {
-				result.addBioentity(entity);
-			}
-			for(GeneAnnotation annotation : annotations) {
-				result.addGeneAnnotation(annotation);
-			}
-		}
-		return result;
+		return modelGroups.getAnnotationsByGroup(taxonGroup);
 	}
-	
+
 	public Set<String> getTaxonGroups() {
-		return Collections.unmodifiableSet(modelGroupAnnotations.keySet());
+		return modelGroups.getGroups();
 	}
-	
+
+	public GafDocument getProductionAnnotationsByGroup(String taxonGroup) {
+		return productionModelGroups.getAnnotationsByGroup(taxonGroup);
+	}
+
+	public Set<String> getProductionTaxonGroups() {
+		return productionModelGroups.getGroups();
+	}
+
 	List<String> handleRefs(boolean addLegoModelId, String modelCurie) {
 		List<String> addtitionalRefs = null;
 		if (addLegoModelId && modelCurie != null) {
@@ -170,7 +204,7 @@ public class GroupingTranslator {
 		}
 		return addtitionalRefs;
 	}
-	
+
 	public static String getModelState(OWLOntology model, String defaultValue) {
 		String modelState = defaultValue;
 		Set<OWLAnnotation> modelAnnotations = model.getAnnotations();
