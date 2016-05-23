@@ -12,6 +12,7 @@ import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLOntology;
 
 import owltools.io.ParserWrapper;
+import owltools.io.CatalogXmlIRIMapper;
 
 public class FindTaxonToolTest {
 	
@@ -21,6 +22,13 @@ public class FindTaxonToolTest {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
+
+		// if available, set catalog
+        String envCatalog = System.getenv().get("GENEONTOLOGY_CATALOG");
+        if (envCatalog != null) {
+        	pw.addIRIMapper(new CatalogXmlIRIMapper(envCatalog));
+        }
+
 		NEO = pw.parse("http://purl.obolibrary.org/obo/go/noctua/neo.owl");
 		curieHandler  = DefaultCurieHandler.getDefaultHandler();
 	}

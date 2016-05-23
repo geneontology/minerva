@@ -41,6 +41,7 @@ import com.google.gson.GsonBuilder;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
+import owltools.io.CatalogXmlIRIMapper;
 
 public class LocalServerTest {
 
@@ -56,7 +57,15 @@ public class LocalServerTest {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		init(new ParserWrapper());
+		ParserWrapper pw = new ParserWrapper();
+
+		// if available, set catalog
+        String envCatalog = System.getenv().get("GENEONTOLOGY_CATALOG");
+        if (envCatalog != null) {
+        	pw.addIRIMapper(new CatalogXmlIRIMapper(envCatalog));
+        }
+
+		init(pw);
 	}
 	
 	@AfterClass

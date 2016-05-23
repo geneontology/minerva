@@ -31,15 +31,15 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 
 	public static final String JSONP_DEFAULT_CALLBACK = "jsonp";
 	public static final String JSONP_DEFAULT_OVERWRITE = "json.wrf";
-	
-	
+
+
 	public static boolean VALIDATE_BEFORE_SAVE = true;
 	public boolean CHECK_LITERAL_IDENTIFIERS = true; // TODO remove the temp work-around
-	
+
 	private static final Logger logger = Logger.getLogger(JsonOrJsonpBatchHandler.class);
-	
+
 	private final InferenceProviderCreator inferenceProviderCreator;
-	
+
 	public JsonOrJsonpBatchHandler(UndoAwareMolecularModelManager models,
 			String defaultModelState,
 			InferenceProviderCreator inferenceProviderCreator,
@@ -53,9 +53,9 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 
 		// generated
 		private static final long serialVersionUID = 5452629810143143422L;
-		
+
 	}.getType();
-	
+
 	@Override
 	boolean checkLiteralIdentifiers() {
 		return CHECK_LITERAL_IDENTIFIERS;
@@ -71,7 +71,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	public M3BatchResponse m3BatchGet(String intention, String packetId, String requestString, String useReasoner) {
 		return m3Batch(null, intention, packetId, requestString, useReasoner, false);
 	}
-	
+
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
 	public M3BatchResponse m3BatchGetPrivileged(String uid, String intention, String packetId, String requestString, String useReasoner) {
@@ -83,7 +83,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	public M3BatchResponse m3BatchPost(String intention, String packetId, String requestString, String useReasoner) {
 		return m3Batch(null, intention, packetId, requestString, useReasoner, false);
 	}
-	
+
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
 	public M3BatchResponse m3BatchPostPrivileged(String uid, String intention, String packetId, String requestString, String useReasoner) {
@@ -96,7 +96,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		}
 		return packetId;
 	}
-	
+
 	@Override
 	public M3BatchResponse m3Batch(String uid, String intention, String packetId, M3Request[] requests, boolean useReasoner, boolean isPrivileged) {
 		M3BatchResponse response = new M3BatchResponse(uid, intention, checkPacketId(packetId));
@@ -114,7 +114,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			return error(response, "An internal error occured at the server level.", t);
 		}
 	}
-	
+
 	private M3BatchResponse m3Batch(String uid, String intention, String packetId, String requestString, String useReasonerString, boolean isPrivileged) {
 		boolean useReasoner = false;
 		if (inferenceProviderCreator != null) {
@@ -136,11 +136,11 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			return error(response, "An internal error occured at the server level.", t);
 		}
 	}
-	
+
 	private M3BatchResponse m3Batch(M3BatchResponse response, M3Request[] requests, String userId, boolean useReasoner, boolean isPrivileged) throws InsufficientPermissionsException, Exception {
 		userId = normalizeUserId(userId);
 		UndoMetadata token = new UndoMetadata(userId);
-		
+
 		final BatchHandlerValues values = new BatchHandlerValues();
 		for (M3Request request : requests) {
 			requireNotNull(request, "request");
@@ -226,7 +226,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			response.data.annotations = MolecularModelJsonRenderer.renderModelAnnotations(values.model.getAboxOntology(), curieHandler);
 			response.data.modelId = curieHandler.getCuri(values.model.getModelId());
 		}
-		
+
 		// add other infos to data
 		if (!isConsistent) {
 			response.data.inconsistentFlag =  Boolean.TRUE;
@@ -246,7 +246,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		data.facts = jsonModel.facts;
 		data.annotations = jsonModel.annotations;
 	}
-	
+
 	/*
 	 * commentary is now to be a string, not an unknown multi-leveled object.
 	 */
@@ -260,13 +260,13 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			if( ename != null ){
 				state.message = state.message + " Exception: " + ename + ".";
 			}
-			
+
 			// And the exception message.
 			String emsg = e.getMessage();
 			if( emsg != null ){
 				state.message = state.message + " " + emsg;
 			}
-			
+
 			// Add the stack trace as commentary.
 			StringWriter stacktrace = new StringWriter();
 			e.printStackTrace(new PrintWriter(stacktrace));
@@ -289,9 +289,9 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			}
 		}
 	}
-	
+
 	static class InsufficientPermissionsException extends Exception {
-		
+
 		private static final long serialVersionUID = -3751573576960618428L;
 
 		InsufficientPermissionsException(String msg) {

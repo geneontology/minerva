@@ -12,6 +12,7 @@ import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLOntology;
 
 import owltools.io.ParserWrapper;
+import owltools.io.CatalogXmlIRIMapper;
 
 public class FindGoCodesTest {
 	
@@ -24,6 +25,13 @@ public class FindGoCodesTest {
 		curieHandler = DefaultCurieHandler.getDefaultHandler();
 		codes = new FindGoCodes(curieHandler);
 		ParserWrapper pw = new ParserWrapper();
+
+		// if available, set catalog
+        String envCatalog = System.getenv().get("GENEONTOLOGY_CATALOG");
+        if (envCatalog != null) {
+        	pw.addIRIMapper(new CatalogXmlIRIMapper(envCatalog));
+        }
+
 		eco = pw.parseOWL(IRI.create("http://purl.obolibrary.org/obo/eco.owl"));
 	}
 

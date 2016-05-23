@@ -1,0 +1,412 @@
+<!doctype html>
+
+<!--
+This HTML file contains an entire single-page AngularJS web application,
+including the following components:
+  - HTML for layout and UI
+  - JavaScript for behavior
+  - AngularJS for templating, MVC and reactive programming
+  - Twitter Bootstrap for styles and components
+  - AngularUI Bootstrap for Angular-specific Bootstrap implementations.
+  - json-formatter is an Angular directive that makes presenting JSON fun
+All of the above resources are pulled into the browser via CDN, except for
+json-formatter which I'm pulling directly from one of the author's example pages.
+
+This single-file format is pretty useful for educational and illustrative
+purposes, but is impractical for most real applications. Another advantage of
+SFSPWA (Single-File Single-Page Web Application) which makes them ideal for blogging
+and experimentation is that they don't require a web server. Simply opening
+the file in a web browser will be sufficient with Chrome, Safari and Firefox.
+-->
+
+<!--
+This particular application exercises some of the Minerva endpoints
+-->
+
+
+<!-- This is all pretty-standard HTML prefix text -->
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Minerva Tests</title>
+  <meta name="description" content="Simple Long Get Minerva Test">
+  <meta name="author" content="DoctorBud">
+
+  <!-- Include JS and CSS Resources from CDNs -->
+  <!-- We are using AngularJS, AngularUI Bootstrap, and Twitter Bootstrap -->
+
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.5/angular.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.5/angular-resource.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/1.0.3/ui-bootstrap-tpls.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/1.0.3/ui-bootstrap-tpls.js"></script>
+  <script src="http://azimi.me/json-formatter/dist/json-formatter.min.js"></script>
+
+  <link
+    rel="stylesheet"
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+    integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7"
+    crossorigin="anonymous">
+  <link
+    rel="stylesheet"
+    href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.6/readable/bootstrap.min.css"
+    crossorigin="anonymous">
+  <link
+    rel="stylesheet"
+    href="http://azimi.me/json-formatter/dist/json-formatter.min.css"
+    crossorigin="anonymous">
+
+<!--
+Here's our main Angular app definition and the definition of our controllers
+-->
+
+<!--
+So far, there is only one controller we are using, and it's called QueryController
+for lack of a better name.
+-->
+
+  <script>
+"use strict";   // This lets us use modern JS features.
+
+// We are in JavaScript now. So we use JS comments.
+// We are relying upon ES6 for the class/constructor capability. If you are using
+// Firefox, you must have the developer edition, or wait until March 2016 when the
+// default FF will support ES6. Because this file does not rely upon a preprocessor
+// like Babel, we assume a modern ES6 browser.
+//
+
+class QueryController {
+  constructor($resource, $timeout) {
+    this.$resource = $resource;
+    this.$timeout = $timeout;
+    this.minervaServerUrl = 'http://localhost:6800';
+    this.statusRequest = undefined;
+    this.statusResponse = undefined;
+    this.noctuaLandingResponse = undefined;
+    this.response = undefined;
+    var that = this;
+    //
+    // Uncomment the timeout code below if you want to auto-exec a function on
+    // page load.
+    //
+
+    // $timeout(
+    //   function () {
+    //     that.performShortGet();
+    //   },
+    //   200);
+  }
+
+
+  performStatusTest() {
+    this.statusRequest = "/status";
+    this.statusResponse = null;
+
+    var that = this;
+    var requestUrl = this.minervaServerUrl + this.statusRequest;
+    var q = this.$resource(
+                requestUrl,
+                {
+                  // default parameters
+                },
+                {
+                  get: {
+                    method:'GET',
+                    isArray: false,
+                    responseType: "json"
+                  }
+                }).get();
+    q.$promise.then(function(d) {
+      delete d.$promise;
+      delete d.$resolved;
+      that.statusResponse = d;
+    });
+  }
+
+  performStatusMemoryTest() {
+    this.statusRequest = "/status/memory";
+    this.statusResponse = null;
+
+    var that = this;
+    var requestUrl = this.minervaServerUrl + this.statusRequest;
+    var q = this.$resource(
+                requestUrl,
+                {
+                  // default parameters
+                },
+                {
+                  get: {
+                    method:'GET',
+                    isArray: false,
+                    responseType: "json"
+                  }
+                }).get();
+    q.$promise.then(function(d) {
+      delete d.$promise;
+      delete d.$resolved;
+      that.statusResponse = d;
+    });
+  }
+
+/*
+  performStatusMemoryTestText() {
+    var simpleGet = "/status/memory";
+
+    var that = this;
+    var requestUrl = this.minervaServerUrl + simpleGet;
+    var q = this.$resource(
+                requestUrl,
+                {
+                  // default parameters
+                },
+                {
+                  get: {
+                    method:'GET',
+                    isArray: true,
+                    responseType: "text",
+                    transformResponse: function(data, headers){
+                      console.log('TR:', data, headers);
+                      return [data];
+                    }
+                  }
+                }).get();
+    q.$promise.then(function(d) {
+      that.statusResponse = d[0];
+    });
+  }
+*/
+
+  performShortGet() {
+    var shortGet = `/m3Batch?intention=query&requests=%5B%7B%22entity%22%3A%22meta%22%2C%22operation%22%3A%22get%22%2C%22arguments%22%3A%7B%7D%7D%2C%7B%22entity%22%3A%22meta%22%2C%22operation%22%3A%22get%22%2C%22arguments%22%3A%7B%7D%7D%2C%7B%22entity%22%3A%22meta%22%2C%22operation%22%3A%22get%22%2C%22arguments%22%3A%7B%7D%7D%2C%7B%22entity%22%3A%22meta%22%2C%22operation%22%3A%22get%22%2C%22arguments%22%3A%7B%7D%7D%2C%7B%22entity%22%3A%22meta%22%2C%22operation%22%3A%22get%22%2C%22arguments%22%3A%7B%7D%7D%2C%7B%22entity%22%3A%22meta%22%2C%22operation%22%3A%22get%22%2C%22arguments%22%3A%7B%7D%7D%5D&uid=`;
+    var that = this;
+    this.response = null;
+    var requestUrl = this.minervaServerUrl + shortGet;
+    var q = this.$resource(
+                requestUrl,
+                {
+                  // default parameters
+                },
+                {
+                  get: {
+                    method:'GET',
+                    isArray: false,
+                    responseType: "json"
+                  }
+                }).get();
+    q.$promise.then(function(d) {
+      that.response = {
+        commentary: d.commentary,
+        data: d.data,
+        intention: d.intention,
+        'is-reasoned': d['is-reasoned'],
+        message: d.message,
+        'message-type': d['message-type'],
+        'packet-id': d['packet-id'],
+        signal: d.signal
+      };
+    });
+  }
+
+  performNoctuaLandingRequest() {
+    var shortGet = `/m3Batch`;
+    var that = this;
+    this.noctuaLandingResponse = null;
+    var requestUrl = this.minervaServerUrl + shortGet;
+    var params = {
+                    intention: 'query',
+
+                    // This is funky. The requests in /m3Batch are
+                    // stringified
+                    requests: JSON.stringify([
+                      {
+                        entity: 'meta',
+                        operation: 'get',
+                        arguments: {}
+                      }]),
+                    uid: null
+                  };
+
+    var q = this.$resource(
+                requestUrl,
+                {
+                  // params
+                },
+                {
+                  get: {
+                    method:'GET',
+                    isArray: false,
+                    responseType: 'json',
+                    params: params
+                  }
+                }).get();
+    q.$promise.then(function(d) {
+      that.noctuaLandingResponse = {
+        commentary: d.commentary,
+        data: d.data,
+        intention: d.intention,
+        'is-reasoned': d['is-reasoned'],
+        message: d.message,
+        'message-type': d['message-type'],
+        'packet-id': d['packet-id'],
+        signal: d.signal
+      };
+    });
+  }
+}
+
+var app = angular.module('SimpleApp', ['jsonFormatter', 'ngResource', 'ui.bootstrap']);
+app.config(function (JSONFormatterConfigProvider) {
+    JSONFormatterConfigProvider.hoverPreviewEnabled = true;
+  });
+
+app.controller(
+  'QueryController',
+  function ($resource, $timeout) {
+    return new QueryController($resource, $timeout);
+  });
+  </script>
+
+</head>
+
+
+<!--
+We are switching back to HTML now, and we're in the body section.
+-->
+
+<body
+  ng-app="SimpleApp">
+
+  <div
+    class="container container-fluid"
+    ng-controller="QueryController as qc">
+
+    <div class="row">
+
+      <!-- Single button -->
+      <div class="col-xs-6 btn-group" uib-dropdown is-open="status.isopen">
+        <button id="single-button" type="button" class="btn btn-primary btn-block btn-sm" uib-dropdown-toggle ng-disabled="disabled">
+          Select Minerva Server <span class="caret"></span>
+        </button>
+        <ul uib-dropdown-menu role="menu" aria-labelledby="single-button">
+          <li>
+            <a
+              ng-click="qc.minervaServerUrl='http://localhost:6800'">
+              http://localhost:6800
+            </a>
+          </li>
+          <li>
+            <a
+              ng-click="qc.minervaServerUrl='http://poole.monarchinitiative.org:3400/api/minerva_monarch_dev'">
+              http://poole.monarchinitiative.org:3400/api/minerva_monarch_dev
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="col-xs-6">
+        <h5>Minerva Server: {{qc.minervaServerUrl}}</h5>
+      </div>
+    </div>
+
+    <div class="row">
+
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">Simple Get Test</h3>
+        </div>
+        <div class="panel-body">
+          <p>
+          This test exercises the ability to make a simple Minerva <strong>/status</strong>
+          request. For some reason, the public Minerva instance does not allow this request, yet.
+          I'm guessing that it's because the production instance is out of date and doesn't
+          yet support <strong>/status</strong>, which is quite new.
+          </p>
+
+          <button
+            class="btn btn-info btn-sm"
+            ng-click="qc.performStatusTest()">
+          Exercise <strong>GET</strong> against the Minerva
+          <strong>{{qc.minervaServerUrl}}/status</strong> endpoint
+          </button>
+
+          <button
+            class="btn btn-info btn-sm"
+            ng-click="qc.performStatusMemoryTest()">
+          Exercise <strong>GET</strong> against the Minerva
+          <strong>{{qc.minervaServerUrl}}/status/memory</strong> endpoint.
+          </button>
+
+          <div
+            class="well"
+            ng-if="qc.statusResponse"
+            style="font-size:0.7em;font-weight:500;">
+            <h4>{{qc.minervaServerUrl}}{{qc.statusRequest}}</h4>
+            <json-formatter open="3" json="qc.statusResponse">
+            </json-formatter>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">Short Get Test</h3>
+        </div>
+        <div class="panel-body">
+          <p>
+          This test exercises the ability to make an <strong>m3Batch</strong> request.
+          The request is based upon the file
+          <strong>./minerva-server/src/test/resources/server-test/long-get.txt</strong>,
+          but has been shortened so that it passes through whatever nginx/apache/firewall
+          configuration is limiting the use of the full <strong>long-get</strong>.
+          </p>
+
+          <button
+            class="btn btn-primary btn-sm"
+            ng-click="qc.performShortGet()">
+          Perform Short GET Test against <strong>{{qc.minervaServerUrl}}</strong>
+          </button>
+
+          <div
+            class="well"
+            ng-if="qc.response"
+            style="font-size:0.7em;font-weight:500;">
+            <json-formatter open="3" json="qc.response">
+            </json-formatter>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">Noctua Landing Test</h3>
+        </div>
+        <div class="panel-body">
+          <p>
+          This test exercises the same request that is causing an error in Noctua.
+          </p>
+
+          <button
+            class="btn btn-primary btn-sm"
+            ng-click="qc.performNoctuaLandingRequest()">
+          Perform the buggy request that Noctua is making on load. I'm debugging this.
+          </button>
+
+          <div
+            class="well"
+            ng-if="qc.noctuaLandingResponse"
+            style="font-size:0.7em;font-weight:500;">
+            <json-formatter open="3" json="qc.noctuaLandingResponse">
+            </json-formatter>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
+
+

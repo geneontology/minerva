@@ -21,6 +21,7 @@ import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import owltools.OWLToolsTestBasics;
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
+import owltools.io.CatalogXmlIRIMapper;
 
 public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
 
@@ -31,6 +32,13 @@ public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
+
+		// if available, set catalog
+        String envCatalog = System.getenv().get("GENEONTOLOGY_CATALOG");
+        if (envCatalog != null) {
+        	pw.addIRIMapper(new CatalogXmlIRIMapper(envCatalog));
+        }
+
 		g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
 		m3 = new UndoAwareMolecularModelManager(g, curieHandler, "http://testmodel.geneontology.org/");
 	}
