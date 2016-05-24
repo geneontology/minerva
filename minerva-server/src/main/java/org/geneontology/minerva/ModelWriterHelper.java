@@ -86,16 +86,16 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 				final String modelId = curieHandler.getCuri(ontologyIRI.get());
 				final OWLAnnotation modelAnnotation = df.getOWLAnnotation(shortIdProp, df.getOWLLiteral(modelId), tags);
 				allChanges.add(new AddOntologyAnnotation(model, modelAnnotation));
+
+				// WARNING dirty work-around
+				// we add the json model (without inferences) to each saved model as a model annotation
+				final MolecularModelJsonRenderer renderer = OperationsTools.createModelRenderer(modelId, model, lookupService, null, curieHandler);
+				final JsonModel jsonModel = renderer.renderModel();
+				final Gson gson = new GsonBuilder().create();
+				final String json = gson.toJson(jsonModel);
+				final OWLAnnotation jsonAnnotation = df.getOWLAnnotation(jsonProp, df.getOWLLiteral(json), tags);
+				allChanges.add(new AddOntologyAnnotation(model, jsonAnnotation));
 			}
-			
-			// WARNING dirty work-around
-			// we add the json model (without inferences) to each saved model as a model annotation
-			final MolecularModelJsonRenderer renderer = OperationsTools.createModelRenderer(model, lookupService, null, curieHandler);
-			final JsonModel jsonModel = renderer.renderModel();
-			final Gson gson = new GsonBuilder().create();
-			final String json = gson.toJson(jsonModel);
-			final OWLAnnotation jsonAnnotation = df.getOWLAnnotation(jsonProp, df.getOWLLiteral(json), tags);
-			allChanges.add(new AddOntologyAnnotation(model, jsonAnnotation));
 		}
 		
 		// find relevant classes

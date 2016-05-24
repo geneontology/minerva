@@ -20,6 +20,7 @@ import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.lookup.CachingExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.GolrExternalLookupService;
+import org.geneontology.minerva.lookup.MonarchExternalLookupService;
 import org.geneontology.minerva.server.handler.JsonOrJsonpBatchHandler;
 import org.geneontology.minerva.server.handler.JsonOrJsonpSeedHandler;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
@@ -56,6 +57,7 @@ public class StartUpTool {
 		public String defaultModelState = "development";
 		
 		public String golrUrl = null;
+		public String monarchUrl = null;
 		public String golrSeedUrl = null;
 		public int golrCacheSize = 100000;
 		public long golrCacheDuration = 24l;
@@ -154,6 +156,9 @@ public class StartUpTool {
 			else if (opts.nextEq("--golr-labels")) {
 				conf.golrUrl = opts.nextOpt();
 			}
+			else if (opts.nextEq("--monarch-labels")) {
+				conf.monarchUrl = opts.nextOpt();
+			}
 			else if (opts.nextEq("--golr-seed")) {
 				conf.golrSeedUrl = opts.nextOpt();
 			}
@@ -203,6 +208,13 @@ public class StartUpTool {
 		if (conf.golrUrl != null) {
 			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler, conf.useGolrUrlLogging);
 			LOGGER.info("Setting up Golr cache with size: "+conf.golrCacheSize+" duration: "+
+					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
+					" use url logging: "+conf.useGolrUrlLogging);
+			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
+		}
+		if (conf.monarchUrl != null) {
+			conf.lookupService = new MonarchExternalLookupService(conf.monarchUrl, conf.curieHandler, conf.useGolrUrlLogging);
+			LOGGER.info("Setting up Monarch Golr cache with size: "+conf.golrCacheSize+" duration: "+
 					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
 					" use url logging: "+conf.useGolrUrlLogging);
 			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);

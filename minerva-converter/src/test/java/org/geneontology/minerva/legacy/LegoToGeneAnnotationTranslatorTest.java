@@ -11,7 +11,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.lookup.ExternalLookupService;
@@ -25,7 +24,6 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import owltools.gaf.Bioentity;
-import owltools.gaf.BioentityDocument;
 import owltools.gaf.GafDocument;
 import owltools.gaf.GeneAnnotation;
 import owltools.gaf.eco.EcoMapperFactory;
@@ -52,8 +50,7 @@ public class LegoToGeneAnnotationTranslatorTest {
 		entities.add(new LookupEntry(IRI.create("http://zfin.org/ZDB-GENE-991124-7"), "tbx5a", "gene", "NCBITaxon:7955"));
 		// is actually a gene, but made a protein for this test case
 		entities.add(new LookupEntry(IRI.create("http://zfin.org/ZDB-GENE-040426-2843"), "kctd10", "protein", "NCBITaxon:7955"));
-		Pair<GafDocument,BioentityDocument> pair = translate(model, "gomodel-1", entities);
-		GafDocument gafDocument = pair.getLeft();
+		GafDocument gafDocument = translate(model, "gomodel-1", entities);
 		List<GeneAnnotation> allAnnotations = gafDocument.getGeneAnnotations();
 		assertFalse(allAnnotations.isEmpty());
 		
@@ -81,10 +78,8 @@ public class LegoToGeneAnnotationTranslatorTest {
 		}
 		assertTrue(invalidDates.isEmpty());
 		
-		BioentityDocument bioentityDocument = pair.getRight();
-		
 		// expect two entities
-		List<Bioentity> bioentities = bioentityDocument.getBioentities();
+		Collection<Bioentity> bioentities = gafDocument.getBioentities();
 		assertEquals(2, bioentities.size());
 		
 		// check that all entities have a taxon id
@@ -123,12 +118,10 @@ public class LegoToGeneAnnotationTranslatorTest {
 		entities.add(new LookupEntry(IRI.create("http://flybase.org/reports/FBgn0263395"), "hppy", "gene", "NCBITaxon:7227"));
 		entities.add(new LookupEntry(IRI.create("http://v2.pseudomonas.com/getAnnotation.do?locusID=PA1528"), "zipA", "gene", "NCBITaxon:208964"));
 		entities.add(new LookupEntry(IRI.create("http://www.aspergillusgenome.org/cgi-bin/locus.pl?dbid=ASPL0000098579"), "zipA", "gene", "NCBITaxon:162425"));
-		Pair<GafDocument,BioentityDocument> pair = translate(model, "gomodel-2", entities);
-		
-		BioentityDocument bioentityDocument = pair.getRight();
+		GafDocument gafdoc = translate(model, "gomodel-2", entities);
 		
 		// expect two entities
-		List<Bioentity> bioentities = bioentityDocument.getBioentities();
+		Collection<Bioentity> bioentities = gafdoc.getBioentities();
 		assertEquals(2, bioentities.size());
 		
 		List<Bioentity> noSymbol = new ArrayList<>();
@@ -141,7 +134,7 @@ public class LegoToGeneAnnotationTranslatorTest {
 		assertTrue(noSymbol.isEmpty());
 		
 		// expect three annotations, one providing with infos
-		List<GeneAnnotation> allAnnotations = pair.getLeft().getGeneAnnotations();
+		List<GeneAnnotation> allAnnotations = gafdoc.getGeneAnnotations();
 		List<GeneAnnotation> withAnnotations = new ArrayList<GeneAnnotation>();
 		assertEquals(3, allAnnotations.size());
 		for(GeneAnnotation ann : allAnnotations) {
@@ -158,7 +151,7 @@ public class LegoToGeneAnnotationTranslatorTest {
 		return model;
 	}
 	
-	private Pair<GafDocument,BioentityDocument> translate(OWLOntology model, String id, List<LookupEntry> entities) {
+	private GafDocument translate(OWLOntology model, String id, List<LookupEntry> entities) {
 		LegoToGeneAnnotationTranslator t = new LegoToGeneAnnotationTranslator(model, curieHandler, mapper);
 		ExternalLookupService lookup = null;
 		if (entities != null) {

@@ -12,8 +12,7 @@ import javax.ws.rs.QueryParam;
 
 import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.json.JsonEvidenceInfo;
-import org.geneontology.minerva.json.JsonOwlFact;
-import org.geneontology.minerva.json.JsonOwlIndividual;
+import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.JsonOwlObject;
 import org.geneontology.minerva.json.JsonRelationInfo;
 
@@ -105,22 +104,13 @@ public interface M3BatchHandler {
 	
 	public static class M3BatchResponse extends MinervaResponse<M3BatchResponse.ResponseData>{
 		
-		public static class ResponseData {
-			public String id;
+		public static class ResponseData extends JsonModel {
 			
 			@SerializedName("inconsistent-p")
 			public Boolean inconsistentFlag;
 			
 			@SerializedName("modified-p")
 			public Boolean modifiedFlag;
-			
-			public JsonAnnotation[] annotations;
-			
-			public JsonOwlFact[] facts;
-			
-			public JsonOwlIndividual[] individuals;
-			
-			public JsonOwlObject[] properties;
 			
 			public Object undo;
 			public Object redo;

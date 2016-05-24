@@ -43,6 +43,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
+import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 import owltools.graph.OWLGraphWrapper;
@@ -2057,6 +2058,67 @@ public class BatchModelHandlerTest {
 		
 		// this has to fail as IDA is *not* a known identifier
 		assertEquals(M3BatchResponse.MESSAGE_TYPE_ERROR, response.messageType);
+	}
+	
+	@Test
+	public void testRelationLabels() throws Exception {
+		models.dispose();
+		models.setPathToOWLFiles(folder.newFolder().getCanonicalPath());
+		
+		// find test relation
+		final OWLGraphWrapper graph = models.getGraph();
+		final OWLOntology sourceOntology = graph.getSourceOntology();
+		Set<OWLObjectProperty> properties = sourceOntology.getObjectPropertiesInSignature(true);
+		OWLObjectProperty gorel0002006 = null;
+		for (OWLObjectProperty p : properties) {
+			IRI iri = p.getIRI();
+			if (iri.toString().endsWith("http://purl.obolibrary.org/obo/GOREL_0002006")) {
+				gorel0002006 = p;
+			}
+		}
+		assertNotNull(gorel0002006);
+		String gorel0002006Curie = curieHandler.getCuri(gorel0002006);
+		String gorel0002006Label = graph.getLabel(gorel0002006);
+		assertEquals("results_in_organization_of", gorel0002006Label);
+		
+		// check meta
+		M3Request r = new M3Request();
+		r.entity = Entity.meta;
+		r.operation = Operation.get;
+		
+		M3BatchResponse response1 = execute(r, false);
+		final JsonRelationInfo[] relations = BatchTestTools.responseRelations(response1);
+		JsonRelationInfo gorel0002006Info = null;
+		for(JsonRelationInfo rel : relations) {
+			if (rel.id.equals(gorel0002006Curie)) {
+				gorel0002006Info = rel;
+			}
+		}
+		assertNotNull(gorel0002006Info);
+		assertEquals("results_in_organization_of", gorel0002006Info.label);
+		
+		
+		// use relation and check that response also contains relation label
+		String modelId = generateBlankModel();
+		
+		r = new M3Request();
+		r.entity = Entity.individual;
+		r.operation = Operation.add;
+		r.arguments = new M3Argument();
+		r.arguments.modelId = modelId;
+		r.arguments.expressions = new JsonOwlObject[1];
+		r.arguments.expressions[0] = BatchTestTools.createSvf(gorel0002006Curie, "GO:0003674");
+		
+		M3BatchResponse response2 = execute(r, false);
+		JsonOwlIndividual[] individuals = BatchTestTools.responseIndividuals(response2);
+		assertEquals(1, individuals.length);
+		JsonOwlIndividual individual = individuals[0];
+		JsonOwlObject[] types = individual.type;
+		assertEquals(1, types.length);
+		JsonOwlObject property = types[0].property;
+		assertEquals(gorel0002006Curie, property.id);
+		assertEquals("results_in_organization_of", property.label);
+		
 	}
 	
 	private M3BatchResponse execute(M3Request r, boolean useReasoner) {

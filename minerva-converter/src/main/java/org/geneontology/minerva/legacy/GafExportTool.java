@@ -4,16 +4,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
-import owltools.gaf.BioentityDocument;
 import owltools.gaf.GafDocument;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
@@ -43,44 +44,47 @@ public class GafExportTool {
 	 * @param model
 	 * @param curieHandler
 	 * @param lookup
-	 * @param format format name or null for default
+	 * @param formats set of format names
 	 * @return modelContent
-	 * @throws IOException
 	 * @throws OWLOntologyCreationException
 	 */
-	public String exportModelLegacy(ModelContainer model, CurieHandler curieHandler, ExternalLookupService lookup, String format) throws IOException, OWLOntologyCreationException {
+	public Map<String, String> exportModelLegacy(ModelContainer model, CurieHandler curieHandler, ExternalLookupService lookup, Set<String> formats) throws OWLOntologyCreationException {
 		final OWLOntology aBox = model.getAboxOntology();
 		
 		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(aBox, curieHandler, ecoMapper);
-		Pair<GafDocument,BioentityDocument> pair = translator.translate(model.getModelId().toString(), aBox, lookup, null);
-		ByteArrayOutputStream outputStream = null;
-		try {
-			outputStream = new ByteArrayOutputStream();
-			if (format == null || "gaf".equalsIgnoreCase(format)) {
-				// GAF
-				GafWriter writer = new GafWriter();
-				try {
-					writer.setStream(new PrintStream(outputStream));
-					GafDocument gafdoc = pair.getLeft();
+		GafDocument gafdoc = translator.translate(model.getModelId().toString(), aBox, lookup, null);
+		Map<String, String> exportResults = new HashMap<String, String>();
+		for(String format : formats) {
+			ByteArrayOutputStream outputStream = null;
+			try {
+				outputStream = new ByteArrayOutputStream();
+				if ("gaf".equalsIgnoreCase(format)) {
+					// GAF
+					GafWriter writer = new GafWriter();
+					try {
+						writer.setStream(new PrintStream(outputStream));
+						writer.write(gafdoc);
+					}
+					finally {
+						IOUtils.closeQuietly(writer);
+					}
+
+				}
+				else if ("gpad".equalsIgnoreCase(format)) {
+					// GPAD version 1.2
+					GpadWriter writer = new GpadWriter(new PrintWriter(outputStream) , 1.2);
 					writer.write(gafdoc);
 				}
-				finally {
-					writer.close();
+				else {
+					continue;
 				}
-
+				String exported = outputStream.toString();
+				exportResults.put(format, exported);
 			}
-			else if ("gpad".equalsIgnoreCase(format)) {
-				// GPAD version 1.2
-				GpadWriter writer = new GpadWriter(new PrintWriter(outputStream) , 1.2);
-				writer.write(pair.getLeft());
+			finally {
+				IOUtils.closeQuietly(outputStream);
 			}
-			else {
-				throw new IOException("Unknown legacy format: "+format);
-			}
-			return outputStream.toString();
 		}
-		finally {
-			IOUtils.closeQuietly(outputStream);
-		}
+		return exportResults;
 	}
 }

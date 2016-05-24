@@ -1,8 +1,13 @@
 package org.geneontology.minerva.json;
 
+import com.google.gson.annotations.SerializedName;
+
 public class JsonOwlFact extends JsonAnnotatedObject {
 	public String subject;
 	public String property;
+	
+	@SerializedName("property-label")
+	public String propertyLabel;
 	public String object;
 
 	@Override

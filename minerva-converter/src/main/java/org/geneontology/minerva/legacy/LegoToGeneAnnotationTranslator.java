@@ -11,7 +11,6 @@ import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLOntology;
 
-import owltools.gaf.BioentityDocument;
 import owltools.gaf.GafDocument;
 import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.graph.OWLGraphWrapper;
@@ -29,14 +28,14 @@ public class LegoToGeneAnnotationTranslator extends AbstractLegoTranslator {
 	}
 
 	@Override
-	public void translate(OWLOntology modelAbox, ExternalLookupService lookup, GafDocument annotations, BioentityDocument entities, List<String> additionalRefs) {
+	public void translate(OWLOntology modelAbox, ExternalLookupService lookup, GafDocument annotations, List<String> additionalRefs) {
 		Set<Summary> summaries = new HashSet<Summary>();
 		walkModel(modelAbox, lookup, summaries);
 		
 		final OWLGraphWrapper modelGraph = new OWLGraphWrapper(modelAbox);
 		for(Summary summary : summaries) {
 			if (summary.entity != null) {
-				addAnnotations(modelGraph, lookup, summary, additionalRefs, annotations, entities);
+				addAnnotations(modelGraph, lookup, summary, additionalRefs, annotations);
 			}
 		}
 	}

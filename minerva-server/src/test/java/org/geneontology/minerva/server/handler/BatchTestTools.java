@@ -134,12 +134,6 @@ public class BatchTestTools {
 		return response.data.facts;
 	}
 	
-	static JsonOwlObject[] responseProperties(M3BatchResponse response) {
-		assertNotNull(response);
-		assertNotNull(response.data);
-		return response.data.properties;
-	}
-	
 	static JsonAnnotation[] responseAnnotations(M3BatchResponse response) {
 		assertNotNull(response);
 		assertNotNull(response.data);
@@ -149,7 +143,7 @@ public class BatchTestTools {
 	static String responseId(M3BatchResponse response) {
 		assertNotNull(response);
 		assertNotNull(response.data);
-		return (String) response.data.id;
+		return response.data.modelId;
 	}
 	
 	static JsonRelationInfo[] responseRelations(M3BatchResponse response) {

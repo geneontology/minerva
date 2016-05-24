@@ -8,12 +8,15 @@ import java.util.Set;
 
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.util.AnnotationShorthand;
+import org.obolibrary.obo2owl.Obo2OWLConstants;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLAnnotationValue;
+import org.semanticweb.owlapi.model.OWLAnnotationValueVisitorEx;
+import org.semanticweb.owlapi.model.OWLAnonymousIndividual;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLClassExpression;
@@ -45,6 +48,8 @@ abstract class LegoModelWalker<PAYLOAD> {
 	protected final OWLAnnotationProperty evidence;
 	protected final OWLAnnotationProperty with;
 
+	private final OWLAnnotationProperty shortIdProp;
+
 	protected final OWLDataFactory f;
 
 	protected LegoModelWalker(OWLDataFactory df) {
@@ -52,10 +57,11 @@ abstract class LegoModelWalker<PAYLOAD> {
 		
 		partOf = OBOUpperVocabulary.BFO_part_of.getObjectProperty(f);
 		occursIn = OBOUpperVocabulary.BFO_occurs_in.getObjectProperty(f);
-	
-	
+
 		enabledBy = OBOUpperVocabulary.GOREL_enabled_by.getObjectProperty(f);
-	
+
+		shortIdProp = df.getOWLAnnotationProperty(IRI.create(Obo2OWLConstants.OIOVOCAB_IRI_PREFIX+"id"));
+
 		source = f.getOWLAnnotationProperty(AnnotationShorthand.source.getAnnotationProperty());
 		contributor = f.getOWLAnnotationProperty(AnnotationShorthand.contributor.getAnnotationProperty());
 		date = f.getOWLAnnotationProperty(AnnotationShorthand.date.getAnnotationProperty());
@@ -71,6 +77,8 @@ abstract class LegoModelWalker<PAYLOAD> {
 	}
 
 	protected static class Metadata {
+		String modelId = null;
+		Set<IRI> individualIds = null;
 		OWLClass evidence = null;
 		Set<String> contributors = null;
 		String date = null;
@@ -84,14 +92,16 @@ abstract class LegoModelWalker<PAYLOAD> {
 			metadata.date = this.date;
 			metadata.sources = copy(this.sources);
 			metadata.with = copy(this.with);
+			metadata.modelId = this.modelId;
+			metadata.individualIds = copy(this.individualIds);
 			return metadata;
 		}
 
-		private static Set<String> copy(Set<String> c) {
+		private static <T> Set<T> copy(Set<T> c) {
 			if (c == null) {
 				return null;
 			}
-			return new HashSet<String>(c);
+			return new HashSet<T>(c);
 		}
 
 		static Metadata combine(Metadata primary, Metadata secondary) {
@@ -137,6 +147,20 @@ abstract class LegoModelWalker<PAYLOAD> {
 									result.with.addAll(oldResult.with);
 								}
 							}
+							if (oldResult.individualIds != null && !oldResult.individualIds.isEmpty()) {
+								if (result.individualIds == null) {
+									result.individualIds = Sets.newHashSet(oldResult.individualIds);
+								}
+								else {
+									result.individualIds.addAll(oldResult.individualIds);
+								}
+							}
+						}
+						else if (metadata.individualIds != null) {
+							if (result.individualIds == null) {
+								result.individualIds = new HashSet<IRI>();
+							}
+							result.individualIds.addAll(metadata.individualIds);
 						}
 					}
 				}
@@ -147,6 +171,29 @@ abstract class LegoModelWalker<PAYLOAD> {
 
 	public void walkModel(OWLOntology model, ExternalLookupService lookup, Collection<PAYLOAD> allPayloads) {
 		final OWLGraphWrapper modelGraph = new OWLGraphWrapper(model);
+		
+		String modelId = null;
+		for(OWLAnnotation modelAnnotation : model.getAnnotations()) {
+			if (shortIdProp.equals(modelAnnotation.getProperty())) {
+				modelId = modelAnnotation.getValue().accept(new OWLAnnotationValueVisitorEx<String>() {
+
+					@Override
+					public String visit(IRI iri) {
+						return null;
+					}
+
+					@Override
+					public String visit(OWLAnonymousIndividual individual) {
+						return null;
+					}
+
+					@Override
+					public String visit(OWLLiteral literal) {
+						return literal.getLiteral();
+					}
+				});
+			}
+		}
 
 		final Set<OWLNamedIndividual> annotationIndividuals = new HashSet<OWLNamedIndividual>();
 		final Map<IRI, Metadata> evidenceIndividuals = new HashMap<IRI, Metadata>();
@@ -156,7 +203,7 @@ abstract class LegoModelWalker<PAYLOAD> {
 			OWLClass eco = getEco(individualTypes);
 			if (eco != null) {
 				// is eco
-				Metadata metadata = extractMetadata(individual, modelGraph, null);
+				Metadata metadata = extractMetadata(individual, modelGraph, modelId, null);
 				metadata.evidence = eco;
 				evidenceIndividuals.put(individual.getIRI(), metadata);
 			}
@@ -168,7 +215,7 @@ abstract class LegoModelWalker<PAYLOAD> {
 
 		final Map<OWLNamedIndividual,Metadata> allMetadata = new HashMap<OWLNamedIndividual, Metadata>();
 		for(OWLNamedIndividual individual : annotationIndividuals) {
-			Metadata metadata = extractMetadata(individual, modelGraph, evidenceIndividuals);
+			Metadata metadata = extractMetadata(individual, modelGraph, modelId, evidenceIndividuals);
 			allMetadata.put(individual, metadata);
 		}
 
@@ -186,7 +233,7 @@ abstract class LegoModelWalker<PAYLOAD> {
 					final OWLNamedIndividual subject = axiom.getSubject().asOWLNamedIndividual();
 
 					// get associated meta data
-					final Metadata linkMetadata = extractMetadata(axiom.getAnnotations(), modelGraph, evidenceIndividuals);
+					final Metadata linkMetadata = extractMetadata(axiom.getAnnotations(), modelGraph, modelId, evidenceIndividuals);
 					final Metadata objectMetadata = allMetadata.get(object);
 					final Metadata subjectMetadata = allMetadata.get(subject);
 					final Metadata mfMetadata = Metadata.mergeMetadata(linkMetadata, objectMetadata, subjectMetadata);
@@ -194,7 +241,7 @@ abstract class LegoModelWalker<PAYLOAD> {
 					// get all OWLObjectPropertyAssertionAxiom for subject
 					Set<OWLObjectPropertyAssertionAxiom> subjectAxioms = model.getObjectPropertyAssertionAxioms(subject);
 					for(OWLObjectPropertyAssertionAxiom current : subjectAxioms) {
-						final Metadata currentLinkMetadata = extractMetadata(current.getAnnotations(), modelGraph, evidenceIndividuals);
+						final Metadata currentLinkMetadata = extractMetadata(current.getAnnotations(), modelGraph, modelId, evidenceIndividuals);
 						final OWLObjectPropertyExpression currentP = current.getProperty();
 						final OWLNamedIndividual currentObj = current.getObject().asOWLNamedIndividual();
 						final Metadata currentObjMetadata = allMetadata.get(currentObj);
@@ -309,8 +356,11 @@ abstract class LegoModelWalker<PAYLOAD> {
 		return f.getOWLObjectSomeValuesFrom(p, c);
 	}
 	
-	private Metadata extractMetadata(OWLNamedIndividual individual, OWLGraphWrapper modelGraph, Map<IRI, Metadata> allEvidences) {
+	private Metadata extractMetadata(OWLNamedIndividual individual, OWLGraphWrapper modelGraph, String modelId, Map<IRI, Metadata> allEvidences) {
 		Metadata metadata = new Metadata();
+		metadata.modelId = modelId;
+		metadata.individualIds = new HashSet<IRI>();
+		metadata.individualIds.add(individual.getIRI());
 		Set<OWLAnnotationAssertionAxiom> assertionAxioms = modelGraph.getSourceOntology().getAnnotationAssertionAxioms(individual.getIRI());
 		for (OWLAnnotationAssertionAxiom axiom : assertionAxioms) {
 			OWLAnnotationProperty currentProperty = axiom.getProperty();
@@ -363,8 +413,9 @@ abstract class LegoModelWalker<PAYLOAD> {
 		}
 	}
 
-	private Metadata extractMetadata(Collection<OWLAnnotation> annotations, OWLGraphWrapper modelGraph, Map<IRI, Metadata> allEvidences) {
+	private Metadata extractMetadata(Collection<OWLAnnotation> annotations, OWLGraphWrapper modelGraph, String modelId, Map<IRI, Metadata> allEvidences) {
 		Metadata metadata = new Metadata();
+		metadata.modelId = modelId;
 		if (annotations != null && !annotations.isEmpty()) {
 			for (OWLAnnotation owlAnnotation : annotations) {
 				OWLAnnotationProperty currentProperty = owlAnnotation.getProperty();
