@@ -18,6 +18,8 @@ import org.semanticweb.owlapi.model.OWLAnonymousIndividual;
 import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLOntology;
 
+import com.google.common.base.Optional;
+
 import owltools.gaf.Bioentity;
 import owltools.gaf.GafDocument;
 import owltools.gaf.GeneAnnotation;
@@ -239,9 +241,9 @@ public class GroupingTranslator {
 	public static String getModelCurie(OWLOntology model, CurieHandler curieHandler, String defaultValue) {
 		// get model curie from ontology IRI
 		String modelCurie = defaultValue;
-		IRI ontologyIRI = model.getOntologyID().getOntologyIRI();
-		if (ontologyIRI != null) {
-			modelCurie = curieHandler.getCuri(ontologyIRI);
+		Optional<IRI> ontologyIRI = model.getOntologyID().getOntologyIRI();
+		if (ontologyIRI.isPresent()) {
+			modelCurie = curieHandler.getCuri(ontologyIRI.get());
 		}
 		return modelCurie;
 	}

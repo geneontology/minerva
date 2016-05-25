@@ -12,25 +12,27 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
-import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxOntologyFormat;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
-import org.semanticweb.owlapi.io.OWLFunctionalSyntaxOntologyFormat;
-import org.semanticweb.owlapi.io.OWLXMLOntologyFormat;
-import org.semanticweb.owlapi.io.RDFXMLOntologyFormat;
+import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
+import org.semanticweb.owlapi.formats.ManchesterSyntaxDocumentFormat;
+import org.semanticweb.owlapi.formats.OWLXMLDocumentFormat;
+import org.semanticweb.owlapi.formats.RDFXMLDocumentFormat;
 import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLDocumentFormat;
 import org.semanticweb.owlapi.model.OWLImportsDeclaration;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyAlreadyExistsException;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyDocumentAlreadyExistsException;
-import org.semanticweb.owlapi.model.OWLOntologyFormat;
 import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
+
+import com.google.common.base.Optional;
 
 import owltools.gaf.parser.GafObjectsBuilder;
 import owltools.graph.OWLGraphWrapper;
@@ -53,7 +55,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	
 	GafObjectsBuilder builder = new GafObjectsBuilder();
 	// WARNING: Do *NOT* switch to functional syntax until the OWL-API has fixed a bug.
-	OWLOntologyFormat ontologyFormat = new ManchesterOWLSyntaxOntologyFormat();
+	OWLDocumentFormat ontologyFormat = new ManchesterSyntaxDocumentFormat();
 
 	private final List<PreFileSaveHandler> preFileSaveHandlers = new ArrayList<PreFileSaveHandler>();
 	private final List<PostLoadOntologyFilter> postLoadOntologyFilters = new ArrayList<PostLoadOntologyFilter>();
@@ -90,8 +92,11 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		OWLDataFactory f = m.getOWLDataFactory();
 		
 		// import T-Box
-		OWLImportsDeclaration tBoxImportDeclaration = f.getOWLImportsDeclaration(tboxId.getOntologyIRI());
-		m.applyChange(new AddImport(ont, tBoxImportDeclaration));
+		Optional<IRI> ontologyIRI = tboxId.getOntologyIRI();
+		if (ontologyIRI.isPresent()) {
+			OWLImportsDeclaration tBoxImportDeclaration = f.getOWLImportsDeclaration(ontologyIRI.get());
+			m.applyChange(new AddImport(ont, tBoxImportDeclaration));
+		}
 		
 		// import additional ontologies via IRI
 		for (IRI importIRI : additionalImports) {
@@ -267,7 +272,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	}
 	
 	/**
-	 * Export the ABox for the given modelId in the default {@link OWLOntologyFormat}.
+	 * Export the ABox for the given modelId in the default {@link OWLDocumentFormat}.
 	 * 
 	 * @param model
 	 * @return modelContent
@@ -279,7 +284,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	
 	/**
 	 * Export the ABox for the given modelId in the given ontology format.<br>
-	 * Warning: The mapping from String to {@link OWLOntologyFormat} does not map every format!
+	 * Warning: The mapping from String to {@link OWLDocumentFormat} does not map every format!
 	 * 
 	 * @param model
 	 * @param format
@@ -287,29 +292,29 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	 * @throws OWLOntologyStorageException
 	 */
 	public String exportModel(ModelContainer model, String format) throws OWLOntologyStorageException {
-		OWLOntologyFormat ontologyFormat = getOWLOntologyFormat(format);
+		OWLDocumentFormat ontologyFormat = getOWLOntologyFormat(format);
 		if (ontologyFormat == null) {
 			ontologyFormat = this.ontologyFormat;
 		}
 		return exportModel(model, ontologyFormat);
 	}
 	
-	private OWLOntologyFormat getOWLOntologyFormat(String fmt) {
-		OWLOntologyFormat ofmt = null;
+	private OWLDocumentFormat getOWLOntologyFormat(String fmt) {
+		OWLDocumentFormat ofmt = null;
 		if (fmt != null) {
 			fmt = fmt.toLowerCase();
 			if (fmt.equals("rdfxml"))
-				ofmt = new RDFXMLOntologyFormat();
+				ofmt = new RDFXMLDocumentFormat();
 			else if (fmt.equals("owl"))
-				ofmt = new RDFXMLOntologyFormat();
+				ofmt = new RDFXMLDocumentFormat();
 			else if (fmt.equals("rdf"))
-				ofmt = new RDFXMLOntologyFormat();
+				ofmt = new RDFXMLDocumentFormat();
 			else if (fmt.equals("owx"))
-				ofmt = new OWLXMLOntologyFormat();
+				ofmt = new OWLXMLDocumentFormat();
 			else if (fmt.equals("owf"))
-				ofmt = new OWLFunctionalSyntaxOntologyFormat();
+				ofmt = new FunctionalSyntaxDocumentFormat();
 			else if (fmt.equals("owm"))
-				ofmt = new ManchesterOWLSyntaxOntologyFormat();
+				ofmt = new ManchesterSyntaxDocumentFormat();
 		}
 		return ofmt;
 	}

@@ -1,8 +1,6 @@
 language: java
 
 jdk:
-  # - openjdk6 # Java 6 is not supported for minerva
-  - openjdk7
   - oraclejdk8
 
 # install

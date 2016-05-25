@@ -28,6 +28,8 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
 
+import com.google.common.base.Optional;
+
 import owltools.gaf.Bioentity;
 import owltools.gaf.ExtensionExpression;
 import owltools.gaf.GafDocument;
@@ -188,9 +190,11 @@ public class GafToLegoTranslator {
 			// add all ontologies from the graph wrapper as import to the new ontology
 			Set<OWLOntology> allOntologies = graph.getAllOntologies();
 			for (OWLOntology importOntology : allOntologies) {
-				IRI importIRI = importOntology.getOntologyID().getOntologyIRI();
-				OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(importIRI);
-				m.applyChange(new AddImport(lego, importDeclaration));
+				Optional<IRI> importIRI = importOntology.getOntologyID().getOntologyIRI();
+				if (importIRI.isPresent()) {
+					OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(importIRI.get());
+					m.applyChange(new AddImport(lego, importDeclaration));
+				}
 			}
 			
 			for(GeneAnnotation annotation : annotations) {

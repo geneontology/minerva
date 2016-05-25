@@ -61,7 +61,7 @@ public class FindTaxonTool {
 				OWLObjectSomeValuesFrom svf = (OWLObjectSomeValuesFrom) ce;
 				if (inTaxon.equals(svf.getProperty())) {
 					OWLClassExpression filler = svf.getFiller();
-					OWLClass c = filler.accept(new OWLClassExpressionVisitorExAdapter<OWLClass>(){
+					OWLClass c = filler.accept(new OWLClassExpressionVisitorExAdapter<OWLClass>(null) {
 
 						@Override
 						public OWLClass visit(OWLClass c) {

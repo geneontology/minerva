@@ -1,6 +1,6 @@
 package org.geneontology.minerva;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -8,16 +8,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import org.coode.owlapi.manchesterowlsyntax.ManchesterOWLSyntaxOntologyFormat;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.lookup.ExternalLookupService;
-import org.geneontology.minerva.lookup.TableLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
+import org.geneontology.minerva.lookup.TableLookupService;
 import org.junit.Test;
 import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.formats.ManchesterSyntaxDocumentFormat;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -85,7 +85,7 @@ public class ModelDecorationTest {
 	
 	static String render(OWLOntology o) throws Exception {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-		o.getOWLOntologyManager().saveOntology(o, new ManchesterOWLSyntaxOntologyFormat(), outputStream);
+		o.getOWLOntologyManager().saveOntology(o, new ManchesterSyntaxDocumentFormat(), outputStream);
 		outputStream.flush();
 		outputStream.close();
 		String s = outputStream.toString();

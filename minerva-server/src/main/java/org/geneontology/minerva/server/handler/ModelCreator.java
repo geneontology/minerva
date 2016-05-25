@@ -27,6 +27,7 @@ import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.parameters.Imports;
 
 /**
  * Methods for creating a new model. This handles also all the default
@@ -62,7 +63,7 @@ abstract class ModelCreator {
 		this.curieHandler = models.getCuriHandler();
 		this.defaultModelState = defaultModelState;
 		Set<IRI> dataPropertyIRIs = new HashSet<IRI>();
-		for(OWLDataProperty p : m3.getOntology().getDataPropertiesInSignature(true)) {
+		for(OWLDataProperty p : m3.getOntology().getDataPropertiesInSignature(Imports.INCLUDED)) {
 			dataPropertyIRIs.add(p.getIRI());
 		}
 		this.dataPropertyIRIs = Collections.unmodifiableSet(dataPropertyIRIs);

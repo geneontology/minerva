@@ -37,7 +37,7 @@ public class CachingInferenceProviderCreatorImpl extends InferenceProviderCreato
 	}
 	
 	public static InferenceProviderCreator createHermiT(int maxConcurrent) {
-		return new CachingInferenceProviderCreatorImpl(new org.semanticweb.HermiT.Reasoner.ReasonerFactory(),
+		return new CachingInferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(),
 				maxConcurrent, true, "Caching Hermit-SLME");
 	}
 
