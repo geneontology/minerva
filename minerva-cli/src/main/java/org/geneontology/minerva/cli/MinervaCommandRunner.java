@@ -61,6 +61,8 @@ public class MinervaCommandRunner extends JsCommandRunner {
 
 	@CLIMethod("--owl-lego-to-json")
 	public void owl2LegoJson(Opts opts) throws Exception {
+		opts.info("[-o JSONFILE] [-i OWLFILE] [--pretty-json] [--compact-json]",
+				"converts the LEGO subset of OWL to Minerva-JSON");
 		// parameters
 		String input = null;
 		String output = null;
