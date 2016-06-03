@@ -24,7 +24,7 @@ This is a quick overview on how to setup a Java server for the MolecularModelMan
 
 ### Prerequisites to build the code
 
- * Java (JDK 1.7 or later) as compiler
+ * Java (JDK 1.8 or later) as compiler
  * Maven (3.0.x) Build-Tool
 
 ### Building the Minerva Server
