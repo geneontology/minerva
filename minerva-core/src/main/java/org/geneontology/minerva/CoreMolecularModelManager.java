@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
+import org.geneontology.minerva.util.AnnotationShorthand;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.io.IRIDocumentSource;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentSource;
@@ -80,11 +81,17 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	
 	private static Logger LOG = Logger.getLogger(CoreMolecularModelManager.class);
 
+	// axiom has evidence RO:0002612
+	private static final IRI HAS_EVIDENCE_IRI = IRI.create("http://purl.obolibrary.org/obo/RO_0002612");
+	// legacy
+	private static final IRI HAS_EVIDENCE_IRI_OLD = AnnotationShorthand.evidence.getAnnotationProperty();
+
 	final OWLGraphWrapper graph;
 //	final OWLReasonerFactory rf;
 	private final IRI tboxIRI;
 	final Map<IRI, ModelContainer> modelMap = new HashMap<IRI, ModelContainer>();
 	Set<IRI> additionalImports;
+	
 	
 	/**
 	 * Use start up time to create a unique prefix for id generation
@@ -354,7 +361,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		
 		// Logic axiom
 		for (OWLAxiom ax : ont.getAxioms(i, Imports.EXCLUDED)) {
-			extractIRIValues(ax.getAnnotations(), deleteInformation.usedIRIs);
+			extractEvidenceIRIValues(ax.getAnnotations(), deleteInformation.usedIRIs);
 			toRemoveAxioms.add(ax);
 		}
 		
@@ -365,7 +372,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 			if (toRemoveAxioms.contains(ax) == false) {
 				Set<OWLNamedIndividual> currentIndividuals = ax.getIndividualsInSignature();
 				if (currentIndividuals.contains(i)) {
-					extractIRIValues(ax.getAnnotations(), deleteInformation.usedIRIs);
+					extractEvidenceIRIValues(ax.getAnnotations(), deleteInformation.usedIRIs);
 					toRemoveAxioms.add(ax);
 					continue;
 				}
@@ -391,7 +398,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		// OWLAnnotationAssertionAxiom
 		Set<OWLAnnotationAssertionAxiom> annotationAssertionAxioms = ont.getAnnotationAssertionAxioms(i.getIRI());
 		for (OWLAnnotationAssertionAxiom axiom : annotationAssertionAxioms) {
-			extractIRIValues(axiom.getAnnotation(), deleteInformation.usedIRIs);
+			extractEvidenceIRIValues(axiom.getAnnotation(), deleteInformation.usedIRIs);
 			toRemoveAxioms.add(axiom);	
 		}
 		
@@ -429,42 +436,45 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return deleteInformation;
 	}
 	
-	public static Set<IRI> extractIRIValues(Set<OWLAnnotation> annotations) {
+	public static Set<IRI> extractEvidenceIRIValues(Set<OWLAnnotation> annotations) {
 		if (annotations == null || annotations.isEmpty()) {
 			return Collections.emptySet();
 		}
 		Set<IRI> iriSet = new HashSet<IRI>();
-		extractIRIValues(annotations, iriSet);
+		extractEvidenceIRIValues(annotations, iriSet);
 		return iriSet;
 	}
 	
-	private static void extractIRIValues(Set<OWLAnnotation> annotations, final Set<IRI> iriSet) {
+	private static void extractEvidenceIRIValues(Set<OWLAnnotation> annotations, final Set<IRI> iriSet) {
 		if (annotations != null) {
 			for (OWLAnnotation annotation : annotations) {
-				extractIRIValues(annotation, iriSet);
+				extractEvidenceIRIValues(annotation, iriSet);
 			}
 		}
 	}
 	
-	private static void extractIRIValues(OWLAnnotation annotation, final Set<IRI> iriSet) {
+	private static void extractEvidenceIRIValues(OWLAnnotation annotation, final Set<IRI> iriSet) {
 		if (annotation != null) {
-			annotation.getValue().accept(new OWLAnnotationValueVisitor() {
-
-				@Override
-				public void visit(OWLLiteral literal) {
-					// ignore
-				}
-
-				@Override
-				public void visit(OWLAnonymousIndividual individual) {
-					// ignore
-				}
-
-				@Override
-				public void visit(IRI iri) {
-					iriSet.add(iri);
-				}
-			});
+			OWLAnnotationProperty property = annotation.getProperty();
+			if (HAS_EVIDENCE_IRI.equals(property.getIRI()) || HAS_EVIDENCE_IRI_OLD.equals(property.getIRI())){
+				annotation.getValue().accept(new OWLAnnotationValueVisitor() {
+	
+					@Override
+					public void visit(OWLLiteral literal) {
+						// ignore
+					}
+	
+					@Override
+					public void visit(OWLAnonymousIndividual individual) {
+						// ignore
+					}
+	
+					@Override
+					public void visit(IRI iri) {
+						iriSet.add(iri);
+					}
+				});
+			}
 		}
 	}
 	
@@ -921,7 +931,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		for (OWLObjectPropertyAssertionAxiom axiom : candidates) {
 			if (p.equals(axiom.getProperty()) && j.equals(axiom.getObject())) {
 				toRemove = axiom;
-				extractIRIValues(axiom.getAnnotations(), iriSet);
+				extractEvidenceIRIValues(axiom.getAnnotations(), iriSet);
 				break;
 			}
 		}

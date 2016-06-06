@@ -16,7 +16,9 @@ public enum AnnotationShorthand {
 	x(IRI.create("http://geneontology.org/lego/hint/layout/x"), "hint-layout-x"),
 	y(IRI.create("http://geneontology.org/lego/hint/layout/y"), "hint-layout-y"),
 	comment(OWLRDFVocabulary.RDFS_COMMENT.getIRI()), // arbitrary String
-	evidence(IRI.create("http://geneontology.org/lego/evidence")), // eco class iri
+	
+	// TODO replace with annotation property "http://purl.obolibrary.org/obo/RO_0002612" 'axiom has evidence'
+	evidence(IRI.create("http://geneontology.org/lego/evidence")), // eco class iri 
 	with(IRI.create("http://geneontology.org/lego/evidence-with")), // annotation prop for 'with' literals
 	date(IRI.create("http://purl.org/dc/elements/1.1/date")), // arbitrary string at the moment, define date format?
 	// DC recommends http://www.w3.org/TR/NOTE-datetime, one example format is YYYY-MM-DD
