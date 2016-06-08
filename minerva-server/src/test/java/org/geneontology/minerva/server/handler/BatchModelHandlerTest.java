@@ -45,6 +45,7 @@ import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.parameters.Imports;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
@@ -134,7 +135,6 @@ public class BatchModelHandlerTest {
 	public void testTypeOperations() throws Exception {
 		final String modelId = generateBlankModel();
 		
-		// create two individuals
 		List<M3Request> batch = new ArrayList<M3Request>();
 		M3Request r = BatchTestTools.addIndividual(modelId, "GO:0006915"); // apoptotic process
 		r.arguments.assignToVariable = "i1";
@@ -179,8 +179,13 @@ public class BatchModelHandlerTest {
 		JsonOwlIndividual[] iObjs = BatchTestTools.responseIndividuals(resp2);
 		assertEquals(2, iObjs.length);
 		for(JsonOwlIndividual iObj : iObjs) {
-			String id = iObj.type[0].id;
-			if (id.contains("6915")) {
+			String clsId = null;
+			for(JsonOwlObject currentType : iObj.type) {
+				if (currentType.type == JsonOwlObjectType.Class) {
+					clsId = currentType.id;
+				}
+			}
+			if (clsId.contains("6915")) {
 				individual1 = iObj.id;
 				assertEquals(3, iObj.type.length);
 			}
@@ -2068,7 +2073,7 @@ public class BatchModelHandlerTest {
 		// find test relation
 		final OWLGraphWrapper graph = models.getGraph();
 		final OWLOntology sourceOntology = graph.getSourceOntology();
-		Set<OWLObjectProperty> properties = sourceOntology.getObjectPropertiesInSignature(true);
+		Set<OWLObjectProperty> properties = sourceOntology.getObjectPropertiesInSignature(Imports.INCLUDED);
 		OWLObjectProperty gorel0002006 = null;
 		for (OWLObjectProperty p : properties) {
 			IRI iri = p.getIRI();

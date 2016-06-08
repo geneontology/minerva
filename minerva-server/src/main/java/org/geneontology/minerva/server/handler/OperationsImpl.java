@@ -268,7 +268,7 @@ abstract class OperationsImpl extends ModelCreator {
 			Map<OWLDataProperty, Set<OWLLiteral>> dataProperties = extractDataProperties(request.arguments.values, values.model);
 			OWLNamedIndividual i = getIndividual(request.arguments.individual, values);
 			
-			Set<IRI> usedIRIs = MolecularModelManager.extractIRIValues(annotations);
+			Set<IRI> evidenceIRIs = MolecularModelManager.extractEvidenceIRIValues(annotations);
 			
 			values.relevantIndividuals.add(i);
 			if (annotations.isEmpty() == false) {
@@ -280,7 +280,7 @@ abstract class OperationsImpl extends ModelCreator {
 			}
 			values.addVariableValue(request.arguments.assignToVariable, i);
 			
-			handleRemovedAnnotationIRIs(usedIRIs, values.model, token);
+			handleRemovedAnnotationIRIs(evidenceIRIs, values.model, token);
 			updateDate(values.model, i, token, m3);
 			updateModelAnnotations(values.model, userId, token, m3);
 		}
@@ -290,10 +290,10 @@ abstract class OperationsImpl extends ModelCreator {
 		return null;
 	}
 	
-	private void handleRemovedAnnotationIRIs(Set<IRI> iriSets, ModelContainer model, UndoMetadata token) {
-		if (iriSets != null) {
-			for (IRI iri : iriSets) {
-				OWLNamedIndividual i = m3.getIndividual(iri, model);
+	private void handleRemovedAnnotationIRIs(Set<IRI> evidenceIRIs, ModelContainer model, UndoMetadata token) {
+		if (evidenceIRIs != null) {
+			for (IRI evidenceIRI : evidenceIRIs) {
+				OWLNamedIndividual i = m3.getIndividual(evidenceIRI, model);
 				if (i != null) {
 					m3.deleteIndividual(model, i, token);
 				}
@@ -373,9 +373,9 @@ abstract class OperationsImpl extends ModelCreator {
 			requireNotNull(request.arguments.values, "request.arguments.values");
 
 			Set<OWLAnnotation> annotations = extract(request.arguments.values, null, values, values.model);
-			Set<IRI> iriSet = MolecularModelManager.extractIRIValues(annotations);
+			Set<IRI> evidenceIRIs = MolecularModelManager.extractEvidenceIRIValues(annotations);
 			m3.removeAnnotations(values.model, p, s, o, annotations, token);
-			handleRemovedAnnotationIRIs(iriSet, values.model, token);
+			handleRemovedAnnotationIRIs(evidenceIRIs, values.model, token);
 			updateDate(values.model, p, s, o, token, m3);
 			updateModelAnnotations(values.model, userId, token, m3);
 		}

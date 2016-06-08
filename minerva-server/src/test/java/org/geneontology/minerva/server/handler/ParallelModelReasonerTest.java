@@ -91,7 +91,7 @@ public class ParallelModelReasonerTest {
 			validateResponse(thread.response);
 		}
 		System.out.println("Hit: "+ipc.hit+" Miss: "+ipc.miss);
-		assertTrue(ipc.hit.get() >= 9); // most should be hits
+		assertTrue(ipc.hit.get() >= 7); // most should be hits
 		assertTrue(ipc.miss.get() >= 1); // at least one miss
 	}
 	
