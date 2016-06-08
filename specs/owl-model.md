@@ -98,7 +98,7 @@ syntax) as:
 ```
 Prefix: axiom-has-evidence: RO:0002612
 Prefix: evidence-with-support-from: RO:0002614
-Prefix: is-about: IAO:0000136
+Prefix: has-supporting-reference: SEPIO:0000124
 ...
 
 Individual: <i>
@@ -110,11 +110,10 @@ Individual: <e>
   Type: E
   Facts:
    evidence-with-support-from: <w>
+   has-supporting-reference: <pmid:nnnnn>
 
 Individual: <pmid:nnnnn>
   Type: IAO:0000311
-  Facts:
-   is-about: <e>
 
 Individual: <w>
   Type: ...
@@ -127,16 +126,16 @@ annotation does not point to the `<e>` individual, it points to its
 IRI.
 
 Additionally, axioms within the evidence part of the model can be
-annotated. For example, the is-about edge between a publication
-individual and the evidence it is about can be refined by providing
+annotated. For example, the has-supporting-reference edge between a evidence
+individual and the publication can be refined by providing
 *span* information:
 
 ```
-Individual: <pmid:nnnnn>
-  Type: IAO:0000311
+Individual: <e>
+  Type: E
   Facts:
-     has-span: "spanNNN"
-   is-about: <e>
+   evidence-with-support-from: <w>
+   has-span: "spanNNN" has-supporting-reference: <pmid:nnnnn>
 ```
 
 Here span is a TextPressoCentral construct representing a portion of
