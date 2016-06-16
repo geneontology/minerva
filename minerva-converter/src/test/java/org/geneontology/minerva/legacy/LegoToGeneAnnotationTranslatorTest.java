@@ -5,6 +5,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -150,6 +152,30 @@ public class LegoToGeneAnnotationTranslatorTest {
 			}
 		}
 		assertEquals(1, withAnnotations.size());
+	}
+	
+	@Test
+	public void testExtendedEvidence1() throws Exception {
+		OWLOntology model = loadModel("a1a2a3a401");
+		List<LookupEntry> entities = new ArrayList<>();
+		GafDocument gafdoc = translate(model, "a1a2a3a401", entities);
+		List<GeneAnnotation> allAnnotations = gafdoc.getGeneAnnotations();
+		assertEquals(1, allAnnotations.size());
+		GeneAnnotation ann = allAnnotations.get(0);
+		List<String> referenceIds = ann.getReferenceIds();
+		assertTrue(referenceIds.contains("PMID:19797081"));
+	}
+
+	@Test
+	public void testExtendedEvidence2() throws Exception {
+		OWLOntology model = loadModel("a1a2a3a402");
+		List<LookupEntry> entities = new ArrayList<>();
+		GafDocument gafdoc = translate(model, "a1a2a3a402", entities);
+		List<GeneAnnotation> allAnnotations = gafdoc.getGeneAnnotations();
+		assertEquals(1, allAnnotations.size());
+		GeneAnnotation ann = allAnnotations.get(0);
+		List<String> referenceIds = ann.getReferenceIds();
+		assertTrue(referenceIds.contains("PMID:19797081"));
 	}
 	
 	private OWLOntology loadModel(String name) throws Exception {

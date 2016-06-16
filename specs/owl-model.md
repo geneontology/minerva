@@ -98,7 +98,7 @@ syntax) as:
 ```
 Prefix: axiom-has-evidence: RO:0002612
 Prefix: evidence-with-support-from: RO:0002614
-Prefix: is-about: IAO:0000136
+Prefix: has-supporting-reference: SEPIO:0000124
 ...
 
 Individual: <i>
@@ -110,11 +110,10 @@ Individual: <e>
   Type: E
   Facts:
    evidence-with-support-from: <w>
+   has-supporting-reference: <pmid:nnnnn>
 
 Individual: <pmid:nnnnn>
   Type: IAO:0000311
-  Facts:
-   is-about: <e>
 
 Individual: <w>
   Type: ...
@@ -125,6 +124,44 @@ Individual: <w>
 Note that at the level of OWL-DL, the axiom-has-evidence axiom
 annotation does not point to the `<e>` individual, it points to its
 IRI.
+
+Additionally, axioms within the evidence part of the model can be
+annotated. For example, the has-supporting-reference edge between a evidence
+individual and the publication can be refined by providing
+*span* information:
+
+```
+Individual: <e>
+  Type: E
+  Facts:
+   evidence-with-support-from: <w>
+   has-span: "spanNNN" has-supporting-reference: <pmid:nnnnn>
+```
+
+Here span is a TextPressoCentral construct representing a portion of
+text. Here we use a literal (TBD: fill in span ID, or actual text?)
+
+## Operations and Structural Constraints on Models
+
+Minerva assures all the following are true:
+
+ 1. Every individual has at least one type assertion
+ 2. No Object Property Assertion is left 'dangling'
+
+Note that 2 follows from 1
+
+To ensure this state, Minerva implements the following cascading delete rules:
+
+ * If an individual `i` is deleted, its declaration is deleted
+ * If an individual `i` is deleted, all of its ClassAssertions are deleted
+ * If an individual `i` is deleted, any AnnotationAssertion for which `i` is either the subject IRI or target IRI will be deleted.
+ * If an individual `i` is deleted, any OPA that has `i` as either subject or target will be deleted
+ * If an OPA is deleted, all its annotations are deleted (this is enforced by the OWLAPI, as axiom annotations cannot exist without an exiom)
+ * If an axiom annotation is deleted, and that annotation uses the property [RO_0002612](http://purl.obolibrary.org/obo/RO_0002612) references an IRI, then the individual for that IRI is deleted
+
+No other cascades are performed.
+
+Note the underlying assumption is that RO:0002612 is inverse-functional (i.e. no evidence objects are shared)
 
 ## LEGO Models
 

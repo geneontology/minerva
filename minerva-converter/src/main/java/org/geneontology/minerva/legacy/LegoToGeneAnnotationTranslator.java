@@ -52,32 +52,32 @@ public class LegoToGeneAnnotationTranslator extends AbstractLegoTranslator {
 
 	@Override
 	protected boolean handleCC(Summary payload, OWLClass cls,
-			Metadata metadata,
+			Metadata metadata, Set<Evidence> evidences,
 			Set<OWLObjectSomeValuesFrom> expressions) {
 		boolean added = false;
 		if (isCc(cls)) {
-			added = payload.addCc(cls, metadata, expressions);
+			added = payload.addCc(cls, metadata, evidences, expressions);
 		}
 		return added;
 	}
 
 	@Override
 	protected boolean handleMF(Summary payload, OWLClass cls,
-			Metadata metadata,
+			Metadata metadata, Set<Evidence> evidences,
 			Set<OWLObjectSomeValuesFrom> expressions) {
 		if (isMf(cls)) {
-			payload.addMf(cls, metadata, expressions);
+			payload.addMf(cls, metadata, evidences, expressions);
 		}
 		return true;
 	}
 
 	@Override
 	protected boolean handleBP(Summary payload, OWLClass cls,
-			Metadata metadata,
+			Metadata metadata, Set<Evidence> evidences,
 			Set<OWLObjectSomeValuesFrom> expressions) {
 		boolean added = false;
 		if (isBp(cls)) {
-			added = payload.addBp(cls, metadata, expressions);
+			added = payload.addBp(cls, metadata, evidences, expressions);
 		}
 		return added;
 	}
