@@ -58,7 +58,7 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 	protected final FindGoCodes goCodes;
 	protected final CurieHandler curieHandler;
 
-	protected String assignedBy;
+	protected String assignedByDefault;
 
 	protected AbstractLegoTranslator(OWLOntology model, CurieHandler curieHandler, SimpleEcoMapper mapper) {
 		super(model.getOWLOntologyManager().getOWLDataFactory());
@@ -75,7 +75,7 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 	
 		fillAspects(model, curieHandler, bpSet, mfSet, ccSet);
 
-		assignedBy = "GO_Noctua";
+		assignedByDefault = "GO_Noctua";
 	}
 
 	static void fillAspects(OWLOntology model, CurieHandler curieHandler, Set<OWLClass> bpSet, Set<OWLClass> mfSet, Set<OWLClass> ccSet) {
@@ -156,37 +156,38 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		String entityType = null;
 		String entityTaxon = null;
 
-		boolean addMf(OWLClass cls, Metadata metadata, Set<OWLObjectSomeValuesFrom> expressions) {
+		boolean addMf(OWLClass cls, Metadata metadata, Set<Evidence> evidences, Set<OWLObjectSomeValuesFrom> expressions) {
 			if (isMf(cls)) {
-				activities = addAnnotation(cls, metadata, expressions, activities);
+				activities = addAnnotation(cls, metadata, evidences, expressions, activities);
 				return true;
 			}
 			return false;
 		}
 
-		boolean addBp(OWLClass cls, Metadata metadata, Set<OWLObjectSomeValuesFrom> expressions) {
+		boolean addBp(OWLClass cls, Metadata metadata, Set<Evidence> evidences, Set<OWLObjectSomeValuesFrom> expressions) {
 			if (isBp(cls)) {
-				processes = addAnnotation(cls, metadata, expressions, processes);
+				processes = addAnnotation(cls, metadata, evidences, expressions, processes);
 				return true;
 			}
 			return false;
 		}
 
-		boolean addCc(OWLClass cls, Metadata metadata, Set<OWLObjectSomeValuesFrom> expressions) {
+		boolean addCc(OWLClass cls, Metadata metadata, Set<Evidence> evidences, Set<OWLObjectSomeValuesFrom> expressions) {
 			if (isCc(cls)) {
-				locations = addAnnotation(cls, metadata, expressions, locations);
+				locations = addAnnotation(cls, metadata, evidences, expressions, locations);
 				return true;
 			}
 			return false;
 		}
 
-		private <T> Set<Entry<T>> addAnnotation(T cls, Metadata metadata, Set<OWLObjectSomeValuesFrom> expressions, Set<Entry<T>> set) {
+		private <T> Set<Entry<T>> addAnnotation(T cls, Metadata metadata, Set<Evidence> evidences, Set<OWLObjectSomeValuesFrom> expressions, Set<Entry<T>> set) {
 			if (set == null) {
 				set = new HashSet<Entry<T>>();
 			}
 			Entry<T> entry = new Entry<T>();
 			entry.value = cls;
-			entry.metadata = metadata.copy();
+			entry.metadata = metadata;
+			entry.evidences = new ArrayList<>(evidences);
 			if (expressions != null) {
 				entry.expressions = expressions;
 			}
@@ -197,13 +198,10 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		void addProcesses(Set<Entry<OWLClass>> processes, Metadata metadata) {
 			if (processes != null) {
 				if (this.processes == null) {
-					this.processes = new HashSet<Entry<OWLClass>>();
+					this.processes = new HashSet<Entry<OWLClass>>(processes);
 				}
-				for(Entry<OWLClass> process : processes) {
-					Entry<OWLClass> newEntry = new Entry<OWLClass>();
-					newEntry.value = process.value;
-					newEntry.metadata = Metadata.combine(metadata, process.metadata);
-					this.processes.add(newEntry);
+				else {
+					this.processes.addAll(processes);
 				}
 			}
 		}
@@ -230,6 +228,22 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 
 	protected boolean isCc(OWLClass cls) {
 		return ccSet.contains(cls);
+	}
+
+	@Override
+	protected String getShortHand(IRI iri) {
+		return curieHandler.getCuri(iri);
+	}
+
+	@Override
+	protected boolean isAnnotationIndividual(OWLNamedIndividual i, Set<OWLClass> types) {
+		boolean isGoAnnotation = false;
+		Iterator<OWLClass> typeIterator = types.iterator();
+		while (typeIterator.hasNext() && isGoAnnotation == false) {
+			OWLClass cls = typeIterator.next();
+			isGoAnnotation = mfSet.contains(cls) || bpSet.contains(cls) || ccSet.contains(cls);
+		}
+		return isGoAnnotation;
 	}
 
 	public abstract void translate(OWLOntology modelAbox, ExternalLookupService lookup, GafDocument annotations, List<String> additionalRefs);
@@ -273,35 +287,59 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 		return annotations;
 	}
 
-	protected GeneAnnotation createAnnotation(Entry<OWLClass> e, Bioentity entity, String aspect,
+	protected List<GeneAnnotation> createAnnotations(Entry<OWLClass> entry, Bioentity entity, String aspect,
+			List<String> additionalReferences,
+			OWLGraphWrapper g, Collection<OWLObjectSomeValuesFrom> c16) {
+		List<GeneAnnotation> result = new ArrayList<>();
+		if (entry.evidences != null) {
+			for(Evidence evidence : entry.evidences) {
+				GeneAnnotation ann = createAnnotation(entry.value, entry.metadata, evidence, entity, aspect, additionalReferences, g, c16);
+				result.add(ann);
+			}
+		}
+		return result;
+	}
+	
+	protected GeneAnnotation createAnnotation(OWLClass cls, Metadata meta, Evidence evidence, Bioentity entity, String aspect,
 			List<String> additionalReferences,
 			OWLGraphWrapper g, Collection<OWLObjectSomeValuesFrom> c16) {
 		GeneAnnotation annotation = new GeneAnnotation();
 		annotation.setBioentityObject(entity);
 		annotation.setBioentity(entity.getId());
 		annotation.setAspect(aspect);
-		annotation.setAssignedBy(assignedBy);
-		annotation.setCls(curieHandler.getCuri(e.value));
 		
-		if (e.metadata.modelId != null) {
-			annotation.addProperty("lego-model-id", e.metadata.modelId);
+		String assignedBy = assignedByDefault;
+		if (meta.groups != null) {
+			if (meta.groups.size() == 1) {
+				assignedBy = meta.groups.iterator().next();
+			}
+			for(String group : meta.groups) {
+				annotation.addProperty("group", group);
+			}
 		}
-		if (e.metadata.contributors != null) {
-			for(String contributor : e.metadata.contributors) {
+		annotation.setAssignedBy(assignedBy);
+		
+		annotation.setCls(curieHandler.getCuri(cls));
+		
+		if (meta.modelId != null) {
+			annotation.addProperty("lego-model-id", meta.modelId);
+		}
+		if (meta.contributors != null) {
+			for(String contributor : meta.contributors) {
 				annotation.addProperty("contributor", contributor);
 			}
 		}
-		if (e.metadata.individualIds != null) {
-			for(IRI individual : e.metadata.individualIds) {
+		if (meta.individualIds != null) {
+			for(IRI individual : meta.individualIds) {
 				annotation.addProperty("individual", individual.toString());
 			}
 		}
 
-		if (e.metadata.evidence != null) {
-			String ecoId = curieHandler.getCuri(e.metadata.evidence);
+		if (evidence != null) {
+			String ecoId = curieHandler.getCuri(evidence.evidenceCls);
 			if (ecoId != null) {
 				String goCode = null;
-				Pair<String, String> pair = goCodes.findShortEvidence(e.metadata.evidence, ecoId, g.getSourceOntology());
+				Pair<String, String> pair = goCodes.findShortEvidence(evidence.evidenceCls, ecoId, g.getSourceOntology());
 				if (pair != null) {
 					goCode = pair.getLeft();
 					String goRef = pair.getRight();
@@ -318,12 +356,12 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 				annotation.setEvidence(goCode, ecoId);
 			}
 		}
-		if (e.metadata.date != null) {
+		if (meta.date != null) {
 			// assumes that the date is YYYY-MM-DD
 			// gene annotations require YYYYMMDD
 			StringBuilder sb = new StringBuilder();
-			for (int i = 0; i < e.metadata.date.length(); i++) {
-				char c = e.metadata.date.charAt(i);
+			for (int i = 0; i < meta.date.length(); i++) {
+				char c = meta.date.charAt(i);
 				if (Character.isDigit(c)) {
 					sb.append(c);
 				}
@@ -331,8 +369,8 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 			annotation.setLastUpdateDate(sb.toString());
 		}
 		
-		if (e.metadata.with != null) {
-			List<String> withInfos = new ArrayList<>(e.metadata.with);
+		if (evidence.with != null) {
+			List<String> withInfos = Collections.singletonList(evidence.with);
 			annotation.setWithInfos(withInfos);
 		}
 
@@ -344,8 +382,8 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 			relation = "involved_in";
 		}
 		annotation.setRelation(relation);
-		if (e.metadata.sources != null) {
-			annotation.addReferenceIds(e.metadata.sources);
+		if (evidence.source != null) {
+			annotation.addReferenceId(evidence.source);
 		}
 		if (additionalReferences != null) {
 			for (String ref : additionalReferences) {
@@ -439,32 +477,31 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
 
 		if (summary.activities != null) {
 			for (Entry<OWLClass> e: summary.activities) {
-				boolean renderActivity = true;
-				if (mf.equals(e.value)) {
-					// special handling for top level molecular functions
-					// only add as annotation, if there is more than one annotation
-					// otherwise they tend to be redundant with the bp or cc annotation
-					if (e.expressions == null || e.expressions.isEmpty()) {
-						renderActivity = false;
+				if (isMf(e.value) && !mf.equals(e.value)) {
+					List<GeneAnnotation> current = createAnnotations(e, entity, "F", additionalRefs, modelGraph, e.expressions);
+					for (GeneAnnotation annotation : current) {
+						annotations.addGeneAnnotation(annotation);
 					}
-				}
-				if (renderActivity) {
-					GeneAnnotation annotation = createAnnotation(e, entity, "F", additionalRefs, modelGraph, e.expressions);
-					annotations.addGeneAnnotation(annotation);
 				}
 			}
 		}
 		if (summary.processes != null) {
 			for (Entry<OWLClass> e : summary.processes) {
-				GeneAnnotation annotation = createAnnotation(e, entity, "P", additionalRefs, modelGraph, e.expressions);
-				annotations.addGeneAnnotation(annotation);
+				if (isBp(e.value) && !bp.equals(e.value)) {
+					List<GeneAnnotation> current = createAnnotations(e, entity, "P", additionalRefs, modelGraph, e.expressions);
+					for (GeneAnnotation annotation : current) {
+						annotations.addGeneAnnotation(annotation);
+					}
+				}
 			}
 		}
 		if (summary.locations != null) {
 			for (Entry<OWLClass> e : summary.locations) {
-				if (isCc(e.value)) {
-					GeneAnnotation annotation = createAnnotation(e, entity, "C", additionalRefs, modelGraph, e.expressions);
-					annotations.addGeneAnnotation(annotation);
+				if (isCc(e.value) && !cc.equals(e.value)) {
+					List<GeneAnnotation> current = createAnnotations(e, entity, "C", additionalRefs, modelGraph, e.expressions);
+					for (GeneAnnotation annotation : current) {
+						annotations.addGeneAnnotation(annotation);
+					}
 				}
 			}
 		}
