@@ -23,14 +23,16 @@ import org.junit.Test;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
+import org.semanticweb.owlapi.util.SimpleIRIMapper;
 
 import owltools.gaf.Bioentity;
 import owltools.gaf.GafDocument;
 import owltools.gaf.GeneAnnotation;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
-import owltools.gaf.io.GpadWriter;
+import owltools.io.CatalogXmlIRIMapper;
 import owltools.io.ParserWrapper;
 
 public class LegoToGeneAnnotationTranslatorTest {
@@ -43,6 +45,9 @@ public class LegoToGeneAnnotationTranslatorTest {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		pw = new ParserWrapper();
+		
+		pw.addIRIMapper(new CatalogXmlIRIMapper(new File("src/test/resources/catalog-v001.xml")));
+
 		mapper = EcoMapperFactory.createSimple();
 	}
 
