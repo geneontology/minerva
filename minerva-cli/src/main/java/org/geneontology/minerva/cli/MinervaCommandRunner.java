@@ -157,7 +157,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 	 * @param opts
 	 * @throws Exception
 	 */
-	@CLIMethod("--gaf-lego-indivduals")
+	@CLIMethod("--gaf-lego-individuals")
 	public void gaf2LegoIndivduals(Opts opts) throws Exception {
 		boolean addLineNumber = false;
 		boolean merge = true;
@@ -185,6 +185,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				merge = false;
 			}
 			else if (opts.nextEq("-m|--minimize")) {
+			    opts.info("", "use module extraction to include module of ontology");
 				minimize = true;
 			}
 			else {
