@@ -31,7 +31,6 @@
    "DOI" : "http://dx.doi.org/",
    "EOM" : "http://purl.obolibrary.org/obo/EOM_",
    "FlyBase" : "http://identifiers.org/FB:",
-   "HGNC" : "http://www.genenames.org/cgi-bin/gene_symbol_report?hgnc_id=HGNC:",
    "UniProtKB" : "http://identifiers.org/uniprot/",
    "CoriellIndividual" : "https://catalog.coriell.org/Search?q=",
    "NCBIGene" : "http://www.ncbi.nlm.nih.gov/gene/",
