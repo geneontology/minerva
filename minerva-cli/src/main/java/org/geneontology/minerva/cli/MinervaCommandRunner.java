@@ -31,6 +31,7 @@ import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.ManchesterSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.RDFXMLDocumentFormat;
+import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLDocumentFormat;
@@ -173,6 +174,8 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				String formatString = opts.nextOpt();
 				if ("manchester".equalsIgnoreCase(formatString)) {
 					format = new ManchesterSyntaxDocumentFormat();
+				} else if ("turtle".equalsIgnoreCase(formatString)) {
+					format = new TurtleDocumentFormat();
 				}
 				else if ("functional".equalsIgnoreCase(formatString)) {
 					format = new FunctionalSyntaxDocumentFormat();
