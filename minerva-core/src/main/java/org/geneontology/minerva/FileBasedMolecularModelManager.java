@@ -17,6 +17,7 @@ import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.ManchesterSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.OWLXMLDocumentFormat;
 import org.semanticweb.owlapi.formats.RDFXMLDocumentFormat;
+import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
 import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
@@ -54,8 +55,8 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	private final String modelIdPrefix;
 	
 	GafObjectsBuilder builder = new GafObjectsBuilder();
-	// WARNING: Do *NOT* switch to functional syntax until the OWL-API has fixed a bug.
-	OWLDocumentFormat ontologyFormat = new ManchesterSyntaxDocumentFormat();
+	
+	OWLDocumentFormat ontologyFormat = new TurtleDocumentFormat();
 
 	private final List<PreFileSaveHandler> preFileSaveHandlers = new ArrayList<PreFileSaveHandler>();
 	private final List<PostLoadOntologyFilter> postLoadOntologyFilters = new ArrayList<PostLoadOntologyFilter>();
