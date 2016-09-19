@@ -37,7 +37,7 @@ import owltools.vocab.OBOUpperVocabulary;
  * @see CoreMolecularModelManager
  * @see FileBasedMolecularModelManager
  */
-public class MolecularModelManager<METADATA> extends FileBasedMolecularModelManager<METADATA> {
+public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelManager<METADATA> {
 	
 	private final CurieHandler curieHandler;
 
