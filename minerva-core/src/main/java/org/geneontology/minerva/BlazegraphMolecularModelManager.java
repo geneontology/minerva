@@ -10,8 +10,6 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
-import org.geneontology.minerva.FileBasedMolecularModelManager.PostLoadOntologyFilter;
-import org.geneontology.minerva.FileBasedMolecularModelManager.PreFileSaveHandler;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
@@ -57,8 +55,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 
 	boolean isPrecomputePropertyClassCombinations = false;
 	
-	String pathToOWLStore = "blazegraph.jnl";
-	private BigdataSailRepository repo = initializeRepository(pathToOWLStore);
+	final String pathToOWLStore;
+	private final BigdataSailRepository repo;
 
 	private final String modelIdPrefix;
 
@@ -75,10 +73,12 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @param modelIdPrefix
 	 * @throws OWLOntologyCreationException
 	 */
-	public BlazegraphMolecularModelManager(OWLGraphWrapper graph, String modelIdPrefix)
+	public BlazegraphMolecularModelManager(OWLGraphWrapper graph, String modelIdPrefix, String pathToJournal)
 			throws OWLOntologyCreationException {
 		super(graph);
 		this.modelIdPrefix = modelIdPrefix;
+		this.pathToOWLStore = pathToJournal;
+		this.repo = initializeRepository(this.pathToOWLStore);
 	}
 	
 	/**
@@ -88,15 +88,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 */
 	public String getPathToOWLFiles() {
 		return pathToOWLStore;
-	}
-	/**
-	 * @param pathToOWLFiles
-	 */
-	public void setPathToOWLFiles(String pathToOWLFiles) {
-		if (!pathToOWLFiles.equals(this.pathToOWLStore)) {
-			this.pathToOWLStore = pathToOWLFiles;
-			this.repo = initializeRepository(pathToOWLStore);	
-		}
 	}
 	
 	private BigdataSailRepository initializeRepository(String pathToJournal) {
@@ -276,6 +267,12 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		}
 		return allChanges;
 	}
+	
+	public static interface PreFileSaveHandler {
+
+		public List<OWLOntologyChange> handle(OWLOntology model);
+		
+	}
 
 	public void addPreFileSaveHandler(PreFileSaveHandler handler) {
 		if (handler != null) {
@@ -439,6 +436,11 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			model = filter.filter(model);
 		}
 		return model;
+	}
+	
+	public static interface PostLoadOntologyFilter {
+
+		OWLOntology filter(OWLOntology model);
 	}
 
 	public void addPostLoadOntologyFilter(PostLoadOntologyFilter filter) {

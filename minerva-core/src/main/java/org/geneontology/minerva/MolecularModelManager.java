@@ -69,8 +69,8 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 	 * @param modelIdPrefix 
 	 * @throws OWLOntologyCreationException
 	 */
-	public MolecularModelManager(OWLGraphWrapper graph, CurieHandler curieHandler, String modelIdPrefix) throws OWLOntologyCreationException {
-		super(graph, modelIdPrefix);
+	public MolecularModelManager(OWLGraphWrapper graph, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal) throws OWLOntologyCreationException {
+		super(graph, modelIdPrefix, pathToJournal);
 		this.curieHandler = curieHandler;
 	}
 

@@ -1,9 +1,8 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -30,22 +29,21 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 public class LocalServerTest {
 
-	@Rule
-	public TemporaryFolder folder = new TemporaryFolder();
+	@ClassRule
+	public static TemporaryFolder folder = new TemporaryFolder();
 
 	private static CurieHandler curieHandler = null;
 	private static UndoAwareMolecularModelManager models = null;
@@ -64,11 +62,6 @@ public class LocalServerTest {
 		server.stop();
 		server.destroy();
 	}
-
-	@Before
-	public void before() throws IOException {
-		models.setPathToOWLFiles(folder.newFolder().getCanonicalPath());
-	}
 	
 	@After
 	public void after() {
@@ -76,13 +69,13 @@ public class LocalServerTest {
 	}
 	
 	static void init(ParserWrapper pw) throws Exception {
-		final OWLGraphWrapper graph = pw.parseToOWLGraph("http://purl.obolibrary.org/obo/go/extensions/go-lego.owl");
+		final OWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl");
 		// curie handler
 		final String modelIdcurie = "gomodel";
 		final String modelIdPrefix = "http://model.geneontology.org/";
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
-		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix);
+		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath());
 		
 		MinervaStartUpConfig conf = new MinervaStartUpConfig();
 		conf.inferenceProviderCreator = CachingInferenceProviderCreatorImpl.createElk(false);

@@ -306,17 +306,16 @@ public class StartUpTool {
 			}
 		}
 
+		// set folder to  models
+				LOGGER.info("Model path: "+conf.modelFolder);
+		
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph,
-				conf.curieHandler, conf.modelIdPrefix);
+				conf.curieHandler, conf.modelIdPrefix, conf.modelFolder);
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
 		models.addPreFileSaveHandler(new ModelWriterHelper(conf.curieHandler, conf.lookupService));
-		
-		// set folder to  models
-		LOGGER.info("Model path: "+conf.modelFolder);
-		models.setPathToOWLFiles(conf.modelFolder);
 		
 		// start server
 		Server server = startUp(models, conf);

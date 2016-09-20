@@ -1,7 +1,9 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -25,7 +27,9 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.util.AnnotationShorthand;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
@@ -43,11 +47,14 @@ import owltools.graph.OWLGraphWrapper;
 
 public class DataPropertyTest {
 	
+	@Rule
+	public TemporaryFolder folder = new TemporaryFolder();
+	
 	private final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	
-	private UndoAwareMolecularModelManager createM3(OWLGraphWrapper g) throws OWLOntologyCreationException {
+	private UndoAwareMolecularModelManager createM3(OWLGraphWrapper g) throws OWLOntologyCreationException, IOException {
 		UndoAwareMolecularModelManager mmm = new UndoAwareMolecularModelManager(g, curieHandler,
-				"http://model.geneontology.org/");
+				"http://model.geneontology.org/", folder.newFile().getAbsolutePath());
 		return mmm;
 	}
 
