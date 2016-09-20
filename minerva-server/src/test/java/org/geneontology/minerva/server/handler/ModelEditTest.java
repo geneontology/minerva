@@ -85,10 +85,6 @@ public class ModelEditTest {
 
 	@Before
 	public void before() throws Exception {
-		// clean up potential pre models
-		if (models != null) {
-			models.dispose();
-		}
 		StringWriter writer = new StringWriter();
 		IOUtils.copy(this.getClass().getResourceAsStream("/edit-test/5437882f00000024"), writer, "utf-8");
 		models.importModel(writer.toString());

@@ -65,7 +65,7 @@ public class LocalServerTest {
 	
 	@After
 	public void after() {
-		models.dispose();
+//		models.dispose();
 	}
 	
 	static void init(ParserWrapper pw) throws Exception {
