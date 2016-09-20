@@ -448,5 +448,14 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			postLoadOntologyFilters.add(filter);
 		}
 	}
+	
+	public void dispose() {
+		super.dispose();
+		try {
+			repo.shutDown();
+		} catch (RepositoryException e) {
+			LOG.error("Failed to shutdown Blazegraph sail.", e);
+		}
+	}
 
 }
