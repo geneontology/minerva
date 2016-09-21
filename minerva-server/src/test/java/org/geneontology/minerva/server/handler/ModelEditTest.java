@@ -128,9 +128,12 @@ public class ModelEditTest {
 
 	@Test
 	public void testModifiedFlag() throws Exception {
+		
 		final String modelId = "http://model.geneontology.org/5437882f00000024";
 		final String curie = curieHandler.getCuri(IRI.create(modelId));
 		M3Request r;
+		
+		models.saveModel(models.getModel(IRI.create(modelId)), Collections.emptySet(), null);
 
 		// get meta, check that the model shows up as not modified
 		MetaResponse meta1 = BatchTestTools.getMeta(handler);
