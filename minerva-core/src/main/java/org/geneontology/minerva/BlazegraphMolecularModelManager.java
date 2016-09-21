@@ -86,7 +86,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * 
 	 * @return path to owl on server
 	 */
-	public String getPathToOWLFiles() {
+	public String getPathToOWLStore() {
 		return pathToOWLStore;
 	}
 	
