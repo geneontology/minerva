@@ -1,5 +1,6 @@
 package org.geneontology.minerva;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,6 +12,8 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.openrdf.model.Resource;
@@ -506,6 +509,69 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	public void addPostLoadOntologyFilter(PostLoadOntologyFilter filter) {
 		if (filter != null) {
 			postLoadOntologyFilters.add(filter);
+		}
+	}
+	
+	/**
+	 * Save all models to disk. The optional annotations may be used to set saved_by and other meta data. 
+	 * 
+	 * @param annotations
+	 * @param metadata
+	 * 
+	 * @throws OWLOntologyStorageException
+	 * @throws OWLOntologyCreationException
+	 * @throws IOException 
+	 */
+	public void dumpAllModels(File folder) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
+		for (IRI modelId : this.getAvailableModelIds()) {
+			dumpModel(modelId, folder);
+		}
+	}
+	
+	/**
+	 * Save a model to disk.
+	 * 
+	 * @param m 
+	 * @param annotations 
+	 * @param metadata
+	 *
+	 * @throws OWLOntologyStorageException 
+	 * @throws OWLOntologyCreationException 
+	 * @throws IOException
+	 */
+	public void dumpModel(IRI modelId, File folder) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
+		final OWLOntology ont = this.loadModelABox(modelId);
+		final OWLOntologyManager manager = ont.getOWLOntologyManager();
+		// prelimiary checks for the target file
+		String fileName = StringUtils.replaceOnce(modelId.toString(), modelIdPrefix, "");
+		File targetFile = new File(folder, fileName).getAbsoluteFile();
+		if (targetFile.exists()) {
+			if (targetFile.isFile() == false) {
+				throw new IOException("For modelId: '"+modelId+"', the resulting path is not a file: "+targetFile.getAbsolutePath());
+			}
+			if (targetFile.canWrite() == false) {
+				throw new IOException("For modelId: '"+modelId+"', Cannot write to the file: "+targetFile.getAbsolutePath());
+			}
+		}
+		else {
+			File targetFolder = targetFile.getParentFile();
+			FileUtils.forceMkdir(targetFolder);
+		}
+		File tempFile = null;
+		try {
+			// create tempFile
+			String prefix = modelId.toString(); // TODO escape
+			tempFile = File.createTempFile(prefix, ".owl");
+			// write to a temp file
+			synchronized (ont) {
+				manager.saveOntology(ont, ontologyFormat, IRI.create(tempFile));
+			}
+			// copy temp file to the finalFile
+			FileUtils.copyFile(tempFile, targetFile);
+		}
+		finally {
+			// delete temp file
+			FileUtils.deleteQuietly(tempFile);
 		}
 	}
 	
