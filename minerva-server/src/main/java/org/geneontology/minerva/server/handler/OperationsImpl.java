@@ -46,7 +46,6 @@ import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectPropertyAssertionAxiom;
-import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 
@@ -602,14 +601,13 @@ abstract class OperationsImpl extends ModelCreator {
 		final Set<IRI> allModelIds = m3.getAvailableModelIds();
 		final Map<String,List<JsonAnnotation>> allModelAnnotations = new HashMap<>();
 		final Map<String,Map<String,Object>> allModelAnnotationsReadOnly = new HashMap<>();
+		final Map<IRI, Set<OWLAnnotation>> annotationsForAllModels = m3.getAllModelAnnotations();
 		for (IRI modelId : allModelIds) {
 			String curie = curieHandler.getCuri(modelId);
 			List<JsonAnnotation> modelAnnotations = new ArrayList<>();
 			allModelAnnotations.put(curie, modelAnnotations);
-			
 			// Iterate through the model's a.
-			OWLOntology o = m3.getModelAbox(modelId);
-			Set<OWLAnnotation> annotations = o.getAnnotations();
+			Set<OWLAnnotation> annotations = annotationsForAllModels.get(modelId);
 			for( OWLAnnotation an : annotations ){
 				JsonAnnotation json = JsonTools.create(an.getProperty(), an.getValue(), curieHandler);
 				if (json != null) {

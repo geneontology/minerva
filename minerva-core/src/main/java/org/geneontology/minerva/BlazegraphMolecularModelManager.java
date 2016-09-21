@@ -3,8 +3,10 @@ package org.geneontology.minerva;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
@@ -14,10 +16,18 @@ import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
+import org.openrdf.model.Value;
 import org.openrdf.model.impl.URIImpl;
+import org.openrdf.query.BindingSet;
+import org.openrdf.query.MalformedQueryException;
+import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.QueryLanguage;
+import org.openrdf.query.TupleQuery;
+import org.openrdf.query.TupleQueryResult;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.RepositoryResult;
 import org.openrdf.rio.helpers.StatementCollector;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.ManchesterSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.OWLXMLDocumentFormat;
@@ -25,6 +35,7 @@ import org.semanticweb.owlapi.formats.RDFXMLDocumentFormat;
 import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLDocumentFormat;
 import org.semanticweb.owlapi.model.OWLImportsDeclaration;
@@ -380,6 +391,55 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		allModelIds.addAll(this.getStoredModelIds());
 		allModelIds.addAll(this.getCurrentModelIds());
 		return allModelIds;
+	}
+	
+	public Map<IRI, Set<OWLAnnotation>> getAllModelAnnotations() throws IOException {
+		Map<IRI, Set<OWLAnnotation>> annotations = new HashMap<>();
+		// First get annotations from all the stored ontologies
+		try {
+			BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
+			try {
+				String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
+						"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> " +
+						"SELECT ?model ?p ?o " +
+						"WHERE { " +
+						"?model a owl:Ontology . " +
+						"?model ?p ?o . " +
+						"FILTER(?p NOT IN (owl:imports, rdf:type, <http://geneontology.org/lego/json-model>)) " +
+						"} ";
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
+				TupleQueryResult result = tupleQuery.evaluate();
+				OWLDataFactory factory = OWLManager.getOWLDataFactory();
+				while (result.hasNext()) {
+					BindingSet binding = result.next();
+					Value model = binding.getValue("model");
+					Value predicate = binding.getValue("p");
+					String value = binding.getValue("o").stringValue();
+					if ((model instanceof URI) && (predicate instanceof URI)) {
+						IRI modelId = IRI.create(((URI)model).toString());
+						OWLAnnotationProperty property = factory
+								.getOWLAnnotationProperty(IRI.create(((URI)predicate).toString()));
+						OWLAnnotation annotation = factory.getOWLAnnotation(property, factory.getOWLLiteral(value));
+						Set<OWLAnnotation> modelAnnotations = annotations.getOrDefault(modelId, new HashSet<>());
+						modelAnnotations.add(annotation);
+						annotations.put(modelId, modelAnnotations);
+					}
+				}
+			} catch (MalformedQueryException e) {
+				throw new IOException(e);
+			} catch (QueryEvaluationException e) {
+				throw new IOException(e);
+			} finally {
+				connection.close();
+			}	
+		} catch (RepositoryException e) {
+			throw new IOException(e);
+		}
+		// Next get annotations from ontologies that may not be stored, replacing any stored annotations
+		modelMap.values().stream().filter(mc -> mc.isModified()).forEach(mc -> {
+			annotations.put(mc.getModelId(), mc.getAboxOntology().getAnnotations());
+		});
+		return annotations;
 	}
 
 	@Override
