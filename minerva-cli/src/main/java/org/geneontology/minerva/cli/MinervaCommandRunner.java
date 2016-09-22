@@ -17,6 +17,7 @@ import java.util.Set;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.GafToLegoIndividualTranslator;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
@@ -28,6 +29,7 @@ import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.legacy.GroupingTranslator;
 import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
 import org.geneontology.minerva.lookup.ExternalLookupService;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.ManchesterSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.RDFXMLDocumentFormat;
@@ -59,6 +61,51 @@ import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
 public class MinervaCommandRunner extends JsCommandRunner {
 	
 	private static final Logger LOGGER = Logger.getLogger(MinervaCommandRunner.class);
+	
+	@CLIMethod("--dump-owl-models")
+	public void modelsToOWL(Opts opts) throws Exception {
+		opts.info("[-j|--journal JOURNALFILE] [-f|--folder OWLFILESFOLDER] [-p|--prefix MODELIDPREFIX]",
+				"dumps all LEGO models to OWL Turtle files");
+		// parameters
+		String journalFilePath = null;
+		String outputFolder = null;
+		String modelIdPrefix = "http://model.geneontology.org/";
+
+		// parse opts
+		while (opts.hasOpts()) {
+			if (opts.nextEq("-j|--journal")) {
+				opts.info("journal file", "Sets the Blazegraph journal file for the database");
+				journalFilePath = opts.nextOpt();
+			}
+			else if (opts.nextEq("-f|--folder")) {
+				opts.info("OWL folder", "Sets the output folder the LEGO model files");
+				outputFolder = opts.nextOpt();
+			}
+			else if (opts.nextEq("-p|--prefix")) {
+				opts.info("model ID prefix", "Sets the URI prefix for model IDs");
+				modelIdPrefix = opts.nextOpt();
+			}
+			else {
+				break;
+			}
+		}
+		
+		// minimal inputs
+		if (journalFilePath == null) {
+			System.err.println("No journal file was configured.");
+			exit(-1);
+			return;
+		}
+		if (outputFolder == null) {
+			System.err.println("No output folder was configured.");
+			exit(-1);
+			return;
+		}
+		
+		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(new OWLGraphWrapper(dummy), modelIdPrefix, journalFilePath);
+		m3.dumpAllStoredModels(new File(outputFolder));
+	}
 
 	@CLIMethod("--owl-lego-to-json")
 	public void owl2LegoJson(Opts opts) throws Exception {
