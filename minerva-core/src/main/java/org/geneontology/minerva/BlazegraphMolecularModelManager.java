@@ -1,7 +1,9 @@
 package org.geneontology.minerva;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -20,7 +22,9 @@ import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
+import org.openrdf.model.ValueFactory;
 import org.openrdf.model.impl.URIImpl;
+import org.openrdf.model.impl.ValueFactoryImpl;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
@@ -29,6 +33,10 @@ import org.openrdf.query.TupleQuery;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.RepositoryResult;
+import org.openrdf.rio.RDFFormat;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.RDFWriter;
+import org.openrdf.rio.Rio;
 import org.openrdf.rio.helpers.StatementCollector;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
@@ -522,9 +530,9 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @throws OWLOntologyCreationException
 	 * @throws IOException 
 	 */
-	public void dumpAllModels(File folder) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
-		for (IRI modelId : this.getAvailableModelIds()) {
-			dumpModel(modelId, folder);
+	public void dumpAllStoredModels(File folder) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
+		for (IRI modelId : this.getStoredModelIds()) {
+			dumpStoredModel(modelId, folder);
 		}
 	}
 	
@@ -539,18 +547,16 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @throws OWLOntologyCreationException 
 	 * @throws IOException
 	 */
-	public void dumpModel(IRI modelId, File folder) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
-		final OWLOntology ont = this.loadModelABox(modelId);
-		final OWLOntologyManager manager = ont.getOWLOntologyManager();
-		// prelimiary checks for the target file
-		String fileName = StringUtils.replaceOnce(modelId.toString(), modelIdPrefix, "");
+	public void dumpStoredModel(IRI modelId, File folder) throws IOException {
+		// preliminary checks for the target file
+		String fileName = StringUtils.replaceOnce(modelId.toString(), modelIdPrefix, "") + ".ttl";
 		File targetFile = new File(folder, fileName).getAbsoluteFile();
 		if (targetFile.exists()) {
 			if (targetFile.isFile() == false) {
-				throw new IOException("For modelId: '"+modelId+"', the resulting path is not a file: "+targetFile.getAbsolutePath());
+				throw new IOException("For modelId: '"+modelId+"', the resulting path is not a file: " + targetFile.getAbsolutePath());
 			}
 			if (targetFile.canWrite() == false) {
-				throw new IOException("For modelId: '"+modelId+"', Cannot write to the file: "+targetFile.getAbsolutePath());
+				throw new IOException("For modelId: '"+modelId+"', Cannot write to the file: " + targetFile.getAbsolutePath());
 			}
 		}
 		else {
@@ -561,15 +567,24 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		try {
 			// create tempFile
 			String prefix = modelId.toString(); // TODO escape
-			tempFile = File.createTempFile(prefix, ".owl");
-			// write to a temp file
-			synchronized (ont) {
-				manager.saveOntology(ont, ontologyFormat, IRI.create(tempFile));
+			tempFile = File.createTempFile(prefix, ".ttl");
+			try {
+				BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
+				try {
+					OutputStream out = new FileOutputStream(tempFile);
+					RDFWriter writer = Rio.createWriter(RDFFormat.TURTLE, out);
+					connection.export(writer, new URIImpl(modelId.toString()));
+					// copy temp file to the finalFile
+					FileUtils.copyFile(tempFile, targetFile);
+				}  finally {
+					connection.close();
+				}	
+			} catch (RepositoryException e) {
+				throw new IOException(e);
+			} catch (RDFHandlerException e) {
+				throw new IOException(e);
 			}
-			// copy temp file to the finalFile
-			FileUtils.copyFile(tempFile, targetFile);
-		}
-		finally {
+		} finally {
 			// delete temp file
 			FileUtils.deleteQuietly(tempFile);
 		}
