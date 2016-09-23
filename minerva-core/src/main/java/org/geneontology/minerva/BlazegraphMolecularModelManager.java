@@ -41,8 +41,10 @@ import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.ManchesterSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.OWLXMLDocumentFormat;
 import org.semanticweb.owlapi.formats.RDFXMLDocumentFormat;
+import org.semanticweb.owlapi.io.FileDocumentSource;
 import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.MissingImportHandlingStrategy;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLDataFactory;
@@ -54,6 +56,8 @@ import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyDocumentAlreadyExistsException;
 import org.semanticweb.owlapi.model.OWLOntologyID;
+import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
+import org.semanticweb.owlapi.model.OWLOntologyLoaderConfiguration;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.rio.RioMemoryTripleSource;
@@ -61,6 +65,7 @@ import org.semanticweb.owlapi.rio.RioRenderer;
 
 import owltools.gaf.parser.GafObjectsBuilder;
 import owltools.graph.OWLGraphWrapper;
+import uk.ac.manchester.cs.owl.owlapi.OWLOntologyIRIMapperImpl;
 
 import com.bigdata.journal.Options;
 import com.bigdata.rdf.sail.BigdataSail;
@@ -222,7 +227,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			saveModel(entry.getValue(), annotations, metadata);
 		}
 	}
-
+	
 	/**
 	 * Save a model to the database.
 	 * 
@@ -235,38 +240,47 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @throws IOException
 	 * @throws RepositoryException 
 	 */
-	public synchronized void saveModel(ModelContainer m,
+	public void saveModel(ModelContainer m,
 			Set<OWLAnnotation> annotations, METADATA metadata)
 			throws OWLOntologyStorageException, OWLOntologyCreationException,
 			IOException, RepositoryException {
 		IRI modelId = m.getModelId();
 		final OWLOntology ont = m.getAboxOntology();
 		final OWLOntologyManager manager = ont.getOWLOntologyManager();
+		List<OWLOntologyChange> changes = preSaveFileHandler(ont);
+		try {
+			this.writeModelToDatabase(ont, modelId);
+			// reset modified flag for abox after successful save
+			m.setAboxModified(false);
+		} finally {
+			if (changes != null) {
+				List<OWLOntologyChange> invertedChanges = ReverseChangeGenerator
+						.invertChanges(changes);
+				if (invertedChanges != null && !invertedChanges.isEmpty()) {
+					manager.applyChanges(invertedChanges);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Only one thread at a time can use the unisolated connection.
+	 */
+	private synchronized void writeModelToDatabase(OWLOntology model, IRI modelId) throws RepositoryException, IOException {
 		final BigdataSailRepositoryConnection connection = repo.getUnisolatedConnection();
 		try {
-			List<OWLOntologyChange> changes = preSaveFileHandler(ont);
 			connection.begin();
 			try {
 				URI graph = new URIImpl(modelId.toString());
 				connection.clear(graph);
 				StatementCollector collector = new StatementCollector();
-				RioRenderer renderer = new RioRenderer(ont, collector, null);
+				RioRenderer renderer = new RioRenderer(model, collector, null);
 				renderer.render();
 				connection.add(collector.getStatements(), graph);
 				connection.commit();
-				// reset modified flag for abox after successful save
-				m.setAboxModified(false);
 			} catch (Exception e) {
 				connection.rollback();
 				throw e;
-			} finally {
-				if (changes != null) {
-					List<OWLOntologyChange> invertedChanges = ReverseChangeGenerator
-							.invertChanges(changes);
-					if (invertedChanges != null && !invertedChanges.isEmpty()) {
-						manager.applyChanges(invertedChanges);
-					}
-				}
 			}
 		} finally {
 			connection.close();
@@ -516,6 +530,43 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		if (filter != null) {
 			postLoadOntologyFilters.add(filter);
 		}
+	}
+	
+	/**
+	 * Imports ontology RDF directly to database. No checks are performed
+	 * except that the model is loaded via the OWL API. The model is not retained in memory. 
+	 * @param file
+	 * @throws OWLOntologyCreationException 
+	 * @throws IOException 
+	 * @throws RepositoryException 
+	 */
+	public void importModelToDatabase(File file) throws OWLOntologyCreationException, RepositoryException, IOException {
+		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+		manager.createOntology(EmptyOntologyIRIMapper.emptyOntologyIRI);
+		manager.getIRIMappers().clear();
+		manager.setIRIMappers(Collections.singleton(new EmptyOntologyIRIMapper()));
+		OWLOntologyLoaderConfiguration config = new OWLOntologyLoaderConfiguration()
+			.setMissingImportHandlingStrategy(MissingImportHandlingStrategy.SILENT);
+		OWLOntology ont = manager.loadOntologyFromOntologyDocument(new FileDocumentSource(file), config);
+		Optional<IRI> modelIdOpt = ont.getOntologyID().getOntologyIRI();
+		if (modelIdOpt.isPresent()) {
+			this.writeModelToDatabase(ont, modelIdOpt.get());
+		} else {
+			throw new OWLOntologyCreationException("Detected anonymous ontology; must have IRI");
+		}
+	}
+	
+	private static class EmptyOntologyIRIMapper implements OWLOntologyIRIMapper {
+		
+		private static final long serialVersionUID = 8432563430320023805L;
+		
+		public static IRI emptyOntologyIRI = IRI.create("http://example.org/empty");
+		
+		@Override
+		public IRI getDocumentIRI(IRI ontologyIRI) {
+			return emptyOntologyIRI;
+		}
+		
 	}
 	
 	/**

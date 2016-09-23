@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -105,6 +106,52 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(new OWLGraphWrapper(dummy), modelIdPrefix, journalFilePath);
 		m3.dumpAllStoredModels(new File(outputFolder));
+		m3.dispose();
+	}
+	
+	@CLIMethod("--import-owl-models")
+	public void importOWLModels(Opts opts) throws Exception {
+		opts.info("[-j|--journal JOURNALFILE] [-f|--folder OWLFILESFOLDER]",
+				"import all files in folder to database");
+		// parameters
+		String journalFilePath = null;
+		String inputFolder = null;
+
+		// parse opts
+		while (opts.hasOpts()) {
+			if (opts.nextEq("-j|--journal")) {
+				opts.info("journal file", "Sets the Blazegraph journal file for the database");
+				journalFilePath = opts.nextOpt();
+			}
+			else if (opts.nextEq("-f|--folder")) {
+				opts.info("OWL folder", "Sets the folder containing the LEGO model files");
+				inputFolder = opts.nextOpt();
+			}
+			else {
+				break;
+			}
+		}
+		
+		// minimal inputs
+		if (journalFilePath == null) {
+			System.err.println("No journal file was configured.");
+			exit(-1);
+			return;
+		}
+		if (inputFolder == null) {
+			System.err.println("No input folder was configured.");
+			exit(-1);
+			return;
+		}
+		
+		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
+		String modelIdPrefix = "http://model.geneontology.org/"; // this will not be used for anything
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(new OWLGraphWrapper(dummy), modelIdPrefix, journalFilePath);
+		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
+			LOGGER.info("Loading " + file);
+			m3.importModelToDatabase(file);
+		}
+		m3.dispose();
 	}
 
 	@CLIMethod("--owl-lego-to-json")
