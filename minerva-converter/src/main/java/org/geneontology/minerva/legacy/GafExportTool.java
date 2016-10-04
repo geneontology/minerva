@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.geneontology.minerva.ModelContainer;
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -47,8 +48,9 @@ public class GafExportTool {
 	 * @param formats set of format names
 	 * @return modelContent
 	 * @throws OWLOntologyCreationException
+	 * @throws UnknownIdentifierException 
 	 */
-	public Map<String, String> exportModelLegacy(ModelContainer model, CurieHandler curieHandler, ExternalLookupService lookup, Set<String> formats) throws OWLOntologyCreationException {
+	public Map<String, String> exportModelLegacy(ModelContainer model, CurieHandler curieHandler, ExternalLookupService lookup, Set<String> formats) throws OWLOntologyCreationException, UnknownIdentifierException {
 		final OWLOntology aBox = model.getAboxOntology();
 		
 		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(aBox, curieHandler, ecoMapper);

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.obolibrary.obo2owl.Obo2OWLConstants;
@@ -109,7 +110,7 @@ abstract class LegoModelWalker<PAYLOAD> {
 		String date = null;
 	}
 
-	public void walkModel(OWLOntology model, ExternalLookupService lookup, Collection<PAYLOAD> allPayloads) {
+	public void walkModel(OWLOntology model, ExternalLookupService lookup, Collection<PAYLOAD> allPayloads) throws UnknownIdentifierException {
 		final OWLGraphWrapper modelGraph = new OWLGraphWrapper(model);
 		
 		String modelId = null;
@@ -377,7 +378,7 @@ abstract class LegoModelWalker<PAYLOAD> {
 		return result;
 	}
 	
-	protected abstract PAYLOAD initPayload(OWLNamedIndividual object, OWLClass objectType, OWLOntology model, OWLGraphWrapper modelGraph, ExternalLookupService lookup);
+	protected abstract PAYLOAD initPayload(OWLNamedIndividual object, OWLClass objectType, OWLOntology model, OWLGraphWrapper modelGraph, ExternalLookupService lookup) throws UnknownIdentifierException;
 	
 	protected abstract boolean handleCC(PAYLOAD payload, OWLClass cls, Metadata metadata, Set<Evidence> evidences, Set<OWLObjectSomeValuesFrom> expressions);
 	

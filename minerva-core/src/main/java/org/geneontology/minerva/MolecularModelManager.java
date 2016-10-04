@@ -316,7 +316,7 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 		return resultSet;
 	}
 	
-	private OWLNamedIndividual getIndividual(String indId, ModelContainer model) {
+	private OWLNamedIndividual getIndividual(String indId, ModelContainer model) throws UnknownIdentifierException {
 		IRI iri = curieHandler.getIRI(indId);
 		return getIndividual(iri, model);
 	}
@@ -329,15 +329,15 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 		OWLNamedIndividual individual = model.getOWLDataFactory().getOWLNamedIndividual(iri);
 		return individual;
 	}
-	private OWLClass getClass(String cid, ModelContainer model) {
+	private OWLClass getClass(String cid, ModelContainer model) throws UnknownIdentifierException {
 		OWLGraphWrapper graph = new OWLGraphWrapper(model.getAboxOntology());
 		return getClass(cid, graph);
 	}
-	private OWLClass getClass(String cid, OWLGraphWrapper graph) {
+	private OWLClass getClass(String cid, OWLGraphWrapper graph) throws UnknownIdentifierException {
 		IRI iri = curieHandler.getIRI(cid);
 		return graph.getOWLClass(iri);
 	}
-	public OWLObjectProperty getObjectProperty(String pid, ModelContainer model) {
+	public OWLObjectProperty getObjectProperty(String pid, ModelContainer model) throws UnknownIdentifierException {
 		OWLGraphWrapper graph = new OWLGraphWrapper(model.getAboxOntology());
 		IRI iri = curieHandler.getIRI(pid);
 		return graph.getOWLObjectProperty(iri);

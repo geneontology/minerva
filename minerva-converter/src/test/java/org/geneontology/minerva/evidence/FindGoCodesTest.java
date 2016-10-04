@@ -3,6 +3,7 @@ package org.geneontology.minerva.evidence;
 import static org.junit.Assert.*;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.junit.BeforeClass;
@@ -43,7 +44,7 @@ public class FindGoCodesTest {
 		assertEquals("IC", pair2.getLeft());
 	}
 	
-	private Pair<String, String> lookup(String testId) {
+	private Pair<String, String> lookup(String testId) throws UnknownIdentifierException {
 		IRI testIRI = curieHandler.getIRI(testId);
 		OWLClass testOwlClass = eco.getOWLOntologyManager().getOWLDataFactory().getOWLClass(testIRI);
 		Pair<String, String> pair = codes.findShortEvidence(testOwlClass, testId, eco);

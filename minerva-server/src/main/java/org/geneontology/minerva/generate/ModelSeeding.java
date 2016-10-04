@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.geneontology.reasoner.ExpressionMaterializingReasoner;
@@ -175,7 +176,7 @@ public class ModelSeeding<METADATA> {
 		return groups;
 	}
 	
-	private Map<String, List<GeneAnnotation>> removeRedundants(Map<String, List<GeneAnnotation>> groups, final OWLDataFactory f) {
+	private Map<String, List<GeneAnnotation>> removeRedundants(Map<String, List<GeneAnnotation>> groups, final OWLDataFactory f) throws UnknownIdentifierException {
 		// calculate all ancestors for each group
 		Map<String, Set<String>> allAncestors = new HashMap<String, Set<String>>();
 		for(String cls : groups.keySet()) {
@@ -280,7 +281,12 @@ public class ModelSeeding<METADATA> {
 			}
 		}
 		if (ecoId != null) {
-			IRI ecoIRI = curieHandler.getIRI(ecoId);
+			IRI ecoIRI;
+			try {
+				ecoIRI = curieHandler.getIRI(ecoId);
+			} catch (UnknownIdentifierException e) {
+				ecoIRI = null;
+			}
 			if (ecoIRI != null) {
 				result = model.getOWLDataFactory().getOWLClass(ecoIRI);
 			}

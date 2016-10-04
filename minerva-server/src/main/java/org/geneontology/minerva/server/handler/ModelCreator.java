@@ -134,7 +134,7 @@ abstract class ModelCreator {
 		return result;
 	}
 	
-	Map<OWLDataProperty, Set<OWLLiteral>> extractDataProperties(JsonAnnotation[] values, ModelContainer model) {
+	Map<OWLDataProperty, Set<OWLLiteral>> extractDataProperties(JsonAnnotation[] values, ModelContainer model) throws UnknownIdentifierException {
 		Map<OWLDataProperty, Set<OWLLiteral>> result = new HashMap<OWLDataProperty, Set<OWLLiteral>>();
 		
 		if (values != null && values.length > 0) {
