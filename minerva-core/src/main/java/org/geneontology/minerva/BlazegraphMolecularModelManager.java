@@ -17,6 +17,7 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
@@ -65,7 +66,6 @@ import org.semanticweb.owlapi.rio.RioRenderer;
 
 import owltools.gaf.parser.GafObjectsBuilder;
 import owltools.graph.OWLGraphWrapper;
-import uk.ac.manchester.cs.owl.owlapi.OWLOntologyIRIMapperImpl;
 
 import com.bigdata.journal.Options;
 import com.bigdata.rdf.sail.BigdataSail;
@@ -219,10 +219,11 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @throws OWLOntologyCreationException
 	 * @throws IOException
 	 * @throws RepositoryException 
+	 * @throws UnknownIdentifierException 
 	 */
 	public void saveAllModels(Set<OWLAnnotation> annotations, METADATA metadata)
 			throws OWLOntologyStorageException, OWLOntologyCreationException,
-			IOException, RepositoryException {
+			IOException, RepositoryException, UnknownIdentifierException {
 		for (Entry<IRI, ModelContainer> entry : modelMap.entrySet()) {
 			saveModel(entry.getValue(), annotations, metadata);
 		}
@@ -239,11 +240,12 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @throws OWLOntologyCreationException
 	 * @throws IOException
 	 * @throws RepositoryException 
+	 * @throws UnknownIdentifierException 
 	 */
 	public void saveModel(ModelContainer m,
 			Set<OWLAnnotation> annotations, METADATA metadata)
 			throws OWLOntologyStorageException, OWLOntologyCreationException,
-			IOException, RepositoryException {
+			IOException, RepositoryException, UnknownIdentifierException {
 		IRI modelId = m.getModelId();
 		final OWLOntology ont = m.getAboxOntology();
 		final OWLOntologyManager manager = ont.getOWLOntologyManager();
@@ -287,7 +289,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		}
 	}
 
-	private List<OWLOntologyChange> preSaveFileHandler(OWLOntology model) {
+	private List<OWLOntologyChange> preSaveFileHandler(OWLOntology model) throws UnknownIdentifierException {
 		List<OWLOntologyChange> allChanges = null;
 		for (PreFileSaveHandler handler : preFileSaveHandlers) {
 			List<OWLOntologyChange> changes = handler.handle(model);
@@ -304,7 +306,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	
 	public static interface PreFileSaveHandler {
 
-		public List<OWLOntologyChange> handle(OWLOntology model);
+		public List<OWLOntologyChange> handle(OWLOntology model) throws UnknownIdentifierException;
 		
 	}
 

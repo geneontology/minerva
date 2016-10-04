@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
@@ -79,7 +80,7 @@ public class BatchModelHandlerTest {
 		init(new ParserWrapper());
 	}
 
-	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
+	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException, UnknownIdentifierException {
 		Runtime runtime = Runtime.getRuntime();
 		long maxMemory = runtime.maxMemory();
 		double maxMemoryGB = (double)maxMemory / (double)(1024L*1024L*1024L);
@@ -114,7 +115,7 @@ public class BatchModelHandlerTest {
 		JsonOrJsonpBatchHandler.VALIDATE_BEFORE_SAVE = true;
 	}
 
-	private static ExternalLookupService createTestProteins(CurieHandler curieHandler) {
+	private static ExternalLookupService createTestProteins(CurieHandler curieHandler) throws UnknownIdentifierException {
 		List<LookupEntry> testEntries = new ArrayList<LookupEntry>();
 		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0000"),
 				"P0000", "protein", "fake-taxon-id"));

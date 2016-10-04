@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.util.AnnotationShorthand;
@@ -108,7 +109,7 @@ public class GroupingTranslator {
 		this.addLegoModelId = addLegoModelId;
 	}
 	
-	public void translate(OWLOntology model) {
+	public void translate(OWLOntology model) throws UnknownIdentifierException {
 		// get curie
 		String modelCurie = getModelCurie(model, curieHandler, null);
 		

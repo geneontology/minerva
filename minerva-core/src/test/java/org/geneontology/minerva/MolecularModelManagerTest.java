@@ -13,6 +13,7 @@ import java.util.Set;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.junit.Rule;
@@ -201,7 +202,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	}
 	
 	private void addPartOf(ModelContainer model, OWLNamedIndividual i1, OWLNamedIndividual i2, 
-			MolecularModelManager<Void> m3) {
+			MolecularModelManager<Void> m3) throws UnknownIdentifierException {
 		IRI partOfIRI = curieHandler.getIRI("BFO:0000050");
 		final OWLObjectProperty partOf = model.getOWLDataFactory().getOWLObjectProperty(partOfIRI);
 		m3.addFact(model, partOf, i1, i2, Collections.<OWLAnnotation>emptySet(), null);

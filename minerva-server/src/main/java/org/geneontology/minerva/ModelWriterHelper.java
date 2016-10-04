@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.geneontology.minerva.BlazegraphMolecularModelManager.PreFileSaveHandler;
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
@@ -61,7 +62,7 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 		enabledByIRI = OBOUpperVocabulary.GOREL_enabled_by.getIRI();
 	}
 
-	List<OWLOntologyChange> generateLabelsAndIds(OWLOntology model, ExternalLookupService lookupService) {
+	List<OWLOntologyChange> generateLabelsAndIds(OWLOntology model, ExternalLookupService lookupService) throws UnknownIdentifierException {
 		if (curieHandler == null && lookupService == null) {
 			return Collections.emptyList();
 		}
@@ -195,7 +196,7 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 	}
 
 	@Override
-	public List<OWLOntologyChange> handle(OWLOntology model) {
+	public List<OWLOntologyChange> handle(OWLOntology model) throws UnknownIdentifierException {
 		List<OWLOntologyChange> allChanges = generateLabelsAndIds(model, lookupService);
 		model.getOWLOntologyManager().applyChanges(allChanges);
 		return allChanges;

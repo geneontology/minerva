@@ -1,5 +1,6 @@
 package org.geneontology.minerva.curie;
 
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -21,6 +22,6 @@ public interface CurieHandler {
 	
 	public String getCuri(IRI iri);
 	
-	public IRI getIRI(String curi);
+	public IRI getIRI(String curi) throws UnknownIdentifierException;
 
 }

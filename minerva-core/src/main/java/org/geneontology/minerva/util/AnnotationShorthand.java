@@ -1,5 +1,6 @@
 package org.geneontology.minerva.util;
 
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
@@ -62,13 +63,20 @@ public enum AnnotationShorthand {
 	
 	public static AnnotationShorthand getShorthand(String name, CurieHandler curieHandler) {
 		if (name != null) {
-			IRI iri = curieHandler.getIRI(name);
 			for (AnnotationShorthand type : AnnotationShorthand.values()) {
 				if (type.name().equals(name) || (type.othername != null && type.othername.equals(name))) {
 					return type;
 				}
-				else if (iri.equals(type.annotationProperty)) {
-					return type;
+				else {
+					final IRI iri;
+					try {
+						iri = curieHandler.getIRI(name);
+						if (iri.equals(type.annotationProperty)) {
+							return type;
+						}
+					} catch (UnknownIdentifierException e) {
+						continue;
+					}
 				}
 			}
 		}

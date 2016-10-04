@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.lang3.StringUtils;
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -95,7 +96,10 @@ public class MappedCurieHandler implements CurieHandler {
 	}
 
 	@Override
-	public IRI getIRI(String curi) {
+	public IRI getIRI(String curi) throws UnknownIdentifierException {
+		if (!curi.contains(":")) {
+			throw new UnknownIdentifierException("Relative IRIs are not allowed: " + curi);
+		}
 		String[] parts = StringUtils.split(curi, ":", 2);
 		if (parts.length == 2) {
 			String prefix = parts[0];
@@ -104,7 +108,11 @@ public class MappedCurieHandler implements CurieHandler {
 				return IRI.create(longPrefix + curi.substring(prefix.length() + 1));
 			}
 		}
-		return IRI.create(curi);
+		if (curi.startsWith("http:") || curi.startsWith("https:") || curi.startsWith("urn:") || curi.startsWith("mailto:")) {
+			return IRI.create(curi);			
+		} else {
+			throw new UnknownIdentifierException("Unknown URI protocol: " + curi);
+		}
 	}
 
 	/**
