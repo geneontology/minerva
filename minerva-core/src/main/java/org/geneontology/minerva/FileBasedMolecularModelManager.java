@@ -12,6 +12,7 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.ManchesterSyntaxDocumentFormat;
@@ -167,8 +168,9 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	 * @throws OWLOntologyStorageException
 	 * @throws OWLOntologyCreationException
 	 * @throws IOException 
+	 * @throws UnknownIdentifierException 
 	 */
-	public void saveAllModels(Set<OWLAnnotation> annotations, METADATA metadata) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
+	public void saveAllModels(Set<OWLAnnotation> annotations, METADATA metadata) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException, UnknownIdentifierException {
 		for (Entry<IRI, ModelContainer> entry : modelMap.entrySet()) {
 			saveModel(entry.getValue(), annotations, metadata);
 		}
@@ -184,8 +186,9 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	 * @throws OWLOntologyStorageException 
 	 * @throws OWLOntologyCreationException 
 	 * @throws IOException
+	 * @throws UnknownIdentifierException 
 	 */
-	public void saveModel(ModelContainer m, Set<OWLAnnotation> annotations, METADATA metadata) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
+	public void saveModel(ModelContainer m, Set<OWLAnnotation> annotations, METADATA metadata) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException, UnknownIdentifierException {
 		IRI modelId = m.getModelId();
 		final OWLOntology ont = m.getAboxOntology();
 		final OWLOntologyManager manager = ont.getOWLOntologyManager();
@@ -229,7 +232,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 
 	private void saveToFile(final OWLOntology ont, final OWLOntologyManager manager,
 			final File outfile, METADATA metadata)
-			throws OWLOntologyStorageException {
+			throws OWLOntologyStorageException, UnknownIdentifierException {
 		
 		List<OWLOntologyChange> changes = preSaveFileHandler(ont);
 		final IRI outfileIRI = IRI.create(outfile);
@@ -246,7 +249,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 		}
 	}
 	
-	private List<OWLOntologyChange> preSaveFileHandler(OWLOntology model) {
+	private List<OWLOntologyChange> preSaveFileHandler(OWLOntology model) throws UnknownIdentifierException {
 		List<OWLOntologyChange> allChanges = null;
 		for(PreFileSaveHandler handler : preFileSaveHandlers) {
 			List<OWLOntologyChange> changes = handler.handle(model);
@@ -262,7 +265,7 @@ public class FileBasedMolecularModelManager<METADATA> extends CoreMolecularModel
 	
 	public static interface PreFileSaveHandler {
 		
-		public List<OWLOntologyChange> handle(OWLOntology model);
+		public List<OWLOntologyChange> handle(OWLOntology model) throws UnknownIdentifierException;
 	}
 	
 	public void addPreFileSaveHandler(PreFileSaveHandler handler) {

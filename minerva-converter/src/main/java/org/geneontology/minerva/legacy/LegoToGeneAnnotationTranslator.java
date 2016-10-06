@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -28,7 +29,7 @@ public class LegoToGeneAnnotationTranslator extends AbstractLegoTranslator {
 	}
 
 	@Override
-	public void translate(OWLOntology modelAbox, ExternalLookupService lookup, GafDocument annotations, List<String> additionalRefs) {
+	public void translate(OWLOntology modelAbox, ExternalLookupService lookup, GafDocument annotations, List<String> additionalRefs) throws UnknownIdentifierException {
 		Set<Summary> summaries = new HashSet<Summary>();
 		walkModel(modelAbox, lookup, summaries);
 		
@@ -42,7 +43,7 @@ public class LegoToGeneAnnotationTranslator extends AbstractLegoTranslator {
 
 	@Override
 	protected Summary initPayload(OWLNamedIndividual object,
-			OWLClass objectType, OWLOntology model, OWLGraphWrapper modelGraph, ExternalLookupService lookup) {
+			OWLClass objectType, OWLOntology model, OWLGraphWrapper modelGraph, ExternalLookupService lookup) throws UnknownIdentifierException {
 		Summary summary = new Summary();
 		summary.entity = objectType;
 		summary.entityTaxon = getEntityTaxon(objectType, model);

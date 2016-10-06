@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.InputStream;
 
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.junit.Test;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
@@ -41,7 +42,7 @@ public class DefaultCurieHandlerTest {
 	}
 
 	@Test
-	public void testConversions() {
+	public void testConversions() throws UnknownIdentifierException {
 		CurieHandler handler = DefaultCurieHandler.getDefaultHandler();
 		final OWLDataFactory f = OWLManager.createOWLOntologyManager().getOWLDataFactory();
 		
@@ -60,7 +61,11 @@ public class DefaultCurieHandlerTest {
 		assertEquals(longPmid, handler.getIRI("PMID:0000"));
 		assertEquals("PMID:0000", handler.getCuri(f.getOWLClass(longPmid)));
 		
-		// test fallback for non existing prefix
-		assertEquals(IRI.create("BLABLA:000001"), handler.getIRI("BLABLA:000001"));
+		// test failure for non existing prefix
+		try {
+			handler.getIRI("BLABLA:000001");
+			fail("Expected an UnknownIdentifierException to be thrown");
+		} catch (UnknownIdentifierException e) {
+		}
 	}
 }

@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.lookup.ExternalLookupService;
@@ -183,7 +184,7 @@ public class LegoToGeneAnnotationTranslatorTest {
 		return model;
 	}
 	
-	private GafDocument translate(OWLOntology model, String id, List<LookupEntry> entities) {
+	private GafDocument translate(OWLOntology model, String id, List<LookupEntry> entities) throws UnknownIdentifierException {
 		LegoToGeneAnnotationTranslator t = new LegoToGeneAnnotationTranslator(model, curieHandler, mapper);
 		ExternalLookupService lookup = null;
 		if (entities != null) {

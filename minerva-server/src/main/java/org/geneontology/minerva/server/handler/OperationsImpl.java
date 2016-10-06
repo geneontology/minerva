@@ -634,7 +634,7 @@ abstract class OperationsImpl extends ModelCreator {
 		response.data.exportModel = exportModel;
 	}
 	
-	private void exportLegacy(M3BatchResponse response, ModelContainer model, String format, String userId) throws IOException, OWLOntologyCreationException {
+	private void exportLegacy(M3BatchResponse response, ModelContainer model, String format, String userId) throws IOException, OWLOntologyCreationException, UnknownIdentifierException {
 		final GafExportTool exportTool = GafExportTool.getInstance();
 		if (format == null) {
 			format = "gaf"; // set a default format, if necessary

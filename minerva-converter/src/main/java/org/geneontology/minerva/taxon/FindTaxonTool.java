@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.obolibrary.obo2owl.Obo2OWLConstants;
 import org.semanticweb.owlapi.model.IRI;
@@ -32,7 +33,7 @@ public class FindTaxonTool {
 		inTaxon = df.getOWLObjectProperty(IN_TAXON_IRI);
 	}
 	
-	public String getEntityTaxon(String curie, OWLOntology model) {
+	public String getEntityTaxon(String curie, OWLOntology model) throws UnknownIdentifierException {
 		if (curie == null || curie.isEmpty()) {
 			return null;
 		}
@@ -77,7 +78,7 @@ public class FindTaxonTool {
 		return null;
 	}
 	
-	public OWLAxiom createTaxonAxiom(OWLClass entity, String taxon, OWLOntology model, Set<OWLAnnotation> tags) {
+	public OWLAxiom createTaxonAxiom(OWLClass entity, String taxon, OWLOntology model, Set<OWLAnnotation> tags) throws UnknownIdentifierException {
 		OWLDataFactory df = model.getOWLOntologyManager().getOWLDataFactory();
 		OWLClass taxonCls = df.getOWLClass(curieHandler.getIRI(taxon));
 		OWLAxiom axiom = df.getOWLSubClassOfAxiom(entity, df.getOWLObjectSomeValuesFrom(inTaxon, taxonCls), tags);

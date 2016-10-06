@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
@@ -86,8 +87,9 @@ public class GafToLegoIndividualTranslator {
 	 * @param gaf
 	 * @return lego ontology
 	 * @throws OWLException
+	 * @throws UnknownIdentifierException 
 	 */
-	public OWLOntology translate(GafDocument gaf) throws OWLException {
+	public OWLOntology translate(GafDocument gaf) throws OWLException, UnknownIdentifierException {
 		final OWLOntologyManager m = graph.getManager();
 		OWLOntology lego = m.createOntology(IRI.generateDocumentIRI());
 		OWLOntology sourceOntology = graph.getSourceOntology();
@@ -110,8 +112,9 @@ public class GafToLegoIndividualTranslator {
 	 * @param annotations
 	 * @param lego
 	 * @throws OWLException 
+	 * @throws UnknownIdentifierException 
 	 */
-	public void translate(Collection<GeneAnnotation> annotations, final OWLOntology lego) throws OWLException {
+	public void translate(Collection<GeneAnnotation> annotations, final OWLOntology lego) throws OWLException, UnknownIdentifierException {
 		final OWLOntologyManager m = graph.getManager();
 
 		Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();
@@ -127,8 +130,9 @@ public class GafToLegoIndividualTranslator {
 	 * @param annotation
 	 * @param axioms
 	 * @throws OWLException 
+	 * @throws UnknownIdentifierException 
 	 */
-	public void translate(GeneAnnotation annotation, Set<OWLAxiom> axioms) throws OWLException {
+	public void translate(GeneAnnotation annotation, Set<OWLAxiom> axioms) throws OWLException, UnknownIdentifierException {
 		// skip ND annotations
 		if ("ND".equals(annotation.getShortEvidence())) {
 			reportWarn("Skipping ND annotation", annotation);
@@ -192,7 +196,7 @@ public class GafToLegoIndividualTranslator {
 	}
 	
 	
-	private void translate(GeneAnnotation annotation, OWLClassExpression ce, Set<OWLAxiom> axioms) throws OWLException {
+	private void translate(GeneAnnotation annotation, OWLClassExpression ce, Set<OWLAxiom> axioms) throws OWLException, UnknownIdentifierException {
 		final OWLDataFactory f = graph.getDataFactory();
 
 		// # STEP 1 - Bioentity instance
@@ -314,7 +318,7 @@ public class GafToLegoIndividualTranslator {
 		}
 	}
 
-	private OWLClass addBioentityCls(String id, String lbl, String taxon, Set<OWLAxiom> axioms, OWLDataFactory f) {
+	private OWLClass addBioentityCls(String id, String lbl, String taxon, Set<OWLAxiom> axioms, OWLDataFactory f) throws UnknownIdentifierException {
 		IRI iri = curieHandler.getIRI(id);
 		OWLClass cls = f.getOWLClass(iri);
 		boolean add = axioms.add(f.getOWLDeclarationAxiom(cls));

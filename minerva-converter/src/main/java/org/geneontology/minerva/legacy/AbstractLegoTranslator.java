@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.evidence.FindGoCodes;
 import org.geneontology.minerva.lookup.ExternalLookupService;
@@ -67,7 +68,7 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
         goCodes = new FindGoCodes(mapper, curieHandler);
 
         mf = OBOUpperVocabulary.GO_molecular_function.getOWLClass(f);
-        cc = f.getOWLClass(curieHandler.getIRI("GO:0005575"));
+        cc = f.getOWLClass(IRI.create("http://purl.obolibrary.org/obo/GO_0005575"));
         bp = OBOUpperVocabulary.GO_biological_process.getOWLClass(f);
     
         bpSet = new HashSet<>();
@@ -270,7 +271,7 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
         return isGoAnnotation;
     }
 
-    public abstract void translate(OWLOntology modelAbox, ExternalLookupService lookup, GafDocument annotations, List<String> additionalRefs);
+    public abstract void translate(OWLOntology modelAbox, ExternalLookupService lookup, GafDocument annotations, List<String> additionalRefs) throws UnknownIdentifierException;
 
     /**
      * Get the type of an enabled by entity, e.g. gene, protein
@@ -297,7 +298,7 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
         return "gene";
     }
 
-    protected String getEntityTaxon(OWLClass entity, OWLOntology model) {
+    protected String getEntityTaxon(OWLClass entity, OWLOntology model) throws UnknownIdentifierException {
         if (entity == null) {
             return null;
         }
@@ -305,7 +306,7 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
         return tool.getEntityTaxon(curieHandler.getCuri(entity), model);
     }
 
-    public GafDocument translate(String id, OWLOntology modelAbox, ExternalLookupService lookup, List<String> additionalReferences) {
+    public GafDocument translate(String id, OWLOntology modelAbox, ExternalLookupService lookup, List<String> additionalReferences) throws UnknownIdentifierException {
         final GafDocument annotations = new GafDocument(id, null);
         translate(modelAbox, lookup, annotations, additionalReferences);
         return annotations;
