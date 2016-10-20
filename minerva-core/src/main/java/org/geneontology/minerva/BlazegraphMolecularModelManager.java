@@ -267,27 +267,27 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		}
 	}
 	
-	/**
-	 * Only one thread at a time can use the unisolated connection.
-	 */
-	private synchronized void writeModelToDatabase(OWLOntology model, IRI modelId) throws RepositoryException, IOException {
-		final BigdataSailRepositoryConnection connection = repo.getUnisolatedConnection();
-		try {
-			connection.begin();
+	private void writeModelToDatabase(OWLOntology model, IRI modelId) throws RepositoryException, IOException {
+		// Only one thread at a time can use the unisolated connection.
+		synchronized(repo) {
+			final BigdataSailRepositoryConnection connection = repo.getUnisolatedConnection();
 			try {
-				URI graph = new URIImpl(modelId.toString());
-				connection.clear(graph);
-				StatementCollector collector = new StatementCollector();
-				RioRenderer renderer = new RioRenderer(model, collector, null);
-				renderer.render();
-				connection.add(collector.getStatements(), graph);
-				connection.commit();
-			} catch (Exception e) {
-				connection.rollback();
-				throw e;
+				connection.begin();
+				try {
+					URI graph = new URIImpl(modelId.toString());
+					connection.clear(graph);
+					StatementCollector collector = new StatementCollector();
+					RioRenderer renderer = new RioRenderer(model, collector, null);
+					renderer.render();
+					connection.add(collector.getStatements(), graph);
+					connection.commit();
+				} catch (Exception e) {
+					connection.rollback();
+					throw e;
+				}
+			} finally {
+				connection.close();
 			}
-		} finally {
-			connection.close();
 		}
 	}
 
