@@ -250,16 +250,18 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		final OWLOntology ont = m.getAboxOntology();
 		final OWLOntologyManager manager = ont.getOWLOntologyManager();
 		List<OWLOntologyChange> changes = preSaveFileHandler(ont);
-		try {
-			this.writeModelToDatabase(ont, modelId);
-			// reset modified flag for abox after successful save
-			m.setAboxModified(false);
-		} finally {
-			if (changes != null) {
-				List<OWLOntologyChange> invertedChanges = ReverseChangeGenerator
-						.invertChanges(changes);
-				if (invertedChanges != null && !invertedChanges.isEmpty()) {
-					manager.applyChanges(invertedChanges);
+		synchronized(ont) {
+			try {
+				this.writeModelToDatabase(ont, modelId);
+				// reset modified flag for abox after successful save
+				m.setAboxModified(false);
+			} finally {
+				if (changes != null) {
+					List<OWLOntologyChange> invertedChanges = ReverseChangeGenerator
+							.invertChanges(changes);
+					if (invertedChanges != null && !invertedChanges.isEmpty()) {
+						manager.applyChanges(invertedChanges);
+					}
 				}
 			}
 		}
