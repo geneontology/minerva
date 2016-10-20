@@ -96,6 +96,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	/**
 	 * @param graph
 	 * @param modelIdPrefix
+	 * @param pathToJournal Path to Blazegraph journal file to use. 
+	 * Only one instance of Blazegraph can use this file at a time.
 	 * @throws OWLOntologyCreationException
 	 */
 	public BlazegraphMolecularModelManager(OWLGraphWrapper graph, String modelIdPrefix, String pathToJournal)
@@ -105,7 +107,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		this.pathToOWLStore = pathToJournal;
 		this.repo = initializeRepository(this.pathToOWLStore);
 	}
-	
+
 	/**
 	 * Note this may move to an implementation-specific subclass in future
 	 * 
