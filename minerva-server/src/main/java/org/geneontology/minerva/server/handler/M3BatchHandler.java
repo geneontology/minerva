@@ -36,6 +36,9 @@ public interface M3BatchHandler {
 		// generic operations
 		get,
 		
+		@SerializedName("export-all")
+		exportAll,
+		
 		@SerializedName("add-type")
 		addType,
 		

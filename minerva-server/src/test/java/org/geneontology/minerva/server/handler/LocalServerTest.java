@@ -75,7 +75,7 @@ public class LocalServerTest {
 		final String modelIdPrefix = "http://model.geneontology.org/";
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
-		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath());
+		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
 		
 		MinervaStartUpConfig conf = new MinervaStartUpConfig();
 		conf.inferenceProviderCreator = CachingInferenceProviderCreatorImpl.createElk(false);

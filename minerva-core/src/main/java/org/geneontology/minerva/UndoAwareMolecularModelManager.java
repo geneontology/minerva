@@ -172,8 +172,8 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 	}
 
 	public UndoAwareMolecularModelManager(OWLGraphWrapper graph,
-			CurieHandler curieHandler, String modelIdLongFormPrefix, String pathToJournal) throws OWLOntologyCreationException {
-		super(graph, curieHandler, modelIdLongFormPrefix, pathToJournal);
+			CurieHandler curieHandler, String modelIdLongFormPrefix, String pathToJournal, String pathToExportFolder) throws OWLOntologyCreationException {
+		super(graph, curieHandler, modelIdLongFormPrefix, pathToJournal, pathToExportFolder);
 	}
 
 	@Override

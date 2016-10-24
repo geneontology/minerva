@@ -179,8 +179,11 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 						return error(response, "Get meta entity can only be combined with other meta operations.", null);
 					}
 					getMeta(response, userId);
-				}
-				else {
+				} else if (Operation.exportAll == operation) {
+					exportAllModels();
+					response.message = "Dumped all models to folder";
+					return response;
+				} else {
 					return error(response, "Unknown operation: "+operation, null);
 				}
 			}
@@ -282,6 +285,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			case get:
 			case exportModel:
 			case exportModelLegacy:
+			case exportAll:
 				// positive list, all other operation require a privileged call
 				break;
 			default :

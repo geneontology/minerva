@@ -97,7 +97,7 @@ public class BatchModelHandlerTest {
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
 		InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false);
-		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath());
+		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
 		lookupService = createTestProteins(curieHandler);
 		handler = new JsonOrJsonpBatchHandler(models, "development", ipc, importantRelations, lookupService) {
 

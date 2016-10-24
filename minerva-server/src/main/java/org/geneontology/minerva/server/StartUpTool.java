@@ -50,7 +50,8 @@ public class StartUpTool {
 		// data configuration
 		public String ontology = null;
 		public String catalog = null;
-		public String modelFolder = null;
+		public String journalFile = null;
+		public String exportFolder = null;
 		public String modelIdPrefix = "http://model.geneontology.org/";
 		public String modelIdcurie = "gomodel";
 		
@@ -100,8 +101,11 @@ public class StartUpTool {
 			else if (opts.nextEq("-c|--catalog")) {
 				conf.catalog = opts.nextOpt();
 			}
-			else if (opts.nextEq("-f|--model-folder")) {
-				conf.modelFolder = opts.nextOpt();
+			else if (opts.nextEq("-f|--journal-file")) {
+				conf.journalFile = opts.nextOpt();
+			}
+			else if (opts.nextEq("--export-folder")) {
+				conf.exportFolder = opts.nextOpt();
 			}
 			else if (opts.nextEq("--model-id-prefix")) {
 				conf.modelIdPrefix = opts.nextOpt();
@@ -188,8 +192,8 @@ public class StartUpTool {
 			System.err.println("No ontology graph available");
 			System.exit(-1);
 		}
-		if (conf.modelFolder == null) {
-			System.err.println("No model folder available");
+		if (conf.journalFile == null) {
+			System.err.println("No journal file available");
 			System.exit(-1);
 		} 
 		conf.contextString = "/";
@@ -307,12 +311,12 @@ public class StartUpTool {
 		}
 
 		// set folder to  models
-				LOGGER.info("Model path: "+conf.modelFolder);
+				LOGGER.info("Model path: "+conf.journalFile);
 		
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph,
-				conf.curieHandler, conf.modelIdPrefix, conf.modelFolder);
+				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder);
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
 		models.addPreFileSaveHandler(new ModelWriterHelper(conf.curieHandler, conf.lookupService));

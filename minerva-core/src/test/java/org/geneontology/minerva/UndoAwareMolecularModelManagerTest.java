@@ -37,7 +37,7 @@ public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
 	public void testUndoRedo() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
 		g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
-		m3 = new UndoAwareMolecularModelManager(g, curieHandler, "http://testmodel.geneontology.org/", folder.newFile().getAbsolutePath());
+		m3 = new UndoAwareMolecularModelManager(g, curieHandler, "http://testmodel.geneontology.org/", folder.newFile().getAbsolutePath(), null);
 		
 		String userId = "test-user-id";
 		ModelContainer model = m3.generateBlankModel(null);

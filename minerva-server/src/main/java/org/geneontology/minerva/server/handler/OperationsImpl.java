@@ -625,6 +625,9 @@ abstract class OperationsImpl extends ModelCreator {
 		response.data.meta.modelsReadOnly = allModelAnnotationsReadOnly;
 	}
 	
+	void exportAllModels() throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
+		m3.dumpAllStoredModels();
+	}
 	
 	private void export(M3BatchResponse response, ModelContainer model, String userId) throws OWLOntologyStorageException, UnknownIdentifierException {
 		String exportModel = m3.exportModel(model);

@@ -42,7 +42,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	}
 	
 	private MolecularModelManager<Void> createM3(OWLGraphWrapper g, File journal) throws OWLOntologyCreationException, IOException {
-		return new MolecularModelManager<Void>(g, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath());
+		return new MolecularModelManager<Void>(g, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), null);
 	}
 
 	@Test

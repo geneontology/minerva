@@ -61,7 +61,7 @@ public class ModelReasonerTest {
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
 		
-		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath());
+		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
 		InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false);
 		handler = new JsonOrJsonpBatchHandler(models, "development", ipc,
 				Collections.<OWLObjectProperty>emptySet(), (ExternalLookupService) null);

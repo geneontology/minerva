@@ -81,6 +81,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	boolean isPrecomputePropertyClassCombinations = false;
 	
 	final String pathToOWLStore;
+	final String pathToExportFolder;
 	private final BigdataSailRepository repo;
 
 	private final String modelIdPrefix;
@@ -100,11 +101,12 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * Only one instance of Blazegraph can use this file at a time.
 	 * @throws OWLOntologyCreationException
 	 */
-	public BlazegraphMolecularModelManager(OWLGraphWrapper graph, String modelIdPrefix, String pathToJournal)
+	public BlazegraphMolecularModelManager(OWLGraphWrapper graph, String modelIdPrefix, String pathToJournal, String pathToExportFolder)
 			throws OWLOntologyCreationException {
 		super(graph);
 		this.modelIdPrefix = modelIdPrefix;
 		this.pathToOWLStore = pathToJournal;
+		this.pathToExportFolder = pathToExportFolder;
 		this.repo = initializeRepository(this.pathToOWLStore);
 	}
 
@@ -306,6 +308,10 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			}
 		}
 		return allChanges;
+	}
+	
+	public void exportAllModels() {
+		
 	}
 	
 	public static interface PreFileSaveHandler {
@@ -576,7 +582,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	}
 	
 	/**
-	 * Save all models to disk. The optional annotations may be used to set saved_by and other meta data. 
+	 * Export all models to disk. 
 	 * 
 	 * @param annotations
 	 * @param metadata
@@ -585,7 +591,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @throws OWLOntologyCreationException
 	 * @throws IOException 
 	 */
-	public void dumpAllStoredModels(File folder) throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
+	public void dumpAllStoredModels() throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
+		File folder = new File(this.pathToExportFolder);
 		for (IRI modelId : this.getStoredModelIds()) {
 			dumpStoredModel(modelId, folder);
 		}
