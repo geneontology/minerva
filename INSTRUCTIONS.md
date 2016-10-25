@@ -13,11 +13,11 @@
 		- [Quick Test via `curl`](#quick-test-via-curl)
 	- [Obtaining `owl-models` and `go-lego.owl`](#obtaining-owl-models-and-go-legoowl)
 		- [Useful source files for learning](#useful-source-files-for-learning)
-	- [Using the Blazegraph model store]()
-		- [Create a new Blazegraph journal from a directory of existing model files](#create-a-new-Blazegraph-journal-from-a-directory-of-existing-model-files)
-		- [Dump model files from a Blazegraph journal that is not in use](#dump-model-files-from-a-Blazegraph-journal-that-is-not-in-use)
-		- [Start the Minerva Server with configuration for Blazegraph journal and model dump folder](#start-the-Minerva-Server-with-configuration-for-Blazegraph-journal-and-model-dump-folder)
-		- [Request an OWL dump of all models from a running Minerva Server](#request-an-OWL-dump-of-all-models-from-a-running-minerva-server)
+	- [Using the Blazegraph model store](#using-the-blazegraph-model-store)
+		- [Create a new Blazegraph journal from a directory of existing model files](#create-a-new-blazegraph-journal-from-a-directory-of-existing-model-files)
+		- [Dump model files from a Blazegraph journal that is not in use](#dump-model-files-from-a-blazegraph-journal-that-is-not-in-use)
+		- [Start the Minerva Server with configuration for Blazegraph journal and model dump folder](#start-the-minerva-server-with-configuration-for-blazegraph-journal-and-model-dump-folder)
+		- [Request an OWL dump of all models from a running Minerva Server](#request-an-owl-dump-of-all-models-from-a-running-minerva-server)
 
 <!-- /MarkdownTOC -->
 
