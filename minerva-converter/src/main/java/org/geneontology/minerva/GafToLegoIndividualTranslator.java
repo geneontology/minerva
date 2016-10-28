@@ -87,9 +87,8 @@ public class GafToLegoIndividualTranslator {
 	 * @param gaf
 	 * @return lego ontology
 	 * @throws OWLException
-	 * @throws UnknownIdentifierException 
 	 */
-	public OWLOntology translate(GafDocument gaf) throws OWLException, UnknownIdentifierException {
+	public OWLOntology translate(GafDocument gaf) throws OWLException {
 		final OWLOntologyManager m = graph.getManager();
 		OWLOntology lego = m.createOntology(IRI.generateDocumentIRI());
 		OWLOntology sourceOntology = graph.getSourceOntology();
@@ -112,9 +111,8 @@ public class GafToLegoIndividualTranslator {
 	 * @param annotations
 	 * @param lego
 	 * @throws OWLException 
-	 * @throws UnknownIdentifierException 
 	 */
-	public void translate(Collection<GeneAnnotation> annotations, final OWLOntology lego) throws OWLException, UnknownIdentifierException {
+	public void translate(Collection<GeneAnnotation> annotations, final OWLOntology lego) throws OWLException {
 		final OWLOntologyManager m = graph.getManager();
 
 		Set<OWLAxiom> axioms = new HashSet<OWLAxiom>();
@@ -130,9 +128,8 @@ public class GafToLegoIndividualTranslator {
 	 * @param annotation
 	 * @param axioms
 	 * @throws OWLException 
-	 * @throws UnknownIdentifierException 
 	 */
-	public void translate(GeneAnnotation annotation, Set<OWLAxiom> axioms) throws OWLException, UnknownIdentifierException {
+	public void translate(GeneAnnotation annotation, Set<OWLAxiom> axioms) throws OWLException {
 		// skip ND annotations
 		if ("ND".equals(annotation.getShortEvidence())) {
 			reportWarn("Skipping ND annotation", annotation);
@@ -167,8 +164,13 @@ public class GafToLegoIndividualTranslator {
 					final String extensionRelationString = extension.getRelation();
 					OWLClass extensionCls = getOwlClass(extensionClsString);
 					if (extensionCls == null) {
+						try {
 						IRI extensionIRI = curieHandler.getIRI(extensionClsString);
 						extensionCls = f.getOWLClass(extensionIRI);
+						} catch (UnknownIdentifierException e) {
+							reportError("Could not find the extension class IRI: " + extensionClsString, annotation);
+							return;
+						}
 					}
 					final OWLObjectProperty extensionRelation = graph.getOWLObjectPropertyByIdentifier(extensionRelationString);
 					if (extensionRelation == null) {
@@ -196,26 +198,42 @@ public class GafToLegoIndividualTranslator {
 	}
 	
 	
-	private void translate(GeneAnnotation annotation, OWLClassExpression ce, Set<OWLAxiom> axioms) throws OWLException, UnknownIdentifierException {
+	private void translate(GeneAnnotation annotation, OWLClassExpression ce, Set<OWLAxiom> axioms) throws OWLException {
 		final OWLDataFactory f = graph.getDataFactory();
 
 		// # STEP 1 - Bioentity instance
 		final Bioentity bioentity = annotation.getBioentityObject();
 		final String isoForm = StringUtils.trimToNull(annotation.getGeneProductForm());
-		
+
 		final OWLClass bioentityClass;
 		if (isoForm == null) {
 			// option #1: default bioentity id
-			bioentityClass = addBioentityCls(bioentity.getId(), bioentity.getSymbol(), bioentity.getNcbiTaxonId(), axioms, f);
+			try {
+				bioentityClass = addBioentityCls(bioentity.getId(), bioentity.getSymbol(), bioentity.getNcbiTaxonId(), axioms, f);
+			} catch (UnknownIdentifierException e) {
+				reportError("Could not find a class for the Bioentity: " + bioentity, annotation);
+				return;
+			}
 		}
 		else {
 			// option #2: ISO-form as subclass of bioentity
-			bioentityClass = addBioentityCls(isoForm, bioentity.getSymbol()+" ISO Form "+isoForm, bioentity.getNcbiTaxonId(), axioms, f);
-			OWLClass bioentityClassSuper = addBioentityCls(bioentity.getId(), bioentity.getSymbol(), bioentity.getNcbiTaxonId(), axioms, f);
-			axioms.add(f.getOWLDeclarationAxiom(bioentityClassSuper));
-			axioms.add(f.getOWLSubClassOfAxiom(bioentityClass, bioentityClassSuper));
+			try {
+				bioentityClass = addBioentityCls(isoForm, bioentity.getSymbol()+" ISO Form "+isoForm, bioentity.getNcbiTaxonId(), axioms, f);
+			} catch (UnknownIdentifierException e) {
+				reportError("Could not find a class for the Bioentity: " + bioentity, annotation);
+				return;
+			}
+			try {
+				OWLClass bioentityClassSuper = addBioentityCls(bioentity.getId(), bioentity.getSymbol(), bioentity.getNcbiTaxonId(), axioms, f);
+
+				axioms.add(f.getOWLDeclarationAxiom(bioentityClassSuper));
+				axioms.add(f.getOWLSubClassOfAxiom(bioentityClass, bioentityClassSuper));
+			} catch (UnknownIdentifierException e) {
+				reportError("Could not find a class for the Bioentity: " + bioentity, annotation);
+				return;
+			}
 		}
-		
+
 		IRI bioentityInstanceIRI = generateNewIRI("bioentity", bioentityClass);
 		OWLNamedIndividual bioentityInstance = f.getOWLNamedIndividual(bioentityInstanceIRI);
 		axioms.add(f.getOWLDeclarationAxiom(bioentityInstance));
@@ -229,7 +247,7 @@ public class GafToLegoIndividualTranslator {
 			reportError("Error, no aspect defined.", annotation);
 			return;
 		}
-		
+
 		// TODO evidence
 		Set<OWLAnnotation> annotations = Collections.emptySet();
 		if (addLineNumber) {
@@ -251,33 +269,33 @@ public class GafToLegoIndividualTranslator {
 
 			// types
 			axioms.add(f.getOWLClassAssertionAxiom(ce, individual));
-			
+
 			// link instances
-			
+
 			axioms.add(f.getOWLObjectPropertyAssertionAxiom(enabledBy, individual, bioentityInstance, annotations));
 		}				
 		else if ("C".equals(aspect)) {
 			// generic mf instance
 			OWLNamedIndividual mfIndividual = f.getOWLNamedIndividual(generateNewIRI("mf", mf));
 			axioms.add(f.getOWLDeclarationAxiom(mfIndividual));
-			
+
 			// generic mf type
 			axioms.add(f.getOWLClassAssertionAxiom(mf, mfIndividual));
-			
+
 			// link mf to bioentity
 			axioms.add(f.getOWLObjectPropertyAssertionAxiom(enabledBy, mfIndividual, bioentityInstance));
-			
+
 			// cc instance
 			OWLNamedIndividual ccIndividual = f.getOWLNamedIndividual(generateNewIRI("cc", ce));
 			axioms.add(f.getOWLDeclarationAxiom(ccIndividual));
 
 			// cc type
 			axioms.add(f.getOWLClassAssertionAxiom(ce, ccIndividual));
-			
+
 			// link cc and mf
 			axioms.add(f.getOWLObjectPropertyAssertionAxiom(occursIn, ccIndividual, mfIndividual, annotations));
-			
-			
+
+
 		}
 		else if ("P".equals(aspect)) {
 			// generic mf instance
