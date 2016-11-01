@@ -2,6 +2,7 @@ package org.geneontology.minerva.server.handler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
@@ -144,8 +145,8 @@ public interface M3BatchHandler {
 		 * @param intention
 		 * @param packetId
 		 */
-		public M3BatchResponse(String uid, String intention, String packetId) {
-			super(uid, intention, packetId);
+		public M3BatchResponse(String uid, Set<String> providerGroups, String intention, String packetId) {
+			super(uid, providerGroups, intention, packetId);
 		}
 		
 	}
@@ -162,7 +163,7 @@ public interface M3BatchHandler {
 	 * @param isPrivileged true, if the access is privileged
 	 * @return response object, never null
 	 */
-	public M3BatchResponse m3Batch(String uid, String intention, String packetId, M3Request[] requests, boolean useReasoner, boolean isPrivileged);
+	public M3BatchResponse m3Batch(String uid, Set<String> providerGroups, String intention, String packetId, M3Request[] requests, boolean useReasoner, boolean isPrivileged);
 	
 	/**
 	 * Jersey REST method for POST with three form parameters.
@@ -186,6 +187,7 @@ public interface M3BatchHandler {
 	 * Jersey REST method for POST with three form parameters with privileged rights.
 	 * 
 	 * @param uid user id, JSONP relevant
+	 * @param providerGroups user groups, JSONP relevant
 	 * @param intention JSONP relevant
 	 * @param packetId
 	 * @param requests JSON string of the batch request
@@ -197,6 +199,7 @@ public interface M3BatchHandler {
 	@Consumes("application/x-www-form-urlencoded")
 	public M3BatchResponse m3BatchPostPrivileged(
 			@FormParam("uid") String uid,
+			@FormParam("provided-by") Set<String> providerGroups,
 			@FormParam("intention") String intention,
 			@FormParam("packet-id") String packetId,
 			@FormParam("requests") String requests,
@@ -223,6 +226,7 @@ public interface M3BatchHandler {
 	 * Jersey REST method for GET with three query parameters with privileged rights.
 	 * 
 	 * @param uid user id, JSONP relevant
+	 * @param providerGroups user groups, JSONP relevant
 	 * @param intention JSONP relevant
 	 * @param packetId 
 	 * @param requests JSON string of the batch request
@@ -233,6 +237,7 @@ public interface M3BatchHandler {
 	@GET
 	public M3BatchResponse m3BatchGetPrivileged(
 			@QueryParam("uid") String uid,
+			@QueryParam("provided-by") Set<String> providerGroups,
 			@QueryParam("intention") String intention,
 			@QueryParam("packet-id") String packetId,
 			@QueryParam("requests") String requests,

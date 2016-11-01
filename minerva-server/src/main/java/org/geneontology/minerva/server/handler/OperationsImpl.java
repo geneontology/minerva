@@ -132,7 +132,7 @@ abstract class OperationsImpl extends ModelCreator {
 	 * @return error or null
 	 * @throws Exception 
 	 */
-	String handleRequestForIndividual(M3Request request, Operation operation, String userId, UndoMetadata token, BatchHandlerValues values) throws Exception {
+	String handleRequestForIndividual(M3Request request, Operation operation, String userId, Set<String> providerGroups, UndoMetadata token, BatchHandlerValues values) throws Exception {
 		values.nonMeta = true;
 		requireNotNull(request.arguments, "request.arguments");
 		values.model = checkModelId(values.model, request);
@@ -148,7 +148,7 @@ abstract class OperationsImpl extends ModelCreator {
 			// required: expression
 			// optional: more expressions, values
 			requireNotNull(request.arguments.expressions, "request.arguments.expressions");
-			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, values, values.model);
+			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, providerGroups, values, values.model);
 			Map<OWLDataProperty, Set<OWLLiteral>> dataProperties = extractDataProperties(request.arguments.values, values.model);
 			OWLNamedIndividual individual;
 			List<OWLClassExpression> clsExpressions = new ArrayList<OWLClassExpression>(request.arguments.expressions.length);
@@ -184,7 +184,7 @@ abstract class OperationsImpl extends ModelCreator {
 				}
 				updateDate(values.model, individual, token, m3);
 			}
-			updateModelAnnotations(values.model, userId, token, m3);
+			updateModelAnnotations(values.model, userId, providerGroups, token, m3);
 		}
 		// remove individual (and all axioms using it)
 		else if (Operation.remove == operation){
@@ -194,8 +194,8 @@ abstract class OperationsImpl extends ModelCreator {
 			
 			DeleteInformation dInfo = m3.deleteIndividual(values.model, i, token);
 			handleRemovedAnnotationIRIs(dInfo.usedIRIs, values.model, token);
-			updateAnnotationsForDelete(dInfo, values.model, userId, token, m3);
-			updateModelAnnotations(values.model, userId, token, m3);
+			updateAnnotationsForDelete(dInfo, values.model, userId, providerGroups, token, m3);
+			updateModelAnnotations(values.model, userId, providerGroups, token, m3);
 			values.renderBulk = true;
 		}				
 		// add type / named class assertion
@@ -204,7 +204,7 @@ abstract class OperationsImpl extends ModelCreator {
 			requireNotNull(request.arguments.individual, "request.arguments.individual");
 			requireNotNull(request.arguments.expressions, "request.arguments.expressions");
 			
-			Set<OWLAnnotation> annotations = createGeneratedAnnotations(values.model, userId);
+			Set<OWLAnnotation> annotations = createGeneratedAnnotations(values.model, userId, providerGroups);
 			OWLNamedIndividual i = getIndividual(request.arguments.individual, values);
 			
 			for(JsonOwlObject expression : request.arguments.expressions) {
@@ -215,7 +215,7 @@ abstract class OperationsImpl extends ModelCreator {
 				m3.addAnnotations(values.model, i, annotations, token);
 			}
 			updateDate(values.model, i, token, m3);
-			updateModelAnnotations(values.model, userId, token, m3);
+			updateModelAnnotations(values.model, userId, providerGroups, token, m3);
 		}
 		// remove type / named class assertion
 		else if (Operation.removeType == operation){
@@ -223,7 +223,7 @@ abstract class OperationsImpl extends ModelCreator {
 			requireNotNull(request.arguments.individual, "request.arguments.individual");
 			requireNotNull(request.arguments.expressions, "request.arguments.expressions");
 			
-			Set<OWLAnnotation> annotations = createGeneratedAnnotations(values.model, userId);
+			Set<OWLAnnotation> annotations = createGeneratedAnnotations(values.model, userId, providerGroups);
 			OWLNamedIndividual i = getIndividual(request.arguments.individual, values);
 			
 			for(JsonOwlObject expression : request.arguments.expressions) {
@@ -234,7 +234,7 @@ abstract class OperationsImpl extends ModelCreator {
 				m3.addAnnotations(values.model, i, annotations, token);
 			}
 			updateDate(values.model, i, token, m3);
-			updateModelAnnotations(values.model, userId, token, m3);
+			updateModelAnnotations(values.model, userId, providerGroups, token, m3);
 		}
 		// add annotation
 		else if (Operation.addAnnotation == operation){
@@ -242,7 +242,7 @@ abstract class OperationsImpl extends ModelCreator {
 			requireNotNull(request.arguments.individual, "request.arguments.individual");
 			requireNotNull(request.arguments.values, "request.arguments.values");
 
-			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, values, values.model);
+			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, providerGroups, values, values.model);
 			Map<OWLDataProperty, Set<OWLLiteral>> dataProperties = extractDataProperties(request.arguments.values, values.model);
 			OWLNamedIndividual i = getIndividual(request.arguments.individual, values);
 			
@@ -255,7 +255,7 @@ abstract class OperationsImpl extends ModelCreator {
 			}
 			values.addVariableValue(request.arguments.assignToVariable, i);
 			updateDate(values.model, i, token, m3);
-			updateModelAnnotations(values.model, userId, token, m3);
+			updateModelAnnotations(values.model, userId, providerGroups, token, m3);
 		}
 		// remove annotation
 		else if (Operation.removeAnnotation == operation){
@@ -263,7 +263,7 @@ abstract class OperationsImpl extends ModelCreator {
 			requireNotNull(request.arguments.individual, "request.arguments.individual");
 			requireNotNull(request.arguments.values, "request.arguments.values");
 
-			Set<OWLAnnotation> annotations = extract(request.arguments.values, null, values, values.model);
+			Set<OWLAnnotation> annotations = extract(request.arguments.values, null, Collections.emptySet(), values, values.model);
 			Map<OWLDataProperty, Set<OWLLiteral>> dataProperties = extractDataProperties(request.arguments.values, values.model);
 			OWLNamedIndividual i = getIndividual(request.arguments.individual, values);
 			
@@ -281,7 +281,7 @@ abstract class OperationsImpl extends ModelCreator {
 			
 			handleRemovedAnnotationIRIs(evidenceIRIs, values.model, token);
 			updateDate(values.model, i, token, m3);
-			updateModelAnnotations(values.model, userId, token, m3);
+			updateModelAnnotations(values.model, userId, providerGroups, token, m3);
 		}
 		else {
 			return "Unknown operation: "+operation;
@@ -326,7 +326,7 @@ abstract class OperationsImpl extends ModelCreator {
 	 * @return error or null
 	 * @throws Exception
 	 */
-	String handleRequestForEdge(M3Request request, Operation operation, String userId, UndoMetadata token, BatchHandlerValues values) throws Exception {
+	String handleRequestForEdge(M3Request request, Operation operation, String userId, Set<String> providerGroups, UndoMetadata token, BatchHandlerValues values) throws Exception {
 		values.nonMeta = true;
 		requireNotNull(request.arguments, "request.arguments");
 		values.model = checkModelId(values.model, request);
@@ -343,10 +343,10 @@ abstract class OperationsImpl extends ModelCreator {
 		// add edge
 		if (Operation.add == operation){
 			// optional: values
-			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, values, values.model);
+			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, providerGroups, values, values.model);
 			addDateAnnotation(annotations, values.model.getOWLDataFactory());
 			m3.addFact(values.model, p, s, o, annotations, token);
-			updateModelAnnotations(values.model, userId, token, m3);
+			updateModelAnnotations(values.model, userId, providerGroups, token, m3);
 		}
 		// remove edge
 		else if (Operation.remove == operation){
@@ -356,27 +356,27 @@ abstract class OperationsImpl extends ModelCreator {
 				values.renderBulk = true;
 				handleRemovedAnnotationIRIs(removedIRIs, values.model, token);
 			}
-			updateModelAnnotations(values.model, userId, token, m3);
+			updateModelAnnotations(values.model, userId, providerGroups, token, m3);
 		}
 		// add annotation
 		else if (Operation.addAnnotation == operation){
 			requireNotNull(request.arguments.values, "request.arguments.values");
 
 			m3.addAnnotations(values.model, p, s, o,
-					extract(request.arguments.values, userId, values, values.model), token);
+					extract(request.arguments.values, userId, providerGroups, values, values.model), token);
 			updateDate(values.model, p, s, o, token, m3);
-			updateModelAnnotations(values.model, userId, token, m3);
+			updateModelAnnotations(values.model, userId, providerGroups, token, m3);
 		}
 		// remove annotation
 		else if (Operation.removeAnnotation == operation){
 			requireNotNull(request.arguments.values, "request.arguments.values");
 
-			Set<OWLAnnotation> annotations = extract(request.arguments.values, null, values, values.model);
+			Set<OWLAnnotation> annotations = extract(request.arguments.values, null, Collections.emptySet(), values, values.model);
 			Set<IRI> evidenceIRIs = MolecularModelManager.extractEvidenceIRIValues(annotations);
 			m3.removeAnnotations(values.model, p, s, o, annotations, token);
 			handleRemovedAnnotationIRIs(evidenceIRIs, values.model, token);
 			updateDate(values.model, p, s, o, token, m3);
-			updateModelAnnotations(values.model, userId, token, m3);
+			updateModelAnnotations(values.model, userId, providerGroups, token, m3);
 		}
 		else {
 			return "Unknown operation: "+operation;
@@ -396,7 +396,7 @@ abstract class OperationsImpl extends ModelCreator {
 	 * @return error or null
 	 * @throws Exception
 	 */
-	String handleRequestForModel(M3Request request, M3BatchResponse response, Operation operation, String userId, UndoMetadata token, BatchHandlerValues values) throws Exception {
+	String handleRequestForModel(M3Request request, M3BatchResponse response, Operation operation, String userId, Set<String> providerGroups, UndoMetadata token, BatchHandlerValues values) throws Exception {
 		// get model
 		if (Operation.get == operation){
 			values.nonMeta = true;
@@ -417,10 +417,10 @@ abstract class OperationsImpl extends ModelCreator {
 			values.renderBulk = true;
 			
 			if (request.arguments != null) {
-				values.model = createModel(userId, token, values, request.arguments.values);
+				values.model = createModel(userId, providerGroups, token, values, request.arguments.values);
 			}
 			else {
-				values.model = createModel(userId, token, values, null);
+				values.model = createModel(userId, providerGroups, token, values, null);
 			}
 		}
 		else if (Operation.addAnnotation == operation) {
@@ -428,22 +428,22 @@ abstract class OperationsImpl extends ModelCreator {
 			requireNotNull(request.arguments, "request.arguments");
 			requireNotNull(request.arguments.values, "request.arguments.values");
 			values.model = checkModelId(values.model, request);
-			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, values, values.model);
+			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, providerGroups, values, values.model);
 			if (annotations != null) {
 				m3.addModelAnnotations(values.model, annotations, token);
 			}
-			updateModelAnnotations(values.model, userId, token, m3);
+			updateModelAnnotations(values.model, userId, providerGroups, token, m3);
 		}
 		else if (Operation.removeAnnotation == operation) {
 			values.nonMeta = true;
 			requireNotNull(request.arguments, "request.arguments");
 			requireNotNull(request.arguments.values, "request.arguments.values");
 			values.model = checkModelId(values.model, request);
-			Set<OWLAnnotation> annotations = extract(request.arguments.values, null, values, values.model);
+			Set<OWLAnnotation> annotations = extract(request.arguments.values, null, Collections.emptySet(), values, values.model);
 			if (annotations != null) {
 				m3.removeAnnotations(values.model, annotations, token);
 			}
-			updateModelAnnotations(values.model, userId, token, m3);
+			updateModelAnnotations(values.model, userId, providerGroups, token, m3);
 			values.renderBulk = true;
 		}
 		else if (Operation.exportModel == operation) {
@@ -453,7 +453,7 @@ abstract class OperationsImpl extends ModelCreator {
 			}
 			requireNotNull(request.arguments, "request.arguments");
 			values.model = checkModelId(values.model, request);
-			export(response, values.model, userId);
+			export(response, values.model, userId, providerGroups);
 		}
 		else if (Operation.exportModelLegacy == operation) {
 			if (values.nonMeta) {
@@ -470,18 +470,18 @@ abstract class OperationsImpl extends ModelCreator {
 			requireNotNull(request.arguments.importModel, "request.arguments.importModel");
 			values.model = m3.importModel(request.arguments.importModel);
 			
-			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, values, values.model);
+			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, providerGroups, values, values.model);
 			if (annotations != null) {
 				m3.addModelAnnotations(values.model, annotations, token);
 			}
-			updateModelAnnotations(values.model, userId, token, m3);
+			updateModelAnnotations(values.model, userId, providerGroups, token, m3);
 			values.renderBulk = true;
 		}
 		else if (Operation.storeModel == operation) {
 			values.nonMeta = true;
 			requireNotNull(request.arguments, "request.arguments");
 			values.model = checkModelId(values.model, request);
-			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, values, values.model);
+			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, providerGroups, values, values.model);
 			if (validateBeforeSave()) {
 				List<String> issues = beforeSaveValidator.validateBeforeSave(values.model);
 				if (issues != null && !issues.isEmpty()) {
@@ -570,7 +570,7 @@ abstract class OperationsImpl extends ModelCreator {
 	 * @throws IOException 
 	 * @throws OWLException 
 	 */
-	void getMeta(M3BatchResponse response, String userId) throws IOException, OWLException {
+	void getMeta(M3BatchResponse response, String userId, Set<String> providerGroups) throws IOException, OWLException {
 		// init
 		initMetaResponse(response);
 		if (response.data.meta == null) {
@@ -629,7 +629,7 @@ abstract class OperationsImpl extends ModelCreator {
 		m3.dumpAllStoredModels();
 	}
 	
-	private void export(M3BatchResponse response, ModelContainer model, String userId) throws OWLOntologyStorageException, UnknownIdentifierException {
+	private void export(M3BatchResponse response, ModelContainer model, String userId, Set<String> providerGroups) throws OWLOntologyStorageException, UnknownIdentifierException {
 		String exportModel = m3.exportModel(model);
 		initMetaResponse(response);
 		response.data.exportModel = exportModel;
@@ -678,11 +678,11 @@ abstract class OperationsImpl extends ModelCreator {
 		return model;
 	}
 	
-	private void updateAnnotationsForDelete(DeleteInformation info, ModelContainer model, String userId, UndoMetadata token, UndoAwareMolecularModelManager m3) throws UnknownIdentifierException {
+	private void updateAnnotationsForDelete(DeleteInformation info, ModelContainer model, String userId, Set<String> providerGroups, UndoMetadata token, UndoAwareMolecularModelManager m3) throws UnknownIdentifierException {
 		final OWLDataFactory f = model.getOWLDataFactory();
 		final OWLAnnotation annotation = createDateAnnotation(f);
 		final Set<OWLAnnotation> generated = new HashSet<OWLAnnotation>();
-		addGeneratedAnnotations(userId, generated, f);
+		addGeneratedAnnotations(userId, providerGroups, generated, f);
 		for(IRI subject : info.touched) {
 			m3.updateAnnotation(model, subject, annotation, token);
 			m3.addAnnotations(model, subject, generated, token);

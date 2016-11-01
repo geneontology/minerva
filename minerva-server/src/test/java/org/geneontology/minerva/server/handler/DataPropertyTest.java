@@ -209,7 +209,7 @@ public class DataPropertyTest {
 		String uid = "foo-user";
 		String intention = "generated";
 		String packetId = "0";
-		M3BatchResponse response = handler.m3Batch(uid, intention, packetId, requests.toArray(new M3Request[requests.size()]), false, true);
+		M3BatchResponse response = handler.m3Batch(uid, Collections.emptySet(), intention, packetId, requests.toArray(new M3Request[requests.size()]), false, true);
 		assertEquals(uid, response.uid);
 		assertEquals(intention, response.intention);
 		assertEquals(packetId, response.packetId);

@@ -229,7 +229,7 @@ public class ParallelModelReasonerTest {
 	}
 	
 	private M3BatchResponse executeBatch(List<M3Request> batch) {
-		M3BatchResponse response = handler.m3Batch("test-user", "test-intention", "foo-packet-id",
+		M3BatchResponse response = handler.m3Batch("test-user", Collections.emptySet(), "test-intention", "foo-packet-id",
 				batch.toArray(new M3Request[batch.size()]), true, true);
 		return response;
 	}
