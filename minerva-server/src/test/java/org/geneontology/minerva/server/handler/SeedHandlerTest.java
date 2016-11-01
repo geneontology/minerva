@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.Set;
 
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
@@ -20,7 +21,6 @@ import org.geneontology.minerva.server.handler.M3SeedHandler.SeedResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import owltools.gaf.eco.EcoMapperFactory;
@@ -38,6 +38,7 @@ public class SeedHandlerTest {
 	private static UndoAwareMolecularModelManager models = null;
 	
 	private static final String uid = "test-user";
+	private static final Set<String> providedBy = Collections.singleton("test-provider");
 	private static final String intention = "test-intention";
 	private static final String packetId = "foo-packet-id";
 	
@@ -100,7 +101,7 @@ public class SeedHandlerTest {
 	
 	private SeedResponse seed(SeedRequest request) {
 		String json = MolecularModelJsonRenderer.renderToJson(new SeedRequest[]{request}, false);
-		SeedResponse response = handler.fromProcessGetPrivileged(uid, intention, packetId, json);
+		SeedResponse response = handler.fromProcessGetPrivileged(uid, providedBy, intention, packetId, json);
 		assertEquals(uid, response.uid);
 		assertEquals(intention, response.intention);
 		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);

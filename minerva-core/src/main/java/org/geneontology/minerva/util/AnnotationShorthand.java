@@ -26,6 +26,7 @@ public enum AnnotationShorthand {
 	// DC recommends http://www.w3.org/TR/NOTE-datetime, one example format is YYYY-MM-DD
 	source(IRI.create("http://purl.org/dc/elements/1.1/source")), // arbitrary string, such as PMID:000000
 	contributor(IRI.create("http://purl.org/dc/elements/1.1/contributor")), // who contributed to the annotation
+	providedBy(IRI.create("http://purl.org/pav/providedBy")), // organization supporting the annotation
 	title(IRI.create("http://purl.org/dc/elements/1.1/title")), // title (of the model)
 	deprecated(OWLRDFVocabulary.OWL_DEPRECATED.getIRI()), // model annotation to indicate deprecated models
 	templatestate(IRI.create("http://geneontology.org/lego/templatestate"), "template"), // designate a model as a template

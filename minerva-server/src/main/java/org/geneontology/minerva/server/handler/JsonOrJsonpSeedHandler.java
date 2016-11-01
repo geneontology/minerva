@@ -62,28 +62,28 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
 	public SeedResponse fromProcessPost(String intention, String packetId, String requestString) {
 		// only privileged calls are allowed
-		SeedResponse response = new SeedResponse(null, intention, packetId);
+		SeedResponse response = new SeedResponse(null, Collections.emptySet(), intention, packetId);
 		return error(response, "Insufficient permissions for seed operation.", null);
 	}
 
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public SeedResponse fromProcessPostPrivileged(String uid, String intention, String packetId, String requestString) {
-		return fromProcess(uid, intention, checkPacketId(packetId), requestString);
+	public SeedResponse fromProcessPostPrivileged(String uid, Set<String> providerGroups, String intention, String packetId, String requestString) {
+		return fromProcess(uid, providerGroups, intention, checkPacketId(packetId), requestString);
 	}
 
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
 	public SeedResponse fromProcessGet(String intention, String packetId, String requestString) {
 		// only privileged calls are allowed
-		SeedResponse response = new SeedResponse(null, intention, packetId);
+		SeedResponse response = new SeedResponse(null, Collections.emptySet(), intention, packetId);
 		return error(response, "Insufficient permissions for seed operation.", null);
 	}
 
 	@Override
 	@JSONP(callback = JSONP_DEFAULT_CALLBACK, queryParam = JSONP_DEFAULT_OVERWRITE)
-	public SeedResponse fromProcessGetPrivileged(String uid, String intention, String packetId, String requestString) {
-		return fromProcess(uid, intention, checkPacketId(packetId), requestString);
+	public SeedResponse fromProcessGetPrivileged(String uid, Set<String> providerGroups, String intention, String packetId, String requestString) {
+		return fromProcess(uid, providerGroups, intention, checkPacketId(packetId), requestString);
 	}
 
 	private static String checkPacketId(String packetId) {
@@ -93,8 +93,8 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 		return packetId;
 	}
 	
-	private SeedResponse fromProcess(String uid, String intention, String packetId, String requestString) {
-		SeedResponse response = new SeedResponse(uid, intention, packetId);
+	private SeedResponse fromProcess(String uid, Set<String> providerGroups, String intention, String packetId, String requestString) {
+		SeedResponse response = new SeedResponse(uid, providerGroups, intention, packetId);
 		ModelContainer model = null;
 		try {
 			requestString = StringUtils.trimToNull(requestString);
@@ -106,8 +106,8 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 			}
 			uid = normalizeUserId(uid);
 			UndoMetadata token = new UndoMetadata(uid);
-			model = createModel(uid, token, VariableResolver.EMPTY, null);
-			return seedFromProcess(uid, request[0].arguments, model, response, token);
+			model = createModel(uid, providerGroups, token, VariableResolver.EMPTY, null);
+			return seedFromProcess(uid, providerGroups, request[0].arguments, model, response, token);
 		} catch (Exception e) {
 			deleteModel(model);
 			return error(response, "Could not successfully handle batch request.", e);
@@ -118,7 +118,7 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 		}
 	}
 	
-	private SeedResponse seedFromProcess(String uid, SeedRequestArgument request, ModelContainer model, SeedResponse response, UndoMetadata token) throws Exception {
+	private SeedResponse seedFromProcess(String uid, Set<String> providerGroups, SeedRequestArgument request, ModelContainer model, SeedResponse response, UndoMetadata token) throws Exception {
 		// check required fields
 		requireNotNull(request.process, "A process id is required for seeding");
 		requireNotNull(request.taxon, "A taxon id is required for seeding");
@@ -151,7 +151,7 @@ public class JsonOrJsonpSeedHandler extends ModelCreator implements M3SeedHandle
 					
 					};
 			Set<OWLAnnotation> defaultAnnotations = new HashSet<OWLAnnotation>();
-			addGeneratedAnnotations(uid, defaultAnnotations, model.getOWLDataFactory());
+			addGeneratedAnnotations(uid, providerGroups, defaultAnnotations, model.getOWLDataFactory());
 			addDateAnnotation(defaultAnnotations, model.getOWLDataFactory());
 			ModelSeeding<UndoMetadata> seeder = new ModelSeeding<UndoMetadata>(reasoner, provider, defaultAnnotations, curieHandler, ecoMapper);
 

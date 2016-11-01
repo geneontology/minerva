@@ -1,5 +1,8 @@
 package org.geneontology.minerva.server.handler;
 
+import java.util.Collections;
+import java.util.Set;
+
 import com.google.gson.annotations.SerializedName;
 
 public abstract class MinervaResponse<DATA> {
@@ -7,6 +10,8 @@ public abstract class MinervaResponse<DATA> {
 	@SerializedName("packet-id")
 	final String packetId; // generated or pass-through
 	final String uid; // pass-through
+	@SerializedName("provided-by")
+	final Set<String> providerGroups; // pass-through
 	
 	@SerializedName("is-reasoned")
 	boolean isReasoned = false;
@@ -49,8 +54,13 @@ public abstract class MinervaResponse<DATA> {
 	 * @param intention
 	 * @param packetId
 	 */
-	public MinervaResponse(String uid, String intention, String packetId) {
+	public MinervaResponse(String uid, Set<String> providerGroups, String intention, String packetId) {
 		this.uid = uid;
+		if (providerGroups != null) {
+			this.providerGroups = providerGroups;	
+		} else {
+			this.providerGroups =  Collections.emptySet();
+		}
 		this.intention = intention;
 		this.packetId = packetId;
 	}

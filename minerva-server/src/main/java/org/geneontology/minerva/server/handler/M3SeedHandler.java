@@ -1,5 +1,7 @@
 package org.geneontology.minerva.server.handler;
 
+import java.util.Set;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -53,8 +55,8 @@ public interface M3SeedHandler {
 		 * @param intention
 		 * @param packetId
 		 */
-		public SeedResponse(String uid, String intention, String packetId) {
-			super(uid, intention, packetId);
+		public SeedResponse(String uid, Set<String> providerGroups, String intention, String packetId) {
+			super(uid, providerGroups, intention, packetId);
 		}
 	}
 	
@@ -78,6 +80,7 @@ public interface M3SeedHandler {
 	 * Jersey REST method for POST with three form parameters with privileged rights.
 	 * 
 	 * @param uid user id, JSONP relevant
+	 * @param providerGroups user groups, JSONP relevant
 	 * @param intention JSONP relevant
 	 * @param packetId
 	 * @param requestString seed request
@@ -88,6 +91,7 @@ public interface M3SeedHandler {
 	@Consumes("application/x-www-form-urlencoded")
 	public SeedResponse fromProcessPostPrivileged(
 			@FormParam("uid") String uid,
+			@FormParam("provided-by") Set<String> providerGroups,
 			@FormParam("intention") String intention,
 			@FormParam("packet-id") String packetId,
 			@FormParam("requests") String requestString);
@@ -112,6 +116,7 @@ public interface M3SeedHandler {
 	 * Jersey REST method for GET with three query parameters with privileged rights.
 	 * 
 	 * @param uid user id, JSONP relevant
+	 * @param providerGroups user groups, JSONP relevant
 	 * @param intention JSONP relevant
 	 * @param packetId 
 	 * @param requestString seed request
@@ -121,6 +126,7 @@ public interface M3SeedHandler {
 	@GET
 	public SeedResponse fromProcessGetPrivileged(
 			@QueryParam("uid") String uid,
+			@QueryParam("provided-by") Set<String> providerGroups,
 			@QueryParam("intention") String intention,
 			@QueryParam("packet-id") String packetId,
 			@QueryParam("requests") String requestString);
