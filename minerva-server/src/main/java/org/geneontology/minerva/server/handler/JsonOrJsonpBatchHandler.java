@@ -183,6 +183,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 				} else if (Operation.exportAll == operation) {
 					exportAllModels();
 					response.messageType = "success";
+					response.signal = "meta";
 					response.message = "Dumped all models to folder";
 					return response;
 				} else {
