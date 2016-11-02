@@ -15,7 +15,9 @@ import org.geneontology.minerva.json.JsonOwlIndividual;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 
 import owltools.OWLToolsTestBasics;
@@ -28,22 +30,15 @@ public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
 	static CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	static UndoAwareMolecularModelManager m3 = null;
 	
-	@BeforeClass
-	public static void beforeClass() throws Exception {
-		ParserWrapper pw = new ParserWrapper();
-		g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
-		m3 = new UndoAwareMolecularModelManager(g, curieHandler, "http://testmodel.geneontology.org/");
-	}
-	
-	@AfterClass
-	public static void afterClass() throws Exception {
-		if (m3 != null) {
-			m3.dispose();
-		}
-	}
+	@Rule
+    public TemporaryFolder folder = new TemporaryFolder();
 	
 	@Test
 	public void testUndoRedo() throws Exception {
+		ParserWrapper pw = new ParserWrapper();
+		g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
+		m3 = new UndoAwareMolecularModelManager(g, curieHandler, "http://testmodel.geneontology.org/", folder.newFile().getAbsolutePath(), null);
+		
 		String userId = "test-user-id";
 		ModelContainer model = m3.generateBlankModel(null);
 		// GO:0001158 ! enhancer sequence-specific DNA binding
@@ -85,6 +80,10 @@ public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
 		
 		// redo again, should fail
 		assertFalse(m3.redo(model, userId));
+		
+		if (m3 != null) {
+			m3.dispose();
+		}
 	}
 
 	static void printToJson(Object obj) {

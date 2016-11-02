@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.geneontology.minerva.FileBasedMolecularModelManager.PreFileSaveHandler;
+import org.geneontology.minerva.BlazegraphMolecularModelManager.PreFileSaveHandler;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.json.JsonModel;

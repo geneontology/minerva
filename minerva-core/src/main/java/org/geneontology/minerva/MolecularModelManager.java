@@ -37,7 +37,7 @@ import owltools.vocab.OBOUpperVocabulary;
  * @see CoreMolecularModelManager
  * @see FileBasedMolecularModelManager
  */
-public class MolecularModelManager<METADATA> extends FileBasedMolecularModelManager<METADATA> {
+public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelManager<METADATA> {
 	
 	private final CurieHandler curieHandler;
 
@@ -69,8 +69,8 @@ public class MolecularModelManager<METADATA> extends FileBasedMolecularModelMana
 	 * @param modelIdPrefix 
 	 * @throws OWLOntologyCreationException
 	 */
-	public MolecularModelManager(OWLGraphWrapper graph, CurieHandler curieHandler, String modelIdPrefix) throws OWLOntologyCreationException {
-		super(graph, modelIdPrefix);
+	public MolecularModelManager(OWLGraphWrapper graph, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder) throws OWLOntologyCreationException {
+		super(graph, modelIdPrefix, pathToJournal, pathToExportFolder);
 		this.curieHandler = curieHandler;
 	}
 

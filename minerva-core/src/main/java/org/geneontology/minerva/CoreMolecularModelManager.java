@@ -1,6 +1,7 @@
 package org.geneontology.minerva;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -15,7 +16,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.io.IRIDocumentSource;
+import org.semanticweb.owlapi.formats.RioRDFXMLDocumentFormatFactory;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentSource;
 import org.semanticweb.owlapi.io.OWLParserFactory;
 import org.semanticweb.owlapi.io.StringDocumentSource;
@@ -51,8 +52,10 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyAlreadyExistsException;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.OWLOntologyFactory;
 import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
+import org.semanticweb.owlapi.model.OWLOntologyLoaderConfiguration;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.model.RemoveAxiom;
@@ -60,12 +63,14 @@ import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
 import org.semanticweb.owlapi.model.SetOntologyID;
 import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.oboformat.OBOFormatOWLAPIParserFactory;
+import org.semanticweb.owlapi.rio.RioMemoryTripleSource;
+import org.semanticweb.owlapi.rio.RioParserImpl;
 import org.semanticweb.owlapi.util.PriorityCollection;
-
-import com.google.common.base.Optional;
 
 import owltools.graph.OWLGraphWrapper;
 import owltools.vocab.OBOUpperVocabulary;
+
+import com.google.common.base.Optional;
 
 /**
  * Manager and core operations for in memory MolecularModels (aka lego diagrams).
@@ -1117,20 +1122,19 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		// do nothing, for now
 	}
 
-	protected OWLOntology loadOntologyIRI(final IRI sourceIRI, boolean minimal) throws OWLOntologyCreationException {
-		return loadOntologyIRI(sourceIRI, minimal, graph.getManager());
+	protected OWLOntology loadOntologyDocumentSource(final OWLOntologyDocumentSource source, boolean minimal) throws OWLOntologyCreationException {
+		return loadOntologyDocumentSource(source, minimal, graph.getManager());
 	}
 
-	static OWLOntology loadOntologyIRI(final IRI sourceIRI, boolean minimal, OWLOntologyManager manager) throws OWLOntologyCreationException {
+	static OWLOntology loadOntologyDocumentSource(final OWLOntologyDocumentSource source, boolean minimal, OWLOntologyManager manager) throws OWLOntologyCreationException {
 		// silence the OBO parser in the OWL-API
 		java.util.logging.Logger.getLogger("org.obolibrary").setLevel(java.util.logging.Level.SEVERE);
 		final Set<OWLParserFactory> originalFactories = removeOBOParserFactories(manager);
 		try {
 			// load model from source
-			OWLOntologyDocumentSource source = new IRIDocumentSource(sourceIRI);
 			if (minimal == false) {
 				// add the obsolete imports to the ignored imports
-				OWLOntology abox = manager.loadOntologyFromOntologyDocument(source);
+				OWLOntology abox = loadOWLOntologyDocumentSource(source, manager);
 				return abox;
 			}
 			else {
@@ -1148,7 +1152,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 
 						// quick check:
 						// do nothing for the original IRI and known empty ontologies
-						if (sourceIRI.equals(ontologyIRI) || emptyOntologies.contains(ontologyIRI)) {
+						if (source.getDocumentIRI().equals(ontologyIRI) || emptyOntologies.contains(ontologyIRI)) {
 							return null;
 						}
 						emptyOntologies.add(ontologyIRI);
@@ -1160,12 +1164,28 @@ public abstract class CoreMolecularModelManager<METADATA> {
 						}
 					}
 				});
-				OWLOntology minimalAbox = m.loadOntologyFromOntologyDocument(source);
+				OWLOntology minimalAbox = loadOWLOntologyDocumentSource(source, m);
 				return minimalAbox;
 			}
 		} finally {
 			resetOBOParserFactories(manager, originalFactories);
 		}
+	}
+	
+	private static OWLOntology loadOWLOntologyDocumentSource(final OWLOntologyDocumentSource source, final OWLOntologyManager manager) throws OWLOntologyCreationException {
+		final OWLOntology ontology;
+		if (source instanceof RioMemoryTripleSource) {
+			RioParserImpl parser = new RioParserImpl(new RioRDFXMLDocumentFormatFactory());
+			ontology = manager.createOntology();
+			try {
+				parser.parse(source, ontology, new OWLOntologyLoaderConfiguration());
+			} catch (IOException e) {
+				throw new OWLOntologyCreationException(e);
+			}
+		} else {
+			ontology = manager.loadOntologyFromOntologyDocument(source);
+		}
+		return ontology;
 	}
 	
 	/**
