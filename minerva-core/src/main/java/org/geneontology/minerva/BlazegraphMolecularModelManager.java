@@ -310,10 +310,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		return allChanges;
 	}
 	
-	public void exportAllModels() {
-		
-	}
-	
 	public static interface PreFileSaveHandler {
 
 		public List<OWLOntologyChange> handle(OWLOntology model) throws UnknownIdentifierException;
