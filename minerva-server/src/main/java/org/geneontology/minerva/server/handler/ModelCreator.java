@@ -69,14 +69,14 @@ abstract class ModelCreator {
 		this.dataPropertyIRIs = Collections.unmodifiableSet(dataPropertyIRIs);
 	}
 
-	ModelContainer createModel(String userId, UndoMetadata token, VariableResolver resolver, JsonAnnotation[] annotationValues) throws UnknownIdentifierException, OWLOntologyCreationException {
+	ModelContainer createModel(String userId, Set<String> providerGroups, UndoMetadata token, VariableResolver resolver, JsonAnnotation[] annotationValues) throws UnknownIdentifierException, OWLOntologyCreationException {
 		ModelContainer model = m3.generateBlankModel(token);
-		Set<OWLAnnotation> annotations = extract(annotationValues, userId, resolver, model);
+		Set<OWLAnnotation> annotations = extract(annotationValues, userId, providerGroups, resolver, model);
 		annotations = addDefaultModelState(annotations, model.getOWLDataFactory());
 		if (annotations != null) {
 			m3.addModelAnnotations(model, annotations, token);
 		}
-		updateModelAnnotations(model, userId, token, m3);
+		updateModelAnnotations(model, userId, providerGroups, token, m3);
 		return model;
 	}
 	
@@ -98,7 +98,7 @@ abstract class ModelCreator {
 		return existing;
 	}
 	
-	Set<OWLAnnotation> extract(JsonAnnotation[] values, String userId, VariableResolver batchValues, ModelContainer model) throws UnknownIdentifierException {
+	Set<OWLAnnotation> extract(JsonAnnotation[] values, String userId, Set<String> providerGroups, VariableResolver batchValues, ModelContainer model) throws UnknownIdentifierException {
 		Set<OWLAnnotation> result = new HashSet<OWLAnnotation>();
 		OWLDataFactory f = model.getOWLDataFactory();
 		if (values != null) {
@@ -130,7 +130,7 @@ abstract class ModelCreator {
 				}
 			}
 		}
-		addGeneratedAnnotations(userId, result, f);
+		addGeneratedAnnotations(userId, providerGroups, result, f);
 		return result;
 	}
 	
@@ -169,19 +169,27 @@ abstract class ModelCreator {
 		m3.updateAnnotation(model, individual, createDateAnnotation(f), token);
 	}
 	
-	void updateModelAnnotations(ModelContainer model, String userId, UndoMetadata token, MolecularModelManager<UndoMetadata> m3) throws UnknownIdentifierException {
+	void updateModelAnnotations(ModelContainer model, String userId, Set<String> providerGroups, UndoMetadata token, MolecularModelManager<UndoMetadata> m3) throws UnknownIdentifierException {
 		final OWLDataFactory f = model.getOWLDataFactory();
 		if (userId != null) {
 			Set<OWLAnnotation> annotations = new HashSet<OWLAnnotation>();
 			annotations.add(create(f, AnnotationShorthand.contributor, userId));
 			m3.addModelAnnotations(model, annotations, token);
 		}
+		for (String provider : providerGroups) {
+			Set<OWLAnnotation> annotations = new HashSet<OWLAnnotation>();
+			annotations.add(create(f, AnnotationShorthand.providedBy, provider));
+			m3.addModelAnnotations(model, annotations, token);
+		}
 		m3.updateAnnotation(model, createDateAnnotation(f), token);
 	}
 	
-	void addGeneratedAnnotations(String userId, Set<OWLAnnotation> annotations, OWLDataFactory f) {
+	void addGeneratedAnnotations(String userId, Set<String> providerGroups, Set<OWLAnnotation> annotations, OWLDataFactory f) {
 		if (userId != null) {
 			annotations.add(create(f, AnnotationShorthand.contributor, userId));
+		}
+		for (String provider : providerGroups) {
+			annotations.add(create(f, AnnotationShorthand.providedBy, provider));
 		}
 	}
 	
@@ -203,10 +211,10 @@ abstract class ModelCreator {
 		return dateString;
 	}
 	
-	Set<OWLAnnotation> createGeneratedAnnotations(ModelContainer model, String userId) {
+	Set<OWLAnnotation> createGeneratedAnnotations(ModelContainer model, String userId, Set<String> providerGroups) {
 		Set<OWLAnnotation> annotations = new HashSet<OWLAnnotation>();
 		OWLDataFactory f = model.getOWLDataFactory();
-		addGeneratedAnnotations(userId, annotations, f);
+		addGeneratedAnnotations(userId, providerGroups, annotations, f);
 		return annotations;
 	}
 	

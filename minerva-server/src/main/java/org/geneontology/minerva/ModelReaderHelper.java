@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.geneontology.minerva.FileBasedMolecularModelManager.PostLoadOntologyFilter;
+import org.geneontology.minerva.BlazegraphMolecularModelManager.PostLoadOntologyFilter;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;

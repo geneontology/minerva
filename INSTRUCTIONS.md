@@ -13,6 +13,11 @@
 		- [Quick Test via `curl`](#quick-test-via-curl)
 	- [Obtaining `owl-models` and `go-lego.owl`](#obtaining-owl-models-and-go-legoowl)
 		- [Useful source files for learning](#useful-source-files-for-learning)
+	- [Using the Blazegraph model store](#using-the-blazegraph-model-store)
+		- [Create a new Blazegraph journal from a directory of existing model files](#create-a-new-blazegraph-journal-from-a-directory-of-existing-model-files)
+		- [Dump model files from a Blazegraph journal that is not in use](#dump-model-files-from-a-blazegraph-journal-that-is-not-in-use)
+		- [Start the Minerva Server with configuration for Blazegraph journal and model dump folder](#start-the-minerva-server-with-configuration-for-blazegraph-journal-and-model-dump-folder)
+		- [Request an OWL dump of all models from a running Minerva Server](#request-an-owl-dump-of-all-models-from-a-running-minerva-server)
 
 <!-- /MarkdownTOC -->
 
@@ -107,4 +112,24 @@ See [Monarch Ontology](https://github.com/monarch-initiative/monarch-ontology) a
 - `/minerva-server/src/main/java/org/geneontology/minerva/server/handler/M3BatchHandler.java`
 
 
+## Using the Blazegraph model store
 
+### Create a new Blazegraph journal from a directory of existing model files
+
+`minerva-cli.sh --import-owl-models -j blazegraph.jnl -f models`
+
+### Dump model files from a Blazegraph journal that is not in use
+
+`minerva-cli.sh --dump-owl-models -j blazegraph.jnl -f models`
+
+### Start the Minerva Server with configuration for Blazegraph journal and model dump folder
+
+`java "-Xmx$MINERVA_MEMORY" -jar minerva-server.jar -c catalog-v001.xml -g http://purl.obolibrary.org/obo/go/extensions/go-lego.owl -f blazegraph.jnl --export-folder exported-models --port 9999 --use-request-logging --slme-elk --skip-class-id-validation --set-important-relation-parent http://purl.obolibrary.org/obo/LEGOREL_0000000`
+
+Note the options `-f blazegraph.jnl` for specifying the journal file and `--export-folder exported-models` for specifying where to write OWL models in response to a `export-all` operation request.
+
+### Request an OWL dump of all models from a running Minerva Server
+
+`curl 'http://localhost:3400/api/minerva_local/m3Batch?token=&intention=query&requests=%5B%7B%22entity%22%3A%22meta%22%2C%22operation%22%3A%22export-all%22%2C%22arguments%22%3A%7B%7D%7D%5D'`
+
+This will output to the folder configured in the startup arguments.

@@ -25,7 +25,7 @@ public class FindTaxonToolTest {
 		curieHandler  = DefaultCurieHandler.getDefaultHandler();
 	}
 
-	@Test
+	//FIXME @Test //loads all of neo... make reduced copy
 	public void test1() throws Exception {
 		OWLDataFactory df = NEO.getOWLOntologyManager().getOWLDataFactory();
 		FindTaxonTool tool = new FindTaxonTool(curieHandler , df);
@@ -34,7 +34,7 @@ public class FindTaxonToolTest {
 		assertNotNull(taxon1);
 	}
 	
-	@Test
+	//FIXME @Test //loads all of neo... make reduced copy
 	public void test2() throws Exception {
 		OWLDataFactory df = NEO.getOWLOntologyManager().getOWLDataFactory();
 		FindTaxonTool tool = new FindTaxonTool(curieHandler, df);

@@ -192,7 +192,7 @@ public class BatchTestTools {
 		batch[0] = new M3Request();
 		batch[0].entity = Entity.model;
 		batch[0].operation = Operation.add;
-		M3BatchResponse resp = handler.m3Batch(BatchModelHandlerTest.uid, BatchModelHandlerTest.intention, null, batch, false, true);
+		M3BatchResponse resp = handler.m3Batch(BatchModelHandlerTest.uid, BatchModelHandlerTest.providedBy, BatchModelHandlerTest.intention, null, batch, false, true);
 		assertEquals(resp.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, resp.messageType);
 		assertNotNull(resp.packetId);
 		String modelId = responseId(resp);
@@ -205,7 +205,7 @@ public class BatchTestTools {
 		batch[0] = new M3Request();
 		batch[0].entity = Entity.meta;
 		batch[0].operation = Operation.get;
-		M3BatchResponse resp = handler.m3Batch(BatchModelHandlerTest.uid, BatchModelHandlerTest.intention, null, batch, false, true);
+		M3BatchResponse resp = handler.m3Batch(BatchModelHandlerTest.uid, BatchModelHandlerTest.providedBy, BatchModelHandlerTest.intention, null, batch, false, true);
 		assertEquals(resp.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, resp.messageType);
 		assertNotNull(resp.packetId);
 		assertNotNull(resp.data);
@@ -220,7 +220,7 @@ public class BatchTestTools {
 		batch[0].operation = Operation.get;
 		batch[0].arguments = new M3Argument();
 		batch[0].arguments.modelId = modelId;
-		M3BatchResponse resp = handler.m3Batch(BatchModelHandlerTest.uid, BatchModelHandlerTest.intention, null, batch, useReasoner, true);
+		M3BatchResponse resp = handler.m3Batch(BatchModelHandlerTest.uid, BatchModelHandlerTest.providedBy, BatchModelHandlerTest.intention, null, batch, useReasoner, true);
 		assertEquals(resp.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, resp.messageType);
 		assertNotNull(resp.packetId);
 		return resp;
