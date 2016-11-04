@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.log4j.Logger;
 import org.geneontology.minerva.CoreMolecularModelManager.DeleteInformation;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
@@ -61,6 +62,8 @@ abstract class OperationsImpl extends ModelCreator {
 	final Set<OWLObjectProperty> importantRelations;
 	final BeforeSaveModelValidator beforeSaveValidator;
 	final ExternalLookupService externalLookupService;
+	
+	private static final Logger LOG = Logger.getLogger(OperationsImpl.class);
 	
 	OperationsImpl(UndoAwareMolecularModelManager models, 
 			Set<OWLObjectProperty> importantRelations,
@@ -608,13 +611,16 @@ abstract class OperationsImpl extends ModelCreator {
 			allModelAnnotations.put(curie, modelAnnotations);
 			// Iterate through the model's a.
 			Set<OWLAnnotation> annotations = annotationsForAllModels.get(modelId);
-			for( OWLAnnotation an : annotations ){
-				JsonAnnotation json = JsonTools.create(an.getProperty(), an.getValue(), curieHandler);
-				if (json != null) {
-					modelAnnotations.add(json);
+			if (annotations != null) {
+				for( OWLAnnotation an : annotations ){
+					JsonAnnotation json = JsonTools.create(an.getProperty(), an.getValue(), curieHandler);
+					if (json != null) {
+						modelAnnotations.add(json);
+					}
 				}
+			} else {
+				LOG.error("No annotations found for model: " + modelId);
 			}
-			
 			// handle read-only information, currently only the modification flag
 			// check modification status
 			boolean modified = m3.isModelModified(modelId);
