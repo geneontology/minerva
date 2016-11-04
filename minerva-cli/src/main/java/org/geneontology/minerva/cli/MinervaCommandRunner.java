@@ -344,6 +344,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		Map<String, String> taxonGroups = null;
 		String defaultTaxonGroup = "other";
 		boolean addLegoModelId = true;
+		String fileSuffix = "ttl";
 		while (opts.hasOpts()) {
 			if (opts.nextEq("-i|--input")) {
 				inputFolder = opts.nextOpt();
@@ -363,6 +364,10 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			else if (opts.nextEq("--model-id-prefix")) {
 				modelIdPrefix = opts.nextOpt();
 			}
+            else if (opts.nextEq("-s|--input-file-suffix")) {
+                opts.info("SUFFIX", "if a directory is specified, use only files with this suffix. Default is 'ttl'");
+                fileSuffix = opts.nextOpt();
+            }
 			else if (opts.nextEq("--model-id-curie")) {
 				modelIdcurie = opts.nextOpt();
 			}
@@ -422,13 +427,17 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			groupingTranslator.translate(model);
 		}
 		else if (inputFolder != null) {
-			File inputFile = new File(inputFolder).getCanonicalFile();
+		    final String fileSuffixFinal = fileSuffix;
+		    File inputFile = new File(inputFolder).getCanonicalFile();
 			if (inputFile.isDirectory()) {
 				File[] files = inputFile.listFiles(new FilenameFilter() {
 
 					@Override
 					public boolean accept(File dir, String name) {
-						return StringUtils.isAlphanumeric(name);
+					    if (fileSuffixFinal != null && fileSuffixFinal.length() > 0)
+					        return name.endsWith("."+fileSuffixFinal);
+					    else
+					        return StringUtils.isAlphanumeric(name);
 					}
 				});
 				for (File file : files) {
