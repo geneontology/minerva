@@ -78,7 +78,7 @@ abstract class ModelCreator {
 		}
 		updateModelAnnotations(model, userId, providerGroups, token, m3);
 		// Disallow undo of initial annotations
-		//m3.clearUndoHistory(model.getModelId());
+		m3.clearUndoHistory(model.getModelId());
 		return model;
 	}
 	
