@@ -299,6 +299,18 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 		}
 	}
 	
+	public void clearUndoHistory(IRI modelId) {
+		UndoRedo undoRedo = null;
+		synchronized (allChanges) {
+			undoRedo = allChanges.get(modelId);
+		}
+		if (undoRedo != null) {
+			synchronized (undoRedo) {
+				undoRedo.undoBuffer.clear();
+			}
+		}
+	}
+	
 	protected void applyChanges(List<OWLOntologyChange> changes, OWLOntologyManager manager) {
 		manager.applyChanges(changes);
 	}
