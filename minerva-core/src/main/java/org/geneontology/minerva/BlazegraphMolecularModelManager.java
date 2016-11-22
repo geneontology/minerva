@@ -23,7 +23,10 @@ import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
+import org.openrdf.model.ValueFactory;
 import org.openrdf.model.impl.URIImpl;
+import org.openrdf.model.vocabulary.OWL;
+import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
@@ -629,6 +632,13 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
 				try {
 					OutputStream out = new FileOutputStream(tempFile);
+					// Workaround for order dependence of RDF reading by OWL API
+					// Need to output ontology triple first until this bug is fixed:
+					// https://github.com/owlcs/owlapi/issues/574
+					ValueFactory factory = connection.getValueFactory();
+					Statement ontologyDeclaration = factory.createStatement(factory.createURI(modelId.toString()), RDF.TYPE, OWL.ONTOLOGY);
+					Rio.write(Collections.singleton(ontologyDeclaration), out, RDFFormat.TURTLE);
+					// end workaround
 					RDFWriter writer = Rio.createWriter(RDFFormat.TURTLE, out);
 					connection.export(writer, new URIImpl(modelId.toString()));
 					// copy temp file to the finalFile
