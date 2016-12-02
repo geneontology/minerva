@@ -1,5 +1,7 @@
 package org.geneontology.minerva;
 
+import info.aduna.iteration.Iterations;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -76,6 +78,7 @@ import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 import com.google.common.base.Optional;
+import com.sun.mail.mbox.NewlineOutputStream;
 
 public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularModelManager<METADATA> {
 
@@ -476,8 +479,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	}
 
 	@Override
-	protected void loadModel(IRI modelId, boolean isOverride)
-			throws OWLOntologyCreationException {
+	protected void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException {
 		LOG.info("Load model: " + modelId + " from database");
 		if (modelMap.containsKey(modelId)) {
 			if (!isOverride) {
@@ -488,6 +490,11 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		try {
 			BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
 			try {
+				RepositoryResult<Resource> graphs = connection.getContextIDs();
+				if (!Iterations.asSet(graphs).contains(new URIImpl(modelId.toString()))) {
+					throw new OWLOntologyCreationException("No such model in datastore: " + modelId);
+				}
+				graphs.close();
 				RepositoryResult<Statement> statements = 
 						connection.getStatements(null, null, null, false, new URIImpl(modelId.toString()));
 				OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), false);
@@ -504,12 +511,17 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	}
 
 	@Override
-	protected OWLOntology loadModelABox(IRI modelId)
-			throws OWLOntologyCreationException {
+	protected OWLOntology loadModelABox(IRI modelId) throws OWLOntologyCreationException {
 		LOG.info("Load model abox: " + modelId + " from database");
 		try {
 			BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
 			try {
+				//TODO repeated code with loadModel
+				RepositoryResult<Resource> graphs = connection.getContextIDs();
+				if (!Iterations.asSet(graphs).contains(new URIImpl(modelId.toString()))) {
+					throw new OWLOntologyCreationException("No such model in datastore: " + modelId);
+				}
+				graphs.close();
 				RepositoryResult<Statement> statements = 
 						connection.getStatements(null, null, null, false, new URIImpl(modelId.toString()));
 				OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), true);
