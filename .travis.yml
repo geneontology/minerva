@@ -8,7 +8,8 @@ before_install:
  # Use OWL API with triple-reading fix
  - git clone https://github.com/balhoff/owlapi.git
  - cd owlapi
- - git checkout -b v4.2.8-triplefix
+ - git fetch origin
+ - git checkout v4.2.8-triplefix
  - mvn install
  # always have the latest owltools build
  - git clone https://github.com/owlcollab/owltools.git
