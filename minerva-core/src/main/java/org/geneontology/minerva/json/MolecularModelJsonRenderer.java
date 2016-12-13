@@ -18,10 +18,12 @@ import org.apache.log4j.Logger;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationAssertionAxiom;
+import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataProperty;
@@ -44,14 +46,14 @@ import org.semanticweb.owlapi.model.OWLOntologyDocumentAlreadyExistsException;
 import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import owltools.gaf.eco.EcoMapper;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.EcoMapperFactory.OntologyMapperPair;
 import owltools.graph.OWLGraphWrapper;
 import owltools.util.OwlHelper;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 /**
  * A Renderer that takes a MolecularModel (an OWL ABox) and generates Map objects
@@ -68,6 +70,7 @@ public class MolecularModelJsonRenderer {
 	private final OWLGraphWrapper graph;
 	private final CurieHandler curieHandler;
 	private final InferenceProvider inferenceProvider;
+	private static final IRI JSON_MODEL_IRI = IRI.create("http://geneontology.org/lego/json-model");
 	
 	public static final ThreadLocal<DateFormat> AnnotationTypeDateFormat = new ThreadLocal<DateFormat>(){
 
@@ -145,10 +148,13 @@ public class MolecularModelJsonRenderer {
 	
 	private static JsonAnnotation[] renderAnnotations(Set<OWLAnnotation> annotations, CurieHandler curieHandler) {
 		List<JsonAnnotation> anObjs = new ArrayList<JsonAnnotation>();
+		OWLAnnotationProperty jsonModel = OWLManager.getOWLDataFactory().getOWLAnnotationProperty(JSON_MODEL_IRI);
 		for (OWLAnnotation annotation : annotations) {
-			JsonAnnotation json = JsonTools.create(annotation.getProperty(), annotation.getValue(), curieHandler);
-			if (json != null) {
-				anObjs.add(json);
+			if (!annotation.getProperty().equals(jsonModel)) {
+				JsonAnnotation json = JsonTools.create(annotation.getProperty(), annotation.getValue(), curieHandler);
+				if (json != null) {
+					anObjs.add(json);
+				}
 			}
 		}
 		return anObjs.toArray(new JsonAnnotation[anObjs.size()]);
