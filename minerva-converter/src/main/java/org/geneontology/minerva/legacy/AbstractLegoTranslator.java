@@ -285,7 +285,7 @@ abstract class AbstractLegoTranslator extends LegoModelWalker<AbstractLegoTransl
     protected String getEntityType(OWLClass entity, OWLNamedIndividual individual, OWLGraphWrapper modelGraph, ExternalLookupService lookup) {
         if (lookup != null) {
             List<LookupEntry> result = lookup.lookup(entity.getIRI());
-            if (result.isEmpty() == false) {
+            if ((result != null) && (result.isEmpty() == false)) {
                 LookupEntry entry = result.get(0);
                 if ("protein".equalsIgnoreCase(entry.type)) {
                     return "protein";
