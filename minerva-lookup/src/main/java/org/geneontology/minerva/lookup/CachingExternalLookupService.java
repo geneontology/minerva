@@ -27,11 +27,7 @@ public class CachingExternalLookupService implements ExternalLookupService {
 
 					@Override
 					public List<LookupEntry> load(IRI key) throws Exception {
-						List<LookupEntry> lookup = CachingExternalLookupService.this.service.lookup(key);
-						if (lookup == null || lookup.isEmpty()) {
-							throw new Exception("No legal value for key.");
-						}
-						return lookup;
+						return CachingExternalLookupService.this.service.lookup(key);
 					}
 				});
 	}
