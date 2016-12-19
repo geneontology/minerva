@@ -1,10 +1,12 @@
 package org.geneontology.minerva.lookup;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.Logger;
 import org.semanticweb.owlapi.model.IRI;
 
 import com.google.common.cache.CacheBuilder;
@@ -18,6 +20,8 @@ public class CachingExternalLookupService implements ExternalLookupService {
 	private final LoadingCache<IRI, List<LookupEntry>> cache;
 	private final ExternalLookupService service;
 	
+	private final static Logger LOG = Logger.getLogger(CachingExternalLookupService.class);
+	
 	public CachingExternalLookupService(ExternalLookupService service, int size, long duration, TimeUnit unit) {
 		this.service = service;
 		cache = CacheBuilder.newBuilder()
@@ -27,11 +31,7 @@ public class CachingExternalLookupService implements ExternalLookupService {
 
 					@Override
 					public List<LookupEntry> load(IRI key) throws Exception {
-						List<LookupEntry> lookup = CachingExternalLookupService.this.service.lookup(key);
-						if (lookup == null || lookup.isEmpty()) {
-							throw new Exception("No legal value for key.");
-						}
-						return lookup;
+						return CachingExternalLookupService.this.service.lookup(key);
 					}
 				});
 	}
@@ -49,11 +49,14 @@ public class CachingExternalLookupService implements ExternalLookupService {
 		try {
 			return cache.get(id);
 		} catch (ExecutionException e) {
-			return null;
+			LOG.error("Could not lookup IRI: " + id, e);
+			return Collections.emptyList();
 		} catch (UncheckedExecutionException e) {
-			return null;
+			LOG.error("Could not lookup IRI: " + id, e);
+			return Collections.emptyList();
 		} catch (ExecutionError e) {
-			return null;
+			LOG.error("Could not lookup IRI: " + id, e);
+			return Collections.emptyList();
 		}
 	}
 
