@@ -3,6 +3,7 @@ package org.geneontology.minerva.lookup;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -88,7 +89,7 @@ public class GolrExternalLookupService implements ExternalLookupService {
 			if (LOG.isDebugEnabled()) {
 				LOG.debug("Error during retrieval for id: "+id+" GOLR-URL: "+golrUrl, exception);
 			}
-			return null;
+			return Collections.emptyList();
 		}
 		catch (Throwable exception) {
 			LOG.warn("Unexpected problem during Golr lookup for id: "+id, exception);
