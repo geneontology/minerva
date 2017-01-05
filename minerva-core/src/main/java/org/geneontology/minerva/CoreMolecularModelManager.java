@@ -109,6 +109,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	Set<IRI> additionalImports;
 	
 	private final Reasoner jenaReasoner;
+	private final Map<IRI, String> legacyRelationIndex = new HashMap<IRI, String>();
 	
 	
 	/**
@@ -187,6 +188,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		this.graph = graph;
 		tboxIRI = getTboxIRI(graph);
 		this.jenaReasoner = initializeJenaReasoner();
+		initializeLegacyRelationIndex();
 		init();
 	}
 
@@ -256,6 +258,10 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return graph.getSourceOntology();
 	}
 	
+	public Map<IRI, String> getLegacyRelationShorthandIndex() {
+		return Collections.unmodifiableMap(this.legacyRelationIndex);
+	}
+	
 	public Reasoner getJenaReasoner() {
 		return jenaReasoner;
 	}
@@ -264,8 +270,8 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		Set<Rule> rules = JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(getOntology(), Imports.INCLUDED, false, true, false)).asJava();
 		Model schemaModel = ModelFactory.createDefaultModel();
 		try {
-			OWLOntology rboxOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED));
-			Iterator<Statement> statements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(rboxOntology)).asJava().iterator();
+			OWLOntology schemaOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED));
+			Iterator<Statement> statements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(schemaOntology)).asJava().iterator();
 			schemaModel.add(new StmtIteratorImpl(statements));
 		} catch (OWLOntologyCreationException e) {
 			LOG.error("Couldn't create ontology with rbox.", e);
@@ -284,6 +290,25 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		Iterator<Statement> statements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(getModelAbox(modelId))).asJava().iterator();
 		dataModel.add(new StmtIteratorImpl(statements));
 		return ModelFactory.createInfModel(getJenaReasoner(), dataModel);
+	}
+	
+	private void initializeLegacyRelationIndex() {
+		synchronized(legacyRelationIndex) {
+			OWLAnnotationProperty rdfsLabel = OWLManager.getOWLDataFactory().getRDFSLabel();
+			for (OWLOntology ont : this.getOntology().getImportsClosure()) {
+				for (OWLObjectProperty prop : ont.getObjectPropertiesInSignature()) {
+					for (OWLAnnotationAssertionAxiom axiom : ont.getAnnotationAssertionAxioms(prop.getIRI())) {
+						if (axiom.getProperty().equals(rdfsLabel)) {
+							Optional<OWLLiteral> literalOpt = axiom.getValue().asLiteral();
+							if (literalOpt.isPresent()) {
+								String label = literalOpt.get().getLiteral();
+								legacyRelationIndex.put(prop.getIRI(), label.replaceAll(" ", "_"));
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	/**
