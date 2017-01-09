@@ -1,2 +1,7 @@
 target/
 /.DS_Store
+.project
+.settings
+.classpath
+minerva-server/blazegraph.jnl
+/bin/
