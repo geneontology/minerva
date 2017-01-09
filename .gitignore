@@ -4,3 +4,4 @@ target/
 .settings
 .classpath
 minerva-server/blazegraph.jnl
+/bin/
