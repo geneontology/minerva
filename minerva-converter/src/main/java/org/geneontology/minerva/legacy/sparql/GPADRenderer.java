@@ -17,14 +17,14 @@ public class GPADRenderer {
 
 	private final CurieHandler curieHandler;
 	private final Map<IRI, String> relationShorthandIndex;
-	private final ExternalLookupService lookupService;
+	//private final ExternalLookupService lookupService;
 
 	public static final String HEADER = "!gpa-version: 1.2";
 
 	public GPADRenderer(CurieHandler handler, ExternalLookupService lookup, Map<IRI, String> shorthandIndex) {
 		this.curieHandler = handler;
 		this.relationShorthandIndex = shorthandIndex;
-		this.lookupService = lookup;
+		//this.lookupService = lookup;
 	}
 
 	public String renderAll(Collection<GPADData> data) {
