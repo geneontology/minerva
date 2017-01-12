@@ -29,6 +29,7 @@ import org.geneontology.minerva.json.JsonRelationInfo;
 import org.geneontology.minerva.json.JsonTools;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.legacy.GafExportTool;
+import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.MetaResponse;
@@ -642,17 +643,22 @@ abstract class OperationsImpl extends ModelCreator {
 	}
 	
 	private void exportLegacy(M3BatchResponse response, ModelContainer model, String format, String userId) throws IOException, OWLOntologyCreationException, UnknownIdentifierException {
-		final GafExportTool exportTool = GafExportTool.getInstance();
-		if (format == null) {
-			format = "gaf"; // set a default format, if necessary
+		if ("gpadx".equals(format)) {
+			initMetaResponse(response);
+			response.data.exportModel = new GPADSPARQLExport(curieHandler, externalLookupService, m3.getLegacyRelationShorthandIndex()).exportGPAD(m3.createInferenceModel(model.getModelId()));
+		} else {
+			final GafExportTool exportTool = GafExportTool.getInstance();
+			if (format == null) {
+				format = "gaf"; // set a default format, if necessary
+			}
+			Map<String, String> allExported = exportTool.exportModelLegacy(model, curieHandler, externalLookupService, Collections.singleton(format));
+			String exported = allExported.get(format);
+			if (exported == null) {
+				throw new IOException("Unknown export format: "+format);
+			}
+			initMetaResponse(response);
+			response.data.exportModel = exported;
 		}
-		Map<String, String> allExported = exportTool.exportModelLegacy(model, curieHandler, externalLookupService, Collections.singleton(format));
-		String exported = allExported.get(format);
-		if (exported == null) {
-			throw new IOException("Unknown export format: "+format);
-		}
-		initMetaResponse(response);
-		response.data.exportModel = exported;
 	}
 	
 

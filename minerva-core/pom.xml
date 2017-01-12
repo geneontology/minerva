@@ -47,5 +47,14 @@
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.geneontology</groupId>
+			<artifactId>owl-to-rules_2.11</artifactId>
+		</dependency>
+		<dependency> 
+			<groupId>org.apache.jena</groupId>
+			<artifactId>apache-jena-libs</artifactId>
+			<type>pom</type>
+		</dependency>
 	</dependencies>
 </project>

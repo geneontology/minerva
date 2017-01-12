@@ -7,13 +7,24 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.jena.rdf.model.InfModel;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.impl.StmtIteratorImpl;
+import org.apache.jena.reasoner.Reasoner;
+import org.apache.jena.reasoner.rulesys.GenericRuleReasoner;
+import org.apache.jena.reasoner.rulesys.Rule;
 import org.apache.log4j.Logger;
+import org.geneontology.jena.OWLtoRules;
+import org.geneontology.jena.SesameJena;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.RioRDFXMLDocumentFormatFactory;
@@ -52,7 +63,6 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyAlreadyExistsException;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.model.OWLOntologyFactory;
 import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
 import org.semanticweb.owlapi.model.OWLOntologyLoaderConfiguration;
@@ -67,10 +77,11 @@ import org.semanticweb.owlapi.rio.RioMemoryTripleSource;
 import org.semanticweb.owlapi.rio.RioParserImpl;
 import org.semanticweb.owlapi.util.PriorityCollection;
 
+import com.google.common.base.Optional;
+
 import owltools.graph.OWLGraphWrapper;
 import owltools.vocab.OBOUpperVocabulary;
-
-import com.google.common.base.Optional;
+import scala.collection.JavaConverters;
 
 /**
  * Manager and core operations for in memory MolecularModels (aka lego diagrams).
@@ -96,6 +107,9 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	private final IRI tboxIRI;
 	final Map<IRI, ModelContainer> modelMap = new HashMap<IRI, ModelContainer>();
 	Set<IRI> additionalImports;
+	
+	private final Reasoner jenaReasoner;
+	private final Map<IRI, String> legacyRelationIndex = new HashMap<IRI, String>();
 	
 	
 	/**
@@ -173,6 +187,8 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		super();
 		this.graph = graph;
 		tboxIRI = getTboxIRI(graph);
+		this.jenaReasoner = initializeJenaReasoner();
+		initializeLegacyRelationIndex();
 		init();
 	}
 
@@ -241,7 +257,59 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	public OWLOntology getOntology() {
 		return graph.getSourceOntology();
 	}
-
+	
+	public Map<IRI, String> getLegacyRelationShorthandIndex() {
+		return Collections.unmodifiableMap(this.legacyRelationIndex);
+	}
+	
+	public Reasoner getJenaReasoner() {
+		return jenaReasoner;
+	}
+	
+	private Reasoner initializeJenaReasoner() {
+		Set<Rule> rules = JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(getOntology(), Imports.INCLUDED, false, true, false)).asJava();
+		Model schemaModel = ModelFactory.createDefaultModel();
+		try {
+			OWLOntology schemaOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED));
+			Iterator<Statement> statements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(schemaOntology)).asJava().iterator();
+			schemaModel.add(new StmtIteratorImpl(statements));
+		} catch (OWLOntologyCreationException e) {
+			LOG.error("Couldn't create ontology with rbox.", e);
+		}
+		return new GenericRuleReasoner(new ArrayList<>(rules)).bindSchema(schemaModel);
+	}
+	
+	/**
+	 * Return Jena model representing LEGO model combined with inference rules.
+	 * This model will not remain synchronized with changes to data.
+	 * @param LEGO modelId
+	 * @return Jena model
+	 */
+	public InfModel createInferenceModel(IRI modelId) {
+		Model dataModel = ModelFactory.createDefaultModel();
+		Iterator<Statement> statements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(getModelAbox(modelId))).asJava().iterator();
+		dataModel.add(new StmtIteratorImpl(statements));
+		return ModelFactory.createInfModel(getJenaReasoner(), dataModel);
+	}
+	
+	private void initializeLegacyRelationIndex() {
+		synchronized(legacyRelationIndex) {
+			OWLAnnotationProperty rdfsLabel = OWLManager.getOWLDataFactory().getRDFSLabel();
+			for (OWLOntology ont : this.getOntology().getImportsClosure()) {
+				for (OWLObjectProperty prop : ont.getObjectPropertiesInSignature()) {
+					for (OWLAnnotationAssertionAxiom axiom : ont.getAnnotationAssertionAxioms(prop.getIRI())) {
+						if (axiom.getProperty().equals(rdfsLabel)) {
+							Optional<OWLLiteral> literalOpt = axiom.getValue().asLiteral();
+							if (literalOpt.isPresent()) {
+								String label = literalOpt.get().getLiteral();
+								legacyRelationIndex.put(prop.getIRI(), label.replaceAll(" ", "_"));
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 
 	/**
 	 * Add additional import declarations for any newly generated model.

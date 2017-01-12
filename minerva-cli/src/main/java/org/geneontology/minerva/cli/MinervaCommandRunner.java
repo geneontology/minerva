@@ -5,7 +5,11 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -29,6 +33,7 @@ import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.legacy.GroupingTranslator;
 import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
+import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
@@ -331,6 +336,52 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			exit(-1);
 			return;
 		}
+	}
+	
+	/**
+	 * Output GPAD files via inference+SPARQL, for testing only
+	 * @param opts
+	 * @throws Exception
+	 */
+	@CLIMethod("--lego-to-gpad-sparql")
+	public void legoToAnnotationsSPARQL(Opts opts) throws Exception {
+		String modelIdPrefix = "http://model.geneontology.org/";
+		String modelIdcurie = "gomodel";
+		String inputDB = "blazegraph.jnl";
+		String gpadOutputFolder = null;
+		String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
+		while (opts.hasOpts()) {
+			if (opts.nextEq("-i|--input")) {
+				inputDB = opts.nextOpt();
+			}
+			else if (opts.nextEq("--gpad-output")) {
+				gpadOutputFolder = opts.nextOpt();
+			}
+			else if (opts.nextEq("--model-id-prefix")) {
+				modelIdPrefix = opts.nextOpt();
+			}
+			else if (opts.nextEq("--model-id-curie")) {
+				modelIdcurie = opts.nextOpt();
+			}
+			else if (opts.nextEq("--ontology")) {
+				ontologyIRI = opts.nextOpt();
+			}
+			else {
+				break;
+			}
+		}
+		OWLOntology ontology = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(ontologyIRI));
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(new OWLGraphWrapper(ontology), modelIdPrefix, inputDB, null);
+		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
+		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
+		for (IRI modelIRI : m3.getAvailableModelIds()) {
+			String gpad = new GPADSPARQLExport(curieHandler, null, m3.getLegacyRelationShorthandIndex()).exportGPAD(m3.createInferenceModel(modelIRI));
+			String fileName = StringUtils.replaceOnce(modelIRI.toString(), modelIdPrefix, "") + ".gpad";
+			Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(gpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
+			writer.write(gpad);
+			writer.close();
+		}
+		m3.dispose();
 	}
 	
 	@CLIMethod("--lego-to-gpad")
