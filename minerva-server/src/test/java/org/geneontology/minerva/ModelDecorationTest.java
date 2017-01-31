@@ -65,19 +65,19 @@ public class ModelDecorationTest {
 		List<OWLOntologyChange> changes = w.handle(model);
 		
 		// model annotations
-		// id, label, and json-model for cls
-		assertEquals(8, changes.size()); // 4 + 4 declarations
+		// id, label for cls
+		assertEquals(6, changes.size()); // 3 + 3 declarations
 		
-		assertEquals(6+originalAxiomCount, model.getAxiomCount());
+		assertEquals(5+originalAxiomCount, model.getAxiomCount());
 		final Set<OWLAnnotation> modelAnnotationsAfter = model.getAnnotations();
-		assertEquals(2+originalAnnotationCount, modelAnnotationsAfter.size());
+		assertEquals(1+originalAnnotationCount, modelAnnotationsAfter.size());
 		
 		
 		//System.out.println(render(model));
 		
 		ModelReaderHelper.INSTANCE.filter(model);
 		
-		assertEquals(originalAxiomCount+4, model.getAxiomCount()); // declarations are fine
+		assertEquals(originalAxiomCount+3, model.getAxiomCount()); // declarations are fine
 		assertEquals(originalAnnotationCount, model.getAnnotations().size());
 		
 		//System.out.println(render(model));
