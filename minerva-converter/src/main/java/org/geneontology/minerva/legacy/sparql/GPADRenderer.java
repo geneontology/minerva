@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.geneontology.minerva.curie.CurieHandler;
-import org.geneontology.minerva.legacy.sparql.GPADData.ConjunctiveExpression;
+import org.geneontology.minerva.legacy.sparql.BasicGPADData.ConjunctiveExpression;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.semanticweb.owlapi.model.IRI;
 

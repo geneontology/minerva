@@ -1,0 +1,157 @@
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX enabled_by: <http://purl.obolibrary.org/obo/RO_0002333>
+PREFIX occurs_in: <http://purl.obolibrary.org/obo/BFO_0000066>
+PREFIX involved_in: <http://purl.obolibrary.org/obo/RO_0002331>
+PREFIX enables: <http://purl.obolibrary.org/obo/RO_0002327>
+PREFIX part_of: <http://purl.obolibrary.org/obo/BFO_0000050>
+PREFIX evidence: <http://geneontology.org/lego/evidence>
+PREFIX gomodel: <http://model.geneontology.org/>
+PREFIX acts_upstream_of: <http://purl.obolibrary.org/obo/RO_0002263>
+PREFIX acts_upstream_of_or_within: <http://purl.obolibrary.org/obo/RO_0002264>
+PREFIX involved_in_regulation_of: <http://purl.obolibrary.org/obo/RO_0002428>
+PREFIX involved_in_negative_regulation_of: <http://purl.obolibrary.org/obo/RO_0002430>
+PREFIX involved_in_positive_regulation_of: <http://purl.obolibrary.org/obo/RO_0002429>
+PREFIX involved_in_or_involved_in_regulation_of: <http://purl.obolibrary.org/obo/RO_0002431>
+PREFIX BFO: <http://purl.obolibrary.org/obo/BFO_>
+PREFIX CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
+PREFIX PR: <http://purl.obolibrary.org/obo/PR_>
+
+SELECT DISTINCT ?pr ?pr_type ?rel ?target ?target_type (GROUP_CONCAT(DISTINCT ?extension_str ; separator="|") AS ?extensions)
+WHERE {
+# Annotation relations between gene product and GO term instance (?target)
+VALUES ?rel { 
+    enables:
+    involved_in: 
+    part_of: 
+    acts_upstream_of: 
+    acts_upstream_of_or_within: 
+    involved_in_regulation_of: 
+    involved_in_negative_regulation_of: 
+    involved_in_positive_regulation_of: 
+    involved_in_or_involved_in_regulation_of: 
+}
+# The main annotation relation
+?pr ?rel ?target .
+# Exclude redundant links between gene product and target
+FILTER NOT EXISTS {
+    ?pr ?other_rel ?target .
+    ?other_rel rdfs:subPropertyOf ?rel .
+    FILTER(?other_rel != ?rel) 
+}
+# Only get asserted types for the annotation target (for now, until we can exclude redundant types with reasonable performance)
+?target rdf:type ?target_type .
+FILTER(isIRI(?target_type))
+FILTER(?target_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040))
+# Only get asserted types for the gene product (these will be e.g. gene IDs)
+?pr rdf:type ?pr_type . 
+FILTER(isIRI(?pr_type))
+FILTER(?pr_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040))
+FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/")) # would be better to do this semantically but expensive to add NEO tbox to model
+# Annotation extensions
+OPTIONAL {
+    # Link between annotation target and connected individual
+    # seeded with someValuesFrom relations used in go-plus
+    VALUES ?extension_rel {
+<http://purl.obolibrary.org/obo/BFO_0000050>
+<http://purl.obolibrary.org/obo/BFO_0000051>
+<http://purl.obolibrary.org/obo/BFO_0000062>
+<http://purl.obolibrary.org/obo/BFO_0000063>
+<http://purl.obolibrary.org/obo/BFO_0000066>
+<http://purl.obolibrary.org/obo/GOCHEREL_0000001>
+<http://purl.obolibrary.org/obo/GOCHEREL_0000002>
+<http://purl.obolibrary.org/obo/GOCHEREL_0000003>
+<http://purl.obolibrary.org/obo/GOCHEREL_0000004>
+<http://purl.obolibrary.org/obo/GOREL_0000040>
+<http://purl.obolibrary.org/obo/GOREL_0001006>
+<http://purl.obolibrary.org/obo/GOREL_0001007>
+<http://purl.obolibrary.org/obo/GOREL_0002001>
+<http://purl.obolibrary.org/obo/GOREL_0002002>
+<http://purl.obolibrary.org/obo/GOREL_0002003>
+<http://purl.obolibrary.org/obo/GOREL_0002004>
+<http://purl.obolibrary.org/obo/GOREL_0002005>
+<http://purl.obolibrary.org/obo/GOREL_0002006>
+<http://purl.obolibrary.org/obo/GOREL_0002007>
+<http://purl.obolibrary.org/obo/GOREL_0002008>
+<http://purl.obolibrary.org/obo/GOREL_0012006>
+<http://purl.obolibrary.org/obo/RO_0000053>
+<http://purl.obolibrary.org/obo/RO_0000057>
+<http://purl.obolibrary.org/obo/RO_0000087>
+<http://purl.obolibrary.org/obo/RO_0001025>
+<http://purl.obolibrary.org/obo/RO_0002007>
+<http://purl.obolibrary.org/obo/RO_0002008>
+<http://purl.obolibrary.org/obo/RO_0002087>
+<http://purl.obolibrary.org/obo/RO_0002090>
+<http://purl.obolibrary.org/obo/RO_0002092>
+<http://purl.obolibrary.org/obo/RO_0002093>
+<http://purl.obolibrary.org/obo/RO_0002131>
+<http://purl.obolibrary.org/obo/RO_0002160>
+<http://purl.obolibrary.org/obo/RO_0002162>
+<http://purl.obolibrary.org/obo/RO_0002202>
+<http://purl.obolibrary.org/obo/RO_0002211>
+<http://purl.obolibrary.org/obo/RO_0002212>
+<http://purl.obolibrary.org/obo/RO_0002213>
+<http://purl.obolibrary.org/obo/RO_0002215>
+<http://purl.obolibrary.org/obo/RO_0002216>
+<http://purl.obolibrary.org/obo/RO_0002220>
+<http://purl.obolibrary.org/obo/RO_0002223>
+<http://purl.obolibrary.org/obo/RO_0002224>
+<http://purl.obolibrary.org/obo/RO_0002230>
+<http://purl.obolibrary.org/obo/RO_0002231>
+<http://purl.obolibrary.org/obo/RO_0002232>
+<http://purl.obolibrary.org/obo/RO_0002233>
+<http://purl.obolibrary.org/obo/RO_0002234>
+<http://purl.obolibrary.org/obo/RO_0002295>
+<http://purl.obolibrary.org/obo/RO_0002296>
+<http://purl.obolibrary.org/obo/RO_0002297>
+<http://purl.obolibrary.org/obo/RO_0002298>
+<http://purl.obolibrary.org/obo/RO_0002299>
+<http://purl.obolibrary.org/obo/RO_0002313>
+<http://purl.obolibrary.org/obo/RO_0002315>
+<http://purl.obolibrary.org/obo/RO_0002332>
+<http://purl.obolibrary.org/obo/RO_0002334>
+<http://purl.obolibrary.org/obo/RO_0002338>
+<http://purl.obolibrary.org/obo/RO_0002339>
+<http://purl.obolibrary.org/obo/RO_0002340>
+<http://purl.obolibrary.org/obo/RO_0002341>
+<http://purl.obolibrary.org/obo/RO_0002342>
+<http://purl.obolibrary.org/obo/RO_0002343>
+<http://purl.obolibrary.org/obo/RO_0002344>
+<http://purl.obolibrary.org/obo/RO_0002345>
+<http://purl.obolibrary.org/obo/RO_0002348>
+<http://purl.obolibrary.org/obo/RO_0002349>
+<http://purl.obolibrary.org/obo/RO_0002355>
+<http://purl.obolibrary.org/obo/RO_0002356>
+<http://purl.obolibrary.org/obo/RO_0002411>
+<http://purl.obolibrary.org/obo/RO_0002412>
+<http://purl.obolibrary.org/obo/RO_0002495>
+<http://purl.obolibrary.org/obo/RO_0002565>
+<http://purl.obolibrary.org/obo/RO_0002578>
+<http://purl.obolibrary.org/obo/RO_0002629>
+<http://purl.obolibrary.org/obo/RO_0002630>
+}
+    ?target ?extension_rel ?extension . 
+    # We don't want a link back to the gene product being annotated
+    FILTER(?extension != ?pr)
+    # We don't want reflexive links
+    FILTER(?target != ?extension)
+    # Exclude redundant links between target and extension
+    FILTER NOT EXISTS {
+        ?target ?other_extension_rel ?extension .
+        ?other_extension_rel rdfs:subPropertyOf ?extension_rel . 
+        FILTER(?other_extension_rel != ?extension_rel)
+    }
+    # Only get asserted types for the extension filler (for now, until we can exclude redundant types with reasonable performance)
+    ?extension rdf:type ?extension_type .
+    FILTER(?extension_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040))
+    FILTER(isIRI(?extension_type))
+    # Turn into string which can be grouped with other extensions to one annotation
+    BIND (CONCAT(STR(?extension_rel), "@@", STR(?extension_type)) AS ?extension_str)
+}
+# Only find GO terms as targets
+FILTER(STRSTARTS(STR(?target_type), "http://purl.obolibrary.org/obo/GO_")) # would be better to do this via isDefinedBy
+}
+GROUP BY ?pr ?pr_type ?rel ?target ?target_type

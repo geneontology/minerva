@@ -1,7 +1,6 @@
 package org.geneontology.minerva.legacy.sparql;
 
 import java.util.Optional;
-import java.util.Set;
 
 import org.semanticweb.owlapi.model.IRI;
 
@@ -12,13 +11,7 @@ import org.semanticweb.owlapi.model.IRI;
  * just the information expected to be provided for a GPAD annotation
  * extraction from a LEGO model.
  */
-public interface GPADData {
-
-	public IRI getObject();
-
-	public IRI getQualifier();
-
-	public IRI getOntologyClass();
+public interface GPADData extends BasicGPADData {
 
 	public String getReference();
 	
@@ -31,16 +24,6 @@ public interface GPADData {
 	public String getDate();
 
 	public String getAssignedBy();
-
-	public Set<ConjunctiveExpression> getAnnotationExtensions();
-
-	public interface ConjunctiveExpression {
-
-		public IRI getRelation();
-
-		public IRI getFiller();
-
-	}
 	
 	// Extra annotation; perhaps model annotations should be generic map
 	public String getContributor();
