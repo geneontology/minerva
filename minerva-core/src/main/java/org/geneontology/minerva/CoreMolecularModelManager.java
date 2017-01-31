@@ -267,7 +267,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	}
 	
 	private Reasoner initializeJenaReasoner() {
-		Set<Rule> rules = JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(getOntology(), Imports.INCLUDED, false, true, false)).asJava();
+		Set<Rule> rules = JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(getOntology(), Imports.INCLUDED, false, true, false, true)).asJava();
 		Model schemaModel = ModelFactory.createDefaultModel();
 		try {
 			OWLOntology schemaOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED));
