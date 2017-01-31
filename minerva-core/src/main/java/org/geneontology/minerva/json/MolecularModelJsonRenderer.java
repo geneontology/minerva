@@ -70,7 +70,6 @@ public class MolecularModelJsonRenderer {
 	private final OWLGraphWrapper graph;
 	private final CurieHandler curieHandler;
 	private final InferenceProvider inferenceProvider;
-	private static final IRI JSON_MODEL_IRI = IRI.create("http://geneontology.org/lego/json-model");
 	
 	public static final ThreadLocal<DateFormat> AnnotationTypeDateFormat = new ThreadLocal<DateFormat>(){
 
@@ -148,13 +147,10 @@ public class MolecularModelJsonRenderer {
 	
 	private static JsonAnnotation[] renderAnnotations(Set<OWLAnnotation> annotations, CurieHandler curieHandler) {
 		List<JsonAnnotation> anObjs = new ArrayList<JsonAnnotation>();
-		OWLAnnotationProperty jsonModel = OWLManager.getOWLDataFactory().getOWLAnnotationProperty(JSON_MODEL_IRI);
 		for (OWLAnnotation annotation : annotations) {
-			if (!annotation.getProperty().equals(jsonModel)) {
-				JsonAnnotation json = JsonTools.create(annotation.getProperty(), annotation.getValue(), curieHandler);
-				if (json != null) {
-					anObjs.add(json);
-				}
+			JsonAnnotation json = JsonTools.create(annotation.getProperty(), annotation.getValue(), curieHandler);
+			if (json != null) {
+				anObjs.add(json);
 			}
 		}
 		return anObjs.toArray(new JsonAnnotation[anObjs.size()]);
