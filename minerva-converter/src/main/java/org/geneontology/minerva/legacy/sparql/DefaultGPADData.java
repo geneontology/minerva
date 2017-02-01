@@ -1,10 +1,15 @@
 package org.geneontology.minerva.legacy.sparql;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.query.QuerySolution;
 import org.semanticweb.owlapi.model.IRI;
 
+@Deprecated
 public class DefaultGPADData extends DefaultBasicGPADData implements GPADData {
 
 	public DefaultGPADData(QuerySolution qs) {
@@ -40,10 +45,22 @@ public class DefaultGPADData extends DefaultBasicGPADData implements GPADData {
 	public String getAssignedBy() {
 		return "GO_Noctua";
 	}
-
+	
+	//FIXME fix query to format annotations this way
 	@Override
-	public String getContributor() {
-		return result.getLiteral("contributor").getLexicalForm();
+	public Set<Pair<String, String>> getAnnotations() {
+		Set<Pair<String, String>> annotations = new HashSet<>();
+		if (result.getLiteral("contributors") != null) {
+			for (String extension : result.getLiteral("contributors").getLexicalForm().split("\\|")) {
+				String[] parts = extension.split("@@");
+				if (parts.length == 2) {
+					final String rel = parts[0];
+					final String value = parts[1];
+					annotations.add(Pair.of(rel, value));
+				}
+			}
+		}
+		return Collections.unmodifiableSet(annotations);
 	}
 
 }

@@ -3,6 +3,7 @@ package org.geneontology.minerva.legacy.sparql;
 import java.util.Optional;
 import java.util.Set;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.semanticweb.owlapi.model.IRI;
 
 public class EvidencedGPADData implements GPADData {
@@ -66,8 +67,8 @@ public class EvidencedGPADData implements GPADData {
 	}
 
 	@Override
-	public String getContributor() {
-		return this.evidence.getContributor();
+	public Set<Pair<String, String>> getAnnotations() {
+		return this.evidence.getAnnotations();
 	}
 
 }

@@ -1,7 +1,9 @@
 package org.geneontology.minerva.legacy.sparql;
 
 import java.util.Optional;
+import java.util.Set;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.semanticweb.owlapi.model.IRI;
 
 /**
@@ -25,7 +27,6 @@ public interface GPADData extends BasicGPADData {
 
 	public String getAssignedBy();
 	
-	// Extra annotation; perhaps model annotations should be generic map
-	public String getContributor();
+	public Set<Pair<String, String>> getAnnotations();
 
 }
