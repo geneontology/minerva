@@ -55,4 +55,34 @@ public class GPADEvidence {
 		return this.annotations;
 	}
 
+	@Override
+	public boolean equals(Object other) {
+		if (this == other) { return true; }
+		else if (!(other instanceof GPADEvidence)) { return false; }
+		else {
+			GPADEvidence otherEvidence = (GPADEvidence)other;
+			return  this.getReference().equals(otherEvidence.getReference())
+					&& this.getEvidence().equals(otherEvidence.getEvidence())
+					&& this.getWithOrFrom().equals(otherEvidence.getWithOrFrom())
+					&& this.getInteractingTaxonID().equals(otherEvidence.getInteractingTaxonID())
+					&& this.getDate().equals(otherEvidence.getDate())
+					&& this.getAssignedBy().equals(otherEvidence.getAssignedBy())
+					&& this.getAnnotations().equals(otherEvidence.getAnnotations());
+		}
+	}
+
+	@Override
+	public int hashCode() {
+		int result = 17;
+		result = 37 * result + this.getReference().hashCode();
+		result = 37 * result + this.getEvidence().hashCode();
+		result = 37 * result + this.getReference().hashCode();
+		result = 37 * result + this.getWithOrFrom().hashCode();
+		result = 37 * result + this.getInteractingTaxonID().hashCode();
+		result = 37 * result + this.getDate().hashCode();
+		result = 37 * result + this.getAssignedBy().hashCode();
+		result = 37 * result + this.getAnnotations().hashCode();
+		return result;
+	}
+
 }
