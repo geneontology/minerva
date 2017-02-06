@@ -299,7 +299,8 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		Iterator<Statement> statements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(getModelAbox(modelId))).asJava().iterator();
 		dataModel.add(new StmtIteratorImpl(statements));
 		try {
-			OWLOntology schemaOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED));
+			// Using model's ontology IRI so that a spurious different ontology declaration triple isn't added
+			OWLOntology schemaOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED), modelId);
 			Iterator<Statement> schemaStatements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(schemaOntology)).asJava().iterator();
 			dataModel.add(new StmtIteratorImpl(schemaStatements));
 		} catch (OWLOntologyCreationException e) {
