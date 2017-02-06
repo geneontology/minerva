@@ -110,11 +110,18 @@ public class GPADSPARQLExport {
 							.flatMap(f -> allEvidences.getOrDefault(f, Collections.emptySet()).stream());
 					annotationEvidences.forEach(currentEvidence -> {
 						String reference = currentEvidence.getReference();
-						Set<ConjunctiveExpression> goodExtensions = possibleExtensions.stream()
-								.filter(ext -> ext.getStatement().getSubject().equals(annotation.getOntologyClassNode()))
-								.filter(ext -> allEvidences.getOrDefault(ext.getStatement(), Collections.emptySet()).stream().anyMatch(ev -> ev.getReference().equals(reference)))
-								.map(ext -> new DefaultConjunctiveExpression(IRI.create(ext.getStatement().getPredicate().getURI()), ext.getValueType()))
-								.collect(Collectors.toSet());
+						Set<ConjunctiveExpression> goodExtensions = new HashSet<>();
+						for (AnnotationExtension extension : possibleExtensions) {
+							if (extension.getStatement().getSubject().equals(annotation.getOntologyClassNode())) {
+								for (Explanation expl : allExplanations.get(extension.getStatement())) {
+									boolean allFactsOfExplanationHaveRefMatchingAnnotation = toJava(expl.facts()).stream().map(fact -> allEvidences.getOrDefault(fact, Collections.emptySet())).allMatch(evidenceSet -> 
+									evidenceSet.stream().anyMatch(ev -> ev.getReference().equals(reference)));
+									if (allFactsOfExplanationHaveRefMatchingAnnotation) {
+										goodExtensions.add(new DefaultConjunctiveExpression(IRI.create(extension.getStatement().getPredicate().getURI()), extension.getValueType()));
+									}
+								}
+							}
+						}
 						annotations.add(new DefaultGPADData(annotation.getObject(), annotation.getQualifier(), annotation.getOntologyClass(), goodExtensions, 
 								reference, currentEvidence.getEvidence(), currentEvidence.getWithOrFrom(), Optional.empty(), currentEvidence.getDate(), "GO_Noctua", currentEvidence.getAnnotations()));
 					});

@@ -282,18 +282,9 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		Set<Rule> rules = new HashSet<>();
 		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(getOntology(), Imports.INCLUDED, false, true, false, true)).asJava());
 		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translateAxiom(factory.getSWRLRule(body, head))).asJava());
-		Model schemaModel = ModelFactory.createDefaultModel();
-		try {
-			OWLOntology schemaOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED));
-			Iterator<Statement> statements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(schemaOntology)).asJava().iterator();
-			schemaModel.add(new StmtIteratorImpl(statements));
-		} catch (OWLOntologyCreationException e) {
-			LOG.error("Couldn't create ontology with rbox.", e);
-		}
 		GenericRuleReasoner reasoner = new GenericRuleReasoner(new ArrayList<>(rules));
 		reasoner.setMode(GenericRuleReasoner.FORWARD_RETE);
 		reasoner.setDerivationLogging(true);
-		reasoner.bindSchema(schemaModel);
 		return reasoner;
 	}
 	
@@ -307,6 +298,13 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		Model dataModel = ModelFactory.createDefaultModel();
 		Iterator<Statement> statements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(getModelAbox(modelId))).asJava().iterator();
 		dataModel.add(new StmtIteratorImpl(statements));
+		try {
+			OWLOntology schemaOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED));
+			Iterator<Statement> schemaStatements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(schemaOntology)).asJava().iterator();
+			dataModel.add(new StmtIteratorImpl(schemaStatements));
+		} catch (OWLOntologyCreationException e) {
+			LOG.error("Couldn't add rbox statements to data model.", e);
+		}
 		return ModelFactory.createInfModel(getJenaReasoner(), dataModel);
 	}
 	

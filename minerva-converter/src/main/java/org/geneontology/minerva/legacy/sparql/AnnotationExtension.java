@@ -25,5 +25,9 @@ public class AnnotationExtension {
 		return valueType;
 	}
 	
+	@Override
+	public String toString() {
+		return this.getStatement() + " " + this.getValueType();
+	}
 
 }
