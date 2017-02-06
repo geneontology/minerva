@@ -10,7 +10,7 @@ PREFIX PR: <http://purl.obolibrary.org/obo/PR_>
 SELECT DISTINCT ?target ?extension_rel ?extension ?extension_type
 WHERE {
 # 
-# ?target and ?pr must be passed in VALUES block before running this query
+# ?target must be passed in VALUES block before running this query
 # 
 # Link between annotation target and connected individual
 # seeded with someValuesFrom relations used in go-plus
@@ -104,18 +104,14 @@ VALUES ?extension_rel {
 
 ?target ?extension_rel ?extension . 
 # We don't want reflexive links
-FILTER(?target != ?extension)
+FILTER(?extension != ?target)
 # Exclude redundant links between target and extension
 FILTER NOT EXISTS {
-    ?target ?other_extension_rel ?extension .
     ?other_extension_rel rdfs:subPropertyOf ?extension_rel . 
+    ?target ?other_extension_rel ?extension .
     FILTER(?other_extension_rel != ?extension_rel)
 }
 # Only get asserted types for the extension filler (for now, until we can exclude redundant types with reasonable performance)
 ?extension rdf:type ?extension_type .
-FILTER(?extension_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040))
-FILTER(isIRI(?extension_type))
-?pr ?annotation_rel ?target .
-# We don't want a link back to the gene product being annotated
-FILTER(?extension != ?pr)
+FILTER(isIRI(?extension_type) && (?extension_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040)))
 }

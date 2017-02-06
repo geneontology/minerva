@@ -17,7 +17,6 @@ import java.util.stream.Stream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.graph.Node;
-import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
@@ -112,7 +111,8 @@ public class GPADSPARQLExport {
 						String reference = currentEvidence.getReference();
 						Set<ConjunctiveExpression> goodExtensions = new HashSet<>();
 						for (AnnotationExtension extension : possibleExtensions) {
-							if (extension.getStatement().getSubject().equals(annotation.getOntologyClassNode())) {
+							if (extension.getStatement().getSubject().equals(annotation.getOntologyClassNode()) &&
+									!(extension.getStatement().getObject().equals(annotation.getObjectNode()))) {
 								for (Explanation expl : allExplanations.get(extension.getStatement())) {
 									boolean allFactsOfExplanationHaveRefMatchingAnnotation = toJava(expl.facts()).stream().map(fact -> allEvidences.getOrDefault(fact, Collections.emptySet())).allMatch(evidenceSet -> 
 									evidenceSet.stream().anyMatch(ev -> ev.getReference().equals(reference)));
@@ -174,12 +174,10 @@ public class GPADSPARQLExport {
 
 	private Set<AnnotationExtension> possibleExtensions(Set<BasicGPADData> basicAnnotations, InfModel model) {
 		Set<AnnotationExtension> possibleExtensions = new HashSet<>();
-		Var prVar = Var.alloc("pr");
-		Var annotationRelVar = Var.alloc("annotation_rel");
 		Var targetVar = Var.alloc("target");
-		List<Binding> bindings = basicAnnotations.stream().map(ba -> createBinding(Pair.of(prVar, ba.getObjectNode().asNode()), Pair.of(annotationRelVar, NodeFactory.createURI(ba.getQualifier().toString())), Pair.of(targetVar, ba.getOntologyClassNode().asNode()))).collect(Collectors.toList());
+		List<Binding> bindings = basicAnnotations.stream().map(ba -> createBinding(Pair.of(targetVar, ba.getOntologyClassNode().asNode()))).collect(Collectors.toList());
 		Query query = QueryFactory.create(extensionsQuery);
-		query.setValuesDataBlock(Arrays.asList(prVar, annotationRelVar, targetVar), bindings);
+		query.setValuesDataBlock(Arrays.asList(targetVar), bindings);
 		QueryExecution qe = QueryExecutionFactory.create(query, model);
 		ResultSet results = qe.execSelect();
 		while (results.hasNext()) {
