@@ -133,3 +133,29 @@ Note the options `-f blazegraph.jnl` for specifying the journal file and `--expo
 `curl 'http://localhost:3400/api/minerva_local/m3Batch?token=&intention=query&requests=%5B%7B%22entity%22%3A%22meta%22%2C%22operation%22%3A%22export-all%22%2C%22arguments%22%3A%7B%7D%7D%5D'`
 
 This will output to the folder configured in the startup arguments.
+
+### Run a SPARQL Update against the triples in the database
+
+*This should be handled with care since direct changes to triples will bypass any validations that typically occur when data are edited via the standard Minerva server API.*
+
+[SPARQL Update](http://www.w3.org/TR/sparql11-update/) is useful for various bulk maintenance operations that may periodically be necessary, e.g. updating all uses of an obsolete property to the current preferred IRI. Before running the update, the server should be stopped, since the Blazegraph journal can only be used from one Java process at a time. Then simply run the command like this:
+
+```bash
+java -jar minerva-cli.jar --sparql-update -j blazegraph.jnl -f update.rq
+```
+
+where `update.rq` is a file containing the SPARQL update. For example:
+
+```sparql
+PREFIX directly_activates: <http://purl.obolibrary.org/obo/RO_0002406>
+PREFIX directly_positively_regulates: <http://purl.obolibrary.org/obo/RO_0002629>
+DELETE { 
+    GRAPH ?g { ?s directly_activates: ?o . }
+}
+INSERT { 
+    GRAPH ?g { ?s directly_positively_regulates: ?o . }
+}
+WHERE {
+    GRAPH ?g { ?s directly_activates: ?o . }
+} 
+```
