@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
@@ -35,6 +37,11 @@ import org.geneontology.minerva.legacy.GroupingTranslator;
 import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
 import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
 import org.geneontology.minerva.lookup.ExternalLookupService;
+import org.geneontology.minerva.util.BlazegraphMutationCounter;
+import org.openrdf.query.MalformedQueryException;
+import org.openrdf.query.QueryLanguage;
+import org.openrdf.query.UpdateExecutionException;
+import org.openrdf.repository.RepositoryException;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.ManchesterSyntaxDocumentFormat;
@@ -45,8 +52,13 @@ import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLDocumentFormat;
 import org.semanticweb.owlapi.model.OWLEntity;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 
+import com.bigdata.journal.Options;
+import com.bigdata.rdf.sail.BigdataSail;
+import com.bigdata.rdf.sail.BigdataSailRepository;
+import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 import com.google.common.base.Optional;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -157,6 +169,57 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			m3.importModelToDatabase(file);
 		}
 		m3.dispose();
+	}
+	
+	@CLIMethod("--sparql-update")
+	public void sparqlUpdate(Opts opts) throws OWLOntologyCreationException, IOException, RepositoryException, MalformedQueryException, UpdateExecutionException {
+		opts.info("[-j|--journal JOURNALFILE] [-f|--file SPARQL UPDATE FILE]",
+				"apply SPARQL update to database");
+		String journalFilePath = null;
+		String updateFile = null;
+
+		// parse opts
+		while (opts.hasOpts()) {
+			if (opts.nextEq("-j|--journal")) {
+				opts.info("journal file", "Sets the Blazegraph journal file for the database");
+				journalFilePath = opts.nextOpt();
+			}
+			else if (opts.nextEq("-f|--file")) {
+				opts.info("OWL folder", "Sets the file containing a SPARQL update");
+				updateFile = opts.nextOpt();
+			}
+			else {
+				break;
+			}
+		}
+
+		// minimal inputs
+		if (journalFilePath == null) {
+			System.err.println("No journal file was configured.");
+			exit(-1);
+			return;
+		}
+		if (updateFile == null) {
+			System.err.println("No update file was configured.");
+			exit(-1);
+			return;
+		}
+
+		String update = FileUtils.readFileToString(new File(updateFile), StandardCharsets.UTF_8);
+		Properties properties = new Properties();
+		properties.load(this.getClass().getResourceAsStream("/org/geneontology/minerva/blazegraph.properties"));
+		properties.setProperty(Options.FILE, journalFilePath);
+		BigdataSail sail = new BigdataSail(properties);
+		BigdataSailRepository repository = new BigdataSailRepository(sail);
+		repository.initialize();
+		BigdataSailRepositoryConnection conn = repository.getUnisolatedConnection();
+		BlazegraphMutationCounter counter = new BlazegraphMutationCounter();
+		conn.addChangeLog(counter);
+		conn.prepareUpdate(QueryLanguage.SPARQL, update).execute();
+		int changes = counter.mutationCount();
+		conn.removeChangeLog(counter);
+		System.out.println("\nApplied " + changes + " changes");
+		conn.close();
 	}
 
 	@CLIMethod("--owl-lego-to-json")
