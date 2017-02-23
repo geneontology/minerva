@@ -63,5 +63,10 @@ public class BasicGPADData {
 		result = 37 * result + this.getOntologyClassNode().hashCode();
 		return result;
 	}
+	
+	@Override
+	public String toString() {
+		return this.object.toString() + this.qualifier.toString() + this.ontologyClass.toString();
+	}
 
 }

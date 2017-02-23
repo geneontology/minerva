@@ -50,7 +50,11 @@ FILTER(?target_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0
 ?pr rdf:type ?pr_type . 
 FILTER(isIRI(?pr_type))
 FILTER(?pr_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040))
-FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/")) # would be better to do this semantically but expensive to add NEO tbox to model
+FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/GO_")) # would be better to do this semantically but expensive to add NEO tbox to model
+FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/PO_")) # would be better to do this semantically but expensive to add NEO tbox to model
+FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/UBERON_")) # would be better to do this semantically but expensive to add NEO tbox to model
+FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/CL_")) # would be better to do this semantically but expensive to add NEO tbox to model
+FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/EMAPA_")) # would be better to do this semantically but expensive to add NEO tbox to model
 # Only find GO terms as targets
 FILTER(STRSTARTS(STR(?target_type), "http://purl.obolibrary.org/obo/GO_")) # would be better to do this via isDefinedBy
 }
