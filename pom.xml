@@ -342,6 +342,11 @@
 				</exclusions>
 			</dependency>
 			<dependency>
+				<groupId>org.geneontology</groupId>
+				<artifactId>arachne_2.11</artifactId>
+				<version>0.0.2-SNAPSHOT</version>
+			</dependency>
+			<dependency>
 				<groupId>org.apache.jena</groupId>
 				<artifactId>apache-jena-libs</artifactId>
 				<version>3.1.1</version>

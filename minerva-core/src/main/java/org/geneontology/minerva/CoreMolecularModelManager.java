@@ -12,20 +12,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.jena.rdf.model.InfModel;
-import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.impl.StmtIteratorImpl;
-import org.apache.jena.reasoner.Reasoner;
-import org.apache.jena.reasoner.rulesys.GenericRuleReasoner;
 import org.apache.jena.reasoner.rulesys.Rule;
 import org.apache.log4j.Logger;
 import org.geneontology.jena.OWLtoRules;
 import org.geneontology.jena.SesameJena;
 import org.geneontology.minerva.util.AnnotationShorthand;
+import org.geneontology.rules.engine.RuleEngine;
+import org.geneontology.rules.engine.Triple;
+import org.geneontology.rules.engine.WorkingMemory;
+import org.geneontology.rules.util.Bridge;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.RioRDFXMLDocumentFormatFactory;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentSource;
@@ -110,7 +112,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	final Map<IRI, ModelContainer> modelMap = new HashMap<IRI, ModelContainer>();
 	Set<IRI> additionalImports;
 	
-	private final Reasoner jenaReasoner;
+	private final RuleEngine ruleEngine;
 	private final Map<IRI, String> legacyRelationIndex = new HashMap<IRI, String>();
 	
 	
@@ -189,7 +191,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		super();
 		this.graph = graph;
 		tboxIRI = getTboxIRI(graph);
-		this.jenaReasoner = initializeJenaReasoner();
+		this.ruleEngine = initializeRuleEngine();
 		initializeLegacyRelationIndex();
 		init();
 	}
@@ -264,11 +266,11 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return Collections.unmodifiableMap(this.legacyRelationIndex);
 	}
 	
-	public Reasoner getJenaReasoner() {
-		return jenaReasoner;
+	public RuleEngine getRuleEngine() {
+		return ruleEngine;
 	}
 	
-	private Reasoner initializeJenaReasoner() {
+	private RuleEngine initializeRuleEngine() {
 		//FIXME this SWRL rule is temporary for demonstration purposes; remove after added to RO
 		OWLDataFactory factory = OWLManager.getOWLDataFactory();
 		SWRLVariable x = factory.getSWRLVariable(IRI.create("urn:swrl:var#x"));
@@ -279,34 +281,30 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		body.add(factory.getSWRLObjectPropertyAtom(factory.getOWLObjectProperty(IRI.create("http://purl.obolibrary.org/obo/RO_0002327")), x, y));
 		body.add(factory.getSWRLObjectPropertyAtom(factory.getOWLObjectProperty(IRI.create("http://purl.obolibrary.org/obo/BFO_0000066")), y, z));
 		head.add(factory.getSWRLObjectPropertyAtom(factory.getOWLObjectProperty(IRI.create("http://purl.obolibrary.org/obo/BFO_0000050")), x, z));
-		Set<Rule> rules = new HashSet<>();
-		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(getOntology(), Imports.INCLUDED, false, true, false, true)).asJava());
-		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translateAxiom(factory.getSWRLRule(body, head))).asJava());
-		GenericRuleReasoner reasoner = new GenericRuleReasoner(new ArrayList<>(rules));
-		reasoner.setMode(GenericRuleReasoner.FORWARD_RETE);
-		reasoner.setDerivationLogging(true);
-		return reasoner;
+		//Set<Rule> rules = new HashSet<>();
+		scala.collection.immutable.Set<Rule> rules = OWLtoRules.translate(getOntology(), Imports.INCLUDED, false, true, false, true);
+		scala.collection.Set<Rule> withSWRLRule = rules.$plus$plus(OWLtoRules.translateAxiom(factory.getSWRLRule(body, head)));
+		return new RuleEngine(Bridge.rulesFromJena(withSWRLRule), true);
 	}
 	
 	/**
-	 * Return Jena model representing LEGO model combined with inference rules.
+	 * Return Arachne working memory representing LEGO model combined with inference rules.
 	 * This model will not remain synchronized with changes to data.
 	 * @param LEGO modelId
 	 * @return Jena model
 	 */
-	public InfModel createInferenceModel(IRI modelId) {
-		Model dataModel = ModelFactory.createDefaultModel();
-		Iterator<Statement> statements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(getModelAbox(modelId))).asJava().iterator();
-		dataModel.add(new StmtIteratorImpl(statements));
+	public WorkingMemory createInferredModel(IRI modelId) {
+		Set<Statement> statements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(getModelAbox(modelId))).asJava();
+		Set<Triple> triples = statements.stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
 		try {
 			// Using model's ontology IRI so that a spurious different ontology declaration triple isn't added
 			OWLOntology schemaOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED), modelId);
-			Iterator<Statement> schemaStatements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(schemaOntology)).asJava().iterator();
-			dataModel.add(new StmtIteratorImpl(schemaStatements));
+			Set<Statement> schemaStatements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(schemaOntology)).asJava();
+			triples.addAll(schemaStatements.stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet()));
 		} catch (OWLOntologyCreationException e) {
 			LOG.error("Couldn't add rbox statements to data model.", e);
 		}
-		return ModelFactory.createInfModel(getJenaReasoner(), dataModel);
+		return getRuleEngine().processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
 	}
 	
 	private void initializeLegacyRelationIndex() {

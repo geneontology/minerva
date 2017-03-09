@@ -23,7 +23,8 @@ import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
-import org.apache.jena.rdf.model.InfModel;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.sparql.core.Var;
@@ -33,10 +34,12 @@ import org.apache.jena.sparql.engine.binding.BindingMap;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.log4j.Logger;
-import org.geneontology.jena.Explanation;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.legacy.sparql.GPADData.ConjunctiveExpression;
 import org.geneontology.minerva.lookup.ExternalLookupService;
+import org.geneontology.rules.engine.Explanation;
+import org.geneontology.rules.engine.WorkingMemory;
+import org.geneontology.rules.util.Bridge;
 import org.semanticweb.owlapi.model.IRI;
 
 import scala.collection.JavaConverters;
@@ -81,7 +84,9 @@ public class GPADSPARQLExport {
 	/*
 	 * This is a bit convoluted in order to minimize redundant queries, for performance reasons.
 	 */
-	public String exportGPAD(InfModel model) {
+	public String exportGPAD(WorkingMemory wm) {
+		Model model = ModelFactory.createDefaultModel();
+		model.add(JavaConverters.setAsJavaSetConverter(wm.facts()).asJava().stream().map(t -> model.asStatement(Bridge.jenaFromTriple(t))).collect(Collectors.toList()));
 		QueryExecution qe = QueryExecutionFactory.create(mainQuery, model);
 		Set<GPADData> annotations = new HashSet<>();
 		String modelID = model.listResourcesWithProperty(RDF.type, OWL.Ontology).mapWith(r -> curieHandler.getCuri(IRI.create(r.getURI()))).next();
@@ -96,11 +101,11 @@ public class GPADSPARQLExport {
 		Set<Statement> statementsToExplain = new HashSet<>();
 		basicAnnotations.forEach(ba -> statementsToExplain.add(ResourceFactory.createStatement(ba.getObjectNode(), ResourceFactory.createProperty(ba.getQualifier().toString()), ba.getOntologyClassNode())));
 		possibleExtensions.forEach(ae -> statementsToExplain.add(ae.getStatement()));
-		Map<Statement, Set<Explanation>> allExplanations = statementsToExplain.stream().collect(Collectors.toMap(Function.identity(), s -> toJava(Explanation.explain(s, model))));
-		Map<Statement, Set<GPADEvidence>> allEvidences = evidencesForFacts(allExplanations.values().stream().flatMap(es -> es.stream()).flatMap(e -> toJava(e.facts()).stream()).collect(Collectors.toSet()), model, modelID);
+		Map<Statement, Set<Explanation>> allExplanations = statementsToExplain.stream().collect(Collectors.toMap(Function.identity(), s -> toJava(wm.explain(Bridge.tripleFromJena(s.asTriple())))));
+		Map<Statement, Set<GPADEvidence>> allEvidences = evidencesForFacts(allExplanations.values().stream().flatMap(es -> es.stream()).flatMap(e -> toJava(e.facts()).stream().map(t -> model.asStatement(Bridge.jenaFromTriple(t)))).collect(Collectors.toSet()), model, modelID);
 		for (BasicGPADData annotation : basicAnnotations) {
 			for (Explanation explanation : allExplanations.get(ResourceFactory.createStatement(annotation.getObjectNode(), ResourceFactory.createProperty(annotation.getQualifier().toString()), annotation.getOntologyClassNode()))) {
-				Set<Statement> requiredFacts = toJava(explanation.facts());
+				Set<Statement> requiredFacts = toJava(explanation.facts()).stream().map(t -> model.asStatement(Bridge.jenaFromTriple(t))).collect(Collectors.toSet());
 				// Every statement in the explanation must have at least one evidence
 				if (requiredFacts.stream().allMatch(f -> !(allEvidences.get(f).isEmpty()))) {
 					// The evidence used for the annotation must be on an edge to or from the target node
@@ -131,7 +136,7 @@ public class GPADSPARQLExport {
 		return new GPADRenderer(curieHandler, lookupService, relationShorthandIndex).renderAll(annotations);
 	}
 
-	private Map<Statement, Set<GPADEvidence>> evidencesForFacts(Set<Statement> facts, InfModel model, String modelID) {
+	private Map<Statement, Set<GPADEvidence>> evidencesForFacts(Set<Statement> facts, Model model, String modelID) {
 		Query query = QueryFactory.create(multipleEvidenceQuery);
 		Var subject = Var.alloc("subject");
 		Var predicate = Var.alloc("predicate");
@@ -172,7 +177,7 @@ public class GPADSPARQLExport {
 		return map;
 	}
 
-	private Set<AnnotationExtension> possibleExtensions(Set<BasicGPADData> basicAnnotations, InfModel model) {
+	private Set<AnnotationExtension> possibleExtensions(Set<BasicGPADData> basicAnnotations, Model model) {
 		Set<AnnotationExtension> possibleExtensions = new HashSet<>();
 		Var targetVar = Var.alloc("target");
 		List<Binding> bindings = basicAnnotations.stream().map(ba -> createBinding(Pair.of(targetVar, ba.getOntologyClassNode().asNode()))).collect(Collectors.toList());
