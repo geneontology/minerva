@@ -282,8 +282,9 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		body.add(factory.getSWRLObjectPropertyAtom(factory.getOWLObjectProperty(IRI.create("http://purl.obolibrary.org/obo/BFO_0000066")), y, z));
 		head.add(factory.getSWRLObjectPropertyAtom(factory.getOWLObjectProperty(IRI.create("http://purl.obolibrary.org/obo/BFO_0000050")), x, z));
 		Set<Rule> rules = new HashSet<>();
-		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(getOntology(), Imports.INCLUDED, false, true, false, true)).asJava());
+		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(getOntology(), Imports.INCLUDED, true, true, false, true)).asJava());
 		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translateAxiom(factory.getSWRLRule(body, head))).asJava());
+		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.indirectRules(getOntology())).asJava());
 		return new RuleEngine(Bridge.rulesFromJena(JavaConverters.asScalaSetConverter(rules).asScala()), true);
 	}
 	

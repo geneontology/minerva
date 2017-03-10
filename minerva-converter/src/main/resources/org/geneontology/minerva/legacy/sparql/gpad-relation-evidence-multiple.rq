@@ -21,6 +21,9 @@ WHERE {
 ?axiom evidence: ?evidence .
 # Only get asserted types for the evidence
 ?evidence rdf:type ?evidence_type .
+FILTER NOT EXISTS {
+    ?evidence <http://arachne.geneontology.org/indirect_type> ?evidence_type .
+}
 FILTER(isIRI(?evidence_type))
 FILTER(?evidence_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040))
 # Additional values associated with the evidence

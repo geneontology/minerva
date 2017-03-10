@@ -22,39 +22,46 @@ PREFIX PR: <http://purl.obolibrary.org/obo/PR_>
 
 SELECT DISTINCT ?pr ?pr_type ?rel ?target ?target_type
 WHERE {
-# Annotation relations between gene product and GO term instance (?target)
-VALUES ?rel { 
-    enables:
-    involved_in: 
-    part_of: 
-    acts_upstream_of: 
-    acts_upstream_of_or_within: 
-    involved_in_regulation_of: 
-    involved_in_negative_regulation_of: 
-    involved_in_positive_regulation_of: 
-    involved_in_or_involved_in_regulation_of: 
-}
-# The main annotation relation
-?pr ?rel ?target .
-# Exclude redundant links between gene product and target
-FILTER NOT EXISTS {
-    ?pr ?other_rel ?target .
-    ?other_rel rdfs:subPropertyOf ?rel .
-    FILTER(?other_rel != ?rel) 
-}
-# Only get asserted types for the annotation target (for now, until we can exclude redundant types with reasonable performance)
-?target rdf:type ?target_type .
-FILTER(isIRI(?target_type))
-FILTER(?target_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040))
-# Only get asserted types for the gene product (these will be e.g. gene IDs)
-?pr rdf:type ?pr_type . 
-FILTER(isIRI(?pr_type))
-FILTER(?pr_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040))
-FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/GO_")) # would be better to do this semantically but expensive to add NEO tbox to model
-FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/PO_")) # would be better to do this semantically but expensive to add NEO tbox to model
-FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/UBERON_")) # would be better to do this semantically but expensive to add NEO tbox to model
-FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/CL_")) # would be better to do this semantically but expensive to add NEO tbox to model
-FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/EMAPA_")) # would be better to do this semantically but expensive to add NEO tbox to model
-# Only find GO terms as targets
-FILTER(STRSTARTS(STR(?target_type), "http://purl.obolibrary.org/obo/GO_")) # would be better to do this via isDefinedBy
+    # Annotation relations between gene product and GO term instance (?target)
+    VALUES ?rel { 
+        enables:
+        involved_in: 
+        part_of: 
+        acts_upstream_of: 
+        acts_upstream_of_or_within: 
+        involved_in_regulation_of: 
+        involved_in_negative_regulation_of: 
+        involved_in_positive_regulation_of: 
+        involved_in_or_involved_in_regulation_of: 
+    }
+    # The main annotation relation
+    ?pr ?rel ?target .
+    #?pr rdf:type CHEBI:23367 .
+    # Exclude redundant links between gene product and target
+    FILTER NOT EXISTS {
+        ?pr ?other_rel ?target .
+        ?other_rel rdfs:subPropertyOf ?rel .
+        FILTER(?other_rel != ?rel) 
+    }
+    # Only get asserted types for the annotation target (for now, until we can exclude redundant types with reasonable performance)
+    ?target rdf:type ?target_type .
+    FILTER NOT EXISTS {
+        ?target <http://arachne.geneontology.org/indirect_type> ?target_type .
+    }
+    FILTER(isIRI(?target_type))
+    FILTER(?target_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040))
+    # Only get asserted types for the gene product (these will be e.g. gene IDs)
+    ?pr rdf:type ?pr_type . 
+    FILTER(isIRI(?pr_type))
+    FILTER NOT EXISTS {
+        ?pr <http://arachne.geneontology.org/indirect_type> ?pr_type .
+    }
+    FILTER(?pr_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040))
+    FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/GO_")) # would be better to do this semantically but expensive to add NEO tbox to model
+    FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/PO_")) # would be better to do this semantically but expensive to add NEO tbox to model
+    FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/UBERON_")) # would be better to do this semantically but expensive to add NEO tbox to model
+    FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/CL_")) # would be better to do this semantically but expensive to add NEO tbox to model
+    FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/EMAPA_")) # would be better to do this semantically but expensive to add NEO tbox to model
+    # Only find GO terms as targets
+    FILTER(STRSTARTS(STR(?target_type), "http://purl.obolibrary.org/obo/GO_")) # would be better to do this via isDefinedBy
 }

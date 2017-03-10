@@ -2,22 +2,22 @@ package org.geneontology.minerva.legacy.sparql;
 
 import javax.annotation.Nonnull;
 
-import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.graph.Triple;
 import org.semanticweb.owlapi.model.IRI;
 
 public class AnnotationExtension {
 	
-	private final Statement statement;
+	private final Triple triple;
 	private final IRI valueType;
 	
-	public AnnotationExtension(Statement statement, IRI valueType) {
-		this.statement = statement;
+	public AnnotationExtension(Triple triple, IRI valueType) {
+		this.triple = triple;
 		this.valueType = valueType;
 	}
 
 	@Nonnull
-	public Statement getStatement() {
-		return statement;
+	public Triple getTriple() {
+		return triple;
 	}
 
 	@Nonnull
@@ -27,7 +27,7 @@ public class AnnotationExtension {
 	
 	@Override
 	public String toString() {
-		return this.getStatement() + " " + this.getValueType();
+		return this.getTriple() + " " + this.getValueType();
 	}
 
 }

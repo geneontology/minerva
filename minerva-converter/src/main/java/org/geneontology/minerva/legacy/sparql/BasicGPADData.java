@@ -1,17 +1,17 @@
 package org.geneontology.minerva.legacy.sparql;
 
-import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.graph.Node;
 import org.semanticweb.owlapi.model.IRI;
 
 public class BasicGPADData {
 
-	private final Resource objectNode;
+	private final Node objectNode;
 	private final IRI object;
 	private final IRI qualifier;
-	private final Resource ontologyClassNode;
+	private final Node ontologyClassNode;
 	private final IRI ontologyClass;
 	
-	public BasicGPADData(Resource objectNode, IRI object, IRI qualifier, Resource ontologyClassNode, IRI ontologyClass) {
+	public BasicGPADData(Node objectNode, IRI object, IRI qualifier, Node ontologyClassNode, IRI ontologyClass) {
 		this.object = object;
 		this.qualifier = qualifier;
 		this.ontologyClass = ontologyClass;
@@ -31,11 +31,11 @@ public class BasicGPADData {
 		return this.ontologyClass;
 	}
 
-	public Resource getObjectNode() {
+	public Node getObjectNode() {
 		return this.objectNode;
 	}
 
-	public Resource getOntologyClassNode() {
+	public Node getOntologyClassNode() {
 		return this.ontologyClassNode;
 	}
 

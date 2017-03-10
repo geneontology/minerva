@@ -113,5 +113,8 @@ FILTER NOT EXISTS {
 }
 # Only get asserted types for the extension filler (for now, until we can exclude redundant types with reasonable performance)
 ?extension rdf:type ?extension_type .
+FILTER NOT EXISTS {
+    ?extension <http://arachne.geneontology.org/indirect_type> ?extension_type .
+}
 FILTER(isIRI(?extension_type) && (?extension_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040)))
 }

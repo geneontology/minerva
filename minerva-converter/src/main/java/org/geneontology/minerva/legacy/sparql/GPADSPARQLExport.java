@@ -17,6 +17,8 @@ import java.util.stream.Stream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.graph.Node;
+import org.apache.jena.graph.NodeFactory;
+import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
@@ -25,8 +27,6 @@ import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.ResourceFactory;
-import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingFactory;
@@ -94,18 +94,18 @@ public class GPADSPARQLExport {
 		Set<BasicGPADData> basicAnnotations = new HashSet<>();
 		while (results.hasNext()) {
 			QuerySolution qs = results.next();
-			basicAnnotations.add(new BasicGPADData(qs.getResource("pr"), IRI.create(qs.getResource("pr_type").getURI()), IRI.create(qs.getResource("rel").getURI()), qs.getResource("target"), IRI.create(qs.getResource("target_type").getURI())));
+			basicAnnotations.add(new BasicGPADData(qs.getResource("pr").asNode(), IRI.create(qs.getResource("pr_type").getURI()), IRI.create(qs.getResource("rel").getURI()), qs.getResource("target").asNode(), IRI.create(qs.getResource("target_type").getURI())));
 		}
 		qe.close();
 		Set<AnnotationExtension> possibleExtensions = possibleExtensions(basicAnnotations, model);
-		Set<Statement> statementsToExplain = new HashSet<>();
-		basicAnnotations.forEach(ba -> statementsToExplain.add(ResourceFactory.createStatement(ba.getObjectNode(), ResourceFactory.createProperty(ba.getQualifier().toString()), ba.getOntologyClassNode())));
-		possibleExtensions.forEach(ae -> statementsToExplain.add(ae.getStatement()));
-		Map<Statement, Set<Explanation>> allExplanations = statementsToExplain.stream().collect(Collectors.toMap(Function.identity(), s -> toJava(wm.explain(Bridge.tripleFromJena(s.asTriple())))));
-		Map<Statement, Set<GPADEvidence>> allEvidences = evidencesForFacts(allExplanations.values().stream().flatMap(es -> es.stream()).flatMap(e -> toJava(e.facts()).stream().map(t -> model.asStatement(Bridge.jenaFromTriple(t)))).collect(Collectors.toSet()), model, modelID);
+		Set<Triple> statementsToExplain = new HashSet<>();
+		basicAnnotations.forEach(ba -> statementsToExplain.add(Triple.create(ba.getObjectNode(), NodeFactory.createURI(ba.getQualifier().toString()), ba.getOntologyClassNode())));
+		possibleExtensions.forEach(ae -> statementsToExplain.add(ae.getTriple()));
+		Map<Triple, Set<Explanation>> allExplanations = statementsToExplain.stream().collect(Collectors.toMap(Function.identity(), s -> toJava(wm.explain(Bridge.tripleFromJena(s)))));
+		Map<Triple, Set<GPADEvidence>> allEvidences = evidencesForFacts(allExplanations.values().stream().flatMap(es -> es.stream()).flatMap(e -> toJava(e.facts()).stream().map(t -> Bridge.jenaFromTriple(t))).collect(Collectors.toSet()), model, modelID);
 		for (BasicGPADData annotation : basicAnnotations) {
-			for (Explanation explanation : allExplanations.get(ResourceFactory.createStatement(annotation.getObjectNode(), ResourceFactory.createProperty(annotation.getQualifier().toString()), annotation.getOntologyClassNode()))) {
-				Set<Statement> requiredFacts = toJava(explanation.facts()).stream().map(t -> model.asStatement(Bridge.jenaFromTriple(t))).collect(Collectors.toSet());
+			for (Explanation explanation : allExplanations.get(Triple.create(annotation.getObjectNode(), NodeFactory.createURI(annotation.getQualifier().toString()), annotation.getOntologyClassNode()))) {
+				Set<Triple> requiredFacts = toJava(explanation.facts()).stream().map(t -> Bridge.jenaFromTriple(t)).collect(Collectors.toSet());
 				// Every statement in the explanation must have at least one evidence
 				if (requiredFacts.stream().allMatch(f -> !(allEvidences.get(f).isEmpty()))) {
 					// The evidence used for the annotation must be on an edge to or from the target node
@@ -116,13 +116,13 @@ public class GPADSPARQLExport {
 						String reference = currentEvidence.getReference();
 						Set<ConjunctiveExpression> goodExtensions = new HashSet<>();
 						for (AnnotationExtension extension : possibleExtensions) {
-							if (extension.getStatement().getSubject().equals(annotation.getOntologyClassNode()) &&
-									!(extension.getStatement().getObject().equals(annotation.getObjectNode()))) {
-								for (Explanation expl : allExplanations.get(extension.getStatement())) {
-									boolean allFactsOfExplanationHaveRefMatchingAnnotation = toJava(expl.facts()).stream().map(fact -> allEvidences.getOrDefault(fact, Collections.emptySet())).allMatch(evidenceSet -> 
+							if (extension.getTriple().getSubject().equals(annotation.getOntologyClassNode()) &&
+									!(extension.getTriple().getObject().equals(annotation.getObjectNode()))) {
+								for (Explanation expl : allExplanations.get(extension.getTriple())) {
+									boolean allFactsOfExplanationHaveRefMatchingAnnotation = toJava(expl.facts()).stream().map(fact -> allEvidences.getOrDefault(Bridge.jenaFromTriple(fact), Collections.emptySet())).allMatch(evidenceSet -> 
 									evidenceSet.stream().anyMatch(ev -> ev.getReference().equals(reference)));
 									if (allFactsOfExplanationHaveRefMatchingAnnotation) {
-										goodExtensions.add(new DefaultConjunctiveExpression(IRI.create(extension.getStatement().getPredicate().getURI()), extension.getValueType()));
+										goodExtensions.add(new DefaultConjunctiveExpression(IRI.create(extension.getTriple().getPredicate().getURI()), extension.getValueType()));
 									}
 								}
 							}
@@ -136,7 +136,7 @@ public class GPADSPARQLExport {
 		return new GPADRenderer(curieHandler, lookupService, relationShorthandIndex).renderAll(annotations);
 	}
 
-	private Map<Statement, Set<GPADEvidence>> evidencesForFacts(Set<Statement> facts, Model model, String modelID) {
+	private Map<Triple, Set<GPADEvidence>> evidencesForFacts(Set<Triple> facts, Model model, String modelID) {
 		Query query = QueryFactory.create(multipleEvidenceQuery);
 		Var subject = Var.alloc("subject");
 		Var predicate = Var.alloc("predicate");
@@ -145,15 +145,15 @@ public class GPADSPARQLExport {
 		variables.add(subject);
 		variables.add(predicate);
 		variables.add(object);
-		Stream<Binding> bindings = facts.stream().map(f -> createBinding(Pair.of(subject, f.getSubject().asNode()), Pair.of(predicate, f.getPredicate().asNode()), Pair.of(object, f.getObject().asNode())));
+		Stream<Binding> bindings = facts.stream().map(f -> createBinding(Pair.of(subject, f.getSubject()), Pair.of(predicate, f.getPredicate()), Pair.of(object, f.getObject())));
 		query.setValuesDataBlock(variables, bindings.collect(Collectors.toList()));
 		QueryExecution evidenceExecution = QueryExecutionFactory.create(query, model);
 		ResultSet evidenceResults = evidenceExecution.execSelect();
-		Map<Statement, Set<GPADEvidence>> allEvidences = facts.stream().collect(Collectors.toMap(Function.identity(), f -> new HashSet<GPADEvidence>()));
+		Map<Triple, Set<GPADEvidence>> allEvidences = facts.stream().collect(Collectors.toMap(Function.identity(), f -> new HashSet<GPADEvidence>()));
 		while (evidenceResults.hasNext()) {
 			QuerySolution eqs = evidenceResults.next();
 			if (eqs.get("evidence_type") != null) {
-				Statement statement = ResourceFactory.createStatement(eqs.getResource("subject"), ResourceFactory.createProperty(eqs.getResource("predicate").getURI()), eqs.getResource("object"));
+				Triple statement = Triple.create(eqs.getResource("subject").asNode(), eqs.getResource("predicate").asNode(), eqs.getResource("object").asNode());
 				IRI evidenceType = IRI.create(eqs.getResource("evidence_type").getURI());
 				Optional<String> with = Optional.ofNullable(eqs.getLiteral("with")).map(l -> l.getLexicalForm());
 				Set<Pair<String, String>> annotationAnnotations = new HashSet<>();
@@ -180,14 +180,14 @@ public class GPADSPARQLExport {
 	private Set<AnnotationExtension> possibleExtensions(Set<BasicGPADData> basicAnnotations, Model model) {
 		Set<AnnotationExtension> possibleExtensions = new HashSet<>();
 		Var targetVar = Var.alloc("target");
-		List<Binding> bindings = basicAnnotations.stream().map(ba -> createBinding(Pair.of(targetVar, ba.getOntologyClassNode().asNode()))).collect(Collectors.toList());
+		List<Binding> bindings = basicAnnotations.stream().map(ba -> createBinding(Pair.of(targetVar, ba.getOntologyClassNode()))).collect(Collectors.toList());
 		Query query = QueryFactory.create(extensionsQuery);
 		query.setValuesDataBlock(Arrays.asList(targetVar), bindings);
 		QueryExecution qe = QueryExecutionFactory.create(query, model);
 		ResultSet results = qe.execSelect();
 		while (results.hasNext()) {
 			QuerySolution result =  results.next();
-			Statement statement = ResourceFactory.createStatement(result.getResource("target"), ResourceFactory.createProperty(result.getResource("extension_rel").getURI()), result.getResource("extension"));
+			Triple statement = Triple.create(result.getResource("target").asNode(), result.getResource("extension_rel").asNode(), result.getResource("extension").asNode());
 			IRI extensionType = IRI.create(result.getResource("extension_type").getURI());
 			possibleExtensions.add(new AnnotationExtension(statement, extensionType));
 		}
