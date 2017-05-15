@@ -48,7 +48,6 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 
 	public static final IRI DERIVED_IRI = IRI.create("http://geneontology.org/lego/derived");
 	public static final String DERIVED_VALUE = "true";
-	public static final IRI JSON_MODEL_IRI = IRI.create("http://geneontology.org/lego/json-model");
 
 	private final CurieHandler curieHandler;
 	private final ExternalLookupService lookupService;
@@ -71,7 +70,6 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 		IRI displayLabelPropIri = df.getRDFSLabel().getIRI();
 		OWLAnnotationProperty shortIdProp = df.getOWLAnnotationProperty(shortIdPropIRI);
 		OWLAnnotationProperty displayLabelProp = df.getOWLAnnotationProperty(displayLabelPropIri);
-		OWLAnnotationProperty jsonProp = df.getOWLAnnotationProperty(JSON_MODEL_IRI);
 		OWLObjectProperty enabledByProp = df.getOWLObjectProperty(enabledByIRI);
 		// annotations to mark the axiom as generated
 		final OWLAnnotationProperty tagProperty = df.getOWLAnnotationProperty(DERIVED_IRI);
@@ -86,16 +84,7 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 			if (ontologyIRI.isPresent()) {
 				final String modelId = curieHandler.getCuri(ontologyIRI.get());
 				final OWLAnnotation modelAnnotation = df.getOWLAnnotation(shortIdProp, df.getOWLLiteral(modelId), tags);
-				allChanges.add(new AddOntologyAnnotation(model, modelAnnotation));
-
-				// WARNING dirty work-around
-				// we add the json model (without inferences) to each saved model as a model annotation
-				final MolecularModelJsonRenderer renderer = OperationsTools.createModelRenderer(modelId, model, lookupService, null, curieHandler);
-				final JsonModel jsonModel = renderer.renderModel();
-				final Gson gson = new GsonBuilder().create();
-				final String json = gson.toJson(jsonModel);
-				final OWLAnnotation jsonAnnotation = df.getOWLAnnotation(jsonProp, df.getOWLLiteral(json), tags);
-				allChanges.add(new AddOntologyAnnotation(model, jsonAnnotation));
+				allChanges.add(new AddOntologyAnnotation(model, modelAnnotation));		
 			}
 		}
 		
@@ -188,7 +177,6 @@ public class ModelWriterHelper implements PreFileSaveHandler {
 			// add declaration axioms for annotation properties
 			// this is a bug fix
 			allChanges.add(new AddAxiom(model, df.getOWLDeclarationAxiom(tagProperty)));
-			allChanges.add(new AddAxiom(model, df.getOWLDeclarationAxiom(jsonProp)));
 			allChanges.add(new AddAxiom(model, df.getOWLDeclarationAxiom(shortIdProp)));
 			allChanges.add(new AddAxiom(model, df.getOWLDeclarationAxiom(displayLabelProp)));
 		}
