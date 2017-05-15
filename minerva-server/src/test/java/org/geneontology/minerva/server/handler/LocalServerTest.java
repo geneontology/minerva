@@ -78,7 +78,7 @@ public class LocalServerTest {
 		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
 		
 		MinervaStartUpConfig conf = new MinervaStartUpConfig();
-		conf.inferenceProviderCreator = CachingInferenceProviderCreatorImpl.createElk(false);
+		conf.reasonerOpt = "elk";
 		conf.useRequestLogging = true;
 		conf.checkLiteralIds = false;
 		conf.lookupService = null;
