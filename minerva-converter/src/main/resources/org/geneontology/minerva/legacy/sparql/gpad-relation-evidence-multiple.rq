@@ -1,0 +1,35 @@
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX evidence: <http://geneontology.org/lego/evidence>
+PREFIX gomodel: <http://model.geneontology.org/>
+PREFIX BFO: <http://purl.obolibrary.org/obo/BFO_>
+PREFIX CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
+PREFIX PR: <http://purl.obolibrary.org/obo/PR_>
+
+SELECT DISTINCT ?subject ?predicate ?object ?evidence_type ?with ?date ?source (GROUP_CONCAT(DISTINCT ?contributor ; separator="|") AS ?contributors)
+WHERE {    
+#?subject ?predicate ?object .
+# Evidence is attached as an axiom annotation
+?axiom rdf:type owl:Axiom .
+?axiom owl:annotatedSource ?subject .
+?axiom owl:annotatedProperty ?predicate .
+?axiom owl:annotatedTarget ?object .
+# Link between axiom and evidence
+?axiom evidence: ?evidence .
+# Only get asserted types for the evidence
+?evidence rdf:type ?evidence_type .
+FILTER NOT EXISTS {
+    ?evidence <http://arachne.geneontology.org/indirect_type> ?evidence_type .
+}
+FILTER(isIRI(?evidence_type))
+FILTER(?evidence_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040))
+# Additional values associated with the evidence
+?evidence dc:contributor ?contributor .
+?evidence dc:date ?date .
+?evidence dc:source ?source .
+OPTIONAL { ?evidence <http://geneontology.org/lego/evidence-with> ?with }
+}
+GROUP BY ?subject ?predicate ?object ?axiom ?evidence ?evidence_type ?with ?date ?source

@@ -438,7 +438,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
 		for (IRI modelIRI : m3.getAvailableModelIds()) {
-			String gpad = new GPADSPARQLExport(curieHandler, null, m3.getLegacyRelationShorthandIndex()).exportGPAD(m3.createInferenceModel(modelIRI));
+			String gpad = new GPADSPARQLExport(curieHandler, null, m3.getLegacyRelationShorthandIndex()).exportGPAD(m3.createInferredModel(modelIRI));
 			String fileName = StringUtils.replaceOnce(modelIRI.toString(), modelIdPrefix, "") + ".gpad";
 			Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(gpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
 			writer.write(gpad);

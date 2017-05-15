@@ -52,7 +52,9 @@ public class GPADRenderer {
 			columns.add(formatDate(data.getDate()));
 			columns.add(data.getAssignedBy());
 			columns.add(formatAnnotationExtensions(data.getAnnotationExtensions()));
-			columns.add("contributor=" + data.getContributor());
+			columns.add(data.getAnnotations().stream()
+					.map(a -> a.getLeft() + "=" + a.getRight())
+					.collect(Collectors.joining("|")));
 			return String.join("\t", columns);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -102,7 +104,7 @@ public class GPADRenderer {
 		return extensions.stream()
 				.sorted(extensionComparator)
 				.map(ce -> this.renderConjunctiveExpression(ce))
-				.collect(Collectors.joining("|"));
+				.collect(Collectors.joining(","));
 	}
 
 	private static Comparator<ConjunctiveExpression> extensionComparator = new Comparator<ConjunctiveExpression>() {

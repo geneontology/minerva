@@ -1,107 +1,133 @@
 package org.geneontology.minerva.legacy.sparql;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.jena.query.QuerySolution;
+import org.apache.commons.lang3.tuple.Pair;
 import org.semanticweb.owlapi.model.IRI;
 
 public class DefaultGPADData implements GPADData {
 
-	private final QuerySolution result;
+	private final IRI object;
+	private final IRI qualifier;
+	private final IRI ontologyClass;
+	private final Set<ConjunctiveExpression> annotationExtensions;
+	private final String reference;
+	private final IRI evidence;
+	private final Optional<String> withOrFrom;
+	private final Optional<IRI> interactingTaxon;
+	private final String date;
+	private final String assignedBy;
+	private final Set<Pair<String, String>> annotations;
 
-	public DefaultGPADData(QuerySolution qs) {
-		result = qs;
+	public DefaultGPADData(IRI object, IRI qualifier, IRI ontologyClass, Set<ConjunctiveExpression> annotationExtensions, 
+			String reference, IRI evidence, Optional<String> withOrFrom, Optional<IRI> interactingTaxon, 
+			String date, String assignedBy, Set<Pair<String, String>> annotations) {
+		this.object = object;
+		this.qualifier = qualifier;
+		this.ontologyClass = ontologyClass;
+		this.annotationExtensions = annotationExtensions;
+		this.reference = reference;
+		this.evidence = evidence;
+		this.withOrFrom = withOrFrom;
+		this.interactingTaxon = interactingTaxon;
+		this.date = date;
+		this.assignedBy = assignedBy;
+		this.annotations = annotations;
 	}
 
 	@Override
 	public IRI getObject() {
-		return IRI.create(result.getResource("pr_type").getURI());
+		return this.object;
 	}
 
 	@Override
 	public IRI getQualifier() {
-		return IRI.create(result.getResource("rel").getURI());
+		return this.qualifier;
 	}
 
 	@Override
 	public IRI getOntologyClass() {
-		return IRI.create(result.getResource("target_type").getURI());
-	}
-
-	@Override
-	public String getReference() {
-		return result.getLiteral("source").getLexicalForm();
-	}
-
-	@Override
-	public IRI getEvidence() {
-		return IRI.create(result.getResource("evidence_type").getURI());
-	}
-
-	@Override
-	public Optional<String> getWithOrFrom() {
-		return Optional.ofNullable(result.getLiteral("with")).map(l -> l.getLexicalForm());
-	}
-
-	@Override
-	public Optional<IRI> getInteractingTaxonID() {
-		return Optional.empty();
-	}
-
-	@Override
-	public String getDate() {
-		return result.getLiteral("date").getLexicalForm();
-	}
-
-	@Override
-	public String getAssignedBy() {
-		return "GO_Noctua";
+		return this.ontologyClass;
 	}
 
 	@Override
 	public Set<ConjunctiveExpression> getAnnotationExtensions() {
-		Set<ConjunctiveExpression> extensions = new HashSet<>();
-		if (result.getLiteral("extensions") != null) {
-			for (String extension : result.getLiteral("extensions").getLexicalForm().split("\\|")) {
-				String[] parts = extension.split("@@");
-				if (parts.length == 2) {
-					final String rel = parts[0];
-					final String filler = parts[1];
-					extensions.add(new DefaultConjunctiveExpression(rel, filler));
-				}
-			}
-		}
-		return Collections.unmodifiableSet(extensions);
+		return this.annotationExtensions;
+	}
+
+
+	@Override
+	public String getReference() {
+		return this.reference;
 	}
 
 	@Override
-	public String getContributor() {
-		return result.getLiteral("contributor").getLexicalForm();
+	public IRI getEvidence() {
+		return this.evidence;
 	}
 
-	private static class DefaultConjunctiveExpression implements ConjunctiveExpression {
+	@Override
+	public Optional<String> getWithOrFrom() {
+		return this.withOrFrom;
+	}
 
-		private final String relation;
-		private final String filler;
+	@Override
+	public Optional<IRI> getInteractingTaxonID() {
+		return this.interactingTaxon;
+	}
 
-		public DefaultConjunctiveExpression(String rel, String fill) {
-			this.relation = rel;
-			this.filler = fill;
+	@Override
+	public String getDate() {
+		return this.date;
+	}
+
+	@Override
+	public String getAssignedBy() {
+		return this.assignedBy;
+	}
+
+	@Override
+	public Set<Pair<String, String>> getAnnotations() {
+		return this.annotations;
+	}
+
+	@Override
+	public boolean equals(Object other) {
+		if (this == other) { return true; }
+		else if (!(other instanceof DefaultGPADData)) { return false; }
+		else {
+			DefaultGPADData otherData = (DefaultGPADData)other;
+			return this.getObject().equals(otherData.getObject())
+					&& this.getQualifier().equals(otherData.getQualifier())
+					&& this.getOntologyClass().equals(otherData.getOntologyClass())
+					&& this.getAnnotationExtensions().equals(otherData.getAnnotationExtensions())
+					&& this.getReference().equals(otherData.getReference())
+					&& this.getEvidence().equals(otherData.getEvidence())
+					&& this.getWithOrFrom().equals(otherData.getWithOrFrom())
+					&& this.getInteractingTaxonID().equals(otherData.getInteractingTaxonID())
+					&& this.getDate().equals(otherData.getDate())
+					&& this.getAssignedBy().equals(otherData.getAssignedBy())
+					&& this.getAnnotations().equals(otherData.getAnnotations());
 		}
+	}
 
-		@Override
-		public IRI getRelation() {
-			return IRI.create(relation);
-		}
-
-		@Override
-		public IRI getFiller() {
-			return IRI.create(filler);
-		}
-
+	@Override
+	public int hashCode() {
+		int result = 17;
+		result = 37 * result + this.getObject().hashCode();
+		result = 37 * result + this.getQualifier().hashCode();
+		result = 37 * result + this.getOntologyClass().hashCode();
+		result = 37 * result + this.getAnnotationExtensions().hashCode();
+		result = 37 * result + this.getReference().hashCode();
+		result = 37 * result + this.getEvidence().hashCode();
+		result = 37 * result + this.getReference().hashCode();
+		result = 37 * result + this.getWithOrFrom().hashCode();
+		result = 37 * result + this.getInteractingTaxonID().hashCode();
+		result = 37 * result + this.getDate().hashCode();
+		result = 37 * result + this.getAssignedBy().hashCode();
+		result = 37 * result + this.getAnnotations().hashCode();
+		return result;
 	}
 
 }
