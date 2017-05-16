@@ -344,7 +344,7 @@
 			<dependency>
 				<groupId>org.geneontology</groupId>
 				<artifactId>arachne_2.11</artifactId>
-				<version>0.0.4-SNAPSHOT</version>
+				<version>0.0.4</version>
 			</dependency>
 			<dependency>
 				<groupId>org.apache.jena</groupId>
