@@ -66,7 +66,7 @@ public class StartUpTool {
 		public ExternalLookupService lookupService = null;
 		public boolean checkLiteralIds = true;
 
-		public InferenceProviderCreator inferenceProviderCreator = null;
+		public String reasonerOpt = null;
 		
 		public CurieHandler curieHandler;
 
@@ -167,17 +167,20 @@ public class StartUpTool {
 				conf.golrSeedUrl = opts.nextOpt();
 			}
 			else if (opts.nextEq("--no-reasoning|--no-reasoner")) {
-				conf.inferenceProviderCreator = null;
+				conf.reasonerOpt = null;
 			}
 			else if (opts.nextEq("--slme-hermit")) {
-				conf.inferenceProviderCreator = CachingInferenceProviderCreatorImpl.createHermiT();
+				conf.reasonerOpt = "slme-hermit";
 			}
 			else if (opts.nextEq("--slme-elk")) {
-				conf.inferenceProviderCreator = CachingInferenceProviderCreatorImpl.createElk(true);
+				conf.reasonerOpt = "slme-elk";
 			}
 			else if (opts.nextEq("--elk")) {
-				conf.inferenceProviderCreator = CachingInferenceProviderCreatorImpl.createElk(false);
+				conf.reasonerOpt = "elk";
 			}
+			else if (opts.nextEq("--arachne")) { 
+				conf.reasonerOpt = "arachne";  
+			} 
 			else if (opts.nextEq("--use-request-logging|--request-logging")) {
 				conf.useRequestLogging = true;
 			}
@@ -326,6 +329,16 @@ public class StartUpTool {
 		return server;
 	}
 	
+	public static InferenceProviderCreator createInferenceProviderCreator(String reasonerOpt, OWLOntology tbox) { 
+		switch(reasonerOpt) { 
+		case ("slme-hermit"): return CachingInferenceProviderCreatorImpl.createHermiT(); 
+		case ("slme-elk"): return CachingInferenceProviderCreatorImpl.createElk(true); 
+		case ("elk"): return CachingInferenceProviderCreatorImpl.createElk(false); 
+		case ("arachne"): return CachingInferenceProviderCreatorImpl.createArachne(tbox); 
+		default: return null; 
+		} 
+	} 
+	
 	public static Server startUp(UndoAwareMolecularModelManager models, MinervaStartUpConfig conf)
 			throws Exception {
 		LOGGER.info("Setup Jetty config.");
@@ -339,7 +352,7 @@ public class StartUpTool {
 		}
 		//resourceConfig.register(AuthorizationRequestFilter.class);
 		
-		LOGGER.info("BatchHandler config inference provider: "+conf.inferenceProviderCreator);
+		LOGGER.info("BatchHandler config inference provider: "+conf.reasonerOpt);
 		LOGGER.info("BatchHandler config importantRelations: "+conf.importantRelations);
 		LOGGER.info("BatchHandler config lookupService: "+conf.lookupService);
 		LOGGER.info("BatchHandler config checkLiteralIds: "+conf.checkLiteralIds);
@@ -350,8 +363,10 @@ public class StartUpTool {
 		}
 		LOGGER.info("SeedHandler config golrUrl: "+conf.golrSeedUrl);
 		
+		InferenceProviderCreator ipc = createInferenceProviderCreator(conf.reasonerOpt, models.getOntology()); 
+		
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
-				conf.inferenceProviderCreator, conf.importantRelations, conf.lookupService);
+				ipc, conf.importantRelations, conf.lookupService);
 		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
 		
 		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
