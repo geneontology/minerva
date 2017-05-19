@@ -8,7 +8,7 @@
 	</parent>
 	<artifactId>minerva-cli</artifactId>
 	<name>Minerva-CommandLineInterface</name>
-	
+
 	<build>
 		<plugins>
 			<plugin>
@@ -44,8 +44,10 @@
 							<outputFile>bin/minerva-cli.jar</outputFile>
 							<createDependencyReducedPom>false</createDependencyReducedPom>
 							<transformers>
-								<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+								<transformer
+									implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
 									<manifestEntries>
 										<Main-Class>org.geneontology.minerva.cli.CommandLineInterface</Main-Class>
 										<git-revision-sha1>${git.commit.id}</git-revision-sha1>
@@ -60,6 +62,12 @@
 				</executions>
 			</plugin>
 		</plugins>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
 	</build>
 
 	<dependencies>

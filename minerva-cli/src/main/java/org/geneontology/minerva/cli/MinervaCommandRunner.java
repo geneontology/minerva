@@ -80,6 +80,15 @@ public class MinervaCommandRunner extends JsCommandRunner {
 	
 	private static final Logger LOGGER = Logger.getLogger(MinervaCommandRunner.class);
 	
+	@CLIMethod("--version")
+	public void printVersion(Opts opts) throws IOException {
+		opts.info("--version", "prints Minerva application version");
+		Properties properties = new Properties();
+		properties.load(MinervaCommandRunner.class.getResourceAsStream("/org/geneontology/minerva/minerva.properties"));
+		String version = properties.getProperty("minerva.version", "unknown");
+		System.out.println("Minerva version " + version);
+	}
+	
 	@CLIMethod("--dump-owl-models")
 	public void modelsToOWL(Opts opts) throws Exception {
 		opts.info("[-j|--journal JOURNALFILE] [-f|--folder OWLFILESFOLDER] [-p|--prefix MODELIDPREFIX]",
