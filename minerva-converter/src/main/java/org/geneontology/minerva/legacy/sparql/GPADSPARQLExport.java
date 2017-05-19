@@ -157,7 +157,7 @@ public class GPADSPARQLExport {
 				IRI evidenceType = IRI.create(eqs.getResource("evidence_type").getURI());
 				Optional<String> with = Optional.ofNullable(eqs.getLiteral("with")).map(l -> l.getLexicalForm());
 				Set<Pair<String, String>> annotationAnnotations = new HashSet<>();
-				annotationAnnotations.add(Pair.of("lego-model-id", modelID));
+				annotationAnnotations.add(Pair.of("noctua-model-id", modelID));
 				annotationAnnotations.addAll(getContributors(eqs).stream().map(c -> Pair.of("contributor", c)).collect(Collectors.toSet()));
 				String date = eqs.getLiteral("date").getLexicalForm();
 				String reference = eqs.getLiteral("source").getLexicalForm();
