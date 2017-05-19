@@ -271,19 +271,8 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	}
 	
 	private RuleEngine initializeRuleEngine() {
-		//FIXME this SWRL rule is temporary for demonstration purposes; remove after added to RO
-		OWLDataFactory factory = OWLManager.getOWLDataFactory();
-		SWRLVariable x = factory.getSWRLVariable(IRI.create("urn:swrl:var#x"));
-		SWRLVariable y = factory.getSWRLVariable(IRI.create("urn:swrl:var#y"));
-		SWRLVariable z = factory.getSWRLVariable(IRI.create("urn:swrl:var#z"));
-		Set<SWRLAtom> body = new HashSet<>();
-		Set<SWRLAtom> head = new HashSet<>();
-		body.add(factory.getSWRLObjectPropertyAtom(factory.getOWLObjectProperty(IRI.create("http://purl.obolibrary.org/obo/RO_0002327")), x, y));
-		body.add(factory.getSWRLObjectPropertyAtom(factory.getOWLObjectProperty(IRI.create("http://purl.obolibrary.org/obo/BFO_0000066")), y, z));
-		head.add(factory.getSWRLObjectPropertyAtom(factory.getOWLObjectProperty(IRI.create("http://purl.obolibrary.org/obo/BFO_0000050")), x, z));
 		Set<Rule> rules = new HashSet<>();
-		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(getOntology(), Imports.INCLUDED, true, true, false, true)).asJava());
-		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translateAxiom(factory.getSWRLRule(body, head))).asJava());
+		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(getOntology(), Imports.INCLUDED, true, true, true, true)).asJava());
 		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.indirectRules(getOntology())).asJava());
 		return new RuleEngine(Bridge.rulesFromJena(JavaConverters.asScalaSetConverter(rules).asScala()), true);
 	}
