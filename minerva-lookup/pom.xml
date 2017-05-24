@@ -4,7 +4,7 @@
 	<parent>
 		<artifactId>minerva</artifactId>
 		<groupId>org.geneontology</groupId>
-		<version>0.5</version>
+		<version>0.6</version>
 	</parent>
 	<artifactId>minerva-lookup</artifactId>
 	<name>Minerva-Lookup</name>
