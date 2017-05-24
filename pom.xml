@@ -2,7 +2,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.geneontology</groupId>
-	<version>0.6</version>
+	<version>0.6.1</version>
 	<artifactId>minerva</artifactId>
 	<packaging>pom</packaging>
 	<name>Minerva</name>
@@ -333,7 +333,7 @@
 			<dependency>
 				<groupId>org.geneontology</groupId>
 				<artifactId>owl-to-rules_2.11</artifactId>
-				<version>0.3.1</version>
+				<version>0.3.2</version>
 				<exclusions>
 					<exclusion>
 						<groupId>ch.qos.logback</groupId>
@@ -344,7 +344,13 @@
 			<dependency>
 				<groupId>org.geneontology</groupId>
 				<artifactId>arachne_2.11</artifactId>
-				<version>1.0</version>
+				<version>1.0.1</version>
+				<exclusions>
+					<exclusion>
+						<groupId>ch.qos.logback</groupId>
+						<artifactId>logback-classic</artifactId>
+					</exclusion>
+				</exclusions>
 			</dependency>
 			<dependency>
 				<groupId>org.apache.jena</groupId>

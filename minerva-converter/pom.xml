@@ -4,7 +4,7 @@
 	<parent>
 		<artifactId>minerva</artifactId>
 		<groupId>org.geneontology</groupId>
-		<version>0.6</version>
+		<version>0.6.1</version>
 	</parent>
 	<artifactId>minerva-converter</artifactId>
 	<name>Minerva-Converter</name>
