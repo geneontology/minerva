@@ -227,7 +227,7 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 
 					// invert and apply changes
 					List<OWLOntologyChange> invertedChanges = ReverseChangeGenerator.invertChanges(event.getChanges());
-					applyChanges(invertedChanges, abox.getOWLOntologyManager());
+					applyChanges(model, invertedChanges);
 
 					// push to redo
 					undoRedo.addRedo(event.changes, userId);
@@ -265,7 +265,7 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 					}
 
 					// apply changes
-					applyChanges(event.getChanges(), abox.getOWLOntologyManager());
+					applyChanges(model, event.getChanges());
 
 					// push() to undo
 					undoRedo.addUndo(event.getChanges(), userId);
@@ -311,8 +311,8 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 		}
 	}
 	
-	protected void applyChanges(List<OWLOntologyChange> changes, OWLOntologyManager manager) {
-		manager.applyChanges(changes);
+	protected void applyChanges(ModelContainer model, List<OWLOntologyChange> changes) {
+		model.applyChanges(changes);
 	}
 	
 }
