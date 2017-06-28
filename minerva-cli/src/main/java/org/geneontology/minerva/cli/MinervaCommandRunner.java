@@ -47,6 +47,7 @@ import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.ManchesterSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.RDFXMLDocumentFormat;
 import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
+import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLDocumentFormat;
@@ -311,6 +312,93 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			IOUtils.write(json, outputStream);
 		}
 	}
+	
+	@CLIMethod("--owl-lego-to-json-multi")
+	public void owl2LegoJsonMulti(Opts opts) throws Exception {
+	        opts.info("[-i OWLFILE*] [--pretty-json] [--compact-json]",
+	                "converts the LEGO subset of OWL to Minerva-JSON for a set of files");
+	        // parameters
+	        List<String> inputs = null;
+	        boolean usePretty = true;
+
+	        // parse opts
+	        while (opts.hasOpts()) {
+	            if (opts.nextEq("-i|--input")) {
+	                opts.info("input", "Sets the input file for the model");
+	                inputs = opts.nextList();
+	            }
+	            else if (opts.nextEq("--pretty-json")) {
+	                opts.info("", "pretty print the output json");
+	                usePretty = true;
+	            }
+	            else if (opts.nextEq("--compact-json")) {
+	                opts.info("", "compact print the output json");
+	                usePretty = false;
+	            }
+	            else {
+	                break;
+	            }
+	        }
+     
+	        // configuration
+	        CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
+	        GsonBuilder gsonBuilder = new GsonBuilder();
+	        if (usePretty) {
+	            gsonBuilder.setPrettyPrinting();
+	        }
+	        Gson gson = gsonBuilder.create();
+	        
+	        // process each model
+	        if (LOGGER.isInfoEnabled()) {
+	            LOGGER.info("Loading model from files: "+inputs);
+	        }
+	        for (String input: inputs) {
+	            OWLOntology model = null;
+	            final JsonModel jsonModel;
+	            try {
+	                // load model
+	                model = pw.parseOWL(IRI.create(new File(input).getCanonicalFile()));
+	                InferenceProvider inferenceProvider = null; // TODO decide if we need reasoning
+	                String modelId = null;
+	                Optional<IRI> ontologyIRI = model.getOntologyID().getOntologyIRI();
+	                if (ontologyIRI.isPresent()) {
+	                    modelId = curieHandler.getCuri(ontologyIRI.get());
+	                }
+	                
+	                if (g.getSourceOntology() != null) {
+	                    Optional<IRI> iri = g.getSourceOntology().getOntologyID().getOntologyIRI();
+	                    AddImport ai = 
+	                            new AddImport(g.getSourceOntology(),
+	                                    g.getDataFactory().getOWLImportsDeclaration(iri.get()));
+	                    g.getManager().applyChange(ai);
+	                }
+
+	                // render json
+	                final MolecularModelJsonRenderer renderer = new MolecularModelJsonRenderer(modelId, model, inferenceProvider, curieHandler);
+	                jsonModel = renderer.renderModel();
+	            }
+	            finally {
+	                if (model != null) {
+	                    pw.getManager().removeOntology(model);
+	                    model = null;
+	                }
+	            }
+
+	            // save as json string
+	            final String json = gson.toJson(jsonModel);
+	            String output = input;
+	            output = output.replaceAll("\\.\\w+$", "");
+	            output += ".json";
+	            final File outputFile = new File(output).getCanonicalFile();
+	            try (OutputStream outputStream = new FileOutputStream(outputFile)) {
+	                if (LOGGER.isInfoEnabled()) {
+	                    LOGGER.info("Saving json to file: "+outputFile);
+	                }
+	                IOUtils.write(json, outputStream);
+	            }
+	        }
+	    }
+
 
 	/**
 	 * Translate the GeneAnnotations into a lego all individual OWL representation.

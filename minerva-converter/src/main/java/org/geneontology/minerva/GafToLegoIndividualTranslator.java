@@ -134,10 +134,10 @@ public class GafToLegoIndividualTranslator {
 	 */
 	public void translate(GeneAnnotation annotation, Set<OWLAxiom> axioms) throws OWLException, UnknownIdentifierException {
 		// skip ND annotations
-		if ("ND".equals(annotation.getShortEvidence())) {
-			reportWarn("Skipping ND annotation", annotation);
-			return;
-		}
+		//if ("ND".equals(annotation.getShortEvidence())) {
+		//	reportWarn("Skipping ND annotation", annotation);
+		//	return;
+		//}
 		// skip annotation using a qualifier
 		String rel = StringUtils.trimToNull(annotation.getRelation());
 		if (rel != null) {
@@ -221,7 +221,7 @@ public class GafToLegoIndividualTranslator {
 		else {
 			// option #2: ISO-form as subclass of bioentity
 			try {
-				bioentityClass = addBioentityCls(isoForm, bioentity.getSymbol()+" ISO Form "+isoForm, bioentity.getNcbiTaxonId(), axioms, f);
+				bioentityClass = addBioentityCls(isoForm, bioentity.getSymbol()+" ISOForm "+isoForm, bioentity.getNcbiTaxonId(), axioms, f);
 			} catch (UnknownIdentifierException e) {
 				reportError("Could not find a class for the Bioentity: " + bioentity, annotation);
 				return;
