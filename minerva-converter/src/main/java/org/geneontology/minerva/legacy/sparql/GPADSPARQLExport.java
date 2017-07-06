@@ -100,7 +100,6 @@ public class GPADSPARQLExport {
 		Set<AnnotationExtension> possibleExtensions = possibleExtensions(basicAnnotations, model);
 		Set<Triple> statementsToExplain = new HashSet<>();
 		basicAnnotations.forEach(ba -> statementsToExplain.add(Triple.create(ba.getObjectNode(), NodeFactory.createURI(ba.getQualifier().toString()), ba.getOntologyClassNode())));
-		possibleExtensions.forEach(ae -> statementsToExplain.add(ae.getTriple()));
 		Map<Triple, Set<Explanation>> allExplanations = statementsToExplain.stream().collect(Collectors.toMap(Function.identity(), s -> toJava(wm.explain(Bridge.tripleFromJena(s)))));
 		Map<Triple, Set<GPADEvidence>> allEvidences = evidencesForFacts(allExplanations.values().stream().flatMap(es -> es.stream()).flatMap(e -> toJava(e.facts()).stream().map(t -> Bridge.jenaFromTriple(t))).collect(Collectors.toSet()), model, modelID);
 		for (BasicGPADData annotation : basicAnnotations) {
@@ -118,13 +117,7 @@ public class GPADSPARQLExport {
 						for (AnnotationExtension extension : possibleExtensions) {
 							if (extension.getTriple().getSubject().equals(annotation.getOntologyClassNode()) &&
 									!(extension.getTriple().getObject().equals(annotation.getObjectNode()))) {
-								for (Explanation expl : allExplanations.get(extension.getTriple())) {
-									boolean allFactsOfExplanationHaveRefMatchingAnnotation = toJava(expl.facts()).stream().map(fact -> allEvidences.getOrDefault(Bridge.jenaFromTriple(fact), Collections.emptySet())).allMatch(evidenceSet -> 
-									evidenceSet.stream().anyMatch(ev -> ev.getReference().equals(reference)));
-									if (allFactsOfExplanationHaveRefMatchingAnnotation) {
-										goodExtensions.add(new DefaultConjunctiveExpression(IRI.create(extension.getTriple().getPredicate().getURI()), extension.getValueType()));
-									}
-								}
+								goodExtensions.add(new DefaultConjunctiveExpression(IRI.create(extension.getTriple().getPredicate().getURI()), extension.getValueType()));
 							}
 						}
 						annotations.add(new DefaultGPADData(annotation.getObject(), annotation.getQualifier(), annotation.getOntologyClass(), goodExtensions, 
@@ -186,7 +179,7 @@ public class GPADSPARQLExport {
 		QueryExecution qe = QueryExecutionFactory.create(query, model);
 		ResultSet results = qe.execSelect();
 		while (results.hasNext()) {
-			QuerySolution result =  results.next();
+			QuerySolution result = results.next();
 			Triple statement = Triple.create(result.getResource("target").asNode(), result.getResource("extension_rel").asNode(), result.getResource("extension").asNode());
 			IRI extensionType = IRI.create(result.getResource("extension_type").getURI());
 			possibleExtensions.add(new AnnotationExtension(statement, extensionType));
