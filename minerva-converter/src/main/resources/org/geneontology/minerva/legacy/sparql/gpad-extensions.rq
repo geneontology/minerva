@@ -111,8 +111,8 @@ FILTER NOT EXISTS {
     ?target ?other_extension_rel ?extension .
     FILTER(?other_extension_rel != ?extension_rel)
 }
-# Only get asserted types for the extension filler (for now, until we can exclude redundant types with reasonable performance)
 ?extension rdf:type ?extension_type .
+# Only get direct types for the extension filler
 FILTER NOT EXISTS {
     ?extension <http://arachne.geneontology.org/indirect_type> ?extension_type .
 }
