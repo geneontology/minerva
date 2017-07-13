@@ -3,6 +3,7 @@ package org.geneontology.minerva;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ import org.geneontology.rules.engine.RuleEngine;
 import org.geneontology.rules.engine.Triple;
 import org.geneontology.rules.engine.WorkingMemory;
 import org.geneontology.rules.util.Bridge;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.RioRDFXMLDocumentFormatFactory;
 import org.semanticweb.owlapi.io.OWLOntologyDocumentSource;
@@ -77,8 +79,12 @@ import org.semanticweb.owlapi.model.SWRLVariable;
 import org.semanticweb.owlapi.model.SetOntologyID;
 import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.oboformat.OBOFormatOWLAPIParserFactory;
+import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.rio.RioMemoryTripleSource;
 import org.semanticweb.owlapi.rio.RioParserImpl;
+import org.semanticweb.owlapi.util.InferredEquivalentClassAxiomGenerator;
+import org.semanticweb.owlapi.util.InferredOntologyGenerator;
+import org.semanticweb.owlapi.util.InferredSubClassAxiomGenerator;
 import org.semanticweb.owlapi.util.PriorityCollection;
 
 import com.google.common.base.Optional;
@@ -247,7 +253,6 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		additionalImports = new HashSet<IRI>();
 	}
 
-
 	/**
 	 * @return graph wrapper for core/source ontology
 	 */
@@ -270,10 +275,18 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return ruleEngine;
 	}
 	
-	private RuleEngine initializeRuleEngine() {
+	private RuleEngine initializeRuleEngine() throws OWLOntologyCreationException {
+		// Materialize any inferrable direct subclass or equivalent class relations before transforming to rules
+		OWLReasoner reasoner = new ElkReasonerFactory().createReasoner(getOntology());
+		InferredOntologyGenerator iog = new InferredOntologyGenerator(reasoner, Arrays.asList(new InferredSubClassAxiomGenerator(), new InferredEquivalentClassAxiomGenerator()));
+		OWLOntologyManager manager = getOntology().getOWLOntologyManager();
+		OWLOntology inferredAxioms = manager.createOntology();
+		iog.fillOntology(this.getOntology().getOWLOntologyManager().getOWLDataFactory(), inferredAxioms);
+		reasoner.dispose();
+		manager.applyChange(new AddImport(inferredAxioms, manager.getOWLDataFactory().getOWLImportsDeclaration(getOntology().getOntologyID().getOntologyIRI().get())));
 		Set<Rule> rules = new HashSet<>();
-		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(getOntology(), Imports.INCLUDED, true, true, true, true)).asJava());
-		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.indirectRules(getOntology())).asJava());
+		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(inferredAxioms, Imports.INCLUDED, true, true, true, true)).asJava());
+		rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.indirectRules(inferredAxioms)).asJava());
 		return new RuleEngine(Bridge.rulesFromJena(JavaConverters.asScalaSetConverter(rules).asScala()), true);
 	}
 	

@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.ModelContainer.ModelChangeListener;
 import org.geneontology.minerva.json.InferenceProvider;
+import org.geneontology.rules.engine.RuleEngine;
 import org.geneontology.rules.util.ArachneOWLReasonerFactory;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -43,8 +44,8 @@ public class CachingInferenceProviderCreatorImpl extends InferenceProviderCreato
 				maxConcurrent, true, "Caching Hermit-SLME");
 	}
 	
-	public static InferenceProviderCreator createArachne(OWLOntology ontology) {
-		return new CachingInferenceProviderCreatorImpl(new ArachneOWLReasonerFactory(ontology), 1, false, "Caching Arachne");
+	public static InferenceProviderCreator createArachne(RuleEngine arachne) {
+		return new CachingInferenceProviderCreatorImpl(new ArachneOWLReasonerFactory(arachne), 1, false, "Caching Arachne");
 	}
 
 	@Override
