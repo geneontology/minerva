@@ -29,6 +29,7 @@ import org.geneontology.minerva.json.JsonRelationInfo;
 import org.geneontology.minerva.json.JsonTools;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.legacy.GafExportTool;
+import org.geneontology.minerva.legacy.sparql.ExportExplanation;
 import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
@@ -38,6 +39,7 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.handler.OperationsTools.MissingParameterException;
 import org.geneontology.minerva.server.validation.BeforeSaveModelValidator;
+import org.geneontology.minerva.util.TabDelimitedTriplesOutput;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLClassExpression;
@@ -646,6 +648,9 @@ abstract class OperationsImpl extends ModelCreator {
 		if ("gpad".equals(format)) {
 			initMetaResponse(response);
 			response.data.exportModel = new GPADSPARQLExport(curieHandler, externalLookupService, m3.getLegacyRelationShorthandIndex()).exportGPAD(m3.createInferredModel(model.getModelId()));
+		} else if ("explanations".equals(format)) {
+			initMetaResponse(response);
+			response.data.exportModel = ExportExplanation.exportExplanation(m3.createInferredModel(model.getModelId()), externalLookupService);
 		} else {
 			final GafExportTool exportTool = GafExportTool.getInstance();
 			if (format == null) {
