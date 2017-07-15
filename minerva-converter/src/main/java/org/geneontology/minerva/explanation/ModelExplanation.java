@@ -1,4 +1,4 @@
-package org.geneontology.minerva.json.explanations;
+package org.geneontology.minerva.explanation;
 
 import java.util.Arrays;
 
