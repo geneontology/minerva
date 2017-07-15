@@ -39,7 +39,6 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.handler.OperationsTools.MissingParameterException;
 import org.geneontology.minerva.server.validation.BeforeSaveModelValidator;
-import org.geneontology.minerva.util.TabDelimitedTriplesOutput;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLClassExpression;
