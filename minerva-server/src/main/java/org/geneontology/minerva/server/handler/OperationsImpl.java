@@ -650,7 +650,7 @@ abstract class OperationsImpl extends ModelCreator {
 			response.data.exportModel = new GPADSPARQLExport(curieHandler, externalLookupService, m3.getLegacyRelationShorthandIndex()).exportGPAD(m3.createInferredModel(model.getModelId()));
 		} else if ("explanations".equals(format)) {
 			initMetaResponse(response);
-			response.data.exportModel = ExportExplanation.exportExplanation(m3.createInferredModel(model.getModelId()), externalLookupService);
+			response.data.exportModel = ExportExplanation.exportExplanation(m3.createInferredModel(model.getModelId()), externalLookupService, m3.getLegacyRelationShorthandIndex());
 		} else {
 			final GafExportTool exportTool = GafExportTool.getInstance();
 			if (format == null) {

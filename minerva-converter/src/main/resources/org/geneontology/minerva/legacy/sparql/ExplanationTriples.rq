@@ -9,7 +9,7 @@ WHERE {
     ?s ?p ?o .
     ?s a owl:NamedIndividual .
     FILTER NOT EXISTS {
-        ?p ?other_rel ?o .
+        ?s ?other_rel ?o .
         ?other_rel rdfs:subPropertyOf ?p .
         FILTER(?other_rel != ?p) 
     }
