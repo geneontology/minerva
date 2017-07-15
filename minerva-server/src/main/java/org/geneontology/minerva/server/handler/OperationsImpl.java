@@ -29,6 +29,7 @@ import org.geneontology.minerva.json.JsonRelationInfo;
 import org.geneontology.minerva.json.JsonTools;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.legacy.GafExportTool;
+import org.geneontology.minerva.legacy.sparql.ExportExplanation;
 import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
@@ -646,6 +647,9 @@ abstract class OperationsImpl extends ModelCreator {
 		if ("gpad".equals(format)) {
 			initMetaResponse(response);
 			response.data.exportModel = new GPADSPARQLExport(curieHandler, externalLookupService, m3.getLegacyRelationShorthandIndex()).exportGPAD(m3.createInferredModel(model.getModelId()));
+		} else if ("explanations".equals(format)) {
+			initMetaResponse(response);
+			response.data.exportModel = ExportExplanation.exportExplanation(m3.createInferredModel(model.getModelId()), externalLookupService, m3.getLegacyRelationShorthandIndex());
 		} else {
 			final GafExportTool exportTool = GafExportTool.getInstance();
 			if (format == null) {
