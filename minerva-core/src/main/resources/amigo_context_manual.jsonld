@@ -10,6 +10,7 @@
     "ENSEMBL_ProteinID" : "http://www.ensembl.org/id/proteinid/",
     "ENSEMBL_TranscriptID" : "http://www.ensembl.org/id/transcriptid/",
     "GONUTS" : "http://gowiki.tamu.edu/wiki/index.php/gonuts/",
-    "SGD" : "http://identifiers.org/sgd/"
+    "SGD" : "http://identifiers.org/sgd/",
+    "Xenbase" : "http://identifiers.org/xenbase/"
   }
 }
