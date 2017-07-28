@@ -29,10 +29,6 @@ WHERE {
         part_of: 
         acts_upstream_of: 
         acts_upstream_of_or_within: 
-        involved_in_regulation_of: 
-        involved_in_negative_regulation_of: 
-        involved_in_positive_regulation_of: 
-        involved_in_or_involved_in_regulation_of: 
     }
     # The main annotation relation
     ?pr ?rel ?target .
