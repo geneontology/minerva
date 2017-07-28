@@ -37,7 +37,7 @@ public class ModelDecorationTest {
 		OWLOntologyManager m = OWLManager.createOWLOntologyManager();
 		OWLDataFactory f = m.getOWLDataFactory();
 		
-		CurieMappings defaultMappings = DefaultCurieHandler.getMappings();
+		CurieMappings defaultMappings = DefaultCurieHandler.loadDefaultMappings();
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap("http://testmodel.geneontology.org/","testmodel"));
 		CurieHandler curieHandler = new MappedCurieHandler(defaultMappings, localMappings);
 		
@@ -91,4 +91,5 @@ public class ModelDecorationTest {
 		String s = outputStream.toString();
 		return s;
 	}
+	
 }

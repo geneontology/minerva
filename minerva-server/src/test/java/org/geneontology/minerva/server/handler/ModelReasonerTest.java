@@ -59,7 +59,7 @@ public class ModelReasonerTest {
 		final String modelIdcurie = "gomodel";
 		final String modelIdPrefix = "http://model.geneontology.org/";
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
-		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
+		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		
 		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
 		InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false);

@@ -436,7 +436,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		OWLOntology ontology = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(ontologyIRI));
 		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(new OWLGraphWrapper(ontology), modelIdPrefix, inputDB, null);
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
-		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
+		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		for (IRI modelIRI : m3.getAvailableModelIds()) {
 			String gpad = new GPADSPARQLExport(curieHandler, null, m3.getLegacyRelationShorthandIndex()).exportGPAD(m3.createInferredModel(modelIRI));
 			String fileName = StringUtils.replaceOnce(modelIRI.toString(), modelIdPrefix, "") + ".gpad";
@@ -526,7 +526,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		}
 		// create curie handler
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
-		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
+		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		
 		ExternalLookupService lookup= null;
 
