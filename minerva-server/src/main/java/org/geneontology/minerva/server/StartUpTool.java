@@ -1,5 +1,6 @@
 package org.geneontology.minerva.server;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -87,6 +88,8 @@ public class StartUpTool {
 		public boolean useRequestLogging = false;
 		
 		public boolean useGolrUrlLogging = false;
+		
+		public String prefixesFile = null;
 	}
 	
 	public static void main(String[] args) throws Exception {
@@ -187,6 +190,9 @@ public class StartUpTool {
 			else if (opts.nextEq("--use-golr-url-logging|--golr-url-logging")) {
 				conf.useGolrUrlLogging = true;
 			}
+			else if (opts.nextEq("--prefix-mappings")) {
+				conf.prefixesFile = opts.nextOpt();
+			}
 			else {
 				break;
 			}
@@ -205,11 +211,14 @@ public class StartUpTool {
 		}
 		
 		// set curie handler
-		CurieMappings defaultMappings = DefaultCurieHandler.getMappings();
+		final CurieMappings mappings;
+		if (conf.prefixesFile != null) {
+			mappings = DefaultCurieHandler.loadMappingsFromFile(new File(conf.prefixesFile));
+		} else {
+			mappings = DefaultCurieHandler.loadDefaultMappings();	
+		}
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(conf.modelIdcurie, conf.modelIdPrefix));
-		
-		// TODO make the modules configurable
-		conf.curieHandler = new MappedCurieHandler(defaultMappings, localMappings);
+		conf.curieHandler = new MappedCurieHandler(mappings, localMappings);
 
 		// wrap the Golr service with a cache
 		if (conf.golrUrl != null) {

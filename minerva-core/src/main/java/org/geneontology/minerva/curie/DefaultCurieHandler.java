@@ -1,5 +1,8 @@
 package org.geneontology.minerva.curie;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,24 +17,21 @@ public class DefaultCurieHandler {
 		// no instances
 	}
 	
-	private static volatile CurieHandler DEFAULT_CURI_HANDLER = null;
-	private static volatile CurieMappings DEFAULT_CURI_MAPPINGS = null;
-	
 	public static synchronized CurieHandler getDefaultHandler() {
-		if (DEFAULT_CURI_HANDLER == null) {
-			DEFAULT_CURI_HANDLER = new MappedCurieHandler(getMappings());
-		}
-		return DEFAULT_CURI_HANDLER;
+		return new MappedCurieHandler(loadDefaultMappings());
 	}
 	
-	public static synchronized CurieMappings getMappings() {
-		if (DEFAULT_CURI_MAPPINGS == null) {
-			DEFAULT_CURI_MAPPINGS = loadDefaultMappings();
-		}
-		return DEFAULT_CURI_MAPPINGS;
+	public static CurieHandler getHandlerForFile(File jsonld) throws FileNotFoundException {
+		return new MappedCurieHandler(loadMappingsFromFile(jsonld));
 	}
 	
-	static CurieMappings loadDefaultMappings() {
+	public static CurieMappings loadMappingsFromFile(File jsonld) throws FileNotFoundException {
+		final Map<String, String> curieMap = new HashMap<String, String>();
+		loadJsonldStream(new FileInputStream(jsonld), curieMap);
+		return new CurieMappings.SimpleCurieMappings(curieMap);
+	}
+	
+	public static CurieMappings loadDefaultMappings() {
 		final Map<String, String> curieMap = new HashMap<String, String>();
 		loadJsonldResource("obo_context.jsonld", curieMap);
 		loadJsonldResource("monarch_context.jsonld", curieMap);
@@ -40,17 +40,21 @@ public class DefaultCurieHandler {
 		return new CurieMappings.SimpleCurieMappings(curieMap);
 	}
 	
+	public static void loadJsonldStream(InputStream stream, Map<String, String> curieMap) {
+		CurieMappings jsonldContext = CurieMappingsJsonld.loadJsonLdContext(stream);
+		curieMap.putAll(jsonldContext.getMappings());
+	}
+	
 	public static void loadJsonldResource(String resource, Map<String, String> curieMap) {
 		InputStream stream = loadResourceAsStream(resource);
 		if (stream != null) {
-			CurieMappings jsonldContext = CurieMappingsJsonld.loadJsonLdContext(stream);
-			curieMap.putAll(jsonldContext.getMappings());
+			loadJsonldStream(stream, curieMap);
 		}
 		else {
-			LOG.error("Could not find resource for default curie map: "+resource);
+			LOG.error("Could not find resource for default curie map: " + stream);
 		}
 	}
-
+	
 	//  package private for testing purposes
 	static InputStream loadResourceAsStream(String resource) {
 		InputStream stream = DefaultCurieHandler.class.getResourceAsStream(resource);

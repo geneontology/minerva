@@ -96,7 +96,7 @@ public class BatchModelHandlerTest {
 		final String modelIdcurie = "gomodel";
 		final String modelIdPrefix = "http://model.geneontology.org/";
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
-		curieHandler = new MappedCurieHandler(DefaultCurieHandler.getMappings(), localMappings);
+		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false);
 		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
 		lookupService = createTestProteins(curieHandler);
