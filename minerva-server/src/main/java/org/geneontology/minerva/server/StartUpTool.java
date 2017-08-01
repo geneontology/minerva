@@ -338,12 +338,12 @@ public class StartUpTool {
 		return server;
 	}
 	
-	public static InferenceProviderCreator createInferenceProviderCreator(String reasonerOpt, OWLOntology tbox) { 
+	public static InferenceProviderCreator createInferenceProviderCreator(String reasonerOpt, UndoAwareMolecularModelManager models) { 
 		switch(reasonerOpt) { 
 		case ("slme-hermit"): return CachingInferenceProviderCreatorImpl.createHermiT(); 
 		case ("slme-elk"): return CachingInferenceProviderCreatorImpl.createElk(true); 
 		case ("elk"): return CachingInferenceProviderCreatorImpl.createElk(false); 
-		case ("arachne"): return CachingInferenceProviderCreatorImpl.createArachne(tbox); 
+		case ("arachne"): return CachingInferenceProviderCreatorImpl.createArachne(models.getRuleEngine()); 
 		default: return null; 
 		} 
 	} 
@@ -372,7 +372,7 @@ public class StartUpTool {
 		}
 		LOGGER.info("SeedHandler config golrUrl: "+conf.golrSeedUrl);
 		
-		InferenceProviderCreator ipc = createInferenceProviderCreator(conf.reasonerOpt, models.getOntology()); 
+		InferenceProviderCreator ipc = createInferenceProviderCreator(conf.reasonerOpt, models); 
 		
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
 				ipc, conf.importantRelations, conf.lookupService);
