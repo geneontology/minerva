@@ -105,8 +105,8 @@ public class GPADSPARQLExport {
 		for (BasicGPADData annotation : basicAnnotations) {
 			for (Explanation explanation : allExplanations.get(Triple.create(annotation.getObjectNode(), NodeFactory.createURI(annotation.getQualifier().toString()), annotation.getOntologyClassNode()))) {
 				Set<Triple> requiredFacts = toJava(explanation.facts()).stream().map(t -> Bridge.jenaFromTriple(t)).collect(Collectors.toSet());
-				// Every statement in the explanation must have at least one evidence
-				if (requiredFacts.stream().allMatch(f -> !(allEvidences.get(f).isEmpty()))) {
+				// Every statement in the explanation must have at least one evidence, unless the statement is a class assertion
+				if (requiredFacts.stream().filter(t -> !t.getPredicate().getURI().equals(RDF.type.getURI())).allMatch(f -> !(allEvidences.get(f).isEmpty()))) {
 					// The evidence used for the annotation must be on an edge to or from the target node
 					Stream<GPADEvidence> annotationEvidences = requiredFacts.stream()
 							.filter(f -> (f.getSubject().equals(annotation.getOntologyClassNode()) || f.getObject().equals(annotation.getOntologyClassNode())))
