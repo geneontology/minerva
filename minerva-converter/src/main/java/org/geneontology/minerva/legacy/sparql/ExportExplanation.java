@@ -56,16 +56,26 @@ public class ExportExplanation {
 	}
 
 	public static String exportExplanation(WorkingMemory wm, ExternalLookupService lookup, Map<IRI, String> labelMap) {
+		Set<Triple> triples = new HashSet<>();
 		Model model = ModelFactory.createDefaultModel();
 		model.add(toJava(wm.facts()).stream().map(t -> model.asStatement(Bridge.jenaFromTriple(t))).collect(Collectors.toList()));
 		QueryExecution qe = QueryExecutionFactory.create(mainQuery, model);
 		ResultSet results = qe.execSelect();
-		Set<Triple> triples = new HashSet<>();
 		while (results.hasNext()) {
 			QuerySolution qs = results.next();
 			triples.add(new Triple(new URI(qs.getResource("s").getURI()), new URI(qs.getResource("p").getURI()), new URI(qs.getResource("o").getURI())));
 		}
 		qe.close();
+		// Make sure all the asserted triples are included, in case they got filtered out as indirect by the first query
+		Model assertedModel = ModelFactory.createDefaultModel();
+		assertedModel.add(toJava(wm.asserted()).stream().map(t -> assertedModel.asStatement(Bridge.jenaFromTriple(t))).collect(Collectors.toList()));
+		QueryExecution aqe = QueryExecutionFactory.create(mainQuery, assertedModel);
+		ResultSet assertedResults = aqe.execSelect();
+		while (assertedResults.hasNext()) {
+			QuerySolution qs = assertedResults.next();
+			triples.add(new Triple(new URI(qs.getResource("s").getURI()), new URI(qs.getResource("p").getURI()), new URI(qs.getResource("o").getURI())));
+		}
+		aqe.close();
 		Set<Triple> asserted = triples.stream().filter(t -> wm.asserted().contains(t)).collect(Collectors.toSet());
 		Set<Triple> inferred = triples.stream().filter(t -> !wm.asserted().contains(t)).collect(Collectors.toSet());
 		Map<Triple, Set<Explanation>> allExplanations = inferred.stream().collect(Collectors.toMap(Function.identity(), s -> toJava(wm.explain(s))));
