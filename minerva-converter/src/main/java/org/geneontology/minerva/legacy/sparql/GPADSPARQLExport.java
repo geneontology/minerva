@@ -47,6 +47,13 @@ import scala.collection.JavaConverters;
 public class GPADSPARQLExport {
 
 	private static final Logger LOG = Logger.getLogger(GPADSPARQLExport.class);
+
+	private static final String ND = "http://purl.obolibrary.org/obo/ECO_0000307";
+	private static final String MF = "http://purl.obolibrary.org/obo/GO_0003674";
+	private static final String BP = "http://purl.obolibrary.org/obo/GO_0008150";
+	private static final String CC = "http://purl.obolibrary.org/obo/GO_0005575";
+	private static final Set<String> rootTerms = new HashSet<>(Arrays.asList(MF, BP, CC));
+	
 	private static String mainQuery;
 	static {
 		try {
@@ -120,8 +127,14 @@ public class GPADSPARQLExport {
 								goodExtensions.add(new DefaultConjunctiveExpression(IRI.create(extension.getTriple().getPredicate().getURI()), extension.getValueType()));
 							}
 						}
-						annotations.add(new DefaultGPADData(annotation.getObject(), annotation.getQualifier(), annotation.getOntologyClass(), goodExtensions, 
-								reference, currentEvidence.getEvidence(), currentEvidence.getWithOrFrom(), Optional.empty(), currentEvidence.getDate(), "GO_Noctua", currentEvidence.getAnnotations()));
+						final boolean rootViolation;
+						if (rootTerms.contains(annotation.getOntologyClass().toString())) {
+							rootViolation = !ND.equals(currentEvidence.getEvidence().toString());
+						} else { rootViolation = false; }
+						if (!rootViolation) {
+							annotations.add(new DefaultGPADData(annotation.getObject(), annotation.getQualifier(), annotation.getOntologyClass(), goodExtensions, 
+									reference, currentEvidence.getEvidence(), currentEvidence.getWithOrFrom(), Optional.empty(), currentEvidence.getDate(), "GO_Noctua", currentEvidence.getAnnotations()));	
+						}
 					});
 				}
 			}
