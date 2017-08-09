@@ -16,6 +16,7 @@ PREFIX involved_in_regulation_of: <http://purl.obolibrary.org/obo/RO_0002428>
 PREFIX involved_in_negative_regulation_of: <http://purl.obolibrary.org/obo/RO_0002430>
 PREFIX involved_in_positive_regulation_of: <http://purl.obolibrary.org/obo/RO_0002429>
 PREFIX involved_in_or_involved_in_regulation_of: <http://purl.obolibrary.org/obo/RO_0002431>
+PREFIX contributes_to: <http://purl.obolibrary.org/obo/RO_0002326>
 PREFIX BFO: <http://purl.obolibrary.org/obo/BFO_>
 PREFIX CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
 PREFIX PR: <http://purl.obolibrary.org/obo/PR_>
@@ -29,6 +30,7 @@ WHERE {
         part_of: 
         acts_upstream_of: 
         acts_upstream_of_or_within: 
+        contributes_to:
     }
     # The main annotation relation
     ?pr ?rel ?target .
