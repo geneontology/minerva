@@ -15,7 +15,9 @@ import org.geneontology.minerva.server.handler.OperationsTools.MissingParameterE
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
+import org.semanticweb.owlapi.model.OWLObjectComplementOf;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 import owltools.graph.OWLGraphWrapper;
@@ -115,6 +117,22 @@ public class M3ExpressionParserTest {
 		OWLClassExpression ce = new M3ExpressionParser(curieHandler).parse(graph, expression, null);
 		assertEquals(graph.getOWLClassByIdentifier(CELL_MORPHOGENESIS), ce);
 	}
+	
+	@Test
+	public void testParseClazzNegated() throws Exception {
+
+	    JsonOwlObject expression = new JsonOwlObject();
+	    expression.type = JsonOwlObjectType.ComplementOf;
+	    expression.filler = new JsonOwlObject();
+	    expression.filler.id = NUCLEUS;
+        expression.filler.type = JsonOwlObjectType.Class;
+
+	    OWLClassExpression ce = new M3ExpressionParser(curieHandler).parse(graph, expression, null);
+	    OWLClass nucleus = graph.getOWLClassByIdentifier(NUCLEUS);
+	    OWLObjectComplementOf ceExpected = graph.getDataFactory().getOWLObjectComplementOf(nucleus);
+	    assertEquals(ceExpected, ce);
+	}
+
 	
 	/**
      * test that Default expression parser will throw UnknownIdentifierException
