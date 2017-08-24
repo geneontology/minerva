@@ -17,7 +17,9 @@ import org.junit.Test;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
+import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLObjectComplementOf;
+import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 import owltools.graph.OWLGraphWrapper;
@@ -118,20 +120,45 @@ public class M3ExpressionParserTest {
 		assertEquals(graph.getOWLClassByIdentifier(CELL_MORPHOGENESIS), ce);
 	}
 	
-	@Test
-	public void testParseClazzNegated() throws Exception {
+    @Test
+    public void testParseClazzNegated() throws Exception {
 
-	    JsonOwlObject expression = new JsonOwlObject();
-	    expression.type = JsonOwlObjectType.ComplementOf;
-	    expression.filler = new JsonOwlObject();
-	    expression.filler.id = NUCLEUS;
+        JsonOwlObject expression = new JsonOwlObject();
+        expression.type = JsonOwlObjectType.ComplementOf;
+        expression.filler = new JsonOwlObject();
+        expression.filler.id = NUCLEUS;
         expression.filler.type = JsonOwlObjectType.Class;
 
-	    OWLClassExpression ce = new M3ExpressionParser(curieHandler).parse(graph, expression, null);
-	    OWLClass nucleus = graph.getOWLClassByIdentifier(NUCLEUS);
-	    OWLObjectComplementOf ceExpected = graph.getDataFactory().getOWLObjectComplementOf(nucleus);
-	    assertEquals(ceExpected, ce);
-	}
+        OWLClassExpression ce = new M3ExpressionParser(curieHandler).parse(graph, expression, null);
+        OWLClass nucleus = graph.getOWLClassByIdentifier(NUCLEUS);
+        OWLObjectComplementOf ceExpected = graph.getDataFactory().getOWLObjectComplementOf(nucleus);
+        assertEquals(ceExpected, ce);
+    }
+
+    @Test
+    public void testParseClazzNegatedExpression() throws Exception {
+
+        JsonOwlObject svf = new JsonOwlObject();     
+        svf.type = JsonOwlObjectType.SomeValueFrom;
+        svf.property = new JsonOwlObject();
+        svf.property.type = JsonOwlObjectType.ObjectProperty;
+        svf.property.id = OCCURS_IN; // occurs_in
+        svf.filler = new JsonOwlObject();
+        svf.filler.id = NUCLEUS;
+        svf.filler.type = JsonOwlObjectType.Class;
+
+        JsonOwlObject expression = new JsonOwlObject();
+        expression.type = JsonOwlObjectType.ComplementOf;
+        expression.filler = svf;
+  
+        OWLDataFactory df = graph.getDataFactory();
+        OWLClassExpression ce = new M3ExpressionParser(curieHandler).parse(graph, expression, null);
+        
+        OWLClass nucleus = graph.getOWLClassByIdentifier(NUCLEUS);
+        OWLObjectSomeValuesFrom svfx = df.getOWLObjectSomeValuesFrom(graph.getOWLObjectPropertyByIdentifier(OCCURS_IN), nucleus);
+        OWLObjectComplementOf ceExpected = df.getOWLObjectComplementOf(svfx);
+        assertEquals(ceExpected, ce);
+    }
 
 	
 	/**
