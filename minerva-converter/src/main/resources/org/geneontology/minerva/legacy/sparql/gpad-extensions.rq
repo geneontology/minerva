@@ -24,6 +24,7 @@ VALUES ?extension_rel {
 <http://purl.obolibrary.org/obo/GOCHEREL_0000003>
 <http://purl.obolibrary.org/obo/GOCHEREL_0000004>
 <http://purl.obolibrary.org/obo/GOREL_0000040>
+<http://purl.obolibrary.org/obo/GOREL_0001004>
 <http://purl.obolibrary.org/obo/GOREL_0001006>
 <http://purl.obolibrary.org/obo/GOREL_0001007>
 <http://purl.obolibrary.org/obo/GOREL_0002001>
