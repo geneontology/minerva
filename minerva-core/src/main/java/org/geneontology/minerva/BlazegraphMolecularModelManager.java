@@ -54,6 +54,7 @@ import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.MissingImportHandlingStrategy;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
+import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLDocumentFormat;
 import org.semanticweb.owlapi.model.OWLImportsDeclaration;
@@ -109,6 +110,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	public BlazegraphMolecularModelManager(OWLGraphWrapper graph, String modelIdPrefix, String pathToJournal, String pathToExportFolder)
 			throws OWLOntologyCreationException {
 		super(graph);
+		LOG.info("Created BMMM from "+graph);
 		this.modelIdPrefix = modelIdPrefix;
 		this.pathToOWLStore = pathToJournal;
 		this.pathToExportFolder = pathToExportFolder;
@@ -287,6 +289,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 					connection.clear(graph);
 					StatementCollector collector = new StatementCollector();
 					RioRenderer renderer = new RioRenderer(model, collector, null);
+					LOG.info("RENDING: "+model);
 					renderer.render();
 					connection.add(collector.getStatements(), graph);
 					connection.commit();
@@ -497,6 +500,12 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				graphs.close();
 				RepositoryResult<Statement> statements = 
 						connection.getStatements(null, null, null, false, new URIImpl(modelId.toString()));
+				LOG.info("STATEMENTS TO GO INTO ABOX: "+statements+ " for "+modelId);
+				List<Statement> sl = statements.asList();
+				for (Statement s : sl) {
+				    LOG.info("  ****  S ="+s);
+				}
+				
 				OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), false);
 				statements.close();
 				abox = postLoadFileFilter(abox);
@@ -570,6 +579,10 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		OWLOntologyLoaderConfiguration config = new OWLOntologyLoaderConfiguration()
 			.setMissingImportHandlingStrategy(MissingImportHandlingStrategy.SILENT);
 		OWLOntology ont = manager.loadOntologyFromOntologyDocument(new FileDocumentSource(file), config);
+		LOG.info("IMPORTING INTO "+ont+" FROM "+file);
+		for (OWLAxiom a : ont.getAxioms()) {
+		    LOG.info("AXIOM: "+a);
+		}
 		Optional<IRI> modelIdOpt = ont.getOntologyID().getOntologyIRI();
 		if (modelIdOpt.isPresent()) {
 			this.writeModelToDatabase(ont, modelIdOpt.get());

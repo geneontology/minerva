@@ -1209,7 +1209,8 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 * Loads an OWL ontology from an OWLOntologyDocumentSource
 	 * 
 	 * If minimal is true, the imports are skipped (note: this could have unintended consequences such as
-	 * interpreting object property assertions as annotation property assertions) 
+	 * interpreting object property assertions as annotation property assertions). This is only
+	 * used for loading into arachne 
 	 * 
 	 * @param source
 	 * @param minimal
