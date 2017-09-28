@@ -680,6 +680,8 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 * Retrieve the abox ontology. May skip loading the imports.
 	 * This method is mostly intended to read metadata from a model.
 	 * 
+	 * CJM NOTE: it appears that the only time this is called is when making an inferred model
+	 * 
 	 * @param id
 	 * @return abox, maybe without any imports loaded
 	 */
@@ -841,6 +843,13 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return newModel;
 	}
 	
+	/**
+	 * Loads a model into memory
+	 * 
+	 * @param modelId
+	 * @param isOverride - if true, replace existing in-memory model
+	 * @throws OWLOntologyCreationException - if ontology in memory and override not set
+	 */
 	protected abstract void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException;
 
 	ModelContainer addModel(IRI modelId, OWLOntology abox) throws OWLOntologyCreationException {
@@ -973,8 +982,9 @@ public abstract class CoreMolecularModelManager<METADATA> {
 
 	public void addFact(ModelContainer model, OWLObjectPropertyExpression p,
 			OWLIndividual i, OWLIndividual j, Set<OWLAnnotation> annotations, METADATA metadata) {
-		OWLObjectPropertyAssertionAxiom axiom = createFact(model.getOWLDataFactory(), p, i,	j, annotations);
-		addAxiom(model, axiom, metadata);
+	    OWLDataFactory factory = model.getOWLDataFactory();
+		OWLObjectPropertyAssertionAxiom axiom = createFact(factory, p, i,	j, annotations);
+		addAxiom(model, axiom, metadata);		        
 	}
 
 	/**
@@ -1195,6 +1205,17 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		// do nothing, for now
 	}
 
+	/**
+	 * Loads an OWL ontology from an OWLOntologyDocumentSource
+	 * 
+	 * If minimal is true, the imports are skipped (note: this could have unintended consequences such as
+	 * interpreting object property assertions as annotation property assertions) 
+	 * 
+	 * @param source
+	 * @param minimal
+	 * @return OWLOntology
+	 * @throws OWLOntologyCreationException
+	 */
 	protected OWLOntology loadOntologyDocumentSource(final OWLOntologyDocumentSource source, boolean minimal) throws OWLOntologyCreationException {
 		return loadOntologyDocumentSource(source, minimal, graph.getManager());
 	}
