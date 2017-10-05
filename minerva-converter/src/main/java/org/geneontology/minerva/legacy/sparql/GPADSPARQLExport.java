@@ -36,7 +36,6 @@ import org.apache.jena.vocabulary.RDF;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.legacy.sparql.GPADData.ConjunctiveExpression;
-import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.rules.engine.Explanation;
 import org.geneontology.rules.engine.WorkingMemory;
 import org.geneontology.rules.util.Bridge;
@@ -53,7 +52,7 @@ public class GPADSPARQLExport {
 	private static final String BP = "http://purl.obolibrary.org/obo/GO_0008150";
 	private static final String CC = "http://purl.obolibrary.org/obo/GO_0005575";
 	private static final Set<String> rootTerms = new HashSet<>(Arrays.asList(MF, BP, CC));
-	
+
 	private static String mainQuery;
 	static {
 		try {
@@ -80,12 +79,10 @@ public class GPADSPARQLExport {
 	}
 	private final CurieHandler curieHandler;
 	private final Map<IRI, String> relationShorthandIndex;
-	private final ExternalLookupService lookupService;
 
-	public GPADSPARQLExport(CurieHandler handler, ExternalLookupService lookup, Map<IRI, String> shorthandIndex) {
+	public GPADSPARQLExport(CurieHandler handler, Map<IRI, String> shorthandIndex) {
 		this.curieHandler = handler;
 		this.relationShorthandIndex = shorthandIndex;
-		this.lookupService = lookup;
 	}
 
 	/*
@@ -107,6 +104,7 @@ public class GPADSPARQLExport {
 		Set<AnnotationExtension> possibleExtensions = possibleExtensions(basicAnnotations, model);
 		Set<Triple> statementsToExplain = new HashSet<>();
 		basicAnnotations.forEach(ba -> statementsToExplain.add(Triple.create(ba.getObjectNode(), NodeFactory.createURI(ba.getQualifier().toString()), ba.getOntologyClassNode())));
+		possibleExtensions.forEach(ae -> statementsToExplain.add(ae.getTriple()));
 		Map<Triple, Set<Explanation>> allExplanations = statementsToExplain.stream().collect(Collectors.toMap(Function.identity(), s -> toJava(wm.explain(Bridge.tripleFromJena(s)))));
 		Map<Triple, Set<GPADEvidence>> allEvidences = evidencesForFacts(allExplanations.values().stream().flatMap(es -> es.stream()).flatMap(e -> toJava(e.facts()).stream().map(t -> Bridge.jenaFromTriple(t))).collect(Collectors.toSet()), model, modelID);
 		for (BasicGPADData annotation : basicAnnotations) {
@@ -124,7 +122,13 @@ public class GPADSPARQLExport {
 						for (AnnotationExtension extension : possibleExtensions) {
 							if (extension.getTriple().getSubject().equals(annotation.getOntologyClassNode()) &&
 									!(extension.getTriple().getObject().equals(annotation.getObjectNode()))) {
-								goodExtensions.add(new DefaultConjunctiveExpression(IRI.create(extension.getTriple().getPredicate().getURI()), extension.getValueType()));
+								for (Explanation expl : allExplanations.get(extension.getTriple())) {
+									boolean allFactsOfExplanationHaveRefMatchingAnnotation = toJava(expl.facts()).stream().map(fact -> allEvidences.getOrDefault(Bridge.jenaFromTriple(fact), Collections.emptySet())).allMatch(evidenceSet -> 
+									evidenceSet.stream().anyMatch(ev -> ev.getReference().equals(reference)));
+									if (allFactsOfExplanationHaveRefMatchingAnnotation) {
+										goodExtensions.add(new DefaultConjunctiveExpression(IRI.create(extension.getTriple().getPredicate().getURI()), extension.getValueType()));
+									}
+								}
 							}
 						}
 						final boolean rootViolation;
@@ -139,7 +143,7 @@ public class GPADSPARQLExport {
 				}
 			}
 		}
-		return new GPADRenderer(curieHandler, lookupService, relationShorthandIndex).renderAll(annotations);
+		return new GPADRenderer(curieHandler, relationShorthandIndex).renderAll(annotations);
 	}
 
 	private Map<Triple, Set<GPADEvidence>> evidencesForFacts(Set<Triple> facts, Model model, String modelID) {
