@@ -82,11 +82,6 @@ public class BatchModelHandlerTest {
 	}
 
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException, UnknownIdentifierException {
-		Runtime runtime = Runtime.getRuntime();
-		long maxMemory = runtime.maxMemory();
-		double maxMemoryGB = (double)maxMemory / (double)(1024L*1024L*1024L);
-		assertTrue("We expect at least 4GB for the max memory, current: "+maxMemory, maxMemoryGB > 4);
-		
 		final OWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl");
 		final OWLObjectProperty legorelParent = StartUpTool.getRelation("http://purl.obolibrary.org/obo/LEGOREL_0000000", graph);
 		assertNotNull(legorelParent);
