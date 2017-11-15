@@ -18,7 +18,8 @@ public class GPADRenderer {
 	private final Map<IRI, String> relationShorthandIndex;
 
 	public static final String HEADER = "!gpa-version: 1.2";
-
+	public static final String ATTRIBUTE = "!DB		DBObjectID	Qualifier	GOID	DB:References		EvidenceCode	With(Or)From	InteractingTaxonID	AssignedBy	AnnoExt	AnnoProp";
+	
 	public GPADRenderer(CurieHandler handler, Map<IRI, String> shorthandIndex) {
 		this.curieHandler = handler;
 		this.relationShorthandIndex = shorthandIndex;
@@ -28,6 +29,11 @@ public class GPADRenderer {
 		StringBuilder sb = new StringBuilder();
 		sb.append(HEADER);
 		sb.append("\n");
+		
+		/* Added for debugging. Can be removed if this would be a problem */
+		/* sb.append(ATTRIBUTE);		
+		sb.append("\n"); */
+		
 		for (GPADData annotation : data) {
 			sb.append(render(annotation));
 			sb.append("\n");
@@ -40,7 +46,7 @@ public class GPADRenderer {
 			List<String> columns = new ArrayList<>();
 			columns.add(dbForObject(data.getObject()));
 			columns.add(localIDForObject(data.getObject()));
-			columns.add(symbolForRelation(data.getQualifier()));
+			columns.add(symbolForRelation(data.getQualifier(), data.getOperator()));
 			columns.add(curieHandler.getCuri(data.getOntologyClass()));
 			columns.add(data.getReference());
 			columns.add(curieHandler.getCuri(data.getEvidence()));
@@ -78,15 +84,27 @@ public class GPADRenderer {
 	}
 
 	private String symbolForRelation(IRI iri) {
+		return symbolForRelation(iri, null);
+	}
+	
+	private String symbolForRelation(IRI iri, GPADOperatorStatus operator) {
 		// Property labels don't seem to be in external lookup service?
 //		Optional<String> labelOpt = Optional.ofNullable(lookupService.lookup(iri)).orElse(Collections.emptyList()).stream()
 //				.filter(e -> e.label != null).findAny().map(e -> e.label.replaceAll(" ", "_"));
 //		return labelOpt.orElse(curieHandler.getCuri(iri));
 
-		if (relationShorthandIndex.containsKey(iri)) {
-			return relationShorthandIndex.get(iri);
+		if (operator == null || operator.equals(GPADOperatorStatus.NONE)) {
+			if (relationShorthandIndex.containsKey(iri)) {
+				return relationShorthandIndex.get(iri);
+			} else {
+				return curieHandler.getCuri(iri);
+			}
 		} else {
-			return curieHandler.getCuri(iri);
+			if (relationShorthandIndex.containsKey(iri)) {
+				return relationShorthandIndex.get(iri) + "|" + operator.name();
+			} else {
+				return  curieHandler.getCuri(iri) + "|" + operator.name();
+			}
 		}
 	}
 

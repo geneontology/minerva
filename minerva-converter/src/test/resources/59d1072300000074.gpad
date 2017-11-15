@@ -1,0 +1,7 @@
+!gpa-version: 1.2
+SGD	S000004724	BFO:0000050|NOT	GO:0005634	PMID:456	ECO:0000314			20171101	GO_Noctua		noctua-model-id=http://model.geneontology.org/59d1072300000074|contributor=GOC:kltm
+SGD	S000004724	RO:0002264|NOT	GO:0007267	PMID:123	ECO:0000314			20171101	GO_Noctua		noctua-model-id=http://model.geneontology.org/59d1072300000074|contributor=GOC:kltm
+SGD	S000028630	RO:0002264|NOT	GO:0007507	PMID:123	ECO:0005669			20171101	GO_Noctua	RO:0002131(GO:0003674)	noctua-model-id=http://model.geneontology.org/59d1072300000074|contributor=GOC:kltm
+SGD	S000004724	RO:0002331|NOT	GO:0007267	PMID:123	ECO:0000314			20171101	GO_Noctua		noctua-model-id=http://model.geneontology.org/59d1072300000074|contributor=GOC:kltm
+SGD	S000004724	RO:0002327|NOT	GO:0016301	2	ECO:0005662	1		20171101	GO_Noctua		noctua-model-id=http://model.geneontology.org/59d1072300000074|contributor=GOC:kltm
+SGD	S000028630	RO:0002331|NOT	GO:0007507	PMID:123	ECO:0005669			20171101	GO_Noctua	RO:0002131(GO:0003674)	noctua-model-id=http://model.geneontology.org/59d1072300000074|contributor=GOC:kltm
