@@ -15,7 +15,6 @@ import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.json.JsonOwlIndividual;
 import org.geneontology.minerva.json.JsonOwlObject;
-import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.json.JsonOwlObject.JsonOwlObjectType;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.AfterClass;

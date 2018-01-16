@@ -38,9 +38,9 @@ import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
+import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
-import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
 
 public class ModelEditTest {
@@ -59,7 +59,7 @@ public class ModelEditTest {
 
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
 		//This includes only the needed terms for the test to pass
-		final OWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/edit-test/go-lego-empty.owl"); 
+		final OWLOntology graph = pw.parseToOWLGraph("src/test/resources/edit-test/go-lego-empty.owl").getSourceOntology(); 
 
 		// curie handler
 		final String modelIdcurie = "gomodel";

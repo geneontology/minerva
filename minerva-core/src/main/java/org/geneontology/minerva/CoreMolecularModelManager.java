@@ -7,23 +7,20 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.rdf.model.impl.StmtIteratorImpl;
 import org.apache.jena.reasoner.rulesys.Rule;
 import org.apache.log4j.Logger;
 import org.geneontology.jena.OWLtoRules;
 import org.geneontology.jena.SesameJena;
 import org.geneontology.minerva.util.AnnotationShorthand;
+import org.geneontology.minerva.util.OBOUpperVocabulary;
 import org.geneontology.rules.engine.RuleEngine;
 import org.geneontology.rules.engine.Triple;
 import org.geneontology.rules.engine.WorkingMemory;
@@ -72,8 +69,6 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.model.RemoveAxiom;
 import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
-import org.semanticweb.owlapi.model.SWRLAtom;
-import org.semanticweb.owlapi.model.SWRLVariable;
 import org.semanticweb.owlapi.model.SetOntologyID;
 import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.oboformat.OBOFormatOWLAPIParserFactory;
@@ -83,8 +78,6 @@ import org.semanticweb.owlapi.util.PriorityCollection;
 
 import com.google.common.base.Optional;
 
-import owltools.graph.OWLGraphWrapper;
-import owltools.vocab.OBOUpperVocabulary;
 import scala.collection.JavaConverters;
 
 /**
@@ -106,7 +99,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	// legacy
 	private static final IRI HAS_EVIDENCE_IRI_OLD = AnnotationShorthand.evidence.getAnnotationProperty();
 
-	final OWLGraphWrapper graph;
+	final OWLOntology graph;
 //	final OWLReasonerFactory rf;
 	private final IRI tboxIRI;
 	final Map<IRI, ModelContainer> modelMap = new HashMap<IRI, ModelContainer>();
@@ -187,7 +180,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 * @param graph
 	 * @throws OWLOntologyCreationException
 	 */
-	public CoreMolecularModelManager(OWLGraphWrapper graph) throws OWLOntologyCreationException {
+	public CoreMolecularModelManager(OWLOntology graph) throws OWLOntologyCreationException {
 		super();
 		this.graph = graph;
 		tboxIRI = getTboxIRI(graph);
@@ -227,14 +220,10 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 * @return IRI, never null
 	 * @throws OWLOntologyCreationException
 	 */
-	protected IRI getTboxIRI(OWLGraphWrapper graph) throws OWLOntologyCreationException {
-		OWLOntology tbox = graph.getSourceOntology();
-		OWLOntologyID ontologyID = tbox.getOntologyID();
-		if (ontologyID != null) {
-			Optional<IRI> ontologyIRI = ontologyID.getOntologyIRI();
-			if (ontologyIRI.isPresent()) {
-				return ontologyIRI.get();
-			}
+	protected IRI getTboxIRI(OWLOntology graph) throws OWLOntologyCreationException {
+		Optional<IRI> ontologyIRI = graph.getOntologyID().getOntologyIRI();
+		if (ontologyIRI.isPresent()) {
+			return ontologyIRI.get();
 		}
 		throw new OWLOntologyCreationException("No ontology id available for tbox. An ontology IRI is required for the import into the abox.");
 	}
@@ -247,19 +236,11 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		additionalImports = new HashSet<IRI>();
 	}
 
-
-	/**
-	 * @return graph wrapper for core/source ontology
-	 */
-	public OWLGraphWrapper getGraph() {
-		return graph;
-	}
-
 	/**
 	 * @return core/source ontology
 	 */
 	public OWLOntology getOntology() {
-		return graph.getSourceOntology();
+		return graph;
 	}
 	
 	public Map<IRI, String> getLegacyRelationShorthandIndex() {
@@ -795,7 +776,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 */
 	public ModelContainer importModel(String modelData) throws OWLOntologyCreationException {
 		// load data from String
-		final OWLOntologyManager manager = graph.getManager();
+		final OWLOntologyManager manager = graph.getOWLOntologyManager();
 		final OWLOntologyDocumentSource documentSource = new StringDocumentSource(modelData);
 		OWLOntology modelOntology;
 		final Set<OWLParserFactory> originalFactories = removeOBOParserFactories(manager);
@@ -844,8 +825,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	protected abstract void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException;
 
 	ModelContainer addModel(IRI modelId, OWLOntology abox) throws OWLOntologyCreationException {
-		OWLOntology tbox = graph.getSourceOntology();
-		ModelContainer m = new ModelContainer(modelId, tbox, abox);
+		ModelContainer m = new ModelContainer(modelId, graph, abox);
 		modelMap.put(modelId, m);
 		return m;
 	}
@@ -1196,7 +1176,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	}
 
 	protected OWLOntology loadOntologyDocumentSource(final OWLOntologyDocumentSource source, boolean minimal) throws OWLOntologyCreationException {
-		return loadOntologyDocumentSource(source, minimal, graph.getManager());
+		return loadOntologyDocumentSource(source, minimal, graph.getOWLOntologyManager());
 	}
 
 	static OWLOntology loadOntologyDocumentSource(final OWLOntologyDocumentSource source, boolean minimal, OWLOntologyManager manager) throws OWLOntologyCreationException {

@@ -52,7 +52,7 @@ public class DataPropertyTest {
 	
 	private final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	
-	private UndoAwareMolecularModelManager createM3(OWLGraphWrapper g) throws OWLOntologyCreationException, IOException {
+	private UndoAwareMolecularModelManager createM3(OWLOntology g) throws OWLOntologyCreationException, IOException {
 		UndoAwareMolecularModelManager mmm = new UndoAwareMolecularModelManager(g, curieHandler,
 				"http://model.geneontology.org/", folder.newFile().getAbsolutePath(), null);
 		return mmm;
@@ -70,8 +70,7 @@ public class DataPropertyTest {
 			m.addAxiom(ontology, f.getOWLDeclarationAxiom(prop));
 			m.addAxiom(ontology, f.getOWLAnnotationAssertionAxiom(propIRI, f.getOWLAnnotation(f.getRDFSLabel(), f.getOWLLiteral("fake-data-property"))));
 		}
-		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
-		MolecularModelManager<?> mmm = createM3(graph);
+		MolecularModelManager<?> mmm = createM3(ontology);
 		Pair<List<JsonRelationInfo>,List<JsonRelationInfo>> pair = MolecularModelJsonRenderer.renderProperties(mmm, null, curieHandler);
 		List<JsonRelationInfo> dataProperties = pair.getRight();
 		assertEquals(1, dataProperties.size());
@@ -95,9 +94,8 @@ public class DataPropertyTest {
 		m.addAxiom(ontology, f.getOWLAnnotationAssertionAxiom(clsIRI, f.getOWLAnnotation(f.getRDFSLabel(), f.getOWLLiteral("fake-cls"))));
 		
 		// graph and m3
-		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
 		final UndoMetadata metadata = new UndoMetadata("foo-user");
-		UndoAwareMolecularModelManager m3 = createM3(graph);
+		UndoAwareMolecularModelManager m3 = createM3(ontology);
 		
 		final ModelContainer model = m3.generateBlankModel(metadata);
 		final OWLNamedIndividual individual = m3.createIndividual(model, cls, metadata);
@@ -133,8 +131,7 @@ public class DataPropertyTest {
 		m.addAxiom(ontology, f.getOWLAnnotationAssertionAxiom(clsIRI, f.getOWLAnnotation(f.getRDFSLabel(), f.getOWLLiteral("fake-cls"))));
 		
 		// graph and m3
-		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
-		UndoAwareMolecularModelManager m3 = createM3(graph);
+		UndoAwareMolecularModelManager m3 = createM3(ontology);
 		
 		// handler
 		InferenceProviderCreator ipc = null;

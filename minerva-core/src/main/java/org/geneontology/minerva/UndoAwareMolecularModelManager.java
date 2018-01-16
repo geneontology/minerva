@@ -17,9 +17,6 @@ import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.model.OWLOntologyManager;
-
-import owltools.graph.OWLGraphWrapper;
 
 /**
  * Provide undo and redo operations for the {@link MolecularModelManager}.
@@ -171,7 +168,7 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 		}
 	}
 
-	public UndoAwareMolecularModelManager(OWLGraphWrapper graph,
+	public UndoAwareMolecularModelManager(OWLOntology graph,
 			CurieHandler curieHandler, String modelIdLongFormPrefix, String pathToJournal, String pathToExportFolder) throws OWLOntologyCreationException {
 		super(graph, curieHandler, modelIdLongFormPrefix, pathToJournal, pathToExportFolder);
 	}

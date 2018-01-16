@@ -121,7 +121,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		}
 		
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(new OWLGraphWrapper(dummy), modelIdPrefix, journalFilePath, outputFolder);
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, modelIdPrefix, journalFilePath, outputFolder);
 		m3.dumpAllStoredModels();
 		m3.dispose();
 	}
@@ -163,7 +163,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 		String modelIdPrefix = "http://model.geneontology.org/"; // this will not be used for anything
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(new OWLGraphWrapper(dummy), modelIdPrefix, journalFilePath, null);
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, modelIdPrefix, journalFilePath, null);
 		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
 			LOGGER.info("Loading " + file);
 			m3.importModelToDatabase(file);
@@ -434,7 +434,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			}
 		}
 		OWLOntology ontology = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(ontologyIRI));
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(new OWLGraphWrapper(ontology), modelIdPrefix, inputDB, null);
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(ontology, modelIdPrefix, inputDB, null);
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		for (IRI modelIRI : m3.getAvailableModelIds()) {

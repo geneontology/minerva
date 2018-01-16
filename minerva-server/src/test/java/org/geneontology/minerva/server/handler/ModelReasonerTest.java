@@ -28,14 +28,13 @@ import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
+import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
-import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
 
 public class ModelReasonerTest {
@@ -53,7 +52,7 @@ public class ModelReasonerTest {
 	}
 	
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
-		final OWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl"); //FIXME need more from go-lego
+		final OWLOntology graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl").getSourceOntology(); //FIXME need more from go-lego
 		
 		// curie handler
 		final String modelIdcurie = "gomodel";

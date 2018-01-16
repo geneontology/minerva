@@ -253,13 +253,13 @@ public class StartUpTool {
 	 * @param g
 	 * @return property or null
 	 */
-	public static OWLObjectProperty getRelation(String rel, OWLGraphWrapper g) {
+	public static OWLObjectProperty getRelation(String rel, OWLOntology g) {
 		if (rel == null || rel.isEmpty()) {
 			return null;
 		}
 		if (rel.startsWith("http://")) {
 			IRI iri = IRI.create(rel);
-			return g.getDataFactory().getOWLObjectProperty(iri);
+			return g.getOWLOntologyManager().getOWLDataFactory().getOWLObjectProperty(iri);
 		}
 		// try to find property
 		OWLObjectProperty p = g.getOWLObjectPropertyByIdentifier(rel);
@@ -280,9 +280,9 @@ public class StartUpTool {
 	 * @param g
 	 * @return set
 	 */
-	public static Set<OWLObjectProperty> getAssertedSubProperties(OWLObjectProperty parent, OWLGraphWrapper g) {
+	public static Set<OWLObjectProperty> getAssertedSubProperties(OWLObjectProperty parent, OWLOntology g) {
 		Set<OWLObjectProperty> properties = new HashSet<OWLObjectProperty>();
-		for(OWLOntology ont : g.getAllOntologies()) {
+		for(OWLOntology ont : g.getImportsClosure()) {
 			Set<OWLSubObjectPropertyOfAxiom> axioms = ont.getObjectSubPropertyAxiomsForSuperProperty(parent);
 			for (OWLSubObjectPropertyOfAxiom axiom : axioms) {
 				OWLObjectPropertyExpression subProperty = axiom.getSubProperty();
@@ -304,7 +304,7 @@ public class StartUpTool {
 			LOGGER.info("Adding catalog xml: "+conf.catalog);
 			pw.addIRIMapper(new CatalogXmlIRIMapper(conf.catalog));
 		}
-		OWLGraphWrapper graph = pw.parseToOWLGraph(conf.ontology);
+		OWLOntology graph = pw.parseToOWLGraph(conf.ontology).getSourceOntology();
 		
 		// try to get important relations
 		if (conf.importantRelationParent != null) {

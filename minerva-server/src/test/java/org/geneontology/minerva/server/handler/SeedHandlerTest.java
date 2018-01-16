@@ -22,10 +22,10 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.rules.TemporaryFolder;
+import org.semanticweb.owlapi.model.OWLOntology;
 
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
-import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
 
 public class SeedHandlerTest {
@@ -48,7 +48,7 @@ public class SeedHandlerTest {
 	}
 
 	static void init(ParserWrapper pw, String golr) throws Exception {
-		final OWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl"); //TODO need more from go-lego
+		final OWLOntology graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl").getSourceOntology(); //TODO need more from go-lego
 		// curie handler
 		final String modelIdcurie = "gomodel";
 		final String modelIdPrefix = "http://model.geneontology.org/";

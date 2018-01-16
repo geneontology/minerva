@@ -23,6 +23,7 @@ import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
+import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 import owltools.OWLToolsTestBasics;
@@ -41,14 +42,14 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		Logger.getLogger("org.semanticweb.elk").setLevel(Level.ERROR);
 	}
 	
-	private MolecularModelManager<Void> createM3(OWLGraphWrapper g, File journal) throws OWLOntologyCreationException, IOException {
+	private MolecularModelManager<Void> createM3(OWLOntology g, File journal) throws OWLOntologyCreationException, IOException {
 		return new MolecularModelManager<Void>(g, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), null);
 	}
 
 	@Test
 	public void testDeleteIndividual() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
-		OWLGraphWrapper g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
+		OWLOntology g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo")).getSourceOntology();
 
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity
@@ -81,7 +82,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	@Test
 	public void testExportImport() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
-		OWLGraphWrapper g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
+		OWLOntology g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo")).getSourceOntology();
 
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity
@@ -126,7 +127,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	@Test
 	public void testSaveModel() throws Exception {
 		final ParserWrapper pw1 = new ParserWrapper();
-		OWLGraphWrapper g = pw1.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
+		OWLOntology g = pw1.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo")).getSourceOntology();
 
 		File journalFile = folder.newFile();
 		MolecularModelManager<Void> mmm = createM3(g, journalFile);
@@ -154,7 +155,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		mmm = null;
 		
 		final ParserWrapper pw2 = new ParserWrapper();
-		g = pw2.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
+		g = pw2.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo")).getSourceOntology();
 		
 		
 		mmm = createM3(g, journalFile);
@@ -178,7 +179,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	@Test
 	public void testInferredType() throws Exception {
 		ParserWrapper pw = new ParserWrapper();
-		OWLGraphWrapper g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
+		OWLOntology g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo")).getSourceOntology();
 
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity

@@ -52,7 +52,6 @@ import com.google.gson.GsonBuilder;
 import owltools.gaf.eco.EcoMapper;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.EcoMapperFactory.OntologyMapperPair;
-import owltools.graph.OWLGraphWrapper;
 import owltools.util.OwlHelper;
 
 /**
@@ -67,7 +66,6 @@ public class MolecularModelJsonRenderer {
 
 	private final String modelId;
 	private final OWLOntology ont;
-	private final OWLGraphWrapper graph;
 	private final CurieHandler curieHandler;
 	private final InferenceProvider inferenceProvider;
 	
@@ -82,24 +80,14 @@ public class MolecularModelJsonRenderer {
 
 	public MolecularModelJsonRenderer(ModelContainer model, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
 		this(curieHandler.getCuri(model.getModelId()),
-				model.getAboxOntology(),
-				new OWLGraphWrapper(model.getAboxOntology()), 
+				model.getAboxOntology(), 
 				inferenceProvider, curieHandler);
 	}
-	
-	public MolecularModelJsonRenderer(String modelId, OWLOntology ontology, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
-		this(modelId, ontology, new OWLGraphWrapper(ontology), inferenceProvider, curieHandler);
-	}
-	
-	public MolecularModelJsonRenderer(String modelId, OWLGraphWrapper graph, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
-		this(modelId, graph.getSourceOntology(), graph, inferenceProvider, curieHandler);
-	}
 
-	private MolecularModelJsonRenderer(String modelId, OWLOntology ont, OWLGraphWrapper graph, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+	private MolecularModelJsonRenderer(String modelId, OWLOntology ont, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
 		super();
 		this.modelId = modelId;
 		this.ont = ont;
-		this.graph = graph;
 		this.inferenceProvider = inferenceProvider;
 		this.curieHandler = curieHandler;
 	}
@@ -429,7 +417,7 @@ public class MolecularModelJsonRenderer {
 	}
 	
 	public static List<JsonEvidenceInfo> renderEvidences(MolecularModelManager<?> mmm, CurieHandler curieHandler) throws OWLException, IOException {
-		return renderEvidences(mmm.getGraph().getManager(), curieHandler);
+		return renderEvidences(mmm.getOntology().getOWLOntologyManager(), curieHandler);
 	}
 	
 	private static final Object ecoMutex = new Object();

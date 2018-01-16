@@ -1,8 +1,6 @@
 package org.geneontology.minerva;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -10,12 +8,12 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.util.OBOUpperVocabulary;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataProperty;
-import org.semanticweb.owlapi.model.OWLEntity;
 import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
@@ -24,8 +22,6 @@ import org.semanticweb.owlapi.model.OWLObjectPropertyExpression;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
-import owltools.graph.OWLGraphWrapper;
-import owltools.vocab.OBOUpperVocabulary;
 
 /**
  * Convenience layer for operations on collections of MolecularModels (aka lego diagrams)
@@ -69,7 +65,7 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 	 * @param modelIdPrefix 
 	 * @throws OWLOntologyCreationException
 	 */
-	public MolecularModelManager(OWLGraphWrapper graph, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder) throws OWLOntologyCreationException {
+	public MolecularModelManager(OWLOntology graph, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder) throws OWLOntologyCreationException {
 		super(graph, modelIdPrefix, pathToJournal, pathToExportFolder);
 		this.curieHandler = curieHandler;
 	}
@@ -288,34 +284,6 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 		return false;
 	}
 	
-	@Deprecated
-	public Set<IRI> searchModels(Collection<String> ids) throws IOException {
-		final Set<IRI> resultSet = new HashSet<>();
-		// create IRIs
-		Set<IRI> searchIRIs = new HashSet<IRI>();
-		for(String id : ids) {
-			searchIRIs.add(graph.getIRIByIdentifier(id));
-		}
-		
-		if (!searchIRIs.isEmpty()) {
-			// search for IRI usage in models
-			final Set<IRI> allModelIds = getAvailableModelIds();
-			for (IRI modelId : allModelIds) {
-				final ModelContainer model = getModel(modelId);
-				final OWLOntology aboxOntology = model.getAboxOntology();
-				Set<OWLEntity> signature = aboxOntology.getSignature();
-				for (OWLEntity entity : signature) {
-					if (searchIRIs.contains(entity.getIRI())) {
-						resultSet.add(modelId);
-						break;
-					}
-				}
-			}
-		}
-		// return results
-		return resultSet;
-	}
-	
 	private OWLNamedIndividual getIndividual(String indId, ModelContainer model) throws UnknownIdentifierException {
 		IRI iri = curieHandler.getIRI(indId);
 		return getIndividual(iri, model);
@@ -330,17 +298,15 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 		return individual;
 	}
 	private OWLClass getClass(String cid, ModelContainer model) throws UnknownIdentifierException {
-		OWLGraphWrapper graph = new OWLGraphWrapper(model.getAboxOntology());
-		return getClass(cid, graph);
+		return getClass(cid, model.getAboxOntology());
 	}
-	private OWLClass getClass(String cid, OWLGraphWrapper graph) throws UnknownIdentifierException {
+	private OWLClass getClass(String cid, OWLOntology ont) throws UnknownIdentifierException {
 		IRI iri = curieHandler.getIRI(cid);
-		return graph.getOWLClass(iri);
+		return ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(iri);
 	}
 	public OWLObjectProperty getObjectProperty(String pid, ModelContainer model) throws UnknownIdentifierException {
-		OWLGraphWrapper graph = new OWLGraphWrapper(model.getAboxOntology());
 		IRI iri = curieHandler.getIRI(pid);
-		return graph.getOWLObjectProperty(iri);
+		return model.getAboxOntology().getOWLOntologyManager().getOWLDataFactory().getOWLObjectProperty(iri);
 	}
 	
 	public ModelContainer checkModelId(IRI modelId) throws UnknownIdentifierException {

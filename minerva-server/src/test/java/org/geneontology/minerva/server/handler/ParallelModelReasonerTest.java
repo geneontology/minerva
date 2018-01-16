@@ -1,6 +1,7 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,9 +30,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
+import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
-import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
 
 public class ParallelModelReasonerTest {
@@ -50,7 +51,7 @@ public class ParallelModelReasonerTest {
 	}
 	
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
-		final OWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl"); //FIXME need more from go-lego
+		final OWLOntology graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl").getSourceOntology(); //FIXME need more from go-lego
 		
 		// curie handler
 		final String modelIdcurie = "gomodel";

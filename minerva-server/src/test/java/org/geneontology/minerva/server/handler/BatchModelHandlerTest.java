@@ -82,7 +82,7 @@ public class BatchModelHandlerTest {
 	}
 
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException, UnknownIdentifierException {
-		final OWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl");
+		final OWLOntology graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl").getSourceOntology();
 		final OWLObjectProperty legorelParent = StartUpTool.getRelation("http://purl.obolibrary.org/obo/LEGOREL_0000000", graph);
 		assertNotNull(legorelParent);
 		importantRelations = StartUpTool.getAssertedSubProperties(legorelParent, graph);
@@ -412,7 +412,7 @@ public class BatchModelHandlerTest {
 		
 		M3BatchResponse response = execute(r, false);
 		final JsonRelationInfo[] relations = BatchTestTools.responseRelations(response);
-		final OWLGraphWrapper tbox = models.getGraph();
+		final OWLOntology tbox = models.getOntology();
 		final OWLObjectProperty part_of = tbox.getOWLObjectPropertyByIdentifier("part_of");
 		assertNotNull(part_of);
 		final String partOfJsonId = models.getCuriHandler().getCuri(part_of);
@@ -2073,8 +2073,7 @@ public class BatchModelHandlerTest {
 		//models.dispose();
 		
 		// find test relation
-		final OWLGraphWrapper graph = models.getGraph();
-		final OWLOntology sourceOntology = graph.getSourceOntology();
+		final OWLOntology sourceOntology = models.getOntology();
 		Set<OWLObjectProperty> properties = sourceOntology.getObjectPropertiesInSignature(Imports.INCLUDED);
 		OWLObjectProperty gorel0002006 = null;
 		for (OWLObjectProperty p : properties) {

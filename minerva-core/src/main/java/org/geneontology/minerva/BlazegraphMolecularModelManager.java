@@ -78,8 +78,7 @@ import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 import com.google.common.base.Optional;
 
 import info.aduna.iteration.Iterations;
-import owltools.gaf.parser.GafObjectsBuilder;
-import owltools.graph.OWLGraphWrapper;
+
 
 public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularModelManager<METADATA> {
 
@@ -94,7 +93,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 
 	private final String modelIdPrefix;
 
-	GafObjectsBuilder builder = new GafObjectsBuilder();
 	OWLDocumentFormat ontologyFormat = new TurtleDocumentFormat();
 
 	private final List<PreFileSaveHandler> preFileSaveHandlers = new ArrayList<PreFileSaveHandler>();
@@ -107,7 +105,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * Only one instance of Blazegraph can use this file at a time.
 	 * @throws OWLOntologyCreationException
 	 */
-	public BlazegraphMolecularModelManager(OWLGraphWrapper graph, String modelIdPrefix, String pathToJournal, String pathToExportFolder)
+	public BlazegraphMolecularModelManager(OWLOntology graph, String modelIdPrefix, String pathToJournal, String pathToExportFolder)
 			throws OWLOntologyCreationException {
 		super(graph);
 		this.modelIdPrefix = modelIdPrefix;
@@ -195,18 +193,17 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		LOG.info("Generating blank model for new modelId: " + modelId);
 
 		// create empty ontology, use model id as ontology IRI
-		final OWLOntologyManager m = graph.getManager();
-		final OWLOntology tbox = graph.getSourceOntology();
+		final OWLOntologyManager m = graph.getOWLOntologyManager();
 		OWLOntology abox = null;
 		ModelContainer model = null;
 		try {
 			abox = m.createOntology(modelId);
 
 			// add imports to T-Box and additional ontologies via IRI
-			createImports(abox, tbox.getOntologyID(), metadata);
+			createImports(abox, graph.getOntologyID(), metadata);
 
 			// generate model
-			model = new ModelContainer(modelId, tbox, abox);
+			model = new ModelContainer(modelId, graph, abox);
 		} catch (OWLOntologyCreationException exception) {
 			if (abox != null) {
 				m.removeOntology(abox);

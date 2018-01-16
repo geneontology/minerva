@@ -14,11 +14,11 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 
 import owltools.OWLToolsTestBasics;
-import owltools.graph.OWLGraphWrapper;
 import owltools.io.CatalogXmlIRIMapper;
 import owltools.io.ParserWrapper;
 
@@ -50,7 +50,7 @@ public class BlazegraphMolecularModelManagerTest extends OWLToolsTestBasics {
 
 		final ParserWrapper pw1 = new ParserWrapper();
 		pw1.addIRIMapper(new CatalogXmlIRIMapper(new File("src/test/resources/mmg/catalog-v001.xml")));
-		OWLGraphWrapper g = pw1.parseToOWLGraph(getResourceIRIString("mmg/basic-tbox-importer.omn"));
+		OWLOntology g = pw1.parseToOWLGraph(getResourceIRIString("mmg/basic-tbox-importer.omn")).getSourceOntology();
 		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(g, "http:/model.geneontology.org/", journalPath, tempRootPath);
 
 		/* Import the test turtle file */

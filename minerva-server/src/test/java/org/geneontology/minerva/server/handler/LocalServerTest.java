@@ -26,19 +26,18 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
-import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import owltools.graph.OWLGraphWrapper;
-import owltools.io.ParserWrapper;
+import org.semanticweb.owlapi.model.OWLOntology;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+
+import owltools.io.ParserWrapper;
 
 public class LocalServerTest {
 
@@ -69,7 +68,7 @@ public class LocalServerTest {
 	}
 	
 	static void init(ParserWrapper pw) throws Exception {
-		final OWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl");
+		final OWLOntology graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl").getSourceOntology();
 		// curie handler
 		final String modelIdcurie = "gomodel";
 		final String modelIdPrefix = "http://model.geneontology.org/";
