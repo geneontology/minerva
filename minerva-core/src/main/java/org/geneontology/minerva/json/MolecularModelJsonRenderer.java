@@ -18,20 +18,19 @@ import org.apache.log4j.Logger;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
-import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.geneontology.minerva.util.OntUtil;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationAssertionAxiom;
-import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataProperty;
 import org.semanticweb.owlapi.model.OWLDataPropertyAssertionAxiom;
+import org.semanticweb.owlapi.model.OWLEntity;
 import org.semanticweb.owlapi.model.OWLException;
 import org.semanticweb.owlapi.model.OWLIndividual;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
-import org.semanticweb.owlapi.model.OWLNamedObject;
 import org.semanticweb.owlapi.model.OWLObjectComplementOf;
 import org.semanticweb.owlapi.model.OWLObjectIntersectionOf;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
@@ -45,6 +44,8 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyDocumentAlreadyExistsException;
 import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.parameters.Imports;
+import org.semanticweb.owlapi.search.EntitySearcher;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -52,7 +53,6 @@ import com.google.gson.GsonBuilder;
 import owltools.gaf.eco.EcoMapper;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.EcoMapperFactory.OntologyMapperPair;
-import owltools.util.OwlHelper;
 
 /**
  * A Renderer that takes a MolecularModel (an OWL ABox) and generates Map objects
@@ -84,7 +84,7 @@ public class MolecularModelJsonRenderer {
 				inferenceProvider, curieHandler);
 	}
 
-	private MolecularModelJsonRenderer(String modelId, OWLOntology ont, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+	public MolecularModelJsonRenderer(String modelId, OWLOntology ont, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
 		super();
 		this.modelId = modelId;
 		this.ont = ont;
@@ -186,7 +186,7 @@ public class MolecularModelJsonRenderer {
 		json.id = curieHandler.getCuri(i);
 		
 		List<JsonOwlObject> typeObjs = new ArrayList<JsonOwlObject>();
-		Set<OWLClassExpression> assertedTypes = OwlHelper.getTypes(i, ont);
+		Collection<OWLClassExpression> assertedTypes = EntitySearcher.getTypes(i, ont);
 		for (OWLClassExpression x : assertedTypes) {
 			typeObjs.add(renderObject(x));
 		}
@@ -249,7 +249,7 @@ public class MolecularModelJsonRenderer {
 			fact = new JsonOwlFact();
 			fact.subject = curieHandler.getCuri(subject);
 			fact.property = curieHandler.getCuri(property);
-			fact.propertyLabel = graph.getLabel(property);
+			fact.propertyLabel = OntUtil.getLabel(property, ont, Imports.INCLUDED);
 			fact.object = curieHandler.getCuri(object);
 			
 			JsonAnnotation[] anObjs = renderAnnotations(opa.getAnnotations(), curieHandler);
@@ -262,7 +262,7 @@ public class MolecularModelJsonRenderer {
 
 	public JsonOwlObject renderObject(OWLObjectProperty p) {
 		String id = curieHandler.getCuri(p);
-		String label = getLabel(p, id);
+		String label = OntUtil.getLabel(p, ont, Imports.INCLUDED);
 		JsonOwlObject json = JsonOwlObject.createProperty(id, label);
 		return json;
 	}
@@ -322,12 +322,12 @@ public class MolecularModelJsonRenderer {
 
 	private JsonOwlObject renderObject(OWLClass cls) {
 		String id = curieHandler.getCuri(cls);
-		JsonOwlObject json = JsonOwlObject.createCls(id, getLabel(cls, id));
+		JsonOwlObject json = JsonOwlObject.createCls(id, OntUtil.getLabel(cls, ont, Imports.INCLUDED));
 		return json;
 	}
 
-	protected String getLabel(OWLNamedObject i, String id) {
-		return graph.getLabel(i);
+	protected String getLabel(OWLEntity i) {
+		return OntUtil.getLabel(i, ont, Imports.INCLUDED);
 	}
 	
 
@@ -342,35 +342,32 @@ public class MolecularModelJsonRenderer {
 		 */
 		// retrieve (or load) all ontologies
 		// put in a new wrapper
-		OWLGraphWrapper wrapper = new OWLGraphWrapper(mmm.getOntology());
+		OWLOntology ontology = mmm.getOntology();
 		Collection<IRI> imports = mmm.getImports();
-		OWLOntologyManager manager = wrapper.getManager();
+		OWLOntologyManager manager = ontology.getOWLOntologyManager();
 		for (IRI iri : imports) {
-			OWLOntology ontology = manager.getOntology(iri);
-			if (ontology == null) {
+			OWLOntology importedOnt = manager.getOntology(iri);
+			if (importedOnt == null) {
 				// only try to load it, if it isn't already loaded
 				try {
-					ontology = manager.loadOntology(iri);
+					importedOnt = manager.loadOntology(iri);
 				} catch (OWLOntologyDocumentAlreadyExistsException e) {
 					IRI existing = e.getOntologyDocumentIRI();
-					ontology = manager.getOntology(existing);
+					importedOnt = manager.getOntology(existing);
 				} catch (OWLOntologyAlreadyExistsException e) {
 					OWLOntologyID id = e.getOntologyID();
-					ontology = manager.getOntology(id);
+					importedOnt = manager.getOntology(id);
 				}
 			}
-			if (ontology == null) {
+			if (importedOnt == null) {
 				LOG.warn("Could not find an ontology for IRI: "+iri);
-			}
-			else {
-				wrapper.addSupportOntology(ontology);
 			}
 		}
 	
 		// get all properties from all loaded ontologies
 		Set<OWLObjectProperty> properties = new HashSet<OWLObjectProperty>();
 		Set<OWLDataProperty> dataProperties = new HashSet<OWLDataProperty>();
-		Set<OWLOntology> allOntologies = wrapper.getAllOntologies();
+		Set<OWLOntology> allOntologies = ontology.getImportsClosure();
 		for(OWLOntology o : allOntologies) {
 			properties.addAll(o.getObjectPropertiesInSignature());
 			dataProperties.addAll(o.getDataPropertiesInSignature());
@@ -391,7 +388,7 @@ public class MolecularModelJsonRenderer {
 			}
 			JsonRelationInfo json = new JsonRelationInfo();
 			json.id = curieHandler.getCuri(p);
-			json.label = wrapper.getLabel(p);
+			json.label = OntUtil.getLabel(p, ontology, Imports.INCLUDED);
 			if (importantRelations != null && (importantRelations.contains(p))) {
 				json.relevant = true;
 			}
@@ -409,10 +406,9 @@ public class MolecularModelJsonRenderer {
 			}
 			JsonRelationInfo json = new JsonRelationInfo();
 			json.id = curieHandler.getCuri(p);
-			json.label = wrapper.getLabel(p);
+			json.label = OntUtil.getLabel(p, ontology, Imports.INCLUDED);
 			dataList.add(json);
 		}
-		IOUtils.closeQuietly(wrapper);
 		return Pair.of(relList, dataList);
 	}
 	

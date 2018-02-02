@@ -1,25 +1,25 @@
 package org.geneontology.minerva.json;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
-import org.geneontology.minerva.json.JsonOwlIndividual;
-import org.geneontology.minerva.json.JsonOwlObject;
 import org.geneontology.minerva.json.JsonOwlObject.JsonOwlObjectType;
 import org.geneontology.minerva.util.AnnotationShorthand;
+import org.geneontology.minerva.util.OntUtil;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
@@ -34,31 +34,28 @@ import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 
-import owltools.graph.OWLGraphWrapper;
-import owltools.io.ParserWrapper;
-
 public class MolecularModelJsonRendererTest {
 
-	private static OWLGraphWrapper g = null;
+	private static OWLOntology ont = null;
 	private static CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	private static OWLOntologyManager m = null;
 	private static OWLDataFactory f = null;
 	private static OWLObjectProperty partOf = null;
+	private static OWLClass reproduction = null;
+	private static OWLClass negRegTrans = null;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		ParserWrapper pw = new ParserWrapper();
-		File file = new File("src/test/resources/mgi-go.obo").getCanonicalFile();
-		OWLOntology ont = pw.parseOWL(IRI.create(file));
-		g = new OWLGraphWrapper(ont);
-		f = g.getDataFactory();
-		m = g.getManager();
-		partOf = g.getOWLObjectPropertyByIdentifier("BFO:0000050"); 
+		m = OWLManager.createOWLOntologyManager();
+		ont = m.loadOntologyFromOntologyDocument(MolecularModelJsonRendererTest.class.getResourceAsStream("/mgi-go.obo"));
+		f = m.getOWLDataFactory();
+		partOf = f.getOWLObjectProperty(IRI.create("http://purl.obolibrary.org/obo/BFO_0000050"));
+		reproduction = f.getOWLClass(IRI.create("http://purl.obolibrary.org/obo/GO_0000003"));
+		negRegTrans = f.getOWLClass(IRI.create("http://purl.obolibrary.org/obo/GO_0000122"));
 	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
-		IOUtils.closeQuietly(g);
 	}
 
 	@Test
@@ -75,34 +72,32 @@ public class MolecularModelJsonRendererTest {
 
 	@Test
 	public void testSimpleClass() throws Exception {
-		testSimpleClassExpression(g.getOWLClassByIdentifier("GO:0000003"), "class");
+		testSimpleClassExpression(reproduction, "class");
 	}
 	
 	@Test
 	public void testSimpleSVF() throws Exception {
-		OWLObjectSomeValuesFrom svf = f.getOWLObjectSomeValuesFrom(g.getOWLObjectPropertyByIdentifier("BFO:0000050"), g.getOWLClassByIdentifier("GO:0000003"));
+		OWLObjectSomeValuesFrom svf = f.getOWLObjectSomeValuesFrom(partOf, reproduction);
 		testSimpleClassExpression(svf, "svf");
 	}
 	
 	@Test
 	public void testSimpleUnion() throws Exception {
-		OWLObjectSomeValuesFrom svf = f.getOWLObjectSomeValuesFrom(g.getOWLObjectPropertyByIdentifier("BFO:0000050"), g.getOWLClassByIdentifier("GO:0000003"));
-		OWLClass cls = g.getOWLClassByIdentifier("GO:0000122");
-		testSimpleClassExpression(f.getOWLObjectUnionOf(cls, svf), "union");
+		OWLObjectSomeValuesFrom svf = f.getOWLObjectSomeValuesFrom(partOf, reproduction);
+		testSimpleClassExpression(f.getOWLObjectUnionOf(negRegTrans, svf), "union");
 	}
 	
 	@Test
 	public void testSimpleIntersection() throws Exception {
-		OWLObjectSomeValuesFrom svf = f.getOWLObjectSomeValuesFrom(g.getOWLObjectPropertyByIdentifier("BFO:0000050"), g.getOWLClassByIdentifier("GO:0000003"));
-		OWLClass cls = g.getOWLClassByIdentifier("GO:0000122");
-		testSimpleClassExpression(f.getOWLObjectIntersectionOf(cls, svf), "intersection");
+		OWLObjectSomeValuesFrom svf = f.getOWLObjectSomeValuesFrom(partOf, reproduction);
+		testSimpleClassExpression(f.getOWLObjectIntersectionOf(negRegTrans, svf), "intersection");
 	}
 	
 	@Test
 	public void testAnnotations() throws Exception {
 		// setup test model/ontology
 		OWLOntology o = m.createOntology();
-		OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(g.getSourceOntology().getOntologyID().getOntologyIRI().get());
+		OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(ont.getOntologyID().getOntologyIRI().get());
 		m.applyChange(new AddImport(o, importDeclaration));
 		
 		final IRI i1IRI = IRI.generateDocumentIRI();
@@ -119,7 +114,7 @@ public class MolecularModelJsonRendererTest {
 						AnnotationShorthand.comment.getAnnotationProperty()), 
 						f.getOWLLiteral("Comment 2"))));
 		// declare type
-		m.addAxiom(o, f.getOWLClassAssertionAxiom(g.getOWLClassByIdentifier("GO:0000003"), ni1));
+		m.addAxiom(o, f.getOWLClassAssertionAxiom(reproduction, ni1));
 		
 		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(null, o, null, curieHandler);
 		
@@ -137,7 +132,7 @@ public class MolecularModelJsonRendererTest {
 	private void testSimpleClassExpression(OWLClassExpression ce, String expectedJsonType) throws Exception {
 		// setup test model/ontology
 		OWLOntology o = m.createOntology();
-		OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(g.getSourceOntology().getOntologyID().getOntologyIRI().get());
+		OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(ont.getOntologyID().getOntologyIRI().get());
 		m.applyChange(new AddImport(o, importDeclaration));
 		
 		// create indivdual with a ce type
@@ -161,7 +156,7 @@ public class MolecularModelJsonRendererTest {
 		assertNotNull(jsonOwlIndividualParse);
 		assertEquals(jsonOwlIndividualOriginal, jsonOwlIndividualParse);
 		
-		Set<OWLClassExpression> ces = TestJsonOwlObjectParser.parse(new OWLGraphWrapper(o), jsonOwlIndividualParse.type);
+		Set<OWLClassExpression> ces = TestJsonOwlObjectParser.parse(o, jsonOwlIndividualParse.type);
 		assertEquals(1, ces.size());
 		assertEquals(ce, ces.iterator().next());
 	}
@@ -169,7 +164,7 @@ public class MolecularModelJsonRendererTest {
 	@Test
 	public void testPartialRenderer() throws Exception {
 		OWLOntology o = m.createOntology();
-		OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(g.getSourceOntology().getOntologyID().getOntologyIRI().get());
+		OWLImportsDeclaration importDeclaration = f.getOWLImportsDeclaration(ont.getOntologyID().getOntologyIRI().get());
 		m.applyChange(new AddImport(o, importDeclaration));
 		
 		// individuals
@@ -230,7 +225,7 @@ public class MolecularModelJsonRendererTest {
 	}
 	
 	static class TestJsonOwlObjectParser {
-		static OWLClassExpression parse(OWLGraphWrapper g, JsonOwlObject expression)
+		static OWLClassExpression parse(OWLOntology ont, JsonOwlObject expression)
 				throws Exception {
 			if (expression == null) {
 				throw new Exception("Missing expression: null is not a valid expression.");
@@ -245,7 +240,7 @@ public class MolecularModelJsonRendererTest {
 				if (StringUtils.containsWhitespace(expression.id)) {
 					throw new Exception("Identifiers may not contain whitespaces: '"+expression.id+"'");
 				}
-				OWLClass cls = g.getOWLClassByIdentifier(expression.id);
+				OWLClass cls = f.getOWLClass(OntUtil.getIRIByIdentifier(expression.id, ont));
 				if (cls == null) {
 					throw new Exception("Could not retrieve a class for id: "+expression.id);
 				}
@@ -261,61 +256,61 @@ public class MolecularModelJsonRendererTest {
 				if (expression.property.id == null) {
 					throw new Exception("Missing property id for expression of type 'svf'");
 				}
-				OWLObjectProperty p = g.getOWLObjectPropertyByIdentifier(expression.property.id);
+				OWLObjectProperty p = f.getOWLObjectProperty(OntUtil.getIRIByIdentifier(expression.property.id, ont));
 				if (p == null) {
 					throw new UnknownIdentifierException("Could not find a property for: "+expression.property);
 				}
 				if (expression.filler != null) {
-					OWLClassExpression ce = parse(g, expression.filler);
-					return g.getDataFactory().getOWLObjectSomeValuesFrom(p, ce);
+					OWLClassExpression ce = parse(ont, expression.filler);
+					return f.getOWLObjectSomeValuesFrom(p, ce);
 				}
 				else {
 					throw new Exception("Missing literal or expression for expression of type 'svf'.");
 				}
 			}
 			else if (JsonOwlObjectType.IntersectionOf == expression.type) {
-				return parse(g, expression.expressions, JsonOwlObjectType.IntersectionOf);
+				return parse(ont, expression.expressions, JsonOwlObjectType.IntersectionOf);
 			}
 			else if (JsonOwlObjectType.UnionOf == expression.type) {
-				return parse(g, expression.expressions, JsonOwlObjectType.UnionOf);
+				return parse(ont, expression.expressions, JsonOwlObjectType.UnionOf);
 			}
 			else {
 				throw new UnknownIdentifierException("Unknown expression type: "+expression.type);
 			}
 		}
 		
-		static OWLClassExpression parse(OWLGraphWrapper g, JsonOwlObject[] expressions, JsonOwlObjectType type)
+		static OWLClassExpression parse(OWLOntology o, JsonOwlObject[] expressions, JsonOwlObjectType type)
 				throws Exception {
 			if (expressions.length == 0) {
 				throw new Exception("Missing expressions: empty expression list is not allowed.");
 			}
 			if (expressions.length == 1) {
-				return parse(g, expressions[0]);	
+				return parse(o, expressions[0]);	
 			}
 			Set<OWLClassExpression> clsExpressions = new HashSet<OWLClassExpression>();
 			for (JsonOwlObject m3Expression : expressions) {
-				OWLClassExpression ce = parse(g, m3Expression);
+				OWLClassExpression ce = parse(o, m3Expression);
 				clsExpressions.add(ce);
 			}
 			if (type == JsonOwlObjectType.UnionOf) {
-				return g.getDataFactory().getOWLObjectUnionOf(clsExpressions);
+				return f.getOWLObjectUnionOf(clsExpressions);
 			}
 			else if (type == JsonOwlObjectType.IntersectionOf) {
-				return g.getDataFactory().getOWLObjectIntersectionOf(clsExpressions);
+				return f.getOWLObjectIntersectionOf(clsExpressions);
 			}
 			else {
 				throw new UnknownIdentifierException("Unsupported expression type: "+type);
 			}
 		}
 		
-		static Set<OWLClassExpression> parse(OWLGraphWrapper g, JsonOwlObject[] expressions)
+		static Set<OWLClassExpression> parse(OWLOntology o, JsonOwlObject[] expressions)
 				throws Exception {
 			if (expressions.length == 0) {
 				throw new Exception("Missing expressions: empty expression list is not allowed.");
 			}
 			Set<OWLClassExpression> clsExpressions = new HashSet<OWLClassExpression>();
 			for (JsonOwlObject m3Expression : expressions) {
-				OWLClassExpression ce = parse(g, m3Expression);
+				OWLClassExpression ce = parse(o, m3Expression);
 				clsExpressions.add(ce);
 			}
 			return clsExpressions;

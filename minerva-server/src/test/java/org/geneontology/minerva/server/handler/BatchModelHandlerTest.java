@@ -43,11 +43,13 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.util.AnnotationShorthand;
+import org.geneontology.minerva.util.OntUtil;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -413,7 +415,7 @@ public class BatchModelHandlerTest {
 		M3BatchResponse response = execute(r, false);
 		final JsonRelationInfo[] relations = BatchTestTools.responseRelations(response);
 		final OWLOntology tbox = models.getOntology();
-		final OWLObjectProperty part_of = tbox.getOWLObjectPropertyByIdentifier("part_of");
+		final OWLObjectProperty part_of = OWLManager.getOWLDataFactory().getOWLObjectProperty(OntUtil.getIRIByIdentifier("part_of", tbox));
 		assertNotNull(part_of);
 		final String partOfJsonId = models.getCuriHandler().getCuri(part_of);
 		boolean hasPartOf = false;
@@ -2084,7 +2086,7 @@ public class BatchModelHandlerTest {
 		}
 		assertNotNull(gorel0002006);
 		String gorel0002006Curie = curieHandler.getCuri(gorel0002006);
-		String gorel0002006Label = graph.getLabel(gorel0002006);
+		String gorel0002006Label = OntUtil.getLabel(gorel0002006, sourceOntology, Imports.INCLUDED);
 		assertEquals("results_in_organization_of", gorel0002006Label);
 		
 		// check meta

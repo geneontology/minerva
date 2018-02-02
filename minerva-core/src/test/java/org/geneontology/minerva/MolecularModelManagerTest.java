@@ -16,21 +16,20 @@ import org.apache.log4j.Logger;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.util.CatalogXmlIRIMapper;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.OWLOntologyManager;
 
-import owltools.OWLToolsTestBasics;
-import owltools.graph.OWLGraphWrapper;
-import owltools.io.ParserWrapper;
-
-public class MolecularModelManagerTest extends OWLToolsTestBasics {
+public class MolecularModelManagerTest {
 
 	// JUnit way of creating a temporary test folder
 	// will be deleted after the test has run, by JUnit.
@@ -48,8 +47,8 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 
 	@Test
 	public void testDeleteIndividual() throws Exception {
-		ParserWrapper pw = new ParserWrapper();
-		OWLOntology g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo")).getSourceOntology();
+		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+		OWLOntology g = manager.loadOntologyFromOntologyDocument(MolecularModelManagerTest.class.getResourceAsStream("/go-mgi-signaling-test.obo"));
 
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity
@@ -81,8 +80,8 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 
 	@Test
 	public void testExportImport() throws Exception {
-		ParserWrapper pw = new ParserWrapper();
-		OWLOntology g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo")).getSourceOntology();
+		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+		OWLOntology g = manager.loadOntologyFromOntologyDocument(MolecularModelManagerTest.class.getResourceAsStream("/go-mgi-signaling-test.obo"));
 
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity
@@ -126,8 +125,8 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	
 	@Test
 	public void testSaveModel() throws Exception {
-		final ParserWrapper pw1 = new ParserWrapper();
-		OWLOntology g = pw1.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo")).getSourceOntology();
+		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+		OWLOntology g = manager.loadOntologyFromOntologyDocument(MolecularModelManagerTest.class.getResourceAsStream("/go-mgi-signaling-test.obo"));
 
 		File journalFile = folder.newFile();
 		MolecularModelManager<Void> mmm = createM3(g, journalFile);
@@ -154,8 +153,8 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		mmm.dispose();
 		mmm = null;
 		
-		final ParserWrapper pw2 = new ParserWrapper();
-		g = pw2.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo")).getSourceOntology();
+		OWLOntologyManager manager2 = OWLManager.createOWLOntologyManager();
+		g = manager2.loadOntologyFromOntologyDocument(MolecularModelManagerTest.class.getResourceAsStream("/go-mgi-signaling-test.obo"));
 		
 		
 		mmm = createM3(g, journalFile);
@@ -178,8 +177,8 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 
 	@Test
 	public void testInferredType() throws Exception {
-		ParserWrapper pw = new ParserWrapper();
-		OWLOntology g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo")).getSourceOntology();
+		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+		OWLOntology g = manager.loadOntologyFromOntologyDocument(MolecularModelManagerTest.class.getResourceAsStream("/go-mgi-signaling-test.obo"));
 
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity

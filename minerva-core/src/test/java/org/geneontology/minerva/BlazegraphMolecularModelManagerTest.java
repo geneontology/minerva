@@ -7,22 +7,21 @@ import java.io.IOException;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.geneontology.minerva.util.CatalogXmlIRIMapper;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 
-import owltools.OWLToolsTestBasics;
-import owltools.io.CatalogXmlIRIMapper;
-import owltools.io.ParserWrapper;
-
-public class BlazegraphMolecularModelManagerTest extends OWLToolsTestBasics {
+public class BlazegraphMolecularModelManagerTest {
 
 	@Rule
 	public TemporaryFolder folder = new TemporaryFolder();
@@ -48,9 +47,10 @@ public class BlazegraphMolecularModelManagerTest extends OWLToolsTestBasics {
 		/* I used the file from one of the turtle file in https://github.com/geneontology/noctua-models/blob/master/models/0000000300000001.ttl */
 		String sourceModelPath = "src/test/resources/dummy-noctua-model.ttl";
 
-		final ParserWrapper pw1 = new ParserWrapper();
-		pw1.addIRIMapper(new CatalogXmlIRIMapper(new File("src/test/resources/mmg/catalog-v001.xml")));
-		OWLOntology g = pw1.parseToOWLGraph(getResourceIRIString("mmg/basic-tbox-importer.omn")).getSourceOntology();
+		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+		manager.addIRIMapper(new CatalogXmlIRIMapper(new File("src/test/resources/mmg/catalog-v001.xml")));
+		OWLOntology g = manager.loadOntologyFromOntologyDocument(UndoAwareMolecularModelManagerTest.class.getResourceAsStream("/mmg/basic-tbox-importer.omn"));
+		
 		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(g, "http:/model.geneontology.org/", journalPath, tempRootPath);
 
 		/* Import the test turtle file */

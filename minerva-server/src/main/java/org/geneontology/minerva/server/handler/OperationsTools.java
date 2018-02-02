@@ -9,7 +9,7 @@ import org.geneontology.minerva.json.InferenceProvider;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
-import org.semanticweb.owlapi.model.OWLNamedObject;
+import org.semanticweb.owlapi.model.OWLEntity;
 import org.semanticweb.owlapi.model.OWLOntology;
 
 public class OperationsTools {
@@ -71,8 +71,8 @@ public class OperationsTools {
 			renderer = new MolecularModelJsonRenderer(modelId, model, inferenceProvider, curieHandler) {
 
 				@Override
-				protected String getLabel(OWLNamedObject i, String id) {
-					String label = super.getLabel(i, id);
+				protected String getLabel(OWLEntity i) {
+					String label = super.getLabel(i);
 					if (label == null ) {
 						List<LookupEntry> lookup = externalLookupService.lookup(i.getIRI());
 						if (lookup != null && !lookup.isEmpty()) {

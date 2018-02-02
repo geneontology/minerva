@@ -16,13 +16,12 @@ import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyManager;
 
-import owltools.OWLToolsTestBasics;
-import owltools.io.ParserWrapper;
-
-public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
+public class UndoAwareMolecularModelManagerTest {
 
 	static OWLOntology g = null;
 	static CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
@@ -33,8 +32,8 @@ public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
 	
 	@Test
 	public void testUndoRedo() throws Exception {
-		ParserWrapper pw = new ParserWrapper();
-		g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo")).getSourceOntology();
+		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+		g = manager.loadOntologyFromOntologyDocument(UndoAwareMolecularModelManagerTest.class.getResourceAsStream("/go-mgi-signaling-test.obo"));
 		m3 = new UndoAwareMolecularModelManager(g, curieHandler, "http://testmodel.geneontology.org/", folder.newFile().getAbsolutePath(), null);
 		
 		String userId = "test-user-id";
