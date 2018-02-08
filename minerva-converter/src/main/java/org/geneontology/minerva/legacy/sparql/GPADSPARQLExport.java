@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,6 @@ import org.apache.jena.sparql.engine.binding.BindingMap;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.log4j.Logger;
-import org.eclipse.jetty.util.log.Log;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.legacy.sparql.GPADData.ConjunctiveExpression;
 import org.geneontology.rules.engine.Explanation;
@@ -77,6 +77,14 @@ public class GPADSPARQLExport {
 			LOG.error("Could not load SPARQL query from jar", e);
 		}
 	}
+	private static String modelAnnotationsQuery;
+	static {
+		try {
+			modelAnnotationsQuery = IOUtils.toString(GPADSPARQLExport.class.getResourceAsStream("gpad-model-level-annotations.rq"), StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			LOG.error("Could not load SPARQL query from jar", e);
+		}
+	}
 	private final CurieHandler curieHandler;
 	private final Map<IRI, String> relationShorthandIndex;
 
@@ -87,9 +95,10 @@ public class GPADSPARQLExport {
 
 	/* This is a bit convoluted in order to minimize redundant queries, for performance reasons. */
 	public String exportGPAD(WorkingMemory wm) {
-		/* The first step of constructing GPAD records is to construct candidate/basic GPAD records by running gpad-basic.rq. */ 
 		Model model = ModelFactory.createDefaultModel();
 		model.add(JavaConverters.setAsJavaSetConverter(wm.facts()).asJava().stream().map(t -> model.asStatement(Bridge.jenaFromTriple(t))).collect(Collectors.toList()));
+		Map<String, String> modelLevelAnnotations = getModelAnnotations(model);
+		/* The first step of constructing GPAD records is to construct candidate/basic GPAD records by running gpad-basic.rq. */
 		QueryExecution qe = QueryExecutionFactory.create(mainQuery, model);
 		Set<GPADData> annotations = new HashSet<>();
 		String modelID = model.listResourcesWithProperty(RDF.type, OWL.Ontology).mapWith(r -> curieHandler.getCuri(IRI.create(r.getURI()))).next();
@@ -120,7 +129,7 @@ public class GPADSPARQLExport {
 		possibleExtensions.forEach(ae -> statementsToExplain.add(ae.getTriple()));
 		Map<Triple, Set<Explanation>> allExplanations = statementsToExplain.stream().collect(Collectors.toMap(Function.identity(), s -> toJava(wm.explain(Bridge.tripleFromJena(s)))));
 
-		Map<Triple, Set<GPADEvidence>> allEvidences = evidencesForFacts(allExplanations.values().stream().flatMap(es -> es.stream()).flatMap(e -> toJava(e.facts()).stream().map(t -> Bridge.jenaFromTriple(t))).collect(Collectors.toSet()), model, modelID);
+		Map<Triple, Set<GPADEvidence>> allEvidences = evidencesForFacts(allExplanations.values().stream().flatMap(es -> es.stream()).flatMap(e -> toJava(e.facts()).stream().map(t -> Bridge.jenaFromTriple(t))).collect(Collectors.toSet()), model, modelID, modelLevelAnnotations);
 		for (BasicGPADData annotation : basicAnnotations) {
 			for (Explanation explanation : allExplanations.get(Triple.create(annotation.getObjectNode(), NodeFactory.createURI(annotation.getQualifier().toString()), annotation.getOntologyClassNode()))) {
 				Set<Triple> requiredFacts = toJava(explanation.facts()).stream().map(t -> Bridge.jenaFromTriple(t)).collect(Collectors.toSet());
@@ -163,6 +172,25 @@ public class GPADSPARQLExport {
 		}
 		return new GPADRenderer(curieHandler, relationShorthandIndex).renderAll(annotations);
 	}
+	
+	private Map<String, String> getModelAnnotations(Model model) {
+		QueryExecution qe = QueryExecutionFactory.create(modelAnnotationsQuery, model);
+		ResultSet result = qe.execSelect();
+		Map<String, String> modelAnnotations = new HashMap<>();
+		while (result.hasNext()) {
+			QuerySolution qs = result.next();
+			if (qs.get("model_state") != null) {
+				String modelState = qs.getLiteral("model_state").getLexicalForm();
+				modelAnnotations.put("model-state", modelState);
+			}
+			if (qs.get("provided_by") != null) {
+				String providedBy = qs.getLiteral("provided_by").getLexicalForm();
+				modelAnnotations.put("assigned-by", providedBy);
+			}
+			break;
+		}
+		return modelAnnotations;
+	}
 
 	/**
 	 * Given a set of triples extracted/generated from the result/answer of query gpad-basic.rq, we find matching evidence subgraphs. 
@@ -179,7 +207,7 @@ public class GPADSPARQLExport {
 	 * If we find the bindings of ?axioms and the values of these bindings have some rdf:type triples, we proceed. (If not, we discard).
 	 * The bindings of the query gpad-relation-evidence-multiple.rq are then used for filling up fields in GPAD records/tuples.
 	 */
-	private Map<Triple, Set<GPADEvidence>> evidencesForFacts(Set<Triple> facts, Model model, String modelID) {
+	private Map<Triple, Set<GPADEvidence>> evidencesForFacts(Set<Triple> facts, Model model, String modelID, Map<String, String> modelLevelAnnotations) {
 		Query query = QueryFactory.create(multipleEvidenceQuery);
 		Var subject = Var.alloc("subject");
 		Var predicate = Var.alloc("predicate");
@@ -204,7 +232,16 @@ public class GPADSPARQLExport {
 				annotationAnnotations.addAll(getContributors(eqs).stream().map(c -> Pair.of("contributor", c)).collect(Collectors.toSet()));
 				String date = eqs.getLiteral("date").getLexicalForm();
 				String reference = eqs.getLiteral("source").getLexicalForm();
-				allEvidences.get(statement).add(new GPADEvidence(evidenceType, reference, with, date, "GO_Noctua", annotationAnnotations, Optional.empty()));
+				final String usableAssignedBy;
+				//if (modelLevelAnnotations.containsKey("assigned-by")) {
+				if (false) {
+					//FIXME convert assigned-by to label rather than ID
+					usableAssignedBy = modelLevelAnnotations.get("assigned-by");
+				} else { usableAssignedBy = "GO_Noctua"; }
+				if (modelLevelAnnotations.containsKey("model-state")) {
+					annotationAnnotations.add(Pair.of("model-state", modelLevelAnnotations.get("model-state")));
+				}
+				allEvidences.get(statement).add(new GPADEvidence(evidenceType, reference, with, date, usableAssignedBy, annotationAnnotations, Optional.empty()));
 			}
 		}
 		evidenceExecution.close();
