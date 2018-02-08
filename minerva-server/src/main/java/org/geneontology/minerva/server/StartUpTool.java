@@ -3,6 +3,7 @@ package org.geneontology.minerva.server;
 import java.io.File;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -26,9 +27,12 @@ import org.geneontology.minerva.server.handler.JsonOrJsonpBatchHandler;
 import org.geneontology.minerva.server.handler.JsonOrJsonpSeedHandler;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
+import org.geneontology.minerva.util.OntUtil;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
+import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLObject;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectPropertyExpression;
@@ -254,23 +258,36 @@ public class StartUpTool {
 	 * @return property or null
 	 */
 	public static OWLObjectProperty getRelation(String rel, OWLOntology g) {
+		OWLDataFactory factory = g.getOWLOntologyManager().getOWLDataFactory();
 		if (rel == null || rel.isEmpty()) {
 			return null;
 		}
 		if (rel.startsWith("http://")) {
 			IRI iri = IRI.create(rel);
-			return g.getOWLOntologyManager().getOWLDataFactory().getOWLObjectProperty(iri);
+			return factory.getOWLObjectProperty(iri);
 		}
 		// try to find property
-		OWLObjectProperty p = g.getOWLObjectPropertyByIdentifier(rel);
+		OWLObjectProperty p = factory.getOWLObjectProperty(OntUtil.getIRIByIdentifier(rel, g));
 		if (p == null) {
 			// could not find by id, search by label
-			OWLObject owlObject = g.getOWLObjectByLabel(rel);
-			if (owlObject instanceof OWLObjectProperty) {
-				p = (OWLObjectProperty) owlObject;
+			Optional<OWLObjectProperty> foundPropertyOpt = g.getAxioms(AxiomType.ANNOTATION_ASSERTION).stream()
+			.filter(ax -> ax.getProperty().equals(factory.getRDFSLabel()))
+			.filter(ax -> rel.equals(toOptional(ax.getValue().asLiteral()).map(lit -> lit.getLiteral()).orElse(null)))
+			.filter(ax -> ax.getSubject() instanceof IRI)
+			.map(ax -> (IRI)(ax.getSubject()))
+			.filter(iri -> g.containsObjectPropertyInSignature(iri))
+			.findAny()
+			.map(iri -> factory.getOWLObjectProperty(iri));
+			if (foundPropertyOpt.isPresent()) {
+				p = foundPropertyOpt.get();
 			}
 		}
 		return p;
+	}
+	
+	private static <T> Optional<T> toOptional(com.google.common.base.Optional<T> opt) {
+		if (opt.isPresent()) { return Optional.of(opt.get()); }
+		else { return Optional.empty(); }
 	}
 	
 	/**
