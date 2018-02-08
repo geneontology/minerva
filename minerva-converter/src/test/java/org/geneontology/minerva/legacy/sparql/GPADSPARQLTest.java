@@ -47,7 +47,7 @@ public class GPADSPARQLTest {
 	@BeforeClass
 	public static void setupExporter() {
 		JenaSystem.init();
-		exporter = new GPADSPARQLExport(DefaultCurieHandler.getDefaultHandler(), new HashMap<IRI, String>());
+		exporter = new GPADSPARQLExport(DefaultCurieHandler.getDefaultHandler(), new HashMap<IRI, String>(), new HashMap<IRI, String>());
 	}
 
 	@Test
