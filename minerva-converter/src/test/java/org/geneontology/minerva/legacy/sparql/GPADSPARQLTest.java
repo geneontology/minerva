@@ -59,6 +59,7 @@ public class GPADSPARQLTest {
 		String gpad = exporter.exportGPAD(mem);
 		int lines = gpad.split("\n", -1).length;
 		//TODO test contents of annotations; dumb test for now
+		Assert.assertTrue(gpad.contains("model-state=production"));
 		Assert.assertTrue("Should produce annotations", lines > 2);
 	}
 
@@ -95,7 +96,6 @@ public class GPADSPARQLTest {
 			 String gpadRowArr[] =  gpadOutputRow.split("\t");
 			 /* Skip checking the header; all rows need to contain NOT in its qualifier */
 			 if (gpadRowArr.length > 2) {
-				 Assert.assertTrue(lines.contains(gpadOutputRow.trim()));
 				 Assert.assertTrue(gpadRowArr[2].contains("|NOT"));
 			 }
 		 }

@@ -1,0 +1,20 @@
+PREFIX dc: <http://purl.org/dc/elements/1.1/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX evidence: <http://geneontology.org/lego/evidence>
+PREFIX gomodel: <http://model.geneontology.org/>
+PREFIX lego: <http://geneontology.org/lego/>
+PREFIX pav: <http://purl.org/pav/>
+
+SELECT DISTINCT ?modelIRI ?model_state ?provided_by
+WHERE {
+  ?modelIRI a owl:Ontology .
+  OPTIONAL {
+    ?modelIRI lego:modelstate ?model_state .
+  }
+  OPTIONAL {
+    ?modelIRI pav:providedBy ?provided_by .
+  }
+}
