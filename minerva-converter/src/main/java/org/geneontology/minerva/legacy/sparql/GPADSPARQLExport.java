@@ -87,10 +87,12 @@ public class GPADSPARQLExport {
 	}
 	private final CurieHandler curieHandler;
 	private final Map<IRI, String> relationShorthandIndex;
+	private final Map<IRI, String> tboxLabelIndex;
 
-	public GPADSPARQLExport(CurieHandler handler, Map<IRI, String> shorthandIndex) {
+	public GPADSPARQLExport(CurieHandler handler, Map<IRI, String> shorthandIndex, Map<IRI, String> labelIndex) {
 		this.curieHandler = handler;
 		this.relationShorthandIndex = shorthandIndex;
+		this.tboxLabelIndex = labelIndex;
 	}
 
 	/* This is a bit convoluted in order to minimize redundant queries, for performance reasons. */
@@ -162,7 +164,7 @@ public class GPADSPARQLExport {
 
 						if (!rootViolation) {
 							DefaultGPADData defaultGPADData = new DefaultGPADData(annotation.getObject(), annotation.getQualifier(), annotation.getOntologyClass(), goodExtensions, 
-									reference, currentEvidence.getEvidence(), currentEvidence.getWithOrFrom(), Optional.empty(), currentEvidence.getDate(), "GO_Noctua", currentEvidence.getAnnotations());
+									reference, currentEvidence.getEvidence(), currentEvidence.getWithOrFrom(), Optional.empty(), currentEvidence.getDate(), currentEvidence.getAssignedBy(), currentEvidence.getAnnotations());
 							defaultGPADData.setOperator(annotation.getOperator());
 							annotations.add(defaultGPADData);
 						}
@@ -233,10 +235,13 @@ public class GPADSPARQLExport {
 				String date = eqs.getLiteral("date").getLexicalForm();
 				String reference = eqs.getLiteral("source").getLexicalForm();
 				final String usableAssignedBy;
-				//if (modelLevelAnnotations.containsKey("assigned-by")) {
-				if (false) {
-					//FIXME convert assigned-by to label rather than ID
-					usableAssignedBy = modelLevelAnnotations.get("assigned-by");
+				Optional<String> assignedByIRIOpt = getAnnotationAssignedBy(eqs);
+				if (assignedByIRIOpt.isPresent()) {
+					String usableAssignedByIRI = assignedByIRIOpt.get();
+					usableAssignedBy = this.tboxLabelIndex.getOrDefault(IRI.create(usableAssignedByIRI), usableAssignedByIRI);
+				} else if (modelLevelAnnotations.containsKey("assigned-by")) {
+					String usableAssignedByIRI = modelLevelAnnotations.get("assigned-by");
+					usableAssignedBy = this.tboxLabelIndex.getOrDefault(IRI.create(usableAssignedByIRI), usableAssignedByIRI);
 				} else { usableAssignedBy = "GO_Noctua"; }
 				if (modelLevelAnnotations.containsKey("model-state")) {
 					annotationAnnotations.add(Pair.of("model-state", modelLevelAnnotations.get("model-state")));
@@ -283,6 +288,15 @@ public class GPADSPARQLExport {
 			}
 		}
 		return Collections.unmodifiableSet(contributors);
+	}
+	
+	private Optional<String> getAnnotationAssignedBy(QuerySolution result) {
+		if (result.getLiteral("provided_bys") != null) {
+			for (String group : result.getLiteral("provided_bys").getLexicalForm().split("\\|")) {
+				return Optional.of(group);
+			}
+		}
+		return Optional.empty();
 	}
 
 	private static <T> Set<T> toJava(scala.collection.Set<T> scalaSet) {

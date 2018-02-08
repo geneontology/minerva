@@ -114,6 +114,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	
 	private final RuleEngine ruleEngine;
 	private final Map<IRI, String> legacyRelationIndex = new HashMap<IRI, String>();
+	private final Map<IRI, String> tboxLabelIndex = new HashMap<IRI, String>();
 	
 	
 	/**
@@ -193,6 +194,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		tboxIRI = getTboxIRI(graph);
 		this.ruleEngine = initializeRuleEngine();
 		initializeLegacyRelationIndex();
+		initializeTboxLabelIndex();
 		init();
 	}
 
@@ -266,6 +268,10 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return Collections.unmodifiableMap(this.legacyRelationIndex);
 	}
 	
+	public Map<IRI, String> getTboxLabelIndex() {
+		return Collections.unmodifiableMap(this.tboxLabelIndex);
+	}
+	
 	public RuleEngine getRuleEngine() {
 		return ruleEngine;
 	}
@@ -311,6 +317,19 @@ public abstract class CoreMolecularModelManager<METADATA> {
 							}
 						}
 					}
+				}
+			}
+		}
+	}
+	
+	private void initializeTboxLabelIndex() {
+		synchronized(tboxLabelIndex) {
+			OWLAnnotationProperty rdfsLabel = OWLManager.getOWLDataFactory().getRDFSLabel();
+			for (OWLAnnotationAssertionAxiom axiom : this.getOntology().getAxioms(AxiomType.ANNOTATION_ASSERTION, Imports.INCLUDED)) {
+				if (axiom.getProperty().equals(rdfsLabel) && (axiom.getSubject() instanceof IRI) && axiom.getValue() instanceof OWLLiteral) {
+					IRI subject = (IRI)(axiom.getSubject());
+					String label = axiom.getValue().asLiteral().get().getLiteral();
+					tboxLabelIndex.put(subject, label);
 				}
 			}
 		}
