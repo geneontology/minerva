@@ -9,6 +9,7 @@ import org.semanticweb.owlapi.model.IRI;
 public class DefaultGPADData implements GPADData {
 
 	private final IRI object;
+	private GPADOperatorStatus operator;	
 	private final IRI qualifier;
 	private final IRI ontologyClass;
 	private final Set<ConjunctiveExpression> annotationExtensions;
@@ -40,7 +41,16 @@ public class DefaultGPADData implements GPADData {
 	public IRI getObject() {
 		return this.object;
 	}
-
+	
+	public void setOperator(GPADOperatorStatus operator) {
+		this.operator = operator;
+	}
+	
+	@Override
+	public GPADOperatorStatus getOperator() {
+		return operator;
+	}
+	
 	@Override
 	public IRI getQualifier() {
 		return this.qualifier;
@@ -99,6 +109,7 @@ public class DefaultGPADData implements GPADData {
 		else {
 			DefaultGPADData otherData = (DefaultGPADData)other;
 			return this.getObject().equals(otherData.getObject())
+					&& this.getOperator().equals(otherData.getOperator())
 					&& this.getQualifier().equals(otherData.getQualifier())
 					&& this.getOntologyClass().equals(otherData.getOntologyClass())
 					&& this.getAnnotationExtensions().equals(otherData.getAnnotationExtensions())
@@ -116,6 +127,7 @@ public class DefaultGPADData implements GPADData {
 	public int hashCode() {
 		int result = 17;
 		result = 37 * result + this.getObject().hashCode();
+		result = 37 * result + this.getOperator().hashCode();
 		result = 37 * result + this.getQualifier().hashCode();
 		result = 37 * result + this.getOntologyClass().hashCode();
 		result = 37 * result + this.getAnnotationExtensions().hashCode();
@@ -129,5 +141,4 @@ public class DefaultGPADData implements GPADData {
 		result = 37 * result + this.getAnnotations().hashCode();
 		return result;
 	}
-
 }

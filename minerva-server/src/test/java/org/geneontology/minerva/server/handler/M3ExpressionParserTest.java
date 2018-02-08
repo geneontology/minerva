@@ -41,7 +41,8 @@ public class M3ExpressionParserTest {
 	}
 
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
-	    File file = new File("src/test/resources/go-lego-module.omn.gz").getCanonicalFile();
+	    /* File file = new File("src/test/resources/go-lego-module.omn.gz").getCanonicalFile(); */
+	    File file = new File("src/test/resources/go-lego-module-compact.omn.gz").getCanonicalFile();
 		graph = new OWLGraphWrapper(pw.parseOWL(IRI.create(file)));
 	}
 

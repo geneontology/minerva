@@ -11,7 +11,7 @@ import org.semanticweb.owlapi.model.IRI;
 /**
  * Standard data needed to render a GPAD file at IRI level.
  * Adding labels or curie transformations can build from this.
- * This is not meant to be a fully general represenation of GPAD; 
+ * This is not meant to be a fully general representation of GPAD; 
  * just the information expected to be provided for a GPAD annotation
  * extraction from a LEGO model.
  */
@@ -20,6 +20,9 @@ public interface GPADData {
 	@Nonnull
 	public IRI getObject();
 
+	@Nonnull
+	public GPADOperatorStatus getOperator();
+	
 	@Nonnull
 	public IRI getQualifier();
 
@@ -57,5 +60,4 @@ public interface GPADData {
 		public IRI getFiller();
 
 	}
-
 }
