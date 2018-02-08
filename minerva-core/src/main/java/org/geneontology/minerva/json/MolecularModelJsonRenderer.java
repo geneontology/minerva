@@ -9,10 +9,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.ModelContainer;
@@ -49,10 +47,6 @@ import org.semanticweb.owlapi.search.EntitySearcher;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-
-import owltools.gaf.eco.EcoMapper;
-import owltools.gaf.eco.EcoMapperFactory;
-import owltools.gaf.eco.EcoMapperFactory.OntologyMapperPair;
 
 /**
  * A Renderer that takes a MolecularModel (an OWL ABox) and generates Map objects
@@ -415,37 +409,11 @@ public class MolecularModelJsonRenderer {
 	public static List<JsonEvidenceInfo> renderEvidences(MolecularModelManager<?> mmm, CurieHandler curieHandler) throws OWLException, IOException {
 		return renderEvidences(mmm.getOntology().getOWLOntologyManager(), curieHandler);
 	}
-	
-	private static final Object ecoMutex = new Object();
-	private static volatile OntologyMapperPair<EcoMapper> eco = null;
-	
+		
 	public static List<JsonEvidenceInfo> renderEvidences(OWLOntologyManager manager, CurieHandler curieHandler) throws OWLException, IOException {
-		// TODO remove the hard coded ECO dependencies
-		OntologyMapperPair<EcoMapper> pair;
-		synchronized (ecoMutex) {
-			if (eco == null) {
-				eco = EcoMapperFactory.createEcoMapper(manager);
-			}
-			pair = eco;
-		}
-		final OWLGraphWrapper graph = pair.getGraph();
-		final EcoMapper mapper = pair.getMapper();
-		Set<OWLClass> ecoClasses = graph.getAllOWLClasses();
-		Map<OWLClass, String> codesForEcoClasses = mapper.getCodesForEcoClasses();
+		//FIXME possibly remove evidence term list from meta call
+		// for now trying to return an empty list and see how it breaks Noctua
 		List<JsonEvidenceInfo> relList = new ArrayList<JsonEvidenceInfo>();
-		for (OWLClass ecoClass : ecoClasses) {
-			if (ecoClass.isBuiltIn()) {
-				continue;
-			}
-			JsonEvidenceInfo json = new JsonEvidenceInfo();
-			json.id = curieHandler.getCuri(ecoClass);
-			json.label = graph.getLabel(ecoClass);
-			String code = codesForEcoClasses.get(ecoClass);
-			if (code != null) {
-				json.code = code;
-			}
-			relList.add(json);
-		}
 		return relList;
 	}
 	
