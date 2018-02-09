@@ -28,7 +28,7 @@ public class JsonTools {
 	
 	public static JsonAnnotation create(OWLDataProperty p, OWLLiteral value, String label, CurieHandler curieHandler) {
 		String type = getType(value);
-		return JsonAnnotation.create(curieHandler.getCuri(p), value.getLiteral(), label, type);
+		return JsonAnnotation.create(curieHandler.getCuri(p), value.getLiteral(), type, label);
 	}
 	
 	private static String getType(OWLLiteral literal) {
@@ -65,7 +65,7 @@ public class JsonTools {
 	}
 	
 	public static JsonAnnotation create(AnnotationShorthand key, String value, String label) {
-		return JsonAnnotation.create(key.getShorthand(), value, label, null);
+		return JsonAnnotation.create(key.getShorthand(), value, null, label);
 	}
 	
 	private static boolean isIRIValue(JsonAnnotation ann) {

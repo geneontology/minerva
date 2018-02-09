@@ -142,8 +142,8 @@ public class BatchModelHandlerTest {
 		M3Request r = BatchTestTools.addIndividual(modelId, "GO:0006915"); // apoptotic process
 		r.arguments.assignToVariable = "i1";
 		r.arguments.values = new JsonAnnotation[2];
-		r.arguments.values[0] = JsonTools.create(AnnotationShorthand.comment, "comment 1");
-		r.arguments.values[1] = JsonTools.create(AnnotationShorthand.comment, "comment 2");
+		r.arguments.values[0] = JsonTools.create(AnnotationShorthand.comment, "comment 1", null);
+		r.arguments.values[1] = JsonTools.create(AnnotationShorthand.comment, "comment 2", null);
 		batch.add(r);
 		
 		r = new M3Request();
@@ -1937,8 +1937,8 @@ public class BatchModelHandlerTest {
 		final List<M3Request> batch1 = new ArrayList<M3Request>();
 		r = BatchTestTools.addIndividual(modelId, "GO:0008150"); // biological process
 		r.arguments.values = new JsonAnnotation[2];
-		r.arguments.values[0] = JsonTools.create(AnnotationShorthand.x, "100");
-		r.arguments.values[1] = JsonTools.create(AnnotationShorthand.y, "200");
+		r.arguments.values[0] = JsonTools.create(AnnotationShorthand.x, "100", null);
+		r.arguments.values[1] = JsonTools.create(AnnotationShorthand.y, "200", null);
 		batch1.add(r);
 		
 		
