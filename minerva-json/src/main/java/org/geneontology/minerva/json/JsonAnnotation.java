@@ -8,12 +8,14 @@ public class JsonAnnotation {
 	public String value;
 	@SerializedName("value-type")
 	public String valueType; // optional, defaults to OWL string literal for null
+	public String label; // optional, a label for the value, which may be a String-form IRI
 	
-	static JsonAnnotation create(String key, String value, String type) {
+	static JsonAnnotation create(String key, String value, String type, String label) {
 		JsonAnnotation a = new JsonAnnotation();
 		a.key = key;
 		a.value = value;
 		a.valueType = type;
+		a.label = label;
 		return a;
 	}
 	
@@ -24,6 +26,7 @@ public class JsonAnnotation {
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
 		result = prime * result + ((value == null) ? 0 : value.hashCode());
 		result = prime * result + ((valueType == null) ? 0 : valueType.hashCode());
+		result = prime * result + ((label == null) ? 0 : label.hashCode());
 		return result;
 	}
 
@@ -58,6 +61,13 @@ public class JsonAnnotation {
 				return false;
 			}
 		} else if (!valueType.equals(other.valueType)) {
+			return false;
+		}
+		if (label == null) {
+			if (other.label != null) {
+				return false;
+			}
+		} else if (!label.equals(other.label)) {
 			return false;
 		}
 		return true;

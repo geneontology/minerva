@@ -148,7 +148,7 @@ public class MolecularModelJsonRenderer {
 	private static JsonAnnotation[] renderAnnotations(Set<OWLAnnotation> annotations, CurieHandler curieHandler) {
 		List<JsonAnnotation> anObjs = new ArrayList<JsonAnnotation>();
 		for (OWLAnnotation annotation : annotations) {
-			JsonAnnotation json = JsonTools.create(annotation.getProperty(), annotation.getValue(), curieHandler);
+			JsonAnnotation json = JsonTools.create(annotation.getProperty(), annotation.getValue(), null, curieHandler);
 			if (json != null) {
 				anObjs.add(json);
 			}
@@ -223,7 +223,7 @@ public class MolecularModelJsonRenderer {
 		final List<JsonAnnotation> anObjs = new ArrayList<JsonAnnotation>();
 		Set<OWLAnnotationAssertionAxiom> annotationAxioms = ont.getAnnotationAssertionAxioms(i.getIRI());
 		for (OWLAnnotationAssertionAxiom ax : annotationAxioms) {
-			JsonAnnotation jsonAnn = JsonTools.create(ax.getProperty(), ax.getValue(), curieHandler);
+			JsonAnnotation jsonAnn = JsonTools.create(ax.getProperty(), ax.getValue(), null, curieHandler);
 			if (jsonAnn != null) {
 				anObjs.add(jsonAnn);
 			}
@@ -231,7 +231,7 @@ public class MolecularModelJsonRenderer {
 		Set<OWLDataPropertyAssertionAxiom> dataPropertyAxioms = ont.getDataPropertyAssertionAxioms(i);
 		for (OWLDataPropertyAssertionAxiom ax : dataPropertyAxioms) {
 			OWLDataProperty property = ax.getProperty().asOWLDataProperty();
-			JsonAnnotation jsonAnn = JsonTools.create(property, ax.getObject(), curieHandler);
+			JsonAnnotation jsonAnn = JsonTools.create(property, ax.getObject(), null, curieHandler);
 			if (jsonAnn != null) {
 				anObjs.add(jsonAnn);
 			}

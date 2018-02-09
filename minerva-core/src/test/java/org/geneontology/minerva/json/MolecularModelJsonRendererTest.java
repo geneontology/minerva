@@ -68,7 +68,7 @@ public class MolecularModelJsonRendererTest {
 		OWLAnnotationProperty p = f.getOWLAnnotationProperty(evidenceIRI);
 		IRI iriValue = IRI.generateDocumentIRI();
 		OWLAnnotation owlAnnotation = f.getOWLAnnotation(p, iriValue);
-		JsonAnnotation json = JsonTools.create(p, owlAnnotation.getValue(), curieHandler);
+		JsonAnnotation json = JsonTools.create(p, owlAnnotation.getValue(), null, curieHandler);
 		assertEquals(AnnotationShorthand.evidence.name(), json.key);
 		assertEquals(curieHandler.getCuri(iriValue), json.value);
 		assertEquals("IRI", json.valueType);

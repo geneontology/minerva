@@ -17,18 +17,18 @@ public class JsonTools {
 
 	private static final String VALUE_TYPE_IRI = "IRI";
 	
-	public static JsonAnnotation create(OWLAnnotationProperty p, OWLAnnotationValue value, CurieHandler curieHandler) {
+	public static JsonAnnotation create(OWLAnnotationProperty p, OWLAnnotationValue value, String label, CurieHandler curieHandler) {
 		AnnotationShorthand annotationShorthand = AnnotationShorthand.getShorthand(p.getIRI());
 		if (annotationShorthand != null) {
 			// try to shorten IRIs for shorthand annotations
-			return create(annotationShorthand.getShorthand(), value, curieHandler);
+			return create(annotationShorthand.getShorthand(), value, label, curieHandler);
 		}
-		return create(curieHandler.getCuri(p), value, curieHandler);
+		return create(curieHandler.getCuri(p), value, label, curieHandler);
 	}
 	
-	public static JsonAnnotation create(OWLDataProperty p, OWLLiteral value, CurieHandler curieHandler) {
+	public static JsonAnnotation create(OWLDataProperty p, OWLLiteral value, String label, CurieHandler curieHandler) {
 		String type = getType(value);
-		return JsonAnnotation.create(curieHandler.getCuri(p), value.getLiteral(), type);
+		return JsonAnnotation.create(curieHandler.getCuri(p), value.getLiteral(), type, label);
 	}
 	
 	private static String getType(OWLLiteral literal) {
@@ -43,13 +43,13 @@ public class JsonTools {
 		return type;
 	}
 	
-	private static JsonAnnotation create(final String key, OWLAnnotationValue value, final CurieHandler curieHandler) {
+	private static JsonAnnotation create(final String key, OWLAnnotationValue value, String label, final CurieHandler curieHandler) {
 		return value.accept(new OWLAnnotationValueVisitorEx<JsonAnnotation>() {
 
 			@Override
 			public JsonAnnotation visit(IRI iri) {
 				String iriString = curieHandler.getCuri(iri);
-				return JsonAnnotation.create(key, iriString, VALUE_TYPE_IRI);
+				return JsonAnnotation.create(key, iriString, VALUE_TYPE_IRI, label);
 			}
 
 			@Override
@@ -59,13 +59,13 @@ public class JsonTools {
 
 			@Override
 			public JsonAnnotation visit(OWLLiteral literal) {
-				return JsonAnnotation.create(key, literal.getLiteral(), getType(literal));
+				return JsonAnnotation.create(key, literal.getLiteral(), getType(literal), label);
 			}
 		});
 	}
 	
-	public static JsonAnnotation create(AnnotationShorthand key, String value) {
-		return JsonAnnotation.create(key.getShorthand(), value, null);
+	public static JsonAnnotation create(AnnotationShorthand key, String value, String label) {
+		return JsonAnnotation.create(key.getShorthand(), value, null, label);
 	}
 	
 	private static boolean isIRIValue(JsonAnnotation ann) {
