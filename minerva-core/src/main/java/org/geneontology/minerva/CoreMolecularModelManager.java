@@ -105,6 +105,8 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	private static final IRI HAS_EVIDENCE_IRI = IRI.create("http://purl.obolibrary.org/obo/RO_0002612");
 	// legacy
 	private static final IRI HAS_EVIDENCE_IRI_OLD = AnnotationShorthand.evidence.getAnnotationProperty();
+	
+	private static final OWLAnnotationProperty HAS_SHORTHAND = OWLManager.getOWLDataFactory().getOWLAnnotationProperty(IRI.create("http://www.geneontology.org/formats/oboInOwl#shorthand"));
 
 	final OWLGraphWrapper graph;
 //	final OWLReasonerFactory rf;
@@ -115,6 +117,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	private final RuleEngine ruleEngine;
 	private final Map<IRI, String> legacyRelationIndex = new HashMap<IRI, String>();
 	private final Map<IRI, String> tboxLabelIndex = new HashMap<IRI, String>();
+	private final Map<IRI, String> tboxShorthandIndex = new HashMap<IRI, String>();
 	
 	
 	/**
@@ -195,6 +198,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		this.ruleEngine = initializeRuleEngine();
 		initializeLegacyRelationIndex();
 		initializeTboxLabelIndex();
+		initializeTboxShorthandIndex();
 		init();
 	}
 
@@ -272,6 +276,10 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return Collections.unmodifiableMap(this.tboxLabelIndex);
 	}
 	
+	public Map<IRI, String> getTboxShorthandIndex() {
+		return Collections.unmodifiableMap(this.tboxShorthandIndex);
+	}
+	
 	public RuleEngine getRuleEngine() {
 		return ruleEngine;
 	}
@@ -330,6 +338,18 @@ public abstract class CoreMolecularModelManager<METADATA> {
 					IRI subject = (IRI)(axiom.getSubject());
 					String label = axiom.getValue().asLiteral().get().getLiteral();
 					tboxLabelIndex.put(subject, label);
+				}
+			}
+		}
+	}
+	
+	private void initializeTboxShorthandIndex() {
+		synchronized(tboxShorthandIndex) {
+			for (OWLAnnotationAssertionAxiom axiom : this.getOntology().getAxioms(AxiomType.ANNOTATION_ASSERTION, Imports.INCLUDED)) {
+				if (axiom.getProperty().equals(HAS_SHORTHAND) && (axiom.getSubject() instanceof IRI) && axiom.getValue() instanceof OWLLiteral) {
+					IRI subject = (IRI)(axiom.getSubject());
+					String shorthand = axiom.getValue().asLiteral().get().getLiteral();
+					tboxShorthandIndex.put(subject, shorthand);
 				}
 			}
 		}
