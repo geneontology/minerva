@@ -332,7 +332,7 @@
 			</dependency>
 			<dependency>
 				<groupId>org.geneontology</groupId>
-				<artifactId>owl-to-rules_2.11</artifactId>
+				<artifactId>owl-to-rules_2.12</artifactId>
 				<version>0.3.5</version>
 				<exclusions>
 					<exclusion>
@@ -343,8 +343,8 @@
 			</dependency>
 			<dependency>
 				<groupId>org.geneontology</groupId>
-				<artifactId>arachne_2.11</artifactId>
-				<version>1.1</version>
+				<artifactId>arachne_2.12</artifactId>
+				<version>1.2</version>
 				<exclusions>
 					<exclusion>
 						<groupId>ch.qos.logback</groupId>
