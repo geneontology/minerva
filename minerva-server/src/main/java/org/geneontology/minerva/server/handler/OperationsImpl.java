@@ -662,7 +662,7 @@ abstract class OperationsImpl extends ModelCreator {
 	private void exportLegacy(M3BatchResponse response, ModelContainer model, String format, String userId) throws IOException, OWLOntologyCreationException, UnknownIdentifierException {
 		if ("gpad".equals(format)) {
 			initMetaResponse(response);
-			response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxLabelIndex()).exportGPAD(m3.createInferredModel(model.getModelId()));
+			response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex()).exportGPAD(m3.createInferredModel(model.getModelId()));
 		} else if ("explanations".equals(format)) {
 			initMetaResponse(response);
 			response.data.exportModel = ExportExplanation.exportExplanation(m3.createInferredModel(model.getModelId()), externalLookupService, m3.getLegacyRelationShorthandIndex());

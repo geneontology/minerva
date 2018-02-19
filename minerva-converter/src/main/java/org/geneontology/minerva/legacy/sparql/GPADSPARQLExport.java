@@ -87,12 +87,12 @@ public class GPADSPARQLExport {
 	}
 	private final CurieHandler curieHandler;
 	private final Map<IRI, String> relationShorthandIndex;
-	private final Map<IRI, String> tboxLabelIndex;
+	private final Map<IRI, String> tboxShorthandIndex;
 
-	public GPADSPARQLExport(CurieHandler handler, Map<IRI, String> shorthandIndex, Map<IRI, String> labelIndex) {
+	public GPADSPARQLExport(CurieHandler handler, Map<IRI, String> shorthandIndex, Map<IRI, String> tboxShorthandIndex) {
 		this.curieHandler = handler;
 		this.relationShorthandIndex = shorthandIndex;
-		this.tboxLabelIndex = labelIndex;
+		this.tboxShorthandIndex = tboxShorthandIndex;
 	}
 
 	/* This is a bit convoluted in order to minimize redundant queries, for performance reasons. */
@@ -238,10 +238,10 @@ public class GPADSPARQLExport {
 				Optional<String> assignedByIRIOpt = getAnnotationAssignedBy(eqs);
 				if (assignedByIRIOpt.isPresent()) {
 					String usableAssignedByIRI = assignedByIRIOpt.get();
-					usableAssignedBy = this.tboxLabelIndex.getOrDefault(IRI.create(usableAssignedByIRI), usableAssignedByIRI);
+					usableAssignedBy = this.tboxShorthandIndex.getOrDefault(IRI.create(usableAssignedByIRI), usableAssignedByIRI);
 				} else if (modelLevelAnnotations.containsKey("assigned-by")) {
 					String usableAssignedByIRI = modelLevelAnnotations.get("assigned-by");
-					usableAssignedBy = this.tboxLabelIndex.getOrDefault(IRI.create(usableAssignedByIRI), usableAssignedByIRI);
+					usableAssignedBy = this.tboxShorthandIndex.getOrDefault(IRI.create(usableAssignedByIRI), usableAssignedByIRI);
 				} else { usableAssignedBy = "GO_Noctua"; }
 				if (modelLevelAnnotations.containsKey("model-state")) {
 					annotationAnnotations.add(Pair.of("model-state", modelLevelAnnotations.get("model-state")));
