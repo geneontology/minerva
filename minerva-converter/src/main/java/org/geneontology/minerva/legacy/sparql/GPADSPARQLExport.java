@@ -41,6 +41,7 @@ import org.geneontology.rules.engine.Explanation;
 import org.geneontology.rules.engine.WorkingMemory;
 import org.geneontology.rules.util.Bridge;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
 
 import scala.collection.JavaConverters;
 
@@ -52,6 +53,10 @@ public class GPADSPARQLExport {
 	private static final String BP = "http://purl.obolibrary.org/obo/GO_0008150";
 	private static final String CC = "http://purl.obolibrary.org/obo/GO_0005575";
 	private static final Set<String> rootTerms = new HashSet<>(Arrays.asList(MF, BP, CC));
+	private static final String inconsistentQuery = 
+			"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>" + 
+					"PREFIX owl: <http://www.w3.org/2002/07/owl#>" +
+					"ASK WHERE { ?s rdf:type owl:Nothing . } ";
 
 	private static String mainQuery;
 	static {
@@ -96,9 +101,10 @@ public class GPADSPARQLExport {
 	}
 
 	/* This is a bit convoluted in order to minimize redundant queries, for performance reasons. */
-	public String exportGPAD(WorkingMemory wm) {
+	public String exportGPAD(WorkingMemory wm) throws InconsistentOntologyException {
 		Model model = ModelFactory.createDefaultModel();
 		model.add(JavaConverters.setAsJavaSetConverter(wm.facts()).asJava().stream().map(t -> model.asStatement(Bridge.jenaFromTriple(t))).collect(Collectors.toList()));
+		if (!isConsistent(model)) throw new InconsistentOntologyException();
 		Map<String, String> modelLevelAnnotations = getModelAnnotations(model);
 		/* The first step of constructing GPAD records is to construct candidate/basic GPAD records by running gpad-basic.rq. */
 		QueryExecution qe = QueryExecutionFactory.create(mainQuery, model);
@@ -109,7 +115,7 @@ public class GPADSPARQLExport {
 		while (results.hasNext()) {
 			QuerySolution qs = results.next();
 			BasicGPADData basicGPADData = new BasicGPADData(qs.getResource("pr").asNode(), IRI.create(qs.getResource("pr_type").getURI()), IRI.create(qs.getResource("rel").getURI()), qs.getResource("target").asNode(), IRI.create(qs.getResource("target_type").getURI()));			
-			
+
 			/* See whether the query answer contains not-null blank nodes, which are only set if the matching subgraph 
 			 * contains the property ComplementOf.  If we see such cases, we set the operator field as NOT so that NOT value 
 			 * can be printed in GPAD. */ 
@@ -117,7 +123,7 @@ public class GPADSPARQLExport {
 			basicAnnotations.add(basicGPADData);
 		}
 		qe.close();
-		
+
 		/* The bindings of ?pr_type, ?rel, ?target_type are candidate mappings or values for the final GPAD records 
 		 * (i.e. not every mapping is used for building the final records of GPAD file; many of them are filtered out later).
 		 * The mappings are 
@@ -297,6 +303,13 @@ public class GPADSPARQLExport {
 			}
 		}
 		return Optional.empty();
+	}
+	
+	private boolean isConsistent(Model model) {
+		QueryExecution qe = QueryExecutionFactory.create(inconsistentQuery, model);
+		boolean inconsistent = qe.execAsk();
+		qe.close();
+		return !inconsistent;
 	}
 
 	private static <T> Set<T> toJava(scala.collection.Set<T> scalaSet) {

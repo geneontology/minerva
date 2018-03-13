@@ -53,6 +53,7 @@ import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectPropertyAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
+import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
 
 /**
  * Separate the actual calls to the {@link UndoAwareMolecularModelManager} from the
@@ -662,7 +663,12 @@ abstract class OperationsImpl extends ModelCreator {
 	private void exportLegacy(M3BatchResponse response, ModelContainer model, String format, String userId) throws IOException, OWLOntologyCreationException, UnknownIdentifierException {
 		if ("gpad".equals(format)) {
 			initMetaResponse(response);
-			response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex()).exportGPAD(m3.createInferredModel(model.getModelId()));
+			try {
+				response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex()).exportGPAD(m3.createInferredModel(model.getModelId()));
+			} catch (InconsistentOntologyException e) {
+				response.messageType = MinervaResponse.MESSAGE_TYPE_ERROR;
+				response.message = "The model is inconsistent; a GPAD cannot be created.";
+			}
 		} else if ("explanations".equals(format)) {
 			initMetaResponse(response);
 			response.data.exportModel = ExportExplanation.exportExplanation(m3.createInferredModel(model.getModelId()), externalLookupService, m3.getLegacyRelationShorthandIndex());

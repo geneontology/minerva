@@ -54,6 +54,7 @@ import org.semanticweb.owlapi.model.OWLEntity;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
 
 import com.bigdata.journal.Options;
 import com.bigdata.rdf.sail.BigdataSail;
@@ -438,11 +439,15 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		for (IRI modelIRI : m3.getAvailableModelIds()) {
-			String gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex()).exportGPAD(m3.createInferredModel(modelIRI));
-			String fileName = StringUtils.replaceOnce(modelIRI.toString(), modelIdPrefix, "") + ".gpad";
-			Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(gpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
-			writer.write(gpad);
-			writer.close();
+			try {
+				String gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex()).exportGPAD(m3.createInferredModel(modelIRI));
+				String fileName = StringUtils.replaceOnce(modelIRI.toString(), modelIdPrefix, "") + ".gpad";
+				Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(gpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
+				writer.write(gpad);
+				writer.close();	
+			} catch (InconsistentOntologyException e) {
+				LOGGER.error("Inconsistent ontology: " + modelIRI);
+			}
 		}
 		m3.dispose();
 	}
