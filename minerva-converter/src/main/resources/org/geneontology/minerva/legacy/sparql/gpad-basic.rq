@@ -60,6 +60,7 @@ WHERE {
 	FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/UBERON_")) # would be better to do this semantically but expensive to add NEO tbox to model
 	FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/CL_")) # would be better to do this semantically but expensive to add NEO tbox to model
 	FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/EMAPA_")) # would be better to do this semantically but expensive to add NEO tbox to model
+  FILTER(!STRSTARTS(STR(?pr_type), "http://www.biopax.org/")) # would be better to do this semantically but expensive to add NEO tbox to model
 	
 	FILTER NOT EXISTS {
         	?pr <http://arachne.geneontology.org/indirect_type> ?pr_type .
