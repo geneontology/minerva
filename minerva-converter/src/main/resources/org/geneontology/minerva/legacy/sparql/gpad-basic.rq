@@ -23,16 +23,16 @@ PREFIX PR: <http://purl.obolibrary.org/obo/PR_>
 
 SELECT DISTINCT ?pr ?pr_type ?rel ?target ?blank_comp ?target_type
 WHERE {
-	# ?pr, ?target: some instances/individuals? 
+    # ?pr, ?target: some instances/individuals? 
     # ?rel: qualifier in GPAD.
     # ?pr_type: DB object ID in GPAD, e.g., <http://www.informatics.jax.org/accession/MGI:MGI:1925503>
     # ?target_type: GO ID, i.e., the GO identifier for the term attributed to the DB object ID, e.g., <http://purl.obolibrary.org/obo/GO_0005200>.
     
     ?pr ?rel ?target .
-	?pr rdf:type ?pr_type .
+    ?pr rdf:type ?pr_type .
     
-	# Not sure what this filter is for. I believe this filter was designed to handle some triples generated from reasoning.
-	FILTER NOT EXISTS {
+    # Return only most specific relationships between two indivividuals
+    FILTER NOT EXISTS {
         ?pr ?other_rel ?target .
         ?other_rel rdfs:subPropertyOf ?rel .
         FILTER(?other_rel != ?rel) 
