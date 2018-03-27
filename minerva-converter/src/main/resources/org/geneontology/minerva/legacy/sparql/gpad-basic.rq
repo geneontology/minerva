@@ -11,7 +11,11 @@ PREFIX part_of: <http://purl.obolibrary.org/obo/BFO_0000050>
 PREFIX evidence: <http://geneontology.org/lego/evidence>
 PREFIX gomodel: <http://model.geneontology.org/>
 PREFIX acts_upstream_of: <http://purl.obolibrary.org/obo/RO_0002263>
+PREFIX acts_upstream_of_positive_effect: <http://purl.obolibrary.org/obo/RO_0004034>
+PREFIX acts_upstream_of_negative_effect: <http://purl.obolibrary.org/obo/RO_0004035>
 PREFIX acts_upstream_of_or_within: <http://purl.obolibrary.org/obo/RO_0002264>
+PREFIX acts_upstream_of_or_within_positive_effect: <http://purl.obolibrary.org/obo/RO_0004032>
+PREFIX acts_upstream_of_or_within_negative_effect: <http://purl.obolibrary.org/obo/RO_0004033>
 PREFIX involved_in_regulation_of: <http://purl.obolibrary.org/obo/RO_0002428>
 PREFIX involved_in_negative_regulation_of: <http://purl.obolibrary.org/obo/RO_0002430>
 PREFIX involved_in_positive_regulation_of: <http://purl.obolibrary.org/obo/RO_0002429>
@@ -44,7 +48,11 @@ WHERE {
         involved_in: 
         part_of: 
         acts_upstream_of: 
+        acts_upstream_of_positive_effect: 
+        acts_upstream_of_negative_effect: 
         acts_upstream_of_or_within: 
+        acts_upstream_of_or_within_positive_effect: 
+        acts_upstream_of_or_within_negative_effect: 
         contributes_to:
 	}
 	
