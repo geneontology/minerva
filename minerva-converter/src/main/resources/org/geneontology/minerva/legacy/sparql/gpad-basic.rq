@@ -60,7 +60,7 @@ WHERE {
 	FILTER(isIRI(?pr_type)) 
 	
 	# The value of ?pr_type should not be the values in this list, i.e. filter out meaningless nodes.
-	FILTER(?pr_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040))
+	FILTER(?pr_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040, PR:000000001))
 	
 	# The value of ?pr_type should not begin with these values, e.g., GO ID.
 	FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/GO_")) # would be better to do this semantically but expensive to add NEO tbox to model
