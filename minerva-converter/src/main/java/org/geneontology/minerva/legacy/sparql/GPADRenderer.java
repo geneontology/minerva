@@ -17,7 +17,7 @@ public class GPADRenderer {
 	private final CurieHandler curieHandler;
 	private final Map<IRI, String> relationShorthandIndex;
 
-	public static final String HEADER = "!gpa-version: 1.2";
+	public static final String HEADER = "!gpa-version: 1.1";
 	public static final String ATTRIBUTE = "!DB		DBObjectID	Qualifier	GOID	DB:References		EvidenceCode	With(Or)From	InteractingTaxonID	AssignedBy	AnnoExt	AnnoProp";
 	
 	public GPADRenderer(CurieHandler handler, Map<IRI, String> shorthandIndex) {
