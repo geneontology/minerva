@@ -93,11 +93,13 @@ public class GPADSPARQLExport {
 	private final CurieHandler curieHandler;
 	private final Map<IRI, String> relationShorthandIndex;
 	private final Map<IRI, String> tboxShorthandIndex;
+	private final Set<IRI> doNotAnnotateSubset;
 
-	public GPADSPARQLExport(CurieHandler handler, Map<IRI, String> shorthandIndex, Map<IRI, String> tboxShorthandIndex) {
+	public GPADSPARQLExport(CurieHandler handler, Map<IRI, String> shorthandIndex, Map<IRI, String> tboxShorthandIndex, Set<IRI> doNotAnnotateSubset) {
 		this.curieHandler = handler;
 		this.relationShorthandIndex = shorthandIndex;
 		this.tboxShorthandIndex = tboxShorthandIndex;
+		this.doNotAnnotateSubset = doNotAnnotateSubset;
 	}
 
 	/* This is a bit convoluted in order to minimize redundant queries, for performance reasons. */
@@ -162,13 +164,16 @@ public class GPADSPARQLExport {
 								}
 							}
 						}
-
 						final boolean rootViolation;
 						if (rootTerms.contains(annotation.getOntologyClass().toString())) {
 							rootViolation = !ND.equals(currentEvidence.getEvidence().toString());
 						} else { rootViolation = false; }
+						final boolean doNotAnnotateViolation;
+						if (doNotAnnotateSubset.contains(annotation.getOntologyClass())) {
+							doNotAnnotateViolation = true;
+						} else { doNotAnnotateViolation = false; }
 
-						if (!rootViolation) {
+						if (!rootViolation && !doNotAnnotateViolation) {
 							DefaultGPADData defaultGPADData = new DefaultGPADData(annotation.getObject(), annotation.getQualifier(), annotation.getOntologyClass(), goodExtensions, 
 									reference, currentEvidence.getEvidence(), currentEvidence.getWithOrFrom(), Optional.empty(), currentEvidence.getDate(), currentEvidence.getAssignedBy(), currentEvidence.getAnnotations());
 							defaultGPADData.setOperator(annotation.getOperator());

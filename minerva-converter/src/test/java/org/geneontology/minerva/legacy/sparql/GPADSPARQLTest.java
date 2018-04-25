@@ -1,6 +1,7 @@
 package org.geneontology.minerva.legacy.sparql;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -47,7 +48,7 @@ public class GPADSPARQLTest {
 	@BeforeClass
 	public static void setupExporter() {
 		JenaSystem.init();
-		exporter = new GPADSPARQLExport(DefaultCurieHandler.getDefaultHandler(), new HashMap<IRI, String>(), new HashMap<IRI, String>());
+		exporter = new GPADSPARQLExport(DefaultCurieHandler.getDefaultHandler(), new HashMap<IRI, String>(), new HashMap<IRI, String>(), Collections.emptySet());
 	}
 
 	@Test
