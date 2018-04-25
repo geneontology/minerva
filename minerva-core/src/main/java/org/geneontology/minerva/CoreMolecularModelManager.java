@@ -321,7 +321,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 							Optional<OWLLiteral> literalOpt = axiom.getValue().asLiteral();
 							if (literalOpt.isPresent()) {
 								String label = literalOpt.get().getLiteral();
-								legacyRelationIndex.put(prop.getIRI(), label.replaceAll(" ", "_"));
+								legacyRelationIndex.put(prop.getIRI(), label.replaceAll(" ", "_").replaceAll(",", ""));
 							}
 						}
 					}
