@@ -113,4 +113,5 @@ FILTER NOT EXISTS {
     ?extension <http://arachne.geneontology.org/indirect_type> ?extension_type .
 }
 FILTER(isIRI(?extension_type) && (?extension_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040)))
+FILTER(!STRSTARTS(STR(?extension_type), "http://purl.obolibrary.org/obo/CARO_"))
 }
