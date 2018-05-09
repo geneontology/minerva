@@ -153,8 +153,7 @@ public class GPADSPARQLExport {
 						String reference = currentEvidence.getReference();
 						Set<ConjunctiveExpression> goodExtensions = new HashSet<>();
 						for (AnnotationExtension extension : possibleExtensions) {
-							if (extension.getTriple().getSubject().equals(annotation.getOntologyClassNode()) &&
-									!(extension.getTriple().getObject().equals(annotation.getObjectNode()))) {
+							if (extension.getTriple().getSubject().equals(annotation.getOntologyClassNode()) && !(extension.getTriple().getObject().equals(annotation.getObjectNode()))) {
 								for (Explanation expl : allExplanations.get(extension.getTriple())) {
 									boolean allFactsOfExplanationHaveRefMatchingAnnotation = toJava(expl.facts()).stream().map(fact -> allEvidences.getOrDefault(Bridge.jenaFromTriple(fact), Collections.emptySet())).allMatch(evidenceSet -> 
 									evidenceSet.stream().anyMatch(ev -> ev.getReference().equals(reference)));
@@ -185,7 +184,7 @@ public class GPADSPARQLExport {
 		}
 		return new GPADRenderer(curieHandler, relationShorthandIndex).renderAll(annotations);
 	}
-	
+
 	private Map<String, String> getModelAnnotations(Model model) {
 		QueryExecution qe = QueryExecutionFactory.create(modelAnnotationsQuery, model);
 		ResultSet result = qe.execSelect();
@@ -300,7 +299,7 @@ public class GPADSPARQLExport {
 		}
 		return Collections.unmodifiableSet(contributors);
 	}
-	
+
 	private Optional<String> getAnnotationAssignedBy(QuerySolution result) {
 		if (result.getLiteral("provided_bys") != null) {
 			for (String group : result.getLiteral("provided_bys").getLexicalForm().split("\\|")) {
@@ -309,7 +308,7 @@ public class GPADSPARQLExport {
 		}
 		return Optional.empty();
 	}
-	
+
 	private boolean isConsistent(Model model) {
 		QueryExecution qe = QueryExecutionFactory.create(inconsistentQuery, model);
 		boolean inconsistent = qe.execAsk();
@@ -322,6 +321,7 @@ public class GPADSPARQLExport {
 	}
 
 	private static class DefaultConjunctiveExpression implements ConjunctiveExpression {
+
 		private final IRI relation;
 		private final IRI filler;
 
@@ -339,5 +339,38 @@ public class GPADSPARQLExport {
 		public IRI getFiller() {
 			return filler;
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + ((filler == null) ? 0 : filler.hashCode());
+			result = prime * result + ((relation == null) ? 0 : relation.hashCode());
+			return result;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			DefaultConjunctiveExpression other = (DefaultConjunctiveExpression) obj;
+			if (filler == null) {
+				if (other.filler != null)
+					return false;
+			} else if (!filler.equals(other.filler))
+				return false;
+			if (relation == null) {
+				if (other.relation != null)
+					return false;
+			} else if (!relation.equals(other.relation))
+				return false;
+			return true;
+		}
+
 	}
+
 }
