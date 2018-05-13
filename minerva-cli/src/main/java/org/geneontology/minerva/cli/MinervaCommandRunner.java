@@ -167,7 +167,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(new OWLGraphWrapper(dummy), modelIdPrefix, journalFilePath, null);
 		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
 			LOGGER.info("Loading " + file);
-			m3.importModelToDatabase(file);
+			m3.importModelToDatabase(file, true);
 		}
 		m3.dispose();
 	}
