@@ -12,7 +12,6 @@ import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.geneontology.minerva.ModelReaderHelper;
-import org.geneontology.minerva.ModelWriterHelper;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
@@ -331,7 +330,6 @@ public class StartUpTool {
 				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder);
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
-		models.addPreFileSaveHandler(new ModelWriterHelper(conf.curieHandler, conf.lookupService));
 		
 		// start server
 		Server server = startUp(models, conf);

@@ -19,9 +19,16 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.RemoveAxiom;
 import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
 
+/**
+ * The axioms tagged with the lego:derived property are removed upon reading in the model.
+ * This system is not really used anymore, but this class should still be active while
+ * some models still contain these annotated axioms.
+ */
 public class ModelReaderHelper implements PostLoadOntologyFilter {
 	
 	public static final ModelReaderHelper INSTANCE = new ModelReaderHelper();
+	public static final IRI DERIVED_IRI = IRI.create("http://geneontology.org/lego/derived");
+	public static final String DERIVED_VALUE = "true";
 	
 	private ModelReaderHelper() {
 		// no public constructor, use instance
@@ -31,7 +38,7 @@ public class ModelReaderHelper implements PostLoadOntologyFilter {
 	public OWLOntology filter(OWLOntology model) {
 		final OWLOntologyManager m = model.getOWLOntologyManager();
 		final OWLDataFactory f = m.getOWLDataFactory();
-		final OWLAnnotationProperty derivedProperty = f.getOWLAnnotationProperty(ModelWriterHelper.DERIVED_IRI);
+		final OWLAnnotationProperty derivedProperty = f.getOWLAnnotationProperty(DERIVED_IRI);
 		
 		List<OWLOntologyChange> allChanges = new ArrayList<OWLOntologyChange>();
 		
@@ -81,7 +88,7 @@ public class ModelReaderHelper implements PostLoadOntologyFilter {
 							return literal.getLiteral();
 						}
 					});
-					if (value != null && ModelWriterHelper.DERIVED_VALUE.equalsIgnoreCase(value)) {
+					if (value != null && DERIVED_VALUE.equalsIgnoreCase(value)) {
 						return true;
 					}
 				}
