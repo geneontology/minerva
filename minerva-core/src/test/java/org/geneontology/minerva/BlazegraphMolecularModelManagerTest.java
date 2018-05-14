@@ -18,11 +18,14 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLAnnotationProperty;
+import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 
@@ -50,7 +53,7 @@ public class BlazegraphMolecularModelManagerTest extends OWLToolsTestBasics {
 		BlazegraphMolecularModelManager<Void> m3 = createBlazegraphMolecularModelManager();
 
 		/* Import the test turtle file */
-		m3.importModelToDatabase(new File(sourceModelPath));
+		m3.importModelToDatabase(new File(sourceModelPath), false);
 		/* Dump back triples in the model to temporary files */
 		for (IRI modelId : m3.getStoredModelIds())
 			m3.dumpStoredModel(modelId, folder.getRoot());
@@ -75,6 +78,38 @@ public class BlazegraphMolecularModelManagerTest extends OWLToolsTestBasics {
 		model = m3.generateBlankModel(null);
 		testModelAddRemove(m3, model);		
 		testModelImport(m3, model);
+	}
+	
+	@Test
+	public void testModelStateDelete() throws Exception {
+		BlazegraphMolecularModelManager<Void> m3 = createBlazegraphMolecularModelManager();
+		final OWLDataFactory df = m3.getOntology().getOWLOntologyManager().getOWLDataFactory();
+		final OWLObjectProperty partOf = df.getOWLObjectProperty(curieHandler.getIRI("BFO:0000050"));
+		final OWLAnnotationProperty modelState = df.getOWLAnnotationProperty(AnnotationShorthand.modelstate.getAnnotationProperty());
+		
+		ModelContainer model1 = m3.generateBlankModel(null);
+		OWLNamedIndividual i1 = m3.createIndividualWithIRI(model1, curieHandler.getIRI("GO:0000001"), null, null);
+		OWLNamedIndividual i2 = m3.createIndividualWithIRI(model1, curieHandler.getIRI("GO:0000002"), null, null);
+		m3.addFact(model1, partOf, i1, i2, Collections.<OWLAnnotation>emptySet(), null);
+		
+		ModelContainer model2 = m3.generateBlankModel(null);
+		OWLNamedIndividual i3 = m3.createIndividualWithIRI(model2, curieHandler.getIRI("GO:0000001"), null, null);
+		OWLNamedIndividual i4 = m3.createIndividualWithIRI(model2, curieHandler.getIRI("GO:0000002"), null, null);
+		m3.addFact(model2, partOf, i3, i4, Collections.<OWLAnnotation>emptySet(), null);
+		m3.addModelAnnotations(model2, Collections.singleton(df.getOWLAnnotation(modelState, df.getOWLLiteral("delete"))), null);
+		m3.saveAllModels(null, null);
+		
+		File dir = folder.newFolder();
+		m3.dumpStoredModel(model1.getModelId(), dir);
+		m3.dumpStoredModel(model2.getModelId(), dir);
+		m3.dispose();
+		
+		BlazegraphMolecularModelManager<Void> m3b = createBlazegraphMolecularModelManager();
+		assertEquals(2, dir.list().length);
+		for (File file : dir.listFiles()) {
+			m3b.importModelToDatabase(file, true);
+		}
+		assertEquals(1, m3b.getStoredModelIds().size());
 	}
 
 	/**
@@ -181,7 +216,7 @@ public class BlazegraphMolecularModelManagerTest extends OWLToolsTestBasics {
 		String[] extensions = new String[] {"ttl"};
 		List<File> files = (List<File>) FileUtils.listFiles(folder.getRoot(), extensions, true);
 		for (File file : files)
-			m3.importModelToDatabase(file);
+			m3.importModelToDatabase(file, false);
 
 		/* Check whether the model contains all individuals we created before */
 		for (OWLNamedIndividual ind: m3.getIndividuals(modelId)) {

@@ -20,6 +20,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
+import org.geneontology.minerva.util.AnnotationShorthand;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.openrdf.model.BNode;
 import org.openrdf.model.Resource;
@@ -562,21 +563,29 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @throws IOException 
 	 * @throws RepositoryException 
 	 */
-	public void importModelToDatabase(File file) throws OWLOntologyCreationException, RepositoryException, IOException, RDFParseException, RDFHandlerException {
+	public void importModelToDatabase(File file, boolean skipMarkedDelete) throws OWLOntologyCreationException, RepositoryException, IOException, RDFParseException, RDFHandlerException {
 		synchronized(repo) {
 			final BigdataSailRepositoryConnection connection = repo.getUnisolatedConnection();
 			try {
 				connection.begin();
 				try {
-					java.util.Optional<URI> ontIRIOpt = scanForOntologyIRI(file).map(id -> new URIImpl(id));
-					if (ontIRIOpt.isPresent()) {
-						URI graph = ontIRIOpt.get();
-						connection.clear(graph);
-						//FIXME Turtle format is hard-coded here
-						connection.add(file, "", RDFFormat.TURTLE, graph);
-						connection.commit();
+					final boolean delete;
+					if (skipMarkedDelete) {
+						delete = scanForIsDelete(file);	
 					} else {
-						throw new OWLOntologyCreationException("Detected anonymous ontology; must have IRI");
+						delete = false;
+					}
+					if (!delete) {
+						java.util.Optional<URI> ontIRIOpt = scanForOntologyIRI(file).map(id -> new URIImpl(id));
+						if (ontIRIOpt.isPresent()) {
+							URI graph = ontIRIOpt.get();
+							connection.clear(graph);
+							//FIXME Turtle format is hard-coded here
+							connection.add(file, "", RDFFormat.TURTLE, graph);
+							connection.commit();
+						} else {
+							throw new OWLOntologyCreationException("Detected anonymous ontology; must have IRI");
+						}
 					}
 				} catch (Exception e) {
 					connection.rollback();
@@ -618,6 +627,30 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			} else {
 				return java.util.Optional.of(statement.getSubject().stringValue());
 			}
+		} finally {
+			inputStream.close();
+		}
+	}
+	
+	private boolean scanForIsDelete(File file) throws RDFParseException, RDFHandlerException, IOException {
+		RDFHandlerBase handler = new RDFHandlerBase() {
+			
+			public void handleStatement(Statement statement) { 
+				if (statement.getPredicate().stringValue().equals(AnnotationShorthand.modelstate.getAnnotationProperty().toString()) && 
+					statement.getObject().stringValue().equals("delete")) throw new FoundTripleException(statement);
+			}
+		};
+		InputStream inputStream = new FileInputStream(file);
+		try {
+			//FIXME Turtle format is hard-coded here
+			RDFParser parser = Rio.createParser(RDFFormat.TURTLE);
+			parser.setRDFHandler(handler);
+			parser.parse(inputStream, "");
+			// If an ontology IRI triple is found, it will be thrown out
+			// in an exception. Otherwise, return false.
+			return false;
+		} catch (FoundTripleException fte) {
+			return true;
 		} finally {
 			inputStream.close();
 		}
