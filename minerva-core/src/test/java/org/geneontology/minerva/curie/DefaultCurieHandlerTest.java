@@ -24,14 +24,22 @@ public class DefaultCurieHandlerTest {
 		assertTrue(handler.getInternalMappings().containsKey("PMID"));
 		assertFalse(handler.getInternalMappings().containsKey("BLABLA"));
 	}
-	
-	@Test
-	public void testObo() {
-		InputStream stream = DefaultCurieHandler.loadResourceAsStream("obo_context.jsonld");
-		assertNotNull(stream);
-		CurieMappings mappings = CurieMappingsJsonld.loadJsonLdContext(stream);
-		assertFalse(mappings.getMappings().isEmpty());
-	}
+    
+    @Test
+    public void testGo() {
+        InputStream stream = DefaultCurieHandler.loadResourceAsStream("go_context.jsonld");
+        assertNotNull(stream);
+        CurieMappings mappings = CurieMappingsJsonld.loadJsonLdContext(stream);
+        assertFalse(mappings.getMappings().isEmpty());
+    }
+    
+    @Test
+    public void testObo() {
+        InputStream stream = DefaultCurieHandler.loadResourceAsStream("obo_context.jsonld");
+        assertNotNull(stream);
+        CurieMappings mappings = CurieMappingsJsonld.loadJsonLdContext(stream);
+        assertFalse(mappings.getMappings().isEmpty());
+    }
 	
 	@Test
 	public void testMonarch() {
