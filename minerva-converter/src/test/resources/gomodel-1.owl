@@ -100,13 +100,13 @@ Class: <http://purl.obolibrary.org/obo/GO_0030198>
 Class: <http://purl.obolibrary.org/obo/GO_0001947>
 
     
-Class: <http://zfin.org/ZDB-GENE-040426-2843>
+Class: <http://identifiers.org/zfin/ZDB-GENE-040426-2843>
 
     
-Class: <http://zfin.org/ZDB-GENE-020828-1>
+Class: <http://identifiers.org/zfin/ZDB-GENE-020828-1>
 
     
-Class: <http://zfin.org/ZDB-GENE-991124-7>
+Class: <http://identifiers.org/zfin/ZDB-GENE-991124-7>
 
     
 Class: <http://purl.obolibrary.org/obo/UBERON_0002081>
@@ -229,7 +229,7 @@ Individual: <http://model.geneontology.org/56170d5200000032/56170d5200000041>
         <http://purl.org/dc/elements/1.1/date> "2015-10-23"^^xsd:string
     
     Types: 
-        <http://zfin.org/ZDB-GENE-991124-7>
+        <http://identifiers.org/zfin/ZDB-GENE-991124-7>
     
     
 Individual: <http://model.geneontology.org/56170d5200000032/56170d5200000042>
@@ -456,7 +456,7 @@ Individual: <http://model.geneontology.org/56170d5200000032/56170d5200000049>
         <http://geneontology.org/lego/hint/layout/x> "519"^^xsd:string
     
     Types: 
-        <http://zfin.org/ZDB-GENE-020828-1>
+        <http://identifiers.org/zfin/ZDB-GENE-020828-1>
     
     Facts:  
      
@@ -755,7 +755,7 @@ Individual: <http://model.geneontology.org/56170d5200000032/56170d5200000036>
         <http://purl.org/dc/elements/1.1/date> "2015-10-23"^^xsd:string
     
     Types: 
-        <http://zfin.org/ZDB-GENE-991124-7>
+        <http://identifiers.org/zfin/ZDB-GENE-991124-7>
     
     
 Individual: <http://model.geneontology.org/56170d5200000032/56170d5200000035>
@@ -775,7 +775,7 @@ Individual: <http://model.geneontology.org/56170d5200000032/56170d5200000034>
         <http://purl.org/dc/elements/1.1/contributor> "http://orcid.org/0000-0001-7476-6306"^^xsd:string
     
     Types: 
-        <http://zfin.org/ZDB-GENE-040426-2843>
+        <http://identifiers.org/zfin/ZDB-GENE-040426-2843>
     
     
 Individual: <http://model.geneontology.org/56170d5200000032/56170d5200000033>

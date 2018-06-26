@@ -56,9 +56,9 @@ public class LegoToGeneAnnotationTranslatorTest {
 	public void testZfinExample() throws Exception {
 		OWLOntology model = loadModel("gomodel-1.owl");
 		List<LookupEntry> entities = new ArrayList<>();
-		entities.add(new LookupEntry(IRI.create("http://zfin.org/ZDB-GENE-991124-7"), "tbx5a", "gene", "NCBITaxon:7955"));
+		entities.add(new LookupEntry(IRI.create("http://identifiers.org/zfin/ZDB-GENE-991124-7"), "tbx5a", "gene", "NCBITaxon:7955"));
 		// is actually a gene, but made a protein for this test case
-		entities.add(new LookupEntry(IRI.create("http://zfin.org/ZDB-GENE-040426-2843"), "kctd10", "protein", "NCBITaxon:7955"));
+		entities.add(new LookupEntry(IRI.create("http://identifiers.org/zfin/ZDB-GENE-040426-2843"), "kctd10", "protein", "NCBITaxon:7955"));
 		GafDocument gafDocument = translate(model, "gomodel-1", entities);
 		List<GeneAnnotation> allAnnotations = gafDocument.getGeneAnnotations();
 		assertFalse(allAnnotations.isEmpty());
@@ -96,6 +96,7 @@ public class LegoToGeneAnnotationTranslatorTest {
 		List<Bioentity> noSymbol = new ArrayList<>();
 		
 		for (Bioentity entity : bioentities) {
+			System.out.println("ENTITY: " + entity);
 			if (entity.getNcbiTaxonId() == null) {
 				noTaxon.add(entity);
 			}

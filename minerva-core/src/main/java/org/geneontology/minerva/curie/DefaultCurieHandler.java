@@ -33,10 +33,13 @@ public class DefaultCurieHandler {
 	
 	public static CurieMappings loadDefaultMappings() {
 		final Map<String, String> curieMap = new HashMap<String, String>();
+        // TODO: we believe we only need obo_context and go_context
+        // See: https://github.com/geneontology/go-site/issues/617
 		loadJsonldResource("obo_context.jsonld", curieMap);
-		loadJsonldResource("monarch_context.jsonld", curieMap);
-		loadJsonldResource("amigo_context_gen.jsonld", curieMap);
-		loadJsonldResource("amigo_context_manual.jsonld", curieMap);
+        loadJsonldResource("go_context.jsonld", curieMap);
+ 		//loadJsonldResource("monarch_context.jsonld", curieMap);
+		//loadJsonldResource("amigo_context_gen.jsonld", curieMap);
+		//loadJsonldResource("amigo_context_manual.jsonld", curieMap);
 		return new CurieMappings.SimpleCurieMappings(curieMap);
 	}
 	
