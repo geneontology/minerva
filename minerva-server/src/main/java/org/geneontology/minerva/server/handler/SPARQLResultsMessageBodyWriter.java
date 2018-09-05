@@ -21,10 +21,12 @@ import java.lang.reflect.Type;
 @Produces({
         "application/sparql-results+json",
         MediaType.APPLICATION_JSON,
+        "application/sparql-results+xml",
         MediaType.APPLICATION_XML,
         MediaType.TEXT_XML,
         "text/csv",
-        "text/tab-separated-values"
+        "text/tab-separated-values",
+        MediaType.TEXT_PLAIN
 })
 public class SPARQLResultsMessageBodyWriter implements MessageBodyWriter<TupleQueryResult> {
 
