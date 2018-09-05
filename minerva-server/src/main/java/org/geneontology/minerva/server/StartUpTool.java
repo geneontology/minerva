@@ -11,6 +11,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.ModelReaderHelper;
 import org.geneontology.minerva.ModelWriterHelper;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
@@ -22,8 +23,7 @@ import org.geneontology.minerva.lookup.CachingExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.GolrExternalLookupService;
 import org.geneontology.minerva.lookup.MonarchExternalLookupService;
-import org.geneontology.minerva.server.handler.JsonOrJsonpBatchHandler;
-import org.geneontology.minerva.server.handler.JsonOrJsonpSeedHandler;
+import org.geneontology.minerva.server.handler.*;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -90,6 +90,8 @@ public class StartUpTool {
 		public boolean useGolrUrlLogging = false;
 		
 		public String prefixesFile = null;
+
+		public int sparqlEndpointTimeout = 10;
 	}
 	
 	public static void main(String[] args) throws Exception {
@@ -192,6 +194,9 @@ public class StartUpTool {
 			}
 			else if (opts.nextEq("--prefix-mappings")) {
 				conf.prefixesFile = opts.nextOpt();
+			}
+			else if (opts.nextEq("--sparql-endpoint-timeout")) {
+				conf.sparqlEndpointTimeout = Integer.parseInt(opts.nextOpt());
 			}
 			else {
 				break;
@@ -356,6 +361,8 @@ public class StartUpTool {
 		ResourceConfig resourceConfig = new ResourceConfig();
 		resourceConfig.register(GsonMessageBodyHandler.class);
 		resourceConfig.register(RequireJsonpFilter.class);
+		resourceConfig.register(SPARQLResultsMessageBodyWriter.class);
+		resourceConfig.register(SPARQLGraphMessageBodyWriter.class);
 		if (conf.useRequestLogging) {
 			resourceConfig.register(LoggingApplicationEventListener.class);
 		}
@@ -380,7 +387,8 @@ public class StartUpTool {
 		
 		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
 		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
-		resourceConfig = resourceConfig.registerInstances(batchHandler, seedHandler);
+		SPARQLHandler sparqlHandler = new SPARQLHandler(models, conf.sparqlEndpointTimeout);
+		resourceConfig = resourceConfig.registerInstances(batchHandler, seedHandler, sparqlHandler);
 
 		// setup jetty server port, buffers and context path
 		Server server = new Server();
