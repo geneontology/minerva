@@ -1,11 +1,6 @@
 package org.geneontology.minerva;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,27 +11,19 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
+import com.bigdata.rdf.rio.json.BigdataSPARQLResultsJSONWriter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
-import org.openrdf.model.BNode;
-import org.openrdf.model.Resource;
-import org.openrdf.model.Statement;
-import org.openrdf.model.URI;
-import org.openrdf.model.Value;
-import org.openrdf.model.ValueFactory;
+import org.openrdf.model.*;
 import org.openrdf.model.impl.URIImpl;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.query.BindingSet;
-import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryEvaluationException;
-import org.openrdf.query.QueryLanguage;
-import org.openrdf.query.TupleQuery;
-import org.openrdf.query.TupleQueryResult;
+import org.openrdf.query.*;
+import org.openrdf.query.impl.TupleQueryResultBuilder;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.RepositoryResult;
 import org.openrdf.rio.RDFFormat;
@@ -479,6 +466,27 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		});
 		return annotations;
 	}
+
+    public QueryResult executeSPARQLQuery(String queryText, int timeout) throws MalformedQueryException, QueryEvaluationException, RepositoryException {
+        BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
+        try {
+            Query query = connection.prepareQuery(QueryLanguage.SPARQL, queryText);
+            query.setMaxQueryTime(timeout);
+            if (query instanceof TupleQuery) {
+                TupleQuery tupleQuery = (TupleQuery) query;
+                return tupleQuery.evaluate();
+            } else if (query instanceof GraphQuery) {
+                GraphQuery graphQuery = (GraphQuery) query;
+                return graphQuery.evaluate();
+            } else if (query instanceof BooleanQuery) {
+                throw new UnsupportedOperationException("Unsupported query type."); //FIXME
+            } else {
+                throw new UnsupportedOperationException("Unsupported query type.");
+            }
+        } finally {
+            connection.close();
+        }
+    }
 
 	@Override
 	protected void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException {
