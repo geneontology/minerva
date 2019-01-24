@@ -159,3 +159,11 @@ WHERE {
     GRAPH ?g { ?s directly_activates: ?o . }
 } 
 ```
+
+## SPARQL endpoint service
+
+Minerva provides a read-only SPARQL query service at the `/sparql` path. Using GET, a URL-encoded query can be submitted as a value for the `query` parameter. Alternatively, POST can be used to submit form data with a `query` parameter, or to submit a SPARQL query directly, using the `application/sparql-query` MIME type.
+
+### SPARQL endpoint configuration
+
+The only configurable aspect of the SPARQL endpoint is the query timeout. This can be set with a command-line option to the Minerva server at startup: `--sparql-endpoint-timeout 10`. The value is the time in seconds; the default is `10`.

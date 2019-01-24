@@ -227,7 +227,7 @@ public class BatchTestTools {
 	}
 	
 	static JsonAnnotation[] singleAnnotation(AnnotationShorthand sh, String value) {
-		return new JsonAnnotation[]{ JsonTools.create(sh, value)};
+		return new JsonAnnotation[]{ JsonTools.create(sh, value, null)};
 	}
 
 }

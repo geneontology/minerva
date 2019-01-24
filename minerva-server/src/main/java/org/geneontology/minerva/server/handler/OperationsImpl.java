@@ -39,8 +39,10 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.handler.OperationsTools.MissingParameterException;
 import org.geneontology.minerva.server.validation.BeforeSaveModelValidator;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLDataProperty;
@@ -51,6 +53,7 @@ import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectPropertyAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
+import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
 
 /**
  * Separate the actual calls to the {@link UndoAwareMolecularModelManager} from the
@@ -64,6 +67,7 @@ abstract class OperationsImpl extends ModelCreator {
 	final Set<OWLObjectProperty> importantRelations;
 	final BeforeSaveModelValidator beforeSaveValidator;
 	final ExternalLookupService externalLookupService;
+	private final OWLAnnotationProperty contributor = OWLManager.getOWLDataFactory().getOWLAnnotationProperty(IRI.create("http://purl.org/dc/elements/1.1/contributor"));
 	
 	private static final Logger LOG = Logger.getLogger(OperationsImpl.class);
 	
@@ -614,8 +618,21 @@ abstract class OperationsImpl extends ModelCreator {
 			// Iterate through the model's a.
 			Set<OWLAnnotation> annotations = annotationsForAllModels.get(modelId);
 			if (annotations != null) {
-				for( OWLAnnotation an : annotations ){
-					JsonAnnotation json = JsonTools.create(an.getProperty(), an.getValue(), curieHandler);
+				for (OWLAnnotation an : annotations) {
+					final String label;
+					if (an.getProperty().equals(contributor)) {
+						final IRI iri;
+						if (an.getValue() instanceof IRI) {
+							iri = an.getValue().asIRI().get();
+						} else if (an.getValue() instanceof OWLLiteral) {
+							iri = IRI.create(an.getValue().asLiteral().get().getLiteral());
+						} else { iri = null; }
+						if (iri != null) { label = m3.getTboxLabelIndex().getOrDefault(iri, null); }
+						else { label = null; }
+					} else {
+						label = null;
+					}
+					JsonAnnotation json = JsonTools.create(an.getProperty(), an.getValue(), label, curieHandler);
 					if (json != null) {
 						modelAnnotations.add(json);
 					}
@@ -646,7 +663,12 @@ abstract class OperationsImpl extends ModelCreator {
 	private void exportLegacy(M3BatchResponse response, ModelContainer model, String format, String userId) throws IOException, OWLOntologyCreationException, UnknownIdentifierException {
 		if ("gpad".equals(format)) {
 			initMetaResponse(response);
-			response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex()).exportGPAD(m3.createInferredModel(model.getModelId()));
+			try {
+				response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createInferredModel(model.getModelId()));
+			} catch (InconsistentOntologyException e) {
+				response.messageType = MinervaResponse.MESSAGE_TYPE_ERROR;
+				response.message = "The model is inconsistent; a GPAD cannot be created.";
+			}
 		} else if ("explanations".equals(format)) {
 			initMetaResponse(response);
 			response.data.exportModel = ExportExplanation.exportExplanation(m3.createInferredModel(model.getModelId()), externalLookupService, m3.getLegacyRelationShorthandIndex());

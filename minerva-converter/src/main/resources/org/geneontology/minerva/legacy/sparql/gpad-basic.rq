@@ -11,7 +11,11 @@ PREFIX part_of: <http://purl.obolibrary.org/obo/BFO_0000050>
 PREFIX evidence: <http://geneontology.org/lego/evidence>
 PREFIX gomodel: <http://model.geneontology.org/>
 PREFIX acts_upstream_of: <http://purl.obolibrary.org/obo/RO_0002263>
+PREFIX acts_upstream_of_positive_effect: <http://purl.obolibrary.org/obo/RO_0004034>
+PREFIX acts_upstream_of_negative_effect: <http://purl.obolibrary.org/obo/RO_0004035>
 PREFIX acts_upstream_of_or_within: <http://purl.obolibrary.org/obo/RO_0002264>
+PREFIX acts_upstream_of_or_within_positive_effect: <http://purl.obolibrary.org/obo/RO_0004032>
+PREFIX acts_upstream_of_or_within_negative_effect: <http://purl.obolibrary.org/obo/RO_0004033>
 PREFIX involved_in_regulation_of: <http://purl.obolibrary.org/obo/RO_0002428>
 PREFIX involved_in_negative_regulation_of: <http://purl.obolibrary.org/obo/RO_0002430>
 PREFIX involved_in_positive_regulation_of: <http://purl.obolibrary.org/obo/RO_0002429>
@@ -20,19 +24,20 @@ PREFIX contributes_to: <http://purl.obolibrary.org/obo/RO_0002326>
 PREFIX BFO: <http://purl.obolibrary.org/obo/BFO_>
 PREFIX CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
 PREFIX PR: <http://purl.obolibrary.org/obo/PR_>
+PREFIX molecular_function: <http://purl.obolibrary.org/obo/GO_0003674>
 
 SELECT DISTINCT ?pr ?pr_type ?rel ?target ?blank_comp ?target_type
 WHERE {
-	# ?pr, ?target: some instances/individuals? 
+    # ?pr, ?target: some instances/individuals? 
     # ?rel: qualifier in GPAD.
     # ?pr_type: DB object ID in GPAD, e.g., <http://www.informatics.jax.org/accession/MGI:MGI:1925503>
     # ?target_type: GO ID, i.e., the GO identifier for the term attributed to the DB object ID, e.g., <http://purl.obolibrary.org/obo/GO_0005200>.
     
     ?pr ?rel ?target .
-	?pr rdf:type ?pr_type .
+    ?pr rdf:type ?pr_type .
     
-	# Not sure what this filter is for. I believe this filter was designed to handle some triples generated from reasoning.
-	FILTER NOT EXISTS {
+    # Return only most specific relationships between two indivividuals
+    FILTER NOT EXISTS {
         ?pr ?other_rel ?target .
         ?other_rel rdfs:subPropertyOf ?rel .
         FILTER(?other_rel != ?rel) 
@@ -44,7 +49,11 @@ WHERE {
         involved_in: 
         part_of: 
         acts_upstream_of: 
+        acts_upstream_of_positive_effect: 
+        acts_upstream_of_negative_effect: 
         acts_upstream_of_or_within: 
+        acts_upstream_of_or_within_positive_effect: 
+        acts_upstream_of_or_within_negative_effect: 
         contributes_to:
 	}
 	
@@ -52,7 +61,7 @@ WHERE {
 	FILTER(isIRI(?pr_type)) 
 	
 	# The value of ?pr_type should not be the values in this list, i.e. filter out meaningless nodes.
-	FILTER(?pr_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040))
+	FILTER(?pr_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040, PR:000000001))
 	
 	# The value of ?pr_type should not begin with these values, e.g., GO ID.
 	FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/GO_")) # would be better to do this semantically but expensive to add NEO tbox to model
@@ -60,6 +69,7 @@ WHERE {
 	FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/UBERON_")) # would be better to do this semantically but expensive to add NEO tbox to model
 	FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/CL_")) # would be better to do this semantically but expensive to add NEO tbox to model
 	FILTER(!STRSTARTS(STR(?pr_type), "http://purl.obolibrary.org/obo/EMAPA_")) # would be better to do this semantically but expensive to add NEO tbox to model
+  FILTER(!STRSTARTS(STR(?pr_type), "http://www.biopax.org/")) # would be better to do this semantically but expensive to add NEO tbox to model
 	
 	FILTER NOT EXISTS {
         	?pr <http://arachne.geneontology.org/indirect_type> ?pr_type .
@@ -92,4 +102,11 @@ WHERE {
 		# the value mapping ?blank_comp should be a blank node.		
 		FILTER(isBlank(?blank_comp))		
 	} 
+  
+  # molecular function annotations must only use 'enables' or 'contributes to'
+  FILTER(!(
+    (EXISTS { ?target rdf:type molecular_function: }) 
+    && 
+    (?rel NOT IN ( enables:, contributes_to: ))
+  ))
 }

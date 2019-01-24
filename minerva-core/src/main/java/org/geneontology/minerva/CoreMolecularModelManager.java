@@ -7,18 +7,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.rdf.model.impl.StmtIteratorImpl;
 import org.apache.jena.reasoner.rulesys.Rule;
 import org.apache.log4j.Logger;
 import org.geneontology.jena.OWLtoRules;
@@ -72,8 +68,6 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.model.RemoveAxiom;
 import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
-import org.semanticweb.owlapi.model.SWRLAtom;
-import org.semanticweb.owlapi.model.SWRLVariable;
 import org.semanticweb.owlapi.model.SetOntologyID;
 import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.oboformat.OBOFormatOWLAPIParserFactory;
@@ -105,6 +99,14 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	private static final IRI HAS_EVIDENCE_IRI = IRI.create("http://purl.obolibrary.org/obo/RO_0002612");
 	// legacy
 	private static final IRI HAS_EVIDENCE_IRI_OLD = AnnotationShorthand.evidence.getAnnotationProperty();
+	
+	private static final OWLAnnotationProperty HAS_SHORTHAND = OWLManager.getOWLDataFactory().getOWLAnnotationProperty(IRI.create("http://www.geneontology.org/formats/oboInOwl#shorthand"));
+	private static final OWLAnnotationProperty IN_SUBSET = OWLManager.getOWLDataFactory().getOWLAnnotationProperty(IRI.create("http://www.geneontology.org/formats/oboInOwl#inSubset"));
+	private static final Set<IRI> DO_NOT_ANNOTATE_SUBSETS = new HashSet<>();
+	static {
+		DO_NOT_ANNOTATE_SUBSETS.add(IRI.create("http://purl.obolibrary.org/obo/go#gocheck_do_not_annotate"));
+		DO_NOT_ANNOTATE_SUBSETS.add(IRI.create("http://purl.obolibrary.org/obo/go#gocheck_do_not_manually_annotate"));
+	}
 
 	final OWLGraphWrapper graph;
 //	final OWLReasonerFactory rf;
@@ -114,6 +116,9 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	
 	private final RuleEngine ruleEngine;
 	private final Map<IRI, String> legacyRelationIndex = new HashMap<IRI, String>();
+	private final Map<IRI, String> tboxLabelIndex = new HashMap<IRI, String>();
+	private final Map<IRI, String> tboxShorthandIndex = new HashMap<IRI, String>();
+	private final Set<IRI> doNotAnnotateSubset = new HashSet<>();
 	
 	
 	/**
@@ -193,6 +198,9 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		tboxIRI = getTboxIRI(graph);
 		this.ruleEngine = initializeRuleEngine();
 		initializeLegacyRelationIndex();
+		initializeTboxLabelIndex();
+		initializeTboxShorthandIndex();
+		initializeDoNotAnnotateSubset();
 		init();
 	}
 
@@ -266,6 +274,18 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return Collections.unmodifiableMap(this.legacyRelationIndex);
 	}
 	
+	public Map<IRI, String> getTboxLabelIndex() {
+		return Collections.unmodifiableMap(this.tboxLabelIndex);
+	}
+	
+	public Map<IRI, String> getTboxShorthandIndex() {
+		return Collections.unmodifiableMap(this.tboxShorthandIndex);
+	}
+	
+	public Set<IRI> getDoNotAnnotateSubset() {
+		return Collections.unmodifiableSet(this.doNotAnnotateSubset);
+	}
+	
 	public RuleEngine getRuleEngine() {
 		return ruleEngine;
 	}
@@ -307,10 +327,45 @@ public abstract class CoreMolecularModelManager<METADATA> {
 							Optional<OWLLiteral> literalOpt = axiom.getValue().asLiteral();
 							if (literalOpt.isPresent()) {
 								String label = literalOpt.get().getLiteral();
-								legacyRelationIndex.put(prop.getIRI(), label.replaceAll(" ", "_"));
+								legacyRelationIndex.put(prop.getIRI(), label.replaceAll(" ", "_").replaceAll(",", ""));
 							}
 						}
 					}
+				}
+			}
+		}
+	}
+	
+	private void initializeTboxLabelIndex() {
+		synchronized(tboxLabelIndex) {
+			OWLAnnotationProperty rdfsLabel = OWLManager.getOWLDataFactory().getRDFSLabel();
+			for (OWLAnnotationAssertionAxiom axiom : this.getOntology().getAxioms(AxiomType.ANNOTATION_ASSERTION, Imports.INCLUDED)) {
+				if (axiom.getProperty().equals(rdfsLabel) && (axiom.getSubject() instanceof IRI) && axiom.getValue() instanceof OWLLiteral) {
+					IRI subject = (IRI)(axiom.getSubject());
+					String label = axiom.getValue().asLiteral().get().getLiteral();
+					tboxLabelIndex.put(subject, label);
+				}
+			}
+		}
+	}
+	
+	private void initializeTboxShorthandIndex() {
+		synchronized(tboxShorthandIndex) {
+			for (OWLAnnotationAssertionAxiom axiom : this.getOntology().getAxioms(AxiomType.ANNOTATION_ASSERTION, Imports.INCLUDED)) {
+				if (axiom.getProperty().equals(HAS_SHORTHAND) && (axiom.getSubject() instanceof IRI) && axiom.getValue() instanceof OWLLiteral) {
+					IRI subject = (IRI)(axiom.getSubject());
+					String shorthand = axiom.getValue().asLiteral().get().getLiteral();
+					tboxShorthandIndex.put(subject, shorthand);
+				}
+			}
+		}
+	}
+	
+	private void initializeDoNotAnnotateSubset() {
+		synchronized(doNotAnnotateSubset) {
+			for (OWLAnnotationAssertionAxiom axiom : this.getOntology().getAxioms(AxiomType.ANNOTATION_ASSERTION, Imports.INCLUDED)) {
+				if (axiom.getProperty().equals(IN_SUBSET) && (axiom.getSubject() instanceof IRI) && DO_NOT_ANNOTATE_SUBSETS.contains(axiom.getValue())) {
+					doNotAnnotateSubset.add((IRI)(axiom.getSubject()));
 				}
 			}
 		}
