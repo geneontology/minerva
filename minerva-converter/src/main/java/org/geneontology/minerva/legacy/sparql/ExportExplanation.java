@@ -206,7 +206,7 @@ public class ExportExplanation {
 			if (null == lookups || lookups.isEmpty()) {
 				return Optional.empty();
 			} else {
-				return Optional.of(lookups.get(0).label);
+				return Optional.ofNullable(lookups.get(0).label);
 			}
 		}
 	}
