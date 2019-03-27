@@ -22,11 +22,7 @@ import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 
-import owltools.OWLToolsTestBasics;
-import owltools.graph.OWLGraphWrapper;
-import owltools.io.ParserWrapper;
-
-public class MolecularModelManagerTest extends OWLToolsTestBasics {
+public class MolecularModelManagerTest {
 
 	// JUnit way of creating a temporary test folder
 	// will be deleted after the test has run, by JUnit.
@@ -44,7 +40,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 
 	@Test
 	public void testDeleteIndividual() throws Exception {
-		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(new File("go-mgi-signaling-test.obo")));
+		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
 
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity
@@ -76,7 +72,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 
 	@Test
 	public void testExportImport() throws Exception {
-		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(new File("go-mgi-signaling-test.obo")));
+		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
 
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity
@@ -120,7 +116,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	
 	@Test
 	public void testSaveModel() throws Exception {
-		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(new File("go-mgi-signaling-test.obo")));
+		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
 
 		File journalFile = folder.newFile();
 		MolecularModelManager<Void> mmm = createM3(tbox, journalFile);
@@ -147,7 +143,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		mmm.dispose();
 		mmm = null;
 
-		OWLOntology tbox2 = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(new File("go-mgi-signaling-test.obo")));
+		OWLOntology tbox2 = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
 		
 		
 		mmm = createM3(tbox2, journalFile);
@@ -170,7 +166,7 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 
 	@Test
 	public void testInferredType() throws Exception {
-		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(new File("go-mgi-signaling-test.obo")));
+		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
 
 
 		// GO:0038024 ! cargo receptor activity
