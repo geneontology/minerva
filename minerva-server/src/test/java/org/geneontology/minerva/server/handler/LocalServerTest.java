@@ -1,15 +1,7 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.File;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jetty.server.Server;
@@ -21,24 +13,23 @@ import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.StartUpTool.MinervaStartUpConfig;
-import org.geneontology.minerva.server.handler.M3BatchHandler.Entity;
-import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
-import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
-import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
-import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
-import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.geneontology.minerva.server.handler.M3BatchHandler.*;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
-
-import owltools.graph.OWLGraphWrapper;
+import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLOntology;
 import owltools.io.ParserWrapper;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import java.io.File;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 public class LocalServerTest {
 
@@ -69,13 +60,13 @@ public class LocalServerTest {
 	}
 	
 	static void init(ParserWrapper pw) throws Exception {
-		final OWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl");
+		final OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(new File("src/test/resources/go-lego-minimal.owl")));
 		// curie handler
 		final String modelIdcurie = "gomodel";
 		final String modelIdPrefix = "http://model.geneontology.org/";
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
+		models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
 		
 		MinervaStartUpConfig conf = new MinervaStartUpConfig();
 		conf.reasonerOpt = "elk";
