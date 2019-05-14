@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
 import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.gorules.GoRulesValidator;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -171,9 +172,9 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 		}
 	}
 
-	public UndoAwareMolecularModelManager(OWLGraphWrapper graph,
+	public UndoAwareMolecularModelManager(OWLGraphWrapper graph, GoRulesValidator go_rules_validator,  
 			CurieHandler curieHandler, String modelIdLongFormPrefix, String pathToJournal, String pathToExportFolder) throws OWLOntologyCreationException {
-		super(graph, curieHandler, modelIdLongFormPrefix, pathToJournal, pathToExportFolder);
+		super(graph, go_rules_validator, curieHandler, modelIdLongFormPrefix, pathToJournal, pathToExportFolder);
 	}
 
 	@Override
@@ -314,5 +315,6 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 	protected void applyChanges(ModelContainer model, List<OWLOntologyChange> changes) {
 		model.applyChanges(changes);
 	}
+
 	
 }

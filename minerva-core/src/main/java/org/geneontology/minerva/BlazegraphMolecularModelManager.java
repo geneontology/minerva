@@ -20,6 +20,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
+import org.geneontology.minerva.gorules.GoRulesValidator;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.openrdf.model.BNode;
@@ -108,9 +109,9 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * Only one instance of Blazegraph can use this file at a time.
 	 * @throws OWLOntologyCreationException
 	 */
-	public BlazegraphMolecularModelManager(OWLGraphWrapper graph, String modelIdPrefix, String pathToJournal, String pathToExportFolder)
+	public BlazegraphMolecularModelManager(OWLGraphWrapper graph, GoRulesValidator go_rules_validator, String modelIdPrefix, String pathToJournal, String pathToExportFolder)
 			throws OWLOntologyCreationException {
-		super(graph);
+		super(graph, go_rules_validator);
 		this.modelIdPrefix = modelIdPrefix;
 		this.pathToOWLStore = pathToJournal;
 		this.pathToExportFolder = pathToExportFolder;

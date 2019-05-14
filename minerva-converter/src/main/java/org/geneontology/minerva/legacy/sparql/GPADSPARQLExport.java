@@ -101,7 +101,7 @@ public class GPADSPARQLExport {
 		this.tboxShorthandIndex = tboxShorthandIndex;
 		this.doNotAnnotateSubset = doNotAnnotateSubset;
 	}
-
+	
 	/* This is a bit convoluted in order to minimize redundant queries, for performance reasons. */
 	public String exportGPAD(WorkingMemory wm) throws InconsistentOntologyException {
 		Model model = ModelFactory.createDefaultModel();

@@ -16,6 +16,7 @@ import org.apache.log4j.Logger;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.gorules.GoRulesValidator;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -42,7 +43,8 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	}
 	
 	private MolecularModelManager<Void> createM3(OWLGraphWrapper g, File journal) throws OWLOntologyCreationException, IOException {
-		return new MolecularModelManager<Void>(g, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), null);
+		GoRulesValidator go_rules_validator = null;
+		return new MolecularModelManager<Void>(g, go_rules_validator, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), null);
 	}
 
 	@Test

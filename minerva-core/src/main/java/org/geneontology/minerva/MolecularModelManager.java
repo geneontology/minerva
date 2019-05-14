@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.gorules.GoRulesValidator;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -69,8 +70,8 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 	 * @param modelIdPrefix 
 	 * @throws OWLOntologyCreationException
 	 */
-	public MolecularModelManager(OWLGraphWrapper graph, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder) throws OWLOntologyCreationException {
-		super(graph, modelIdPrefix, pathToJournal, pathToExportFolder);
+	public MolecularModelManager(OWLGraphWrapper graph, GoRulesValidator go_rules_validator, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder) throws OWLOntologyCreationException {
+		super(graph, go_rules_validator, modelIdPrefix, pathToJournal, pathToExportFolder);
 		this.curieHandler = curieHandler;
 	}
 

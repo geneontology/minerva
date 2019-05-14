@@ -1,0 +1,9 @@
+rule_id: 1
+name: example rule 1
+description: An Example of a sparql rule
+sparql: >
+    SELECT ?a
+    WHERE {
+      ?a ?b ?c
+    } LIMIT 1
+fail_mode: hard

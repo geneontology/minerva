@@ -18,6 +18,7 @@ import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
+import org.geneontology.minerva.gorules.GoRulesValidator;
 import org.geneontology.minerva.lookup.CachingExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.GolrExternalLookupService;
@@ -90,6 +91,7 @@ public class StartUpTool {
 		public boolean useGolrUrlLogging = false;
 		
 		public String prefixesFile = null;
+		public String rulesDir = null;
 	}
 	
 	public static void main(String[] args) throws Exception {
@@ -98,7 +100,10 @@ public class StartUpTool {
 		
 		
 		while (opts.hasArgs()) {
-			if (opts.nextEq("-g|--graph")) {
+			if (opts.nextEq("--rules")) {
+				conf.rulesDir  = opts.nextOpt();
+			}
+			else if (opts.nextEq("-g|--graph")) {
 				conf.ontology = opts.nextOpt();
 			}
 			else if (opts.nextEq("-c|--catalog")) {
@@ -192,7 +197,7 @@ public class StartUpTool {
 			}
 			else if (opts.nextEq("--prefix-mappings")) {
 				conf.prefixesFile = opts.nextOpt();
-			}
+			} 
 			else {
 				break;
 			}
@@ -324,10 +329,14 @@ public class StartUpTool {
 
 		// set folder to  models
 				LOGGER.info("Model path: "+conf.journalFile);
-		
+		// read go rules
+		LOGGER.info("GO Rules path: "+conf.rulesDir);
+		///Users/bgood/minerva/minerva-core/src/main/resources/org/geneontology/minerva/gorules
+		//String tmprd = "/Users/bgood/minerva/minerva-core/src/main/resources/org/geneontology/minerva/gorules";
+		GoRulesValidator go_rules_validator = new GoRulesValidator(conf.rulesDir);
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
-		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph,
+		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph, go_rules_validator,
 				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder);
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);

@@ -664,7 +664,11 @@ abstract class OperationsImpl extends ModelCreator {
 		if ("gpad".equals(format)) {
 			initMetaResponse(response);
 			try {
-				response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createInferredModel(model.getModelId()));
+				//response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createInferredModel(model.getModelId()));
+				//sneaking this in here until we have a request parameter to look for.
+				response.data.exportModel = m3.getGo_rules_validator().executeRules(m3.createInferredModel(model.getModelId()));
+				//this is what actually goes here
+				//new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createInferredModel(model.getModelId()));				
 			} catch (InconsistentOntologyException e) {
 				response.messageType = MinervaResponse.MESSAGE_TYPE_ERROR;
 				response.message = "The model is inconsistent; a GPAD cannot be created.";

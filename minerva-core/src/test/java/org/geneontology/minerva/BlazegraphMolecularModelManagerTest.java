@@ -18,6 +18,7 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.gorules.GoRulesValidator;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.Rule;
 import org.junit.Test;
@@ -244,7 +245,8 @@ public class BlazegraphMolecularModelManagerTest extends OWLToolsTestBasics {
 		final ParserWrapper pw = new ParserWrapper();
 		pw.addIRIMapper(new CatalogXmlIRIMapper(new File("src/test/resources/mmg/catalog-v001.xml")));
 		OWLGraphWrapper g = pw.parseToOWLGraph(getResourceIRIString("mmg/basic-tbox-importer.omn"));
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(g, "http://model.geneontology.org/", journalPath, tempRootPath);
+		GoRulesValidator go_rules_validator = null;
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(g, go_rules_validator, "http://model.geneontology.org/", journalPath, tempRootPath);
 
 		return m3;
 	}

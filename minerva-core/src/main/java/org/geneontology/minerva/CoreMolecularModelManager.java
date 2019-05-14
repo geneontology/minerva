@@ -19,6 +19,7 @@ import org.apache.jena.reasoner.rulesys.Rule;
 import org.apache.log4j.Logger;
 import org.geneontology.jena.OWLtoRules;
 import org.geneontology.jena.SesameJena;
+import org.geneontology.minerva.gorules.GoRulesValidator;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.geneontology.rules.engine.RuleEngine;
 import org.geneontology.rules.engine.Triple;
@@ -128,6 +129,15 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	static final AtomicLong instanceCounter = new AtomicLong(0L);
 	
 	/**
+	 * Hold the GO rules so they can be accessed by the server
+	 */
+	protected final GoRulesValidator go_rules_validator;
+	
+	public GoRulesValidator getGo_rules_validator() {
+		return go_rules_validator;
+	}
+
+	/**
 	 * Generate a new id from the unique server prefix and a global counter
 	 * 
 	 * @return id
@@ -192,9 +202,10 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 * @param graph
 	 * @throws OWLOntologyCreationException
 	 */
-	public CoreMolecularModelManager(OWLGraphWrapper graph) throws OWLOntologyCreationException {
+	public CoreMolecularModelManager(OWLGraphWrapper graph, GoRulesValidator go_rules_validator) throws OWLOntologyCreationException {
 		super();
 		this.graph = graph;
+		this.go_rules_validator = go_rules_validator;
 		tboxIRI = getTboxIRI(graph);
 		this.ruleEngine = initializeRuleEngine();
 		initializeLegacyRelationIndex();
