@@ -1,0 +1,18 @@
+{
+  "@context": "http://www.w3.org/ns/shex.jsonld",
+  "type": "Schema",
+  "shapes": [
+    {
+      "id": "http://purl.org/pav/providedBy/S-integer",
+      "type": "Shape",
+      "expression": {
+        "type": "TripleConstraint",
+        "predicate": "http://www.geneontology.org/formats/oboInOwl#hasDbXref",
+        "valueExpr": {
+          "type": "NodeConstraint",
+          "datatype": "http://www.w3.org/2001/XMLSchema#integer"
+        }
+      }
+    }
+  ]
+}

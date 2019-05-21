@@ -1,7 +1,8 @@
 rule_id: 1
 name: example rule 1
 description: An Example of a sparql rule
-sparql: >
+rule_implementation_type: sparql
+rule_body: >
     SELECT ?a
     WHERE {
       ?a ?b ?c

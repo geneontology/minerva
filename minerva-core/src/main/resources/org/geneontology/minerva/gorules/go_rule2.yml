@@ -1,7 +1,8 @@
 rule_id: 2
 name: example rule 2
 description: Another Example of a sparql rule
-sparql: >
+rule_implementation_type: sparql
+rule_body: >
    PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
    PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
    PREFIX enabled_by: <http://purl.obolibrary.org/obo/RO_0002333>

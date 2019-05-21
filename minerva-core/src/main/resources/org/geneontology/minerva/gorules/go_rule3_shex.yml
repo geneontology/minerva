@@ -1,0 +1,7 @@
+rule_id: 3
+name: example shex rule 
+description: An Example of a shex rule
+rule_implementation_type: shex
+rule_body: >
+rule_path: /Users/bgood/minerva/minerva-core/src/main/resources/org/geneontology/minerva/gorules/go_rule3_shex.json
+fail_mode: hard

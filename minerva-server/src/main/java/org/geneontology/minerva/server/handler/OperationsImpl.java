@@ -39,6 +39,7 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.handler.OperationsTools.MissingParameterException;
 import org.geneontology.minerva.server.validation.BeforeSaveModelValidator;
+import org.geneontology.rules.engine.WorkingMemory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
@@ -660,13 +661,15 @@ abstract class OperationsImpl extends ModelCreator {
 		response.data.exportModel = exportModel;
 	}
 	
-	private void exportLegacy(M3BatchResponse response, ModelContainer model, String format, String userId) throws IOException, OWLOntologyCreationException, UnknownIdentifierException {
+	private void exportLegacy(M3BatchResponse response, ModelContainer model, String format, String userId) throws Exception {
 		if ("gpad".equals(format)) {
 			initMetaResponse(response);
 			try {
 				//response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createInferredModel(model.getModelId()));
 				//sneaking this in here until we have a request parameter to look for.
-				response.data.exportModel = m3.getGo_rules_validator().executeRules(m3.createInferredModel(model.getModelId()));
+				IRI model_iri = model.getModelId();
+				WorkingMemory inferred_model = m3.createInferredModel(model_iri);
+				response.data.exportModel = m3.getGo_rules_validator().executeRules(inferred_model);
 				//this is what actually goes here
 				//new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createInferredModel(model.getModelId()));				
 			} catch (InconsistentOntologyException e) {

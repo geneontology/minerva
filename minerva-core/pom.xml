@@ -75,5 +75,29 @@
         	<artifactId>commons-lang3</artifactId>
         	<version>3.4</version>
     	</dependency>
+    	<dependency>
+    		<groupId>org.apache.commons</groupId>
+    		<artifactId>commons-rdf-jena</artifactId>
+    		<version>0.5.0</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-rdf-rdf4j -->
+		<dependency>
+    		<groupId>org.apache.commons</groupId>
+    		<artifactId>commons-rdf-rdf4j</artifactId>
+    		<version>0.5.0</version>
+		</dependency>
+     	<dependency>
+  			<groupId>fr.inria.lille.shexjava</groupId>
+  			<artifactId>shexjava-core</artifactId>
+  			<version>1.2.2e</version>
+    <!-- 	avoiding an incompatibility with the shexjava jena version 3.0.0 and the arachne version 3.11.0    --> 
+  			<exclusions>
+        		<exclusion>  <!-- declare the exclusion here -->
+          			<groupId>org.apache.jena</groupId>
+          			<artifactId>*</artifactId>
+       			</exclusion>
+      		</exclusions> 
+ 		</dependency>
+ 
 	</dependencies>
 </project>

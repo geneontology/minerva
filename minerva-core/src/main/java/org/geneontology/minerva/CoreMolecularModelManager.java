@@ -315,6 +315,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 * @return Jena model
 	 */
 	public WorkingMemory createInferredModel(IRI modelId) {
+		//org.apache.jena.rdf.model.ResourceFactory.createStringLiteral(null);
 		Set<Statement> statements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(getModelAbox(modelId))).asJava();
 		Set<Triple> triples = statements.stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
 		try {
