@@ -114,7 +114,7 @@ public class GoRulesValidator {
 				String focus_node_iri = null;//e.g. "http://model.geneontology.org/R-HSA-140342/R-HSA-211196_R-HSA-211207";
 				String shape_id = null;//e.g. "http://purl.org/pav/providedBy/S-integer";
 				Typing results = validateShex(schema, model, focus_node_iri, shape_id);
-				report += shexTypingToString(results);
+				report += shexTypingToString(results); 
 			}	
 
 		}
