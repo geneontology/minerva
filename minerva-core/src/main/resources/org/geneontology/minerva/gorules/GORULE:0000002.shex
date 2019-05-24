@@ -1,28 +1,43 @@
 PREFIX  go:  <http://geneontology.org/>
-PREFIX obo: <http://purl.obolibrary.org/obo/> 
+PREFIX obo: <http://purl.obolibrary.org/obo/>
 PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 
-go:NotProteinBindingClass { 
- owl:complementOf  [obo:GO_0005515] 
+#positive shape pattern - e.g. match shapes that are correct
+go:LegalMF EXTRA rdf:type{
+  #match nodes that are enabled by exactly one protein or protein complex
+  obo:RO_0002333 @go:CamEnabler {1} ;
+  #(in a reasoned environment) root mf obo:GO_0003674 should find all functions
+  rdf:type [obo:GO_0003674 ];
+  #do not include nodes with rdf:type NOT protein binding
+  #GORULE:0000002  https://github.com/geneontology/go-site/blob/master/metadata/rules/gorule-0000002.md
+  rdf:type  @go:NotProteinBindingClass {0}
 }
 
-#positive shape pattern - e.g. match shapes that are correct
-go:LegalFunctionNode EXTRA rdf:type{ 
-  #match nodes that are enabled by exactly one thing
-  #(in a reasoned environment can use root mf GO:0003674 as another constraint) 
-  obo:RO_0002333 . {1};
-  #do not include nodes with rdf:type NOT protein binding 
-  #GORULE:0000002  https://github.com/geneontology/go-site/blob/master/metadata/rules/gorule-0000002.md
-  rdf:type  @go:NotProteinBindingClass {0} 
+#protein obo:CHEBI_36080 complex GO_0032991
+go:CamEnabler EXTRA rdf:type{
+  rdf:type [obo:GO_0032991 ] |
+  rdf:type [obo:CHEBI_36080 ];
+}
+
+go:UnionEnabler EXTRA rdf:type{
+  rdf:type @go:UnionClass +
+}
+
+go:UnionClass {
+ owl:unionOf  .
+}
+
+go:NotProteinBindingClass {
+ owl:complementOf  [obo:GO_0005515 ]
 }
 
 #negative shapes pattern - match shapes that are not allowed
-go:IllegalFunctionNode EXTRA rdf:type{ 
-  #match nodes that are enabled by exactly one thing
-  #(in a reasoned environment can use root mf GO:0003674 as another constraint) 
-  obo:RO_0002333 . {1};
-  #do not include nodes with rdf:type NOT protein binding 
+go:IllegalMF EXTRA rdf:type{
+  rdf:type [obo:GO_0003674];
+  #do not include nodes with rdf:type NOT protein binding
   #GORULE:0000002  https://github.com/geneontology/go-site/blob/master/metadata/rules/gorule-0000002.md
-  rdf:type  @go:NotProteinBindingClass + 
+  (rdf:type  @go:NotProteinBindingClass + |
+  #if we wanted to disallow unions as enablers of functions 
+    obo:RO_0002333 @go:UnionEnabler)
 }

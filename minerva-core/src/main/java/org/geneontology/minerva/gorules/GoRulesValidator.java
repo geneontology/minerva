@@ -89,12 +89,17 @@ public class GoRulesValidator {
 	 * Run through all the rules given a WorkingMemory object (almost certainly the result of running Arachne) 
 	 * Return a string for the moment that shows it did something.  
 	 */
-	public String executeRules(WorkingMemory wm) throws Exception {		
-
+	
+	
+	public String executeRules(WorkingMemory wm) throws Exception{		
 		LOG.info("Running go rules!\n");
-		String report = "GO Rules report\n";
 		Model model = ModelFactory.createDefaultModel();
 		model.add(JavaConverters.setAsJavaSetConverter(wm.facts()).asJava().stream().map(t -> model.asStatement(Bridge.jenaFromTriple(t))).collect(Collectors.toList()));
+		return executeRulesOnJenaModel(model);
+	}
+	
+	public String executeRulesOnJenaModel(Model model) throws Exception{
+		String report = "GO Rules report\n";
 		for(GoRule rule : go_rules) {
 			if(rule.getRule_implementation_type().equals("sparql")) {
 				QueryExecution qe = QueryExecutionFactory.create(rule.getRule_body(), model);
@@ -114,11 +119,10 @@ public class GoRulesValidator {
 				String focus_node_iri = null;//e.g. "http://model.geneontology.org/R-HSA-140342/R-HSA-211196_R-HSA-211207";
 				String shape_id = null;//e.g. "http://purl.org/pav/providedBy/S-integer";
 				Typing results = validateShex(schema, model, focus_node_iri, shape_id);
-				report += shexTypingToString(results); 
+				boolean positive_only = true;
+				report += shexTypingToString(results, positive_only); 
 			}	
-
 		}
-
 		LOG.info("ran go rules!\n"+report);
 		return report;
 	}
@@ -129,34 +133,11 @@ public class GoRulesValidator {
 	 */
 	public static void main(String[] args) throws Exception {
 		String go_rule_yml_dir = "/Users/bgood/minerva/minerva-core/src/main/resources/org/geneontology/minerva/gorules/";
-		String test_model_file = "/Users/bgood/Desktop/test/go_cams/reactome/reactome-homosapiens-Apoptosis_induced_DNA_fragmentation.ttl";
-		GoRulesValidator grr = new GoRulesValidator(go_rule_yml_dir);
-		
+		String test_model_file = "/Users/bgood/Desktop/test/go_cams/tmp_reasoned/expanded_reactome-homosapiens-A_tetrasaccharide_linker_sequence_is_required_for_GAG_synthesis.ttl";
+		GoRulesValidator grr = new GoRulesValidator(go_rule_yml_dir);	
 		Model test_model = ModelFactory.createDefaultModel() ;
 		test_model.read(test_model_file) ;
-		String report = "rules report\n";
-		for(GoRule rule : grr.go_rules) {
-			if(rule.getRule_implementation_type().equals("sparql")) {
-				QueryExecution qe = QueryExecutionFactory.create(rule.getRule_body(), test_model);
-				report += "Running "+rule.getRule_implementation_type()+"  rule:"+rule.getRule_id()+" named "+rule.getDescription()+" with body \n"+rule.getRule_body()+"\n";
-				ResultSet results = qe.execSelect();
-				int n = 0;
-				while (results.hasNext()) {
-					QuerySolution qs = results.next();				
-					n++;
-				}
-				report+= "Had "+n+" results from the query\n\n";
-				qe.close();
-			}else if(rule.getRule_implementation_type().equals("shex")) {
-				report += "Running "+rule.getRule_implementation_type()+" rule:"+rule.getRule_id()+" named "+rule.getDescription()+" with body \n"+rule.getRule_body()+"\n";
-				String shexpath = rule.getRule_path();
-				ShexSchema schema = GenParser.parseSchema(new File(shexpath).toPath());
-				String focus_node_iri = null;//"http://model.geneontology.org/R-HSA-140342/R-HSA-211196_R-HSA-211207";
-				String shape_id = null;//"http://purl.org/pav/providedBy/S-integer";
-				Typing results = grr.validateShex(schema, test_model, focus_node_iri, shape_id);
-				report += grr.shexTypingToString(results);
-			}		
-		}
+		String report = grr.executeRulesOnJenaModel(test_model);
 		System.out.println(report);
 	}
 
@@ -181,11 +162,16 @@ public class GoRulesValidator {
 		return result;
 	}
 	
-	public String shexTypingToString(Typing result) {
+	public String shexTypingToString(Typing result, boolean positive_only) {
 		String s = "";
 		for(Pair<RDFTerm, Label> p : result.getStatusMap().keySet()) {
 			Status r = result.getStatusMap().get(p);
-			s=s+"node: "+p.one+"\tshape id: "+p.two+"\tresult: "+r.toString()+"\n";
+			if(positive_only&&r.equals(Status.CONFORMANT)&&(!p.two.isGenerated())) {
+				s=s+"node: "+p.one+"\tshape id: "+p.two+"\tresult: "+r.toString()+"\n";
+			}else if(!positive_only){
+				s=s+"node: "+p.one+"\tshape id: "+p.two+"\tresult: "+r.toString()+"\n";
+				// e.g. node: <http://purl.obolibrary.org/obo/RO_HOM0000011>	shape id: _:SLGEN_0000	result: NONCONFORMANT
+			}
 		}
 		return s;
 	}
