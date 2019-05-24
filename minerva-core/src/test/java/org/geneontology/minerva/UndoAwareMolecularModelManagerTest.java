@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
 import java.util.List;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -19,11 +18,8 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 
-import org.semanticweb.owlapi.model.OWLOntology;
 import owltools.OWLToolsTestBasics;
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
@@ -39,8 +35,9 @@ public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
 	
 	@Test
 	public void testUndoRedo() throws Exception {
-		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
-		m3 = new UndoAwareMolecularModelManager(tbox, curieHandler, "http://testmodel.geneontology.org/", folder.newFile().getAbsolutePath(), null);
+		ParserWrapper pw = new ParserWrapper();
+		g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
+		m3 = new UndoAwareMolecularModelManager(g, curieHandler, "http://testmodel.geneontology.org/", folder.newFile().getAbsolutePath(), null);
 		
 		String userId = "test-user-id";
 		ModelContainer model = m3.generateBlankModel(null);

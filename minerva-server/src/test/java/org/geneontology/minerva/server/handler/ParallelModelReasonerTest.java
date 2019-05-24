@@ -1,32 +1,38 @@
 package org.geneontology.minerva.server.handler;
 
-import org.geneontology.minerva.UndoAwareMolecularModelManager;
-import org.geneontology.minerva.curie.CurieHandler;
-import org.geneontology.minerva.curie.CurieMappings;
-import org.geneontology.minerva.curie.DefaultCurieHandler;
-import org.geneontology.minerva.curie.MappedCurieHandler;
-import org.geneontology.minerva.lookup.ExternalLookupService;
-import org.geneontology.minerva.server.handler.M3BatchHandler.*;
-import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
-import org.junit.*;
-import org.junit.rules.TemporaryFolder;
-import org.semanticweb.elk.owlapi.ElkReasonerFactory;
-import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLObjectProperty;
-import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import owltools.io.ParserWrapper;
+import static org.junit.Assert.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.geneontology.minerva.UndoAwareMolecularModelManager;
+import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.curie.CurieMappings;
+import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.curie.MappedCurieHandler;
+import org.geneontology.minerva.lookup.ExternalLookupService;
+import org.geneontology.minerva.server.handler.M3BatchHandler.Entity;
+import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
+import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
+import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
+import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
+import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
+import org.semanticweb.owlapi.model.OWLObjectProperty;
+import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+
+import owltools.graph.OWLGraphWrapper;
+import owltools.io.ParserWrapper;
 
 public class ParallelModelReasonerTest {
 	
@@ -44,15 +50,15 @@ public class ParallelModelReasonerTest {
 	}
 	
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
-		//FIXME need more from go-lego
-		final OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(new File("src/test/resources/go-lego-minimal.owl")));
+		final OWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl"); //FIXME need more from go-lego
+		
 		// curie handler
 		final String modelIdcurie = "gomodel";
 		final String modelIdPrefix = "http://model.geneontology.org/";
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		
-		models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
+		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
 		ipc = new CountingCachingInferenceProvider(false);
 		handler = new JsonOrJsonpBatchHandler(models, "development", ipc ,
 				Collections.<OWLObjectProperty>emptySet(), (ExternalLookupService) null);

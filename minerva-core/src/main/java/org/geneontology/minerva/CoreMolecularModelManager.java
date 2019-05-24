@@ -108,7 +108,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		DO_NOT_ANNOTATE_SUBSETS.add(IRI.create("http://purl.obolibrary.org/obo/go#gocheck_do_not_manually_annotate"));
 	}
 
-	final OWLOntology tbox;
+	final OWLGraphWrapper graph;
 //	final OWLReasonerFactory rf;
 	private final IRI tboxIRI;
 	final Map<IRI, ModelContainer> modelMap = new HashMap<IRI, ModelContainer>();
@@ -189,13 +189,13 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	}
 
 	/**
-	 * @param tbox
+	 * @param graph
 	 * @throws OWLOntologyCreationException
 	 */
-	public CoreMolecularModelManager(OWLOntology tbox) throws OWLOntologyCreationException {
+	public CoreMolecularModelManager(OWLGraphWrapper graph) throws OWLOntologyCreationException {
 		super();
-		this.tbox = tbox;
-		tboxIRI = getTboxIRI(tbox);
+		this.graph = graph;
+		tboxIRI = getTboxIRI(graph);
 		this.ruleEngine = initializeRuleEngine();
 		initializeLegacyRelationIndex();
 		initializeTboxLabelIndex();
@@ -231,11 +231,12 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	/**
 	 * Executed before the init call {@link #init()}.
 	 * 
-	 * @param tbox
+	 * @param graph
 	 * @return IRI, never null
 	 * @throws OWLOntologyCreationException
 	 */
-	protected IRI getTboxIRI(OWLOntology tbox) throws OWLOntologyCreationException {
+	protected IRI getTboxIRI(OWLGraphWrapper graph) throws OWLOntologyCreationException {
+		OWLOntology tbox = graph.getSourceOntology();
 		OWLOntologyID ontologyID = tbox.getOntologyID();
 		if (ontologyID != null) {
 			Optional<IRI> ontologyIRI = ontologyID.getOntologyIRI();
@@ -254,11 +255,19 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		additionalImports = new HashSet<IRI>();
 	}
 
+
+	/**
+	 * @return graph wrapper for core/source ontology
+	 */
+	public OWLGraphWrapper getGraph() {
+		return graph;
+	}
+
 	/**
 	 * @return core/source ontology
 	 */
 	public OWLOntology getOntology() {
-		return tbox;
+		return graph.getSourceOntology();
 	}
 	
 	public Map<IRI, String> getLegacyRelationShorthandIndex() {
@@ -291,7 +300,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	/**
 	 * Return Arachne working memory representing LEGO model combined with inference rules.
 	 * This model will not remain synchronized with changes to data.
-	 * @param modelId
+	 * @param LEGO modelId
 	 * @return Jena model
 	 */
 	public WorkingMemory createInferredModel(IRI modelId) {
@@ -841,7 +850,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 */
 	public ModelContainer importModel(String modelData) throws OWLOntologyCreationException {
 		// load data from String
-		final OWLOntologyManager manager = tbox.getOWLOntologyManager();
+		final OWLOntologyManager manager = graph.getManager();
 		final OWLOntologyDocumentSource documentSource = new StringDocumentSource(modelData);
 		OWLOntology modelOntology;
 		final Set<OWLParserFactory> originalFactories = removeOBOParserFactories(manager);
@@ -890,6 +899,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	protected abstract void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException;
 
 	ModelContainer addModel(IRI modelId, OWLOntology abox) throws OWLOntologyCreationException {
+		OWLOntology tbox = graph.getSourceOntology();
 		ModelContainer m = new ModelContainer(modelId, tbox, abox);
 		modelMap.put(modelId, m);
 		return m;
@@ -1241,7 +1251,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	}
 
 	protected OWLOntology loadOntologyDocumentSource(final OWLOntologyDocumentSource source, boolean minimal) throws OWLOntologyCreationException {
-		return loadOntologyDocumentSource(source, minimal, tbox.getOWLOntologyManager());
+		return loadOntologyDocumentSource(source, minimal, graph.getManager());
 	}
 
 	static OWLOntology loadOntologyDocumentSource(final OWLOntologyDocumentSource source, boolean minimal, OWLOntologyManager manager) throws OWLOntologyCreationException {

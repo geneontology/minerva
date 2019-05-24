@@ -35,8 +35,11 @@ import owltools.vocab.OBOUpperVocabulary;
  * 
  * @param <METADATA> 
  * @see CoreMolecularModelManager
+ * @see FileBasedMolecularModelManager
  */
 public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelManager<METADATA> {
+	
+	private final CurieHandler curieHandler;
 
 	public static class UnknownIdentifierException extends Exception {
 
@@ -61,13 +64,21 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 	}
 	
 	/**
-	 * @param tbox
+	 * @param graph
 	 * @param curieHandler
 	 * @param modelIdPrefix 
 	 * @throws OWLOntologyCreationException
 	 */
-	public MolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder) throws OWLOntologyCreationException {
-		super(tbox, curieHandler, modelIdPrefix, pathToJournal, pathToExportFolder);
+	public MolecularModelManager(OWLGraphWrapper graph, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder) throws OWLOntologyCreationException {
+		super(graph, modelIdPrefix, pathToJournal, pathToExportFolder);
+		this.curieHandler = curieHandler;
+	}
+
+	/**
+	 * @return the curieHandler
+	 */
+	public CurieHandler getCuriHandler() {
+		return curieHandler;
 	}
 
 	/**
@@ -277,8 +288,36 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 		return false;
 	}
 	
+	@Deprecated
+	public Set<IRI> searchModels(Collection<String> ids) throws IOException {
+		final Set<IRI> resultSet = new HashSet<>();
+		// create IRIs
+		Set<IRI> searchIRIs = new HashSet<IRI>();
+		for(String id : ids) {
+			searchIRIs.add(graph.getIRIByIdentifier(id));
+		}
+		
+		if (!searchIRIs.isEmpty()) {
+			// search for IRI usage in models
+			final Set<IRI> allModelIds = getAvailableModelIds();
+			for (IRI modelId : allModelIds) {
+				final ModelContainer model = getModel(modelId);
+				final OWLOntology aboxOntology = model.getAboxOntology();
+				Set<OWLEntity> signature = aboxOntology.getSignature();
+				for (OWLEntity entity : signature) {
+					if (searchIRIs.contains(entity.getIRI())) {
+						resultSet.add(modelId);
+						break;
+					}
+				}
+			}
+		}
+		// return results
+		return resultSet;
+	}
+	
 	private OWLNamedIndividual getIndividual(String indId, ModelContainer model) throws UnknownIdentifierException {
-		IRI iri = getCuriHandler().getIRI(indId);
+		IRI iri = curieHandler.getIRI(indId);
 		return getIndividual(iri, model);
 	}
 	public OWLNamedIndividual getIndividual(IRI iri, ModelContainer model) {
@@ -295,12 +334,12 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 		return getClass(cid, graph);
 	}
 	private OWLClass getClass(String cid, OWLGraphWrapper graph) throws UnknownIdentifierException {
-		IRI iri = getCuriHandler().getIRI(cid);
+		IRI iri = curieHandler.getIRI(cid);
 		return graph.getOWLClass(iri);
 	}
 	public OWLObjectProperty getObjectProperty(String pid, ModelContainer model) throws UnknownIdentifierException {
 		OWLGraphWrapper graph = new OWLGraphWrapper(model.getAboxOntology());
-		IRI iri = getCuriHandler().getIRI(pid);
+		IRI iri = curieHandler.getIRI(pid);
 		return graph.getOWLObjectProperty(iri);
 	}
 	

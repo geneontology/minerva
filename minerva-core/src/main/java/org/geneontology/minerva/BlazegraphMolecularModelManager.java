@@ -10,14 +10,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.bigdata.rdf.rio.json.BigdataSPARQLResultsJSONWriter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
-import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.openrdf.model.*;
@@ -26,10 +24,6 @@ import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.query.*;
 import org.openrdf.query.impl.TupleQueryResultBuilder;
-import org.openrdf.query.parser.QueryParser;
-import org.openrdf.query.parser.QueryParserRegistry;
-import org.openrdf.query.parser.QueryParserUtil;
-import org.openrdf.query.parser.QueryPrologLexer;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.repository.RepositoryResult;
 import org.openrdf.rio.RDFFormat;
@@ -85,7 +79,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	final String pathToOWLStore;
 	final String pathToExportFolder;
 	private final BigdataSailRepository repo;
-	private final CurieHandler curieHandler;
 
 	private final String modelIdPrefix;
 
@@ -96,17 +89,16 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	private final List<PostLoadOntologyFilter> postLoadOntologyFilters = new ArrayList<PostLoadOntologyFilter>();
 
 	/**
-	 * @param tbox
+	 * @param graph
 	 * @param modelIdPrefix
-	 * @param pathToJournal Path to Blazegraph journal file to use.
+	 * @param pathToJournal Path to Blazegraph journal file to use. 
 	 * Only one instance of Blazegraph can use this file at a time.
 	 * @throws OWLOntologyCreationException
 	 */
-	public BlazegraphMolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder)
+	public BlazegraphMolecularModelManager(OWLGraphWrapper graph, String modelIdPrefix, String pathToJournal, String pathToExportFolder)
 			throws OWLOntologyCreationException {
-		super(tbox);
+		super(graph);
 		this.modelIdPrefix = modelIdPrefix;
-		this.curieHandler = curieHandler;
 		this.pathToOWLStore = pathToJournal;
 		this.pathToExportFolder = pathToExportFolder;
 		this.repo = initializeRepository(this.pathToOWLStore);
@@ -114,18 +106,11 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 
 	/**
 	 * Note this may move to an implementation-specific subclass in future
-	 *
+	 * 
 	 * @return path to owl on server
 	 */
 	public String getPathToOWLStore() {
 		return pathToOWLStore;
-	}
-
-	/**
-	 * @return the curieHandler
-	 */
-	public CurieHandler getCuriHandler() {
-		return curieHandler;
 	}
 
 	private BigdataSailRepository initializeRepository(String pathToJournal) {
@@ -139,7 +124,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			return repository;
 		} catch (RepositoryException e) {
 			LOG.fatal("Could not create Blazegraph sail", e);
-			return null;
+			return null;		
 		} catch (IOException e) {
 			LOG.fatal("Could not create Blazegraph sail", e);
 			return null;
@@ -181,7 +166,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 
 	/**
 	 * Generates a blank model
-	 *
+	 * 
 	 * @param metadata
 	 * @return modelId
 	 * @throws OWLOntologyCreationException
@@ -198,7 +183,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		LOG.info("Generating blank model for new modelId: " + modelId);
 
 		// create empty ontology, use model id as ontology IRI
-		final OWLOntologyManager m = tbox.getOWLOntologyManager();
+		final OWLOntologyManager m = graph.getManager();
+		final OWLOntology tbox = graph.getSourceOntology();
 		OWLOntology abox = null;
 		ModelContainer model = null;
 		try {
@@ -223,15 +209,15 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	/**
 	 * Save all models to disk. The optional annotations may be used to set
 	 * saved_by and other meta data.
-	 *
+	 * 
 	 * @param annotations
 	 * @param metadata
-	 *
+	 * 
 	 * @throws OWLOntologyStorageException
 	 * @throws OWLOntologyCreationException
 	 * @throws IOException
-	 * @throws RepositoryException
-	 * @throws UnknownIdentifierException
+	 * @throws RepositoryException 
+	 * @throws UnknownIdentifierException 
 	 */
 	public void saveAllModels(Set<OWLAnnotation> annotations, METADATA metadata)
 			throws OWLOntologyStorageException, OWLOntologyCreationException,
@@ -243,7 +229,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 
 	/**
 	 * Save a model to the database.
-	 *
+	 * 
 	 * @param m
 	 * @param annotations
 	 * @param metadata
@@ -251,8 +237,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @throws OWLOntologyStorageException
 	 * @throws OWLOntologyCreationException
 	 * @throws IOException
-	 * @throws RepositoryException
-	 * @throws UnknownIdentifierException
+	 * @throws RepositoryException 
+	 * @throws UnknownIdentifierException 
 	 */
 	public void saveModel(ModelContainer m,
 			Set<OWLAnnotation> annotations, METADATA metadata)
@@ -333,7 +319,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	/**
 	 * Export the ABox for the given modelId in the default
 	 * {@link OWLDocumentFormat}.
-	 *
+	 * 
 	 * @param model
 	 * @return modelContent
 	 * @throws OWLOntologyStorageException
@@ -347,7 +333,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * Export the ABox for the given modelId in the given ontology format.<br>
 	 * Warning: The mapping from String to {@link OWLDocumentFormat} does not
 	 * map every format!
-	 *
+	 * 
 	 * @param model
 	 * @param format
 	 * @return modelContent
@@ -385,7 +371,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	/**
 	 * Retrieve a collection of all file/stored model ids found in the repo.<br>
 	 * Note: Models may not be loaded at this point.
-	 *
+	 * 
 	 * @return set of modelids.
 	 * @throws IOException
 	 */
@@ -402,15 +388,15 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				return Collections.unmodifiableSet(modelIds);
 			} finally {
 				connection.close();
-			}
+			}	
 		} catch (RepositoryException e) {
 			throw new IOException(e);
-		}
+		}		
 	}
 
 	/**
 	 * Retrieve all model ids currently in memory in long and short form.<br>
-	 *
+	 * 
 	 * @return set of modelids.
 	 * @throws IOException
 	 */
@@ -421,7 +407,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	/**
 	 * Retrieve a collection of all available model ids.<br>
 	 * Note: Models may not be loaded at this point.
-	 *
+	 * 
 	 * @return set of modelids.
 	 * @throws IOException
 	 */
@@ -470,7 +456,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				throw new IOException(e);
 			} finally {
 				connection.close();
-			}
+			}	
 		} catch (RepositoryException e) {
 			throw new IOException(e);
 		}
@@ -484,17 +470,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
     public QueryResult executeSPARQLQuery(String queryText, int timeout) throws MalformedQueryException, QueryEvaluationException, RepositoryException {
         BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
         try {
-            List<QueryPrologLexer.Token> tokens = QueryPrologLexer.lex(queryText);
-            Set<String> declaredPrefixes = tokens.stream().filter(token -> token.getType().equals(QueryPrologLexer.TokenType.PREFIX)).map(token -> token.getStringValue()).collect(Collectors.toSet());
-            StringBuffer queryWithDefaultPrefixes = new StringBuffer();
-            for (Entry<String, String> entry : getCuriHandler().getMappings().entrySet()) {
-                if (!declaredPrefixes.contains(entry.getKey())) {
-                    queryWithDefaultPrefixes.append("PREFIX " + entry.getKey() + ": <" + entry.getValue() + ">");
-                    queryWithDefaultPrefixes.append("\n");
-                }
-            }
-            queryWithDefaultPrefixes.append(queryText);
-            Query query = connection.prepareQuery(QueryLanguage.SPARQL, queryWithDefaultPrefixes.toString());
+            Query query = connection.prepareQuery(QueryLanguage.SPARQL, queryText);
             query.setMaxQueryTime(timeout);
             if (query instanceof TupleQuery) {
                 TupleQuery tupleQuery = (TupleQuery) query;
@@ -529,7 +505,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 					throw new OWLOntologyCreationException("No such model in datastore: " + modelId);
 				}
 				graphs.close();
-				RepositoryResult<Statement> statements =
+				RepositoryResult<Statement> statements = 
 						connection.getStatements(null, null, null, false, new URIImpl(modelId.toString()));
 				OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), false);
 				statements.close();
@@ -538,7 +514,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				updateImports(model);
 			} finally {
 				connection.close();
-			}
+			}	
 		} catch (RepositoryException e) {
 			throw new OWLOntologyCreationException(e);
 		}
@@ -556,7 +532,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 					throw new OWLOntologyCreationException("No such model in datastore: " + modelId);
 				}
 				graphs.close();
-				RepositoryResult<Statement> statements =
+				RepositoryResult<Statement> statements = 
 						connection.getStatements(null, null, null, false, new URIImpl(modelId.toString()));
 				OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), true);
 				statements.close();
@@ -564,7 +540,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				return abox;
 			} finally {
 				connection.close();
-			}
+			}	
 		} catch (RepositoryException e) {
 			throw new OWLOntologyCreationException(e);
 		}
@@ -589,11 +565,11 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	}
 
 	/**
-	 * Imports ontology RDF directly to database. No OWL checks are performed.
+	 * Imports ontology RDF directly to database. No OWL checks are performed. 
 	 * @param file
-	 * @throws OWLOntologyCreationException
-	 * @throws IOException
-	 * @throws RepositoryException
+	 * @throws OWLOntologyCreationException 
+	 * @throws IOException 
+	 * @throws RepositoryException 
 	 */
 	public void importModelToDatabase(File file, boolean skipMarkedDelete) throws OWLOntologyCreationException, RepositoryException, IOException, RDFParseException, RDFHandlerException {
 		synchronized(repo) {
@@ -603,7 +579,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				try {
 					final boolean delete;
 					if (skipMarkedDelete) {
-						delete = scanForIsDelete(file);
+						delete = scanForIsDelete(file);	
 					} else {
 						delete = false;
 					}
@@ -631,13 +607,13 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 
 	/**
 	 * Tries to efficiently find the ontology IRI triple without loading the whole file.
-	 * @throws IOException
-	 * @throws RDFHandlerException
-	 * @throws RDFParseException
+	 * @throws IOException 
+	 * @throws RDFHandlerException 
+	 * @throws RDFParseException 
 	 */
 	private java.util.Optional<String> scanForOntologyIRI(File file) throws RDFParseException, RDFHandlerException, IOException {
 		RDFHandlerBase handler = new RDFHandlerBase() {
-			public void handleStatement(Statement statement) {
+			public void handleStatement(Statement statement) { 
 				if (statement.getObject().stringValue().equals("http://www.w3.org/2002/07/owl#Ontology") &&
 						statement.getPredicate().stringValue().equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")) throw new FoundTripleException(statement);
 			}
@@ -663,12 +639,12 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			inputStream.close();
 		}
 	}
-
+	
 	private boolean scanForIsDelete(File file) throws RDFParseException, RDFHandlerException, IOException {
 		RDFHandlerBase handler = new RDFHandlerBase() {
-
-			public void handleStatement(Statement statement) {
-				if (statement.getPredicate().stringValue().equals(AnnotationShorthand.modelstate.getAnnotationProperty().toString()) &&
+			
+			public void handleStatement(Statement statement) { 
+				if (statement.getPredicate().stringValue().equals(AnnotationShorthand.modelstate.getAnnotationProperty().toString()) && 
 					statement.getObject().stringValue().equals("delete")) throw new FoundTripleException(statement);
 			}
 		};
@@ -716,11 +692,14 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	}
 
 	/**
-	 * Export all models to disk.
-	 *
+	 * Export all models to disk. 
+	 * 
+	 * @param annotations
+	 * @param metadata
+	 * 
 	 * @throws OWLOntologyStorageException
 	 * @throws OWLOntologyCreationException
-	 * @throws IOException
+	 * @throws IOException 
 	 */
 	public void dumpAllStoredModels() throws OWLOntologyStorageException, OWLOntologyCreationException, IOException {
 		File folder = new File(this.pathToExportFolder);
@@ -731,9 +710,13 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 
 	/**
 	 * Save a model to disk.
+	 * 
+	 * @param m 
+	 * @param annotations 
+	 * @param metadata
 	 *
-	 * @throws OWLOntologyStorageException
-	 * @throws OWLOntologyCreationException
+	 * @throws OWLOntologyStorageException 
+	 * @throws OWLOntologyCreationException 
 	 * @throws IOException
 	 */
 	public void dumpStoredModel(IRI modelId, File folder) throws IOException {
@@ -774,7 +757,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 					FileUtils.copyFile(tempFile, targetFile);
 				}  finally {
 					connection.close();
-				}
+				}	
 			} catch (RepositoryException e) {
 				throw new IOException(e);
 			} catch (RDFHandlerException e) {

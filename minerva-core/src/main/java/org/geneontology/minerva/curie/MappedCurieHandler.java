@@ -115,11 +115,6 @@ public class MappedCurieHandler implements CurieHandler {
 		}
 	}
 
-	@Override
-	public Map<String, String> getMappings() {
-		return curieMap;
-	}
-
 	/**
 	 * package private for internal test purposes.
 	 * 

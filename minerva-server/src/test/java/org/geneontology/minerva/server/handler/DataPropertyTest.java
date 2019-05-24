@@ -1,5 +1,13 @@
 package org.geneontology.minerva.server.handler;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
@@ -7,23 +15,35 @@ import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
-import org.geneontology.minerva.json.*;
-import org.geneontology.minerva.server.handler.M3BatchHandler.*;
+import org.geneontology.minerva.json.JsonAnnotation;
+import org.geneontology.minerva.json.JsonModel;
+import org.geneontology.minerva.json.JsonOwlIndividual;
+import org.geneontology.minerva.json.JsonRelationInfo;
+import org.geneontology.minerva.json.MolecularModelJsonRenderer;
+import org.geneontology.minerva.server.handler.M3BatchHandler.Entity;
+import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
+import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
+import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
+import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.model.AxiomType;
+import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLClass;
+import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLDataProperty;
+import org.semanticweb.owlapi.model.OWLDataPropertyAssertionAxiom;
+import org.semanticweb.owlapi.model.OWLLiteral;
+import org.semanticweb.owlapi.model.OWLNamedIndividual;
+import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.OWLOntologyManager;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import owltools.graph.OWLGraphWrapper;
 
 public class DataPropertyTest {
 	
@@ -32,8 +52,8 @@ public class DataPropertyTest {
 	
 	private final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	
-	private UndoAwareMolecularModelManager createM3(OWLOntology tbox) throws OWLOntologyCreationException, IOException {
-		UndoAwareMolecularModelManager mmm = new UndoAwareMolecularModelManager(tbox, curieHandler,
+	private UndoAwareMolecularModelManager createM3(OWLGraphWrapper g) throws OWLOntologyCreationException, IOException {
+		UndoAwareMolecularModelManager mmm = new UndoAwareMolecularModelManager(g, curieHandler,
 				"http://model.geneontology.org/", folder.newFile().getAbsolutePath(), null);
 		return mmm;
 	}
@@ -50,7 +70,8 @@ public class DataPropertyTest {
 			m.addAxiom(ontology, f.getOWLDeclarationAxiom(prop));
 			m.addAxiom(ontology, f.getOWLAnnotationAssertionAxiom(propIRI, f.getOWLAnnotation(f.getRDFSLabel(), f.getOWLLiteral("fake-data-property"))));
 		}
-		MolecularModelManager<?> mmm = createM3(ontology);
+		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
+		MolecularModelManager<?> mmm = createM3(graph);
 		Pair<List<JsonRelationInfo>,List<JsonRelationInfo>> pair = MolecularModelJsonRenderer.renderProperties(mmm, null, curieHandler);
 		List<JsonRelationInfo> dataProperties = pair.getRight();
 		assertEquals(1, dataProperties.size());
@@ -74,8 +95,9 @@ public class DataPropertyTest {
 		m.addAxiom(ontology, f.getOWLAnnotationAssertionAxiom(clsIRI, f.getOWLAnnotation(f.getRDFSLabel(), f.getOWLLiteral("fake-cls"))));
 		
 		// graph and m3
+		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
 		final UndoMetadata metadata = new UndoMetadata("foo-user");
-		UndoAwareMolecularModelManager m3 = createM3(ontology);
+		UndoAwareMolecularModelManager m3 = createM3(graph);
 		
 		final ModelContainer model = m3.generateBlankModel(metadata);
 		final OWLNamedIndividual individual = m3.createIndividual(model, cls, metadata);
@@ -111,7 +133,8 @@ public class DataPropertyTest {
 		m.addAxiom(ontology, f.getOWLAnnotationAssertionAxiom(clsIRI, f.getOWLAnnotation(f.getRDFSLabel(), f.getOWLLiteral("fake-cls"))));
 		
 		// graph and m3
-		UndoAwareMolecularModelManager m3 = createM3(ontology);
+		OWLGraphWrapper graph = new OWLGraphWrapper(ontology);
+		UndoAwareMolecularModelManager m3 = createM3(graph);
 		
 		// handler
 		InferenceProviderCreator ipc = null;

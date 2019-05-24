@@ -1,13 +1,23 @@
 package org.geneontology.minerva.server.handler;
 
-import com.google.gson.JsonObject;
-import com.google.gson.annotations.SerializedName;
-import org.geneontology.minerva.json.*;
-
-import javax.ws.rs.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.QueryParam;
+
+import org.geneontology.minerva.json.JsonAnnotation;
+import org.geneontology.minerva.json.JsonEvidenceInfo;
+import org.geneontology.minerva.json.JsonModel;
+import org.geneontology.minerva.json.JsonOwlObject;
+import org.geneontology.minerva.json.JsonRelationInfo;
+
+import com.google.gson.annotations.SerializedName;
 
 @Path("/")
 public interface M3BatchHandler {
@@ -67,8 +77,6 @@ public interface M3BatchHandler {
 		redo, // redo the latest undo
 		@SerializedName("get-undo-redo")
 		getUndoRedo, // get a list of all currently available undo and redo for a model
-
-		sparql
 		
 	}
 	
@@ -96,8 +104,6 @@ public interface M3BatchHandler {
 		
 		JsonOwlObject[] expressions;
 		JsonAnnotation[] values;
-
-		String query;
 	}
 	
 	public static class M3BatchResponse extends MinervaResponse<M3BatchResponse.ResponseData>{
@@ -106,10 +112,10 @@ public interface M3BatchHandler {
 			
 			@SerializedName("inconsistent-p")
 			public Boolean inconsistentFlag;
-
+			
 			@SerializedName("modified-p")
 			public Boolean modifiedFlag;
-
+			
 			public Object undo;
 			public Object redo;
 			
@@ -117,9 +123,6 @@ public interface M3BatchHandler {
 			public String exportModel;
 			
 			public MetaResponse meta;
-
-			@SerializedName("sparql-result")
-			public JsonObject sparqlResult;
 		}
 		
 		public static class MetaResponse {

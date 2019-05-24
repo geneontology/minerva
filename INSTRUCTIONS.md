@@ -76,16 +76,6 @@ start-m3-server.sh -c go-trunk/ontology/extensions/catalog-v001.xml \
 * Requires all data (go and models)
 * Build in eclipse, start as main with appropriate parameters.
 
-### Automatically create a catalog file pointing to local copies of the imported ontologies
-
-If you have [ROBOT](http://robot.obolibrary.org) installed, you can easily create a local mirror of an OWL imports chain, so that large 
-imported ontologies don't need to be repeatedly downloaded while you are developing locally:
-
-`robot mirror --input my-ontology.owl --directory my-cache --output my-catalog.xml`
-
-(instead of `--input`, you can also use `-I` and directly provide the ontology IRI rather than a filename)
-
-Then provide the `my-catalog.xml` file to Minerva when starting the server, using the `-c` option.
 
 ## Running Tests
 

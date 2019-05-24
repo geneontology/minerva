@@ -429,7 +429,7 @@ public class MolecularModelJsonRenderer {
 	}
 	
 	public static List<JsonEvidenceInfo> renderEvidences(MolecularModelManager<?> mmm, CurieHandler curieHandler) throws OWLException, IOException {
-		return renderEvidences(mmm.getOntology().getOWLOntologyManager(), curieHandler);
+		return renderEvidences(mmm.getGraph().getManager(), curieHandler);
 	}
 	
 	private static final Object ecoMutex = new Object();
