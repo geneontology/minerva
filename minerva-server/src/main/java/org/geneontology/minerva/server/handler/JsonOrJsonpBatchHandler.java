@@ -1,8 +1,17 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.geneontology.minerva.server.handler.OperationsTools.createModelRenderer;
-import static org.geneontology.minerva.server.handler.OperationsTools.normalizeUserId;
-import static org.geneontology.minerva.server.handler.OperationsTools.requireNotNull;
+import com.google.common.reflect.TypeToken;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.log4j.Logger;
+import org.geneontology.minerva.UndoAwareMolecularModelManager;
+import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
+import org.geneontology.minerva.json.*;
+import org.geneontology.minerva.lookup.ExternalLookupService;
+import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
+import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
+import org.glassfish.jersey.server.JSONP;
+import org.semanticweb.owlapi.model.OWLObjectProperty;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -10,23 +19,7 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.log4j.Logger;
-import org.geneontology.minerva.UndoAwareMolecularModelManager;
-import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
-import org.geneontology.minerva.json.InferenceProvider;
-import org.geneontology.minerva.json.JsonModel;
-import org.geneontology.minerva.json.JsonOwlFact;
-import org.geneontology.minerva.json.JsonOwlIndividual;
-import org.geneontology.minerva.json.MolecularModelJsonRenderer;
-import org.geneontology.minerva.lookup.ExternalLookupService;
-import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
-import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
-import org.glassfish.jersey.server.JSONP;
-import org.semanticweb.owlapi.model.OWLObjectProperty;
-
-import com.google.common.reflect.TypeToken;
+import static org.geneontology.minerva.server.handler.OperationsTools.*;
 
 public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHandler {
 
@@ -186,6 +179,8 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 					response.signal = "meta";
 					response.message = "Dumped all models to folder";
 					return response;
+				} else if (Operation.sparql == operation) {
+					handleSPARQLRequest(request, response);
 				} else {
 					return error(response, "Unknown operation: "+operation, null);
 				}
@@ -286,6 +281,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		if (isPrivileged == false) {
 			switch (operation) {
 			case get:
+			case sparql:
 			case exportModel:
 			case exportModelLegacy:
 			case exportAll:

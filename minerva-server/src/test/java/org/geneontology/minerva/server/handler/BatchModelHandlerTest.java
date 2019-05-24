@@ -1,45 +1,18 @@
 package org.geneontology.minerva.server.handler;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
-import org.geneontology.minerva.json.JsonAnnotation;
-import org.geneontology.minerva.json.JsonEvidenceInfo;
-import org.geneontology.minerva.json.JsonOwlFact;
-import org.geneontology.minerva.json.JsonOwlIndividual;
-import org.geneontology.minerva.json.JsonOwlObject;
+import org.geneontology.minerva.json.*;
 import org.geneontology.minerva.json.JsonOwlObject.JsonOwlObjectType;
-import org.geneontology.minerva.json.JsonRelationInfo;
-import org.geneontology.minerva.json.JsonTools;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.geneontology.minerva.lookup.TableLookupService;
 import org.geneontology.minerva.server.StartUpTool;
-import org.geneontology.minerva.server.handler.M3BatchHandler.Entity;
-import org.geneontology.minerva.server.handler.M3BatchHandler.M3Argument;
-import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
-import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
-import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
+import org.geneontology.minerva.server.handler.M3BatchHandler.*;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.util.AnnotationShorthand;
@@ -48,14 +21,18 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
-import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.parameters.Imports;
-
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
+
+import java.io.IOException;
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 @SuppressWarnings("unchecked")
 public class BatchModelHandlerTest {
@@ -93,7 +70,7 @@ public class BatchModelHandlerTest {
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false);
-		models = new UndoAwareMolecularModelManager(graph, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
+		models = new UndoAwareMolecularModelManager(graph.getSourceOntology(), curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
 		lookupService = createTestProteins(curieHandler);
 		handler = new JsonOrJsonpBatchHandler(models, "development", ipc, importantRelations, lookupService) {
 
@@ -412,8 +389,7 @@ public class BatchModelHandlerTest {
 		
 		M3BatchResponse response = execute(r, false);
 		final JsonRelationInfo[] relations = BatchTestTools.responseRelations(response);
-		final OWLGraphWrapper tbox = models.getGraph();
-		final OWLObjectProperty part_of = tbox.getOWLObjectPropertyByIdentifier("part_of");
+		final OWLObjectProperty part_of = OWLManager.getOWLDataFactory().getOWLObjectProperty(IRI.create("http://purl.obolibrary.org/obo/BFO_0000050"));
 		assertNotNull(part_of);
 		final String partOfJsonId = models.getCuriHandler().getCuri(part_of);
 		boolean hasPartOf = false;
@@ -2073,9 +2049,7 @@ public class BatchModelHandlerTest {
 		//models.dispose();
 		
 		// find test relation
-		final OWLGraphWrapper graph = models.getGraph();
-		final OWLOntology sourceOntology = graph.getSourceOntology();
-		Set<OWLObjectProperty> properties = sourceOntology.getObjectPropertiesInSignature(Imports.INCLUDED);
+		Set<OWLObjectProperty> properties = models.getOntology().getObjectPropertiesInSignature(Imports.INCLUDED);
 		OWLObjectProperty gorel0002006 = null;
 		for (OWLObjectProperty p : properties) {
 			IRI iri = p.getIRI();
@@ -2085,8 +2059,6 @@ public class BatchModelHandlerTest {
 		}
 		assertNotNull(gorel0002006);
 		String gorel0002006Curie = curieHandler.getCuri(gorel0002006);
-		String gorel0002006Label = graph.getLabel(gorel0002006);
-		assertEquals("results_in_organization_of", gorel0002006Label);
 		
 		// check meta
 		M3Request r = new M3Request();

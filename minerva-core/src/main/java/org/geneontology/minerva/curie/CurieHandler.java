@@ -8,6 +8,8 @@ import org.semanticweb.owlapi.model.OWLDataProperty;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 
+import java.util.Map;
+
 public interface CurieHandler {
 
 	public String getCuri(OWLClass cls);
@@ -23,5 +25,7 @@ public interface CurieHandler {
 	public String getCuri(IRI iri);
 	
 	public IRI getIRI(String curi) throws UnknownIdentifierException;
+
+	public Map<String, String> getMappings();
 
 }
