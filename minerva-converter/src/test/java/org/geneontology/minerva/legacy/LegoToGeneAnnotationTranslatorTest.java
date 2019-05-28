@@ -1,18 +1,5 @@
 package org.geneontology.minerva.legacy;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
@@ -22,33 +9,31 @@ import org.geneontology.minerva.lookup.TableLookupService;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
+import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
-import org.semanticweb.owlapi.util.SimpleIRIMapper;
-
 import owltools.gaf.Bioentity;
 import owltools.gaf.GafDocument;
 import owltools.gaf.GeneAnnotation;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
-import owltools.io.CatalogXmlIRIMapper;
-import owltools.io.ParserWrapper;
+
+import java.io.File;
+import java.util.*;
+
+import static org.junit.Assert.*;
+
 
 public class LegoToGeneAnnotationTranslatorTest {
 	
-	public static ParserWrapper pw;
 	public static CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	public static OWLReasonerFactory rf = new ElkReasonerFactory();
 	public static SimpleEcoMapper mapper;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		pw = new ParserWrapper();
-		
-		pw.addIRIMapper(new CatalogXmlIRIMapper(new File("src/test/resources/catalog-v001.xml")));
-
 		mapper = EcoMapperFactory.createSimple();
 	}
 
@@ -181,8 +166,9 @@ public class LegoToGeneAnnotationTranslatorTest {
 	}
 	
 	private OWLOntology loadModel(String name) throws Exception {
-		OWLOntology model = pw.parseOWL(IRI.create(new File("src/test/resources/"+name).getCanonicalFile()));
-		return model;
+		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
+		manager.loadOntology(IRI.create(new File("src/test/resources/go-lego-module.omn")));
+		return manager.loadOntology((IRI.create(new File("src/test/resources/"+name).getCanonicalFile())));
 	}
 	
 	private GafDocument translate(OWLOntology model, String id, List<LookupEntry> entities) throws UnknownIdentifierException {

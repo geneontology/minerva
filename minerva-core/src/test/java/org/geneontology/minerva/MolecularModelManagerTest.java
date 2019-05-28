@@ -19,17 +19,10 @@ import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLAnnotation;
-import org.semanticweb.owlapi.model.OWLNamedIndividual;
-import org.semanticweb.owlapi.model.OWLObjectProperty;
-import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.model.*;
 
-import owltools.OWLToolsTestBasics;
-import owltools.graph.OWLGraphWrapper;
-import owltools.io.ParserWrapper;
-
-public class MolecularModelManagerTest extends OWLToolsTestBasics {
+public class MolecularModelManagerTest {
 
 	// JUnit way of creating a temporary test folder
 	// will be deleted after the test has run, by JUnit.
@@ -41,19 +34,18 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		Logger.getLogger("org.semanticweb.elk").setLevel(Level.ERROR);
 	}
 	
-	private MolecularModelManager<Void> createM3(OWLGraphWrapper g, File journal) throws OWLOntologyCreationException, IOException {
-		return new MolecularModelManager<Void>(g, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), null);
+	private MolecularModelManager<Void> createM3(OWLOntology tbox, File journal) throws OWLOntologyCreationException, IOException {
+		return new MolecularModelManager<Void>(tbox, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), null);
 	}
 
 	@Test
 	public void testDeleteIndividual() throws Exception {
-		ParserWrapper pw = new ParserWrapper();
-		OWLGraphWrapper g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
+		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
 
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity
 
-		MolecularModelManager<Void> mmm = createM3(g, folder.newFile());
+		MolecularModelManager<Void> mmm = createM3(tbox, folder.newFile());
 
 		ModelContainer model = mmm.generateBlankModel(null);
 		OWLNamedIndividual i1 = mmm.createIndividual(model.getModelId(), "GO:0038024", null, null);
@@ -80,15 +72,14 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 
 	@Test
 	public void testExportImport() throws Exception {
-		ParserWrapper pw = new ParserWrapper();
-		OWLGraphWrapper g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
+		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
 
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity
 		// GO:0008233 ! peptidase activity
 
 		File journalFile = folder.newFile();
-		MolecularModelManager<Void> mmm = createM3(g, journalFile);
+		MolecularModelManager<Void> mmm = createM3(tbox, journalFile);
 
 		final ModelContainer model = mmm.generateBlankModel(null);
 		final OWLNamedIndividual i1 = mmm.createIndividual(model.getModelId(), "GO:0038024", null, null);
@@ -125,11 +116,10 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 	
 	@Test
 	public void testSaveModel() throws Exception {
-		final ParserWrapper pw1 = new ParserWrapper();
-		OWLGraphWrapper g = pw1.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
+		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
 
 		File journalFile = folder.newFile();
-		MolecularModelManager<Void> mmm = createM3(g, journalFile);
+		MolecularModelManager<Void> mmm = createM3(tbox, journalFile);
 		
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity
@@ -152,12 +142,11 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 		// discard mmm
 		mmm.dispose();
 		mmm = null;
+
+		OWLOntology tbox2 = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
 		
-		final ParserWrapper pw2 = new ParserWrapper();
-		g = pw2.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
 		
-		
-		mmm = createM3(g, journalFile);
+		mmm = createM3(tbox2, journalFile);
 		
 		Set<IRI> availableModelIds = mmm.getAvailableModelIds();
 		assertTrue(availableModelIds.contains(model.getModelId()));
@@ -177,14 +166,14 @@ public class MolecularModelManagerTest extends OWLToolsTestBasics {
 
 	@Test
 	public void testInferredType() throws Exception {
-		ParserWrapper pw = new ParserWrapper();
-		OWLGraphWrapper g = pw.parseToOWLGraph(getResourceIRIString("go-mgi-signaling-test.obo"));
+		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
+
 
 		// GO:0038024 ! cargo receptor activity
 		// GO:0042803 ! protein homodimerization activity
 
 		File journalFile = folder.newFile();
-		MolecularModelManager<Void> mmm = createM3(g, journalFile);
+		MolecularModelManager<Void> mmm = createM3(tbox, journalFile);
 
 		ModelContainer model = mmm.generateBlankModel(null);
 		OWLNamedIndividual cc = mmm.createIndividual(model.getModelId(), "GO:0004872", null, null); // receptor activity

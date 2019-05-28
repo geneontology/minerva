@@ -1,23 +1,14 @@
 package org.geneontology.minerva;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
+import com.google.gson.JsonObject;
 import org.apache.commons.io.FileUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.curie.MappedCurieHandler;
+import org.geneontology.minerva.json.SPARQLResultJSONRenderer;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,17 +16,16 @@ import org.junit.rules.TemporaryFolder;
 import org.openrdf.query.GraphQueryResult;
 import org.openrdf.query.QueryResult;
 import org.openrdf.query.TupleQueryResult;
-import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLAnnotation;
-import org.semanticweb.owlapi.model.OWLAnnotationProperty;
-import org.semanticweb.owlapi.model.OWLDataFactory;
-import org.semanticweb.owlapi.model.OWLNamedIndividual;
-import org.semanticweb.owlapi.model.OWLObjectProperty;
-
+import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.model.*;
 import owltools.OWLToolsTestBasics;
-import owltools.graph.OWLGraphWrapper;
-import owltools.io.CatalogXmlIRIMapper;
-import owltools.io.ParserWrapper;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 public class BlazegraphMolecularModelManagerTest extends OWLToolsTestBasics {
     private final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
@@ -129,6 +119,15 @@ public class BlazegraphMolecularModelManagerTest extends OWLToolsTestBasics {
         QueryResult constructResult = m3.executeSPARQLQuery("CONSTRUCT { ?s <http://example.org/subject_in> ?g } WHERE { GRAPH ?g { ?s ?p ?o } }", 10);
         assertTrue(constructResult instanceof GraphQueryResult);
         assertEquals("http://model.geneontology.org/0000000300000001", ((GraphQueryResult) constructResult).next().getObject().stringValue());
+        SPARQLResultJSONRenderer renderer = new SPARQLResultJSONRenderer(m3.getCuriHandler());
+        String gValue = renderer.renderResults((TupleQueryResult)m3.executeSPARQLQuery("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }", 10))
+                .getAsJsonObject("results")
+                .getAsJsonArray("bindings").get(0)
+                .getAsJsonObject().getAsJsonObject("g").getAsJsonPrimitive("value").getAsString();
+        assertEquals("gomodel:0000000300000001", gValue);
+        JsonObject graphJson = renderer.renderGraph((GraphQueryResult)m3.executeSPARQLQuery("CONSTRUCT { ?s <http://example.org/subject_in> ?g } WHERE { GRAPH ?g { ?s ?p ?o } }", 10));
+        String objectValue = graphJson.getAsJsonObject("GO:0000981").getAsJsonArray("ex:subject_in").get(0).getAsJsonObject().getAsJsonPrimitive("value").getAsString();
+        assertEquals("gomodel:0000000300000001", objectValue);
     }
 
     /**
@@ -221,7 +220,7 @@ public class BlazegraphMolecularModelManagerTest extends OWLToolsTestBasics {
      * from ttl files. Double-check whether the model is properly dumped using Jena.
      *
      * @param m3
-     * @param modelId
+     * @param model
      * @throws Exception
      */
     private void testModelImport(BlazegraphMolecularModelManager<Void> m3, ModelContainer model) throws Exception {
@@ -263,12 +262,13 @@ public class BlazegraphMolecularModelManagerTest extends OWLToolsTestBasics {
         String tempRootPath = folder.getRoot().getAbsolutePath();
         /* Delete the journal file if exists */
         FileUtils.deleteQuietly(new File(journalPath));
-
-        final ParserWrapper pw = new ParserWrapper();
-        pw.addIRIMapper(new CatalogXmlIRIMapper(new File("src/test/resources/mmg/catalog-v001.xml")));
-        OWLGraphWrapper g = pw.parseToOWLGraph(getResourceIRIString("mmg/basic-tbox-importer.omn"));
-        BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(g, "http://model.geneontology.org/", journalPath, tempRootPath);
-
+        OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(new File("src/test/resources/mmg/basic-tbox.omn")));
+        Map<String, String> prefixes = new HashMap<>();
+        prefixes.put("gomodel", "http://model.geneontology.org/");
+        prefixes.put("ex", "http://example.org/");
+        prefixes.put("GO", "http://purl.obolibrary.org/obo/GO_");
+        CurieHandler curieHandler = new MappedCurieHandler(prefixes);
+        BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(tbox, curieHandler,"http://model.geneontology.org/", journalPath, tempRootPath);
         return m3;
     }
 

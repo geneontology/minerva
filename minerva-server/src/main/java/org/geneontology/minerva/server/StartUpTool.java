@@ -1,19 +1,11 @@
 package org.geneontology.minerva.server;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.log4j.Logger;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
-import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.ModelReaderHelper;
-import org.geneontology.minerva.ModelWriterHelper;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
@@ -28,19 +20,19 @@ import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreato
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
-import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLObject;
-import org.semanticweb.owlapi.model.OWLObjectProperty;
-import org.semanticweb.owlapi.model.OWLObjectPropertyExpression;
-import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.model.OWLSubObjectPropertyOfAxiom;
-
+import org.semanticweb.owlapi.model.*;
 import owltools.cli.Opts;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.CatalogXmlIRIMapper;
 import owltools.io.ParserWrapper;
+
+import java.io.File;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 
 public class StartUpTool {
@@ -332,11 +324,10 @@ public class StartUpTool {
 		
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
-		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph,
+		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph.getSourceOntology(),
 				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder);
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
-		models.addPreFileSaveHandler(new ModelWriterHelper(conf.curieHandler, conf.lookupService));
 		
 		// start server
 		Server server = startUp(models, conf);
