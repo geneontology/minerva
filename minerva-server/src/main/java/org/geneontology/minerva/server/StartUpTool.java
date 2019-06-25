@@ -379,7 +379,8 @@ public class StartUpTool {
 		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
 		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
 		SPARQLHandler sparqlHandler = new SPARQLHandler(models, conf.sparqlEndpointTimeout);
-		resourceConfig = resourceConfig.registerInstances(batchHandler, seedHandler, sparqlHandler);
+		ModelSearchHandler searchHandler = new ModelSearchHandler(models, conf.sparqlEndpointTimeout);
+		resourceConfig = resourceConfig.registerInstances(batchHandler, seedHandler, sparqlHandler, searchHandler);
 
 		// setup jetty server port, buffers and context path
 		Server server = new Server();
