@@ -48,6 +48,9 @@ public class ModelSearchHandler {
 	public class ModelSearchResult {
 	    private Integer n;
 	    private Set<ModelMeta> models;
+	    private void makeModelsDistinct() {
+	    	
+	    }
 	}
 	
 	public class ModelMeta{
@@ -56,7 +59,7 @@ public class ModelSearchHandler {
 		private String title;
 		private String state;
 		private Set<String> contributors;
-		private HashMap<String, String> query_match;
+		private HashMap<String, Set<String>> query_match;
 		
 		public ModelMeta(String id, String date, String title, String state, Set<String> contributors) {
 			this.id = id;
@@ -64,7 +67,7 @@ public class ModelSearchHandler {
 			this.title = title;
 			this.state = state;
 			this.contributors = contributors;
-			query_match = new HashMap<String, String>();
+			query_match = new HashMap<String, Set<String>>();
 		}
 	}
 	
@@ -82,7 +85,7 @@ public class ModelSearchHandler {
   //examples ?gene_product_class_uri=http://identifiers.org/mgi/MGI:1328355&gene_product_class_uri=http://identifiers.org/mgi/MGI:87986  
     public ModelSearchResult searchByGenes(Set<String> gene_product_class_uris) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
     	ModelSearchResult r = new ModelSearchResult();
-    	Set<ModelMeta> models = new HashSet<ModelMeta>();
+    	Map<String, ModelMeta> id_model = new HashMap<String, ModelMeta>();
     	String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/QueryByGeneUriAND.rq"), StandardCharsets.UTF_8);
     	Map<String, String> gp_return = new HashMap<String, String>();
     	String gp_return_list = ""; //<gp_return_list>
@@ -112,17 +115,26 @@ public class ModelSearchHandler {
     				contributors.add(c);
     			}
     		}
-    		ModelMeta mm = new ModelMeta(id, date, title, state, contributors);
+    		ModelMeta mm = id_model.get(id);
+    		if(mm==null) {
+    			mm = new ModelMeta(id, date, title, state, contributors);
+    		}
     		//matching 
+    		
     		for(String gp : gp_return.keySet()) {
     			String gp_ind = bs.getBinding(gp.replace("?", "")).getValue().stringValue();
-    			mm.query_match.put(gp_return.get(gp), gp_ind);
+    			Set<String> matching_inds = mm.query_match.get(gp_return.get(gp));
+    			if(matching_inds==null) {
+    				matching_inds = new HashSet<String>();
+    			}
+    			matching_inds.add(gp_ind);
+    			mm.query_match.put(gp_return.get(gp), matching_inds);
     		}
-    		models.add(mm);
+    		id_model.put(id, mm);
     		n_models++;
     	}
-    	r.n = n_models;
-    	r.models = models;
+    	r.n = id_model.size();
+    	r.models = new HashSet<ModelMeta>(id_model.values());
     	result.close();
     //test
     //http://127.0.0.1:6800/modelsearch/?query=bla
