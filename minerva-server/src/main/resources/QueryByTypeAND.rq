@@ -13,7 +13,7 @@ PREFIX causally_upstream_of: <http://purl.obolibrary.org/obo/RO_0002411>
 PREFIX provides_direct_input_for: <http://purl.obolibrary.org/obo/RO_0002413>
 PREFIX directly_positively_regulates: <http://purl.obolibrary.org/obo/RO_0002629>
 
-SELECT  ?cam ?id ?date ?title ?state <gp_return_list> (GROUP_CONCAT(?contributor;separator=";") AS ?contributors)   
+SELECT  ?cam ?id ?date ?title ?state <ind_return_list> (GROUP_CONCAT(?contributor;separator=";") AS ?contributors)   
 WHERE {
   GRAPH ?cam {  
         ?cam <http://purl.org/dc/elements/1.1/title> ?title ;
@@ -22,13 +22,13 @@ WHERE {
            	lego:modelstate ?state . 
 	  BIND(IF(bound(?id), ?id, concat("gomodel:", substr(str(?cam), 31))) as ?id) .    
      #AND
-      <gp_and_constraints> 
-      #?gp_ind1 rdf:type <http://identifiers.org/mgi/MGI:87986> . 
-      #?gp_ind2 rdf:type <http://identifiers.org/mgi/MGI:1328355> . 
-      #?gp_ind3 rdf:type <http://identifiers.org/wormbase/WBGene00002246>
+      <types> 
+      #e.g.
+      #?ind1 rdf:type <http://identifiers.org/mgi/MGI:87986> . 
+      #?ind2 rdf:type <http://purl.obolibrary.org/obo/GO_0030968>
     }
   } 
-  GROUP BY ?id ?date ?title ?cam ?state <gp_return_list> 
+  GROUP BY ?id ?date ?title ?cam ?state <ind_return_list> 
   ORDER BY desc(?date)
 limit 10
  

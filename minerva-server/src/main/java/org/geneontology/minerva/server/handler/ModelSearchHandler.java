@@ -30,6 +30,7 @@ import org.openrdf.repository.RepositoryException;
 
 /**
  * Respond to queries for models in the running blazegraph instance backing minerva
+ * Uses Jersey + JSONP
  *
  */
 @Path("/search")
@@ -74,31 +75,41 @@ public class ModelSearchHandler {
 	
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public ModelSearchResult searchGet(@QueryParam("gene_product_class_uri") Set<String> gene_product_class_uris) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
-    	if(gene_product_class_uris!=null) {
-    		return searchByGenes(gene_product_class_uris);
+    public ModelSearchResult searchGet(
+    		@QueryParam("gene_product_class_uri") Set<String> gene_product_class_uris, 
+    		@QueryParam("goterm") Set<String> goterms
+    		) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
+    	if(gene_product_class_uris!=null||goterms!=null) {
+    		return search(gene_product_class_uris, goterms);
     	}else {
     		return getAll();
     	}
     }
     	 
   //examples ?gene_product_class_uri=http://identifiers.org/mgi/MGI:1328355&gene_product_class_uri=http://identifiers.org/mgi/MGI:87986  
-    public ModelSearchResult searchByGenes(Set<String> gene_product_class_uris) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
+    public ModelSearchResult search(Set<String> gene_product_class_uris, Set<String> goterms) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
+    	Set<String> type_uris = new HashSet<String>();
+    	if(gene_product_class_uris!=null) {
+    		type_uris.addAll(gene_product_class_uris);
+    	}
+    	if(goterms!=null) {
+    		type_uris.addAll(goterms);
+    	}
     	ModelSearchResult r = new ModelSearchResult();
     	Map<String, ModelMeta> id_model = new HashMap<String, ModelMeta>();
-    	String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/QueryByGeneUriAND.rq"), StandardCharsets.UTF_8);
-    	Map<String, String> gp_return = new HashMap<String, String>();
-    	String gp_return_list = ""; //<gp_return_list>
-    	String gp_and_constraints = ""; //<gp_and_constraints>
-    	int gp_n = 0;
-    	for(String gp_uri : gene_product_class_uris) {
-    		gp_n++;
-    		gp_return.put("?gp"+gp_n, gp_uri);
-    		gp_return_list = gp_return_list+" ?gp"+gp_n;
-    		gp_and_constraints = gp_and_constraints+"?gp"+gp_n+" rdf:type <"+gp_uri+"> . \n";
+    	String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/QueryByTypeAND.rq"), StandardCharsets.UTF_8);
+    	Map<String, String> ind_return = new HashMap<String, String>();
+    	String ind_return_list = ""; //<ind_return_list>
+    	String types = ""; //<types>
+    	int n = 0;
+    	for(String type_uri : type_uris) {
+    		n++;
+    		ind_return.put("?ind"+n, type_uri);
+    		ind_return_list = ind_return_list+" ?ind"+n;
+    		types = types+"?ind"+n+" rdf:type <"+type_uri+"> . \n";
     	}
-    	sparql = sparql.replaceAll("<gp_return_list>", gp_return_list);
-    	sparql = sparql.replaceAll("<gp_and_constraints>", gp_and_constraints);
+    	sparql = sparql.replaceAll("<ind_return_list>", ind_return_list);
+    	sparql = sparql.replaceAll("<types>", types);
     	TupleQueryResult result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 10);
     	int n_models = 0;
     	while(result.hasNext()) {
@@ -119,16 +130,15 @@ public class ModelSearchHandler {
     		if(mm==null) {
     			mm = new ModelMeta(id, date, title, state, contributors);
     		}
-    		//matching 
-    		
-    		for(String gp : gp_return.keySet()) {
-    			String gp_ind = bs.getBinding(gp.replace("?", "")).getValue().stringValue();
-    			Set<String> matching_inds = mm.query_match.get(gp_return.get(gp));
+    		//matching     		
+    		for(String ind : ind_return.keySet()) {
+    			String ind_class_match = bs.getBinding(ind.replace("?", "")).getValue().stringValue();
+    			Set<String> matching_inds = mm.query_match.get(ind_return.get(ind));
     			if(matching_inds==null) {
     				matching_inds = new HashSet<String>();
     			}
-    			matching_inds.add(gp_ind);
-    			mm.query_match.put(gp_return.get(gp), matching_inds);
+    			matching_inds.add(ind_class_match);
+    			mm.query_match.put(ind_return.get(ind), matching_inds);
     		}
     		id_model.put(id, mm);
     		n_models++;
