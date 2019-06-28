@@ -2,7 +2,8 @@ package org.geneontology.minerva.server;
 
 import org.apache.log4j.Logger;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.nio.SelectChannelConnector;
+import org.eclipse.jetty.server.ServerConnector;
+//old jetty import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.geneontology.minerva.ModelReaderHelper;
@@ -385,7 +386,9 @@ public class StartUpTool {
 		// setup jetty server port, buffers and context path
 		Server server = new Server();
 		// create connector with port and custom buffer sizes
-		SelectChannelConnector connector = new SelectChannelConnector();
+		//old jetty
+		//SelectChannelConnector connector = new SelectChannelConnector();
+		ServerConnector connector = new ServerConnector();
 		connector.setPort(conf.port);
 		connector.setRequestHeaderSize(conf.requestHeaderSize);
 		connector.setRequestBufferSize(conf.requestBufferSize);

@@ -78,19 +78,21 @@ public class ModelSearchHandler {
 	public ModelSearchResult searchGet(
 			@QueryParam("gene_product_class_uri") Set<String> gene_product_class_uris, 
 			@QueryParam("goterm") Set<String> goterms,
-			@QueryParam("pmid") Set<String> pmids
+			@QueryParam("pmid") Set<String> pmids,
+			@QueryParam("title") String title
 			) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
 		if(gene_product_class_uris!=null
 				||goterms!=null
-				||pmids!=null) {
-			return search(gene_product_class_uris, goterms, pmids);
+				||pmids!=null
+				||title!=null) {
+			return search(gene_product_class_uris, goterms, pmids, title);
 		}else {
 			return getAll();
 		}
 	}
 
 	//examples ?gene_product_class_uri=http://identifiers.org/mgi/MGI:1328355&gene_product_class_uri=http://identifiers.org/mgi/MGI:87986  
-	public ModelSearchResult search(Set<String> gene_product_class_uris, Set<String> goterms, Set<String>pmids) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
+	public ModelSearchResult search(Set<String> gene_product_class_uris, Set<String> goterms, Set<String>pmids, String title_search) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
 		Set<String> type_uris = new HashSet<String>();
 		if(gene_product_class_uris!=null) {
 			type_uris.addAll(gene_product_class_uris);
@@ -120,10 +122,15 @@ public class ModelSearchHandler {
 				pmid_constraints = pmid_constraints+"?ind"+n+" <http://purl.org/dc/elements/1.1/source> ?pmid FILTER (?pmid=\""+pmid+"\"^^xsd:string) .\n";  		
 			}
 		}
+		String title_search_constraint = "";
+		if(title_search!=null) {
+			title_search_constraint = "?title <http://www.bigdata.com/rdf/search#search> \""+title_search+"\" .\n";
+		}
 		sparql = sparql.replaceAll("<ind_return_list>", ind_return_list);
 		sparql = sparql.replaceAll("<types>", types);
 		sparql = sparql.replaceAll("<pmid_constraints>", pmid_constraints);
-
+		sparql = sparql.replaceAll("<title_constraint>", title_search_constraint);
+		
 		TupleQueryResult result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 10);
 		while(result.hasNext()) {
 			BindingSet bs = result.next();
