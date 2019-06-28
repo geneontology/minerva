@@ -36,24 +36,24 @@ import org.openrdf.repository.RepositoryException;
 @Path("/search")
 public class ModelSearchHandler {
 
-    private final BlazegraphMolecularModelManager m3;
-    private final int timeout;
+	private final BlazegraphMolecularModelManager m3;
+	private final int timeout;
 	/**
 	 * 
 	 */
 	public ModelSearchHandler(BlazegraphMolecularModelManager m3, int timeout) {
-        this.m3 = m3;
-        this.timeout = timeout;
+		this.m3 = m3;
+		this.timeout = timeout;
 	}
-	
+
 	public class ModelSearchResult {
-	    private Integer n;
-	    private Set<ModelMeta> models;
-	    private void makeModelsDistinct() {
-	    	
-	    }
+		private Integer n;
+		private Set<ModelMeta> models;
+		private void makeModelsDistinct() {
+
+		}
 	}
-	
+
 	public class ModelMeta{
 		private String id;
 		private String date;
@@ -61,7 +61,7 @@ public class ModelSearchHandler {
 		private String state;
 		private Set<String> contributors;
 		private HashMap<String, Set<String>> query_match;
-		
+
 		public ModelMeta(String id, String date, String title, String state, Set<String> contributors) {
 			this.id = id;
 			this.date = date;
@@ -71,127 +71,139 @@ public class ModelSearchHandler {
 			query_match = new HashMap<String, Set<String>>();
 		}
 	}
-	
-	
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    public ModelSearchResult searchGet(
-    		@QueryParam("gene_product_class_uri") Set<String> gene_product_class_uris, 
-    		@QueryParam("goterm") Set<String> goterms
-    		) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
-    	if(gene_product_class_uris!=null||goterms!=null) {
-    		return search(gene_product_class_uris, goterms);
-    	}else {
-    		return getAll();
-    	}
-    }
-    	 
-  //examples ?gene_product_class_uri=http://identifiers.org/mgi/MGI:1328355&gene_product_class_uri=http://identifiers.org/mgi/MGI:87986  
-    public ModelSearchResult search(Set<String> gene_product_class_uris, Set<String> goterms) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
-    	Set<String> type_uris = new HashSet<String>();
-    	if(gene_product_class_uris!=null) {
-    		type_uris.addAll(gene_product_class_uris);
-    	}
-    	if(goterms!=null) {
-    		type_uris.addAll(goterms);
-    	}
-    	ModelSearchResult r = new ModelSearchResult();
-    	Map<String, ModelMeta> id_model = new HashMap<String, ModelMeta>();
-    	String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/QueryByTypeAND.rq"), StandardCharsets.UTF_8);
-    	Map<String, String> ind_return = new HashMap<String, String>();
-    	String ind_return_list = ""; //<ind_return_list>
-    	String types = ""; //<types>
-    	int n = 0;
-    	for(String type_uri : type_uris) {
-    		n++;
-    		ind_return.put("?ind"+n, type_uri);
-    		ind_return_list = ind_return_list+" ?ind"+n;
-    		types = types+"?ind"+n+" rdf:type <"+type_uri+"> . \n";
-    	}
-    	sparql = sparql.replaceAll("<ind_return_list>", ind_return_list);
-    	sparql = sparql.replaceAll("<types>", types);
-    	TupleQueryResult result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 10);
-    	int n_models = 0;
-    	while(result.hasNext()) {
-    		BindingSet bs = result.next();
-    		//model meta
-    		String id = bs.getBinding("id").getValue().stringValue();
-    		String date = bs.getBinding("date").getValue().stringValue();
-    		String title = bs.getBinding("title").getValue().stringValue();
-    		String state = bs.getBinding("state").getValue().stringValue();
-    		String contribs = bs.getBinding("contributors").getValue().stringValue();
-    		Set<String> contributors = new HashSet<String>();
-    		if(contributors!=null) {
-    			for(String c : contribs.split(";")) {
-    				contributors.add(c);
-    			}
-    		}
-    		ModelMeta mm = id_model.get(id);
-    		if(mm==null) {
-    			mm = new ModelMeta(id, date, title, state, contributors);
-    		}
-    		//matching     		
-    		for(String ind : ind_return.keySet()) {
-    			String ind_class_match = bs.getBinding(ind.replace("?", "")).getValue().stringValue();
-    			Set<String> matching_inds = mm.query_match.get(ind_return.get(ind));
-    			if(matching_inds==null) {
-    				matching_inds = new HashSet<String>();
-    			}
-    			matching_inds.add(ind_class_match);
-    			mm.query_match.put(ind_return.get(ind), matching_inds);
-    		}
-    		id_model.put(id, mm);
-    		n_models++;
-    	}
-    	r.n = id_model.size();
-    	r.models = new HashSet<ModelMeta>(id_model.values());
-    	result.close();
-    //test
-    //http://127.0.0.1:6800/modelsearch/?query=bla
-    	return r;
-    }
 
-    public ModelSearchResult getAll() throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
-    	ModelSearchResult r = new ModelSearchResult();
-    	Set<ModelMeta> models = new HashSet<ModelMeta>();
-    	String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/GetAllModels.rq"), StandardCharsets.UTF_8);
-    	TupleQueryResult result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 100);
-    	int n_models = 0;
-    	while(result.hasNext()) {
-    		BindingSet bs = result.next();
-    		//model meta
-    		String id = bs.getBinding("id").getValue().stringValue();
-    		String date = bs.getBinding("date").getValue().stringValue();
-    		String title = bs.getBinding("title").getValue().stringValue();
-    		String state = bs.getBinding("state").getValue().stringValue();
-    		String contribs = bs.getBinding("contributors").getValue().stringValue();
-    		Set<String> contributors = new HashSet<String>();
-    		if(contributors!=null) {
-    			for(String c : contribs.split(";")) {
-    				contributors.add(c);
-    			}
-    		}
-    		ModelMeta mm = new ModelMeta(id, date, title, state, contributors);
-    		models.add(mm);
-    		n_models++;
-    	}
-    	System.out.println("n models "+n_models);
-    	r.n = n_models;
-    	r.models = models;
-    	result.close();
-    //test
-    //http://127.0.0.1:6800/modelsearch/?query=bla
-    	return r;
-    }
-    
-    
-    
-    @POST
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    public String searchPostForm(@FormParam("query") String queryText) {
-       // return m3.executeSPARQLQuery(queryText, timeout);
-    	return "post pong";
-    }
+
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public ModelSearchResult searchGet(
+			@QueryParam("gene_product_class_uri") Set<String> gene_product_class_uris, 
+			@QueryParam("goterm") Set<String> goterms,
+			@QueryParam("pmid") Set<String> pmids
+			) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
+		if(gene_product_class_uris!=null
+				||goterms!=null
+				||pmids!=null) {
+			return search(gene_product_class_uris, goterms, pmids);
+		}else {
+			return getAll();
+		}
+	}
+
+	//examples ?gene_product_class_uri=http://identifiers.org/mgi/MGI:1328355&gene_product_class_uri=http://identifiers.org/mgi/MGI:87986  
+	public ModelSearchResult search(Set<String> gene_product_class_uris, Set<String> goterms, Set<String>pmids) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
+		Set<String> type_uris = new HashSet<String>();
+		if(gene_product_class_uris!=null) {
+			type_uris.addAll(gene_product_class_uris);
+		}
+		if(goterms!=null) {
+			type_uris.addAll(goterms);
+		}
+		ModelSearchResult r = new ModelSearchResult();
+		Map<String, ModelMeta> id_model = new HashMap<String, ModelMeta>();
+		String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/QueryTemplateAND.rq"), StandardCharsets.UTF_8);
+		Map<String, String> ind_return = new HashMap<String, String>();
+		String ind_return_list = ""; //<ind_return_list>
+		String types = ""; //<types>
+		int n = 0;
+		for(String type_uri : type_uris) {
+			n++;
+			ind_return.put("?ind"+n, type_uri);
+			ind_return_list = ind_return_list+" ?ind"+n;
+			types = types+"?ind"+n+" rdf:type <"+type_uri+"> . \n";
+		}
+		String pmid_constraints = ""; //<pmid_constraints>
+		if(pmids!=null) {
+			for(String pmid : pmids) {
+				n++;
+				ind_return.put("?ind"+n, pmid);
+				ind_return_list = ind_return_list+" ?ind"+n;
+				pmid_constraints = pmid_constraints+"?ind"+n+" <http://purl.org/dc/elements/1.1/source> ?pmid FILTER (?pmid=\""+pmid+"\"^^xsd:string) .\n";  		
+			}
+		}
+		sparql = sparql.replaceAll("<ind_return_list>", ind_return_list);
+		sparql = sparql.replaceAll("<types>", types);
+		sparql = sparql.replaceAll("<pmid_constraints>", pmid_constraints);
+
+		TupleQueryResult result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 10);
+		while(result.hasNext()) {
+			BindingSet bs = result.next();
+			//model meta
+			String id = bs.getBinding("id").getValue().stringValue();
+			String date = bs.getBinding("date").getValue().stringValue();
+			String title = bs.getBinding("title").getValue().stringValue();
+			String state = bs.getBinding("state").getValue().stringValue();
+			String contribs = bs.getBinding("contributors").getValue().stringValue();
+			Set<String> contributors = new HashSet<String>();
+			if(contributors!=null) {
+				for(String c : contribs.split(";")) {
+					contributors.add(c);
+				}
+			}
+			ModelMeta mm = id_model.get(id);
+			if(mm==null) {
+				mm = new ModelMeta(id, date, title, state, contributors);
+			}
+			//matching     		
+			for(String ind : ind_return.keySet()) {
+				String ind_class_match = bs.getBinding(ind.replace("?", "")).getValue().stringValue();
+				Set<String> matching_inds = mm.query_match.get(ind_return.get(ind));
+				if(matching_inds==null) {
+					matching_inds = new HashSet<String>();
+				}
+				matching_inds.add(ind_class_match);
+				mm.query_match.put(ind_return.get(ind), matching_inds);
+			}
+			id_model.put(id, mm);
+		}
+		r.n = id_model.size();
+		r.models = new HashSet<ModelMeta>(id_model.values());
+		result.close();
+		//test
+		//http://127.0.0.1:6800/modelsearch/?query=bla
+		return r;
+	}
+
+	public ModelSearchResult getAll() throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
+		ModelSearchResult r = new ModelSearchResult();
+		Set<ModelMeta> models = new HashSet<ModelMeta>();
+		String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/GetAllModels.rq"), StandardCharsets.UTF_8);
+		TupleQueryResult result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 100);
+		int n_models = 0;
+		while(result.hasNext()) {
+			BindingSet bs = result.next();
+			//model meta
+			String id = bs.getBinding("id").getValue().stringValue();
+			String date = bs.getBinding("date").getValue().stringValue();
+			String title = bs.getBinding("title").getValue().stringValue();
+			String state = bs.getBinding("state").getValue().stringValue();
+			String contribs = bs.getBinding("contributors").getValue().stringValue();
+			Set<String> contributors = new HashSet<String>();
+			if(contributors!=null) {
+				for(String c : contribs.split(";")) {
+					contributors.add(c);
+				}
+			}
+			ModelMeta mm = new ModelMeta(id, date, title, state, contributors);
+			models.add(mm);
+			n_models++;
+		}
+		System.out.println("n models "+n_models);
+		r.n = n_models;
+		r.models = models;
+		result.close();
+		//test
+		//http://127.0.0.1:6800/modelsearch/?query=bla
+		return r;
+	}
+
+
+
+	@POST
+	@Produces(MediaType.APPLICATION_JSON)
+	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+	public String searchPostForm(@FormParam("query") String queryText) {
+		// return m3.executeSPARQLQuery(queryText, timeout);
+		return "post pong";
+	}
 
 }
