@@ -189,47 +189,48 @@
 				<groupId>org.eclipse.jetty</groupId>
 				<artifactId>jetty-server</artifactId>
 				<!--  <version>7.5.4.v20111024</version>-->
-				<version>9.4.19.v20190610</version>
+				<!--  needs to be exactly 9.2.3.v20140905 - older or newer version of jetty will not work with text search api-->
+				<version>9.2.3.v20140905</version>
 			</dependency>
 			<dependency>
 				<groupId>org.eclipse.jetty</groupId>
 				<artifactId>jetty-servlet</artifactId>
-				<version>9.4.19.v20190610</version>
+				<version>9.2.3.v20140905</version>
 			</dependency>
 			<dependency>
   				<groupId>org.eclipse.jetty</groupId>
   				<artifactId>jetty-util</artifactId>
-  				<version>9.4.19.v20190610</version>
+  				<version>9.2.3.v20140905</version>
 			</dependency>
 			<dependency>
   				<groupId>org.eclipse.jetty</groupId>
   				<artifactId>jetty-io</artifactId>
-  				<version>9.4.19.v20190610</version>
+  				<version>9.2.3.v20140905</version>
 			</dependency>
 			<dependency>
   				<groupId>org.eclipse.jetty</groupId>
   				<artifactId>jetty-jmx</artifactId>
-  				<version>9.4.19.v20190610</version>
+  				<version>9.2.3.v20140905</version>
 			</dependency>
 			<dependency>
   				<groupId>org.eclipse.jetty</groupId>
   				<artifactId>jetty-jndi</artifactId>
-  				<version>9.4.19.v20190610</version>
+  				<version>9.2.3.v20140905</version>
 			</dependency>
 			<dependency>
   				<groupId>org.eclipse.jetty</groupId>
   				<artifactId>jetty-rewrite</artifactId>
-  				<version>9.4.19.v20190610</version>
+  				<version>9.2.3.v20140905</version>
 			</dependency>
 			<dependency>
   				<groupId>org.eclipse.jetty</groupId>
   				<artifactId>jetty-webapp</artifactId>
-  				<version>9.4.19.v20190610</version>
+  				<version>9.2.3.v20140905</version>
 			</dependency>
 			<dependency>
   				<groupId>org.eclipse.jetty</groupId>
   				<artifactId>jetty-xml</artifactId>
-  				<version>9.4.19.v20190610</version>
+  				<version>9.2.3.v20140905</version>
 			</dependency>
 			<dependency>
 				<groupId>org.glassfish.jersey.containers</groupId>
@@ -252,10 +253,11 @@
 				<version>3.2.1-fixit</version> <!-- This version does not contain a zero day exploit class InvokeTransformer -->
 			</dependency>
 			<dependency>
-				<groupId>com.blazegraph</groupId>
-				<artifactId>bigdata-core</artifactId>
-				<version>2.1.4</version>
+    			<groupId>com.blazegraph</groupId>
+    			<artifactId>bigdata-core</artifactId>
+    			<version>2.1.4</version>
 			</dependency>
+			<!-- 2.1.5-wmf.6 -->
 			<!-- Blazegraph 2.1.4 requires this exact version of Sesame (2.7.12) -->
 			<dependency>
 				<groupId>org.openrdf.sesame</groupId>

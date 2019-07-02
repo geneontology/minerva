@@ -389,10 +389,7 @@ public class StartUpTool {
 		Server server = new Server();
 		// create connector with port and custom buffer sizes
 		//old jetty
-		//SelectChannelConnector connector = new SelectChannelConnector();
-		//new jetty
-
-		
+		//SelectChannelConnector connector = new SelectChannelConnector();	
 		//old jetty - they must be configured somewhere else in new jetty
 		//connector.setRequestHeaderSize(conf.requestHeaderSize);
 		//connector.setRequestBufferSize(conf.requestBufferSize);

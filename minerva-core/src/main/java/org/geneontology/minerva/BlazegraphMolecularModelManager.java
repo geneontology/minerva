@@ -135,6 +135,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			properties.setProperty(Options.FILE, pathToJournal);
 			BigdataSail sail = new BigdataSail(properties);
 			BigdataSailRepository repository = new BigdataSailRepository(sail);
+			
 			repository.initialize();
 			return repository;
 		} catch (RepositoryException e) {

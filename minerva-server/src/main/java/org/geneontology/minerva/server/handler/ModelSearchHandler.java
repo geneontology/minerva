@@ -91,7 +91,7 @@ public class ModelSearchHandler {
 		}
 	}
 
-	//examples ?gene_product_class_uri=http://identifiers.org/mgi/MGI:1328355&gene_product_class_uri=http://identifiers.org/mgi/MGI:87986  
+	//examples ?gene_product_class_uri=http://identifiers.org/mgi/MGI:1328355&gene_product_class_uri=http://identifiers.org/mgi/MGI:87986&title=mouse
 	public ModelSearchResult search(Set<String> gene_product_class_uris, Set<String> goterms, Set<String>pmids, String title_search) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
 		Set<String> type_uris = new HashSet<String>();
 		if(gene_product_class_uris!=null) {
