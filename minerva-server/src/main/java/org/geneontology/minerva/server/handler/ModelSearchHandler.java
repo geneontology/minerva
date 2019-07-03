@@ -79,7 +79,7 @@ public class ModelSearchHandler {
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public ModelSearchResult searchGet(
-			@QueryParam("gene_product_class_uri") Set<String> gene_product_class_uris, 
+			@QueryParam("gp") Set<String> gene_product_class_uris, 
 			@QueryParam("goterm") Set<String> goterms,
 			@QueryParam("pmid") Set<String> pmids,
 			@QueryParam("title") String title,
