@@ -27,6 +27,7 @@ WHERE {
       <state_constraint>
       <contributor_constraint>
       <group_constraint> 
+      <date_constraint>
       <pmid_constraints>
       <title_constraint>
       #e.g.

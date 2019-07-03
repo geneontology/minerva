@@ -5,6 +5,7 @@ package org.geneontology.minerva.server.handler;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -84,7 +85,8 @@ public class ModelSearchHandler {
 			@QueryParam("title") String title,
 			@QueryParam("state") Set<String> state,
 			@QueryParam("contributor") Set<String> contributor,
-			@QueryParam("group") Set<String> group
+			@QueryParam("group") Set<String> group,
+			@QueryParam("date") String date
 			) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
 		if(gene_product_class_uris!=null
 				||goterms!=null
@@ -92,8 +94,9 @@ public class ModelSearchHandler {
 				||title!=null
 				||state!=null
 				||contributor!=null
-				||group!=null) {
-			return search(gene_product_class_uris, goterms, pmids, title, state, contributor, group);
+				||group!=null
+				||date!=null) {
+			return search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date);
 		}else {
 			return getAll();
 		}
@@ -109,7 +112,7 @@ public class ModelSearchHandler {
 	//&state=development&state=review {development, production, closed, review, delete} or operator
 	public ModelSearchResult search(
 			Set<String> gene_product_class_uris, Set<String> goterms, Set<String>pmids, 
-			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
+			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, String date_search) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
 		Set<String> type_uris = new HashSet<String>();
 		if(gene_product_class_uris!=null) {
 			type_uris.addAll(gene_product_class_uris);
@@ -183,6 +186,11 @@ public class ModelSearchHandler {
 			}
 			contributor_search_constraint = "FILTER (?group IN ("+allowed_group+")) . \n";
 		}
+		String date_constraint = "";
+		if(date_search!=null&&date_search.length()==10) {
+			//e.g. 2019-06-26
+			date_constraint = "FILTER (?date > '"+date_search+"') \n";
+		}
 		sparql = sparql.replaceAll("<ind_return_list>", ind_return_list);
 		sparql = sparql.replaceAll("<types>", types);
 		sparql = sparql.replaceAll("<pmid_constraints>", pmid_constraints);
@@ -190,6 +198,7 @@ public class ModelSearchHandler {
 		sparql = sparql.replaceAll("<state_constraint>", state_search_constraint);
 		sparql = sparql.replaceAll("<contributor_constraint>", contributor_search_constraint);
 		sparql = sparql.replaceAll("<group_constraint>", group_search_constraint);
+		sparql = sparql.replaceAll("<date_constraint>", date_constraint);
 		
 		TupleQueryResult result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 10);
 		while(result.hasNext()) {
