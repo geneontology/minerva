@@ -79,20 +79,29 @@ public class ModelSearchHandler {
 			@QueryParam("gene_product_class_uri") Set<String> gene_product_class_uris, 
 			@QueryParam("goterm") Set<String> goterms,
 			@QueryParam("pmid") Set<String> pmids,
-			@QueryParam("title") String title
+			@QueryParam("title") String title,
+			@QueryParam("state") Set<String> state
 			) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
 		if(gene_product_class_uris!=null
 				||goterms!=null
 				||pmids!=null
-				||title!=null) {
-			return search(gene_product_class_uris, goterms, pmids, title);
+				||title!=null
+				||state!=null) {
+			return search(gene_product_class_uris, goterms, pmids, title, state);
 		}else {
 			return getAll();
 		}
 	}
 
-	//examples ?gene_product_class_uri=http://identifiers.org/mgi/MGI:1328355&gene_product_class_uri=http://identifiers.org/mgi/MGI:87986&title=mouse
-	public ModelSearchResult search(Set<String> gene_product_class_uris, Set<String> goterms, Set<String>pmids, String title_search) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
+	//examples 
+	//http://127.0.0.1:6800/search/?
+	//?gene_product_class_uri=http://identifiers.org/mgi/MGI:1328355
+	//&gene_product_class_uri=http://identifiers.org/mgi/MGI:87986
+	//&goterm=http://purl.obolibrary.org/obo/GO_0030968
+	//&title=mouse
+	//&pmid=PMID:19911006
+	//&state=development&state=review {development, production, closed, review, delete} or operator
+	public ModelSearchResult search(Set<String> gene_product_class_uris, Set<String> goterms, Set<String>pmids, String title_search,Set<String> state_search) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
 		Set<String> type_uris = new HashSet<String>();
 		if(gene_product_class_uris!=null) {
 			type_uris.addAll(gene_product_class_uris);
@@ -126,10 +135,25 @@ public class ModelSearchHandler {
 		if(title_search!=null) {
 			title_search_constraint = "?title <http://www.bigdata.com/rdf/search#search> \""+title_search+"\" .\n";
 		}
+		String state_search_constraint = "";
+		if(state_search!=null&&state_search.size()>0) {
+			String allowed_states = "";
+			int c = 0;
+			for(String s : state_search) {
+				c++;
+				allowed_states+="\""+s+"\"";
+				if(c<state_search.size()) {
+					allowed_states+=",";
+				}
+			}
+			// FILTER (?state IN ("production", , "development", "review", "closed", "delete" ))
+			state_search_constraint = "FILTER (?state IN ("+allowed_states+")) . \n";
+		}
 		sparql = sparql.replaceAll("<ind_return_list>", ind_return_list);
 		sparql = sparql.replaceAll("<types>", types);
 		sparql = sparql.replaceAll("<pmid_constraints>", pmid_constraints);
 		sparql = sparql.replaceAll("<title_constraint>", title_search_constraint);
+		sparql = sparql.replaceAll("<state_constraint>", state_search_constraint);
 		
 		TupleQueryResult result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 10);
 		while(result.hasNext()) {
