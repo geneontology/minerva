@@ -126,7 +126,7 @@ public class ModelSearchHandler {
 		}
 		ModelSearchResult r = new ModelSearchResult();
 		Map<String, ModelMeta> id_model = new HashMap<String, ModelMeta>();
-		String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/QueryTemplateAND.rq"), StandardCharsets.UTF_8);
+		String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/ModelSearchQueryTemplate.rq"), StandardCharsets.UTF_8);
 		Map<String, String> ind_return = new HashMap<String, String>();
 		String ind_return_list = ""; //<ind_return_list>
 		String types = ""; //<types>
