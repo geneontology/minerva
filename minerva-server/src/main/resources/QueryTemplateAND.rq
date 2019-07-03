@@ -37,6 +37,7 @@ WHERE {
     }
   } 
   GROUP BY ?id ?date ?title ?cam ?state <ind_return_list> 
-  ORDER BY desc(?date)
-limit 10
+  ORDER BY desc(?date) ?id 
+<limit_constraint>
+<offset_constraint>
  

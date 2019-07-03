@@ -86,7 +86,9 @@ public class ModelSearchHandler {
 			@QueryParam("state") Set<String> state,
 			@QueryParam("contributor") Set<String> contributor,
 			@QueryParam("group") Set<String> group,
-			@QueryParam("date") String date
+			@QueryParam("date") String date,
+			@QueryParam("offset") int offset,
+			@QueryParam("limit") int limit
 			) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
 		if(gene_product_class_uris!=null
 				||goterms!=null
@@ -96,9 +98,9 @@ public class ModelSearchHandler {
 				||contributor!=null
 				||group!=null
 				||date!=null) {
-			return search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date);
+			return search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit);
 		}else {
-			return getAll();
+			return getAll(offset, limit);
 		}
 	}
 
@@ -112,7 +114,9 @@ public class ModelSearchHandler {
 	//&state=development&state=review {development, production, closed, review, delete} or operator
 	public ModelSearchResult search(
 			Set<String> gene_product_class_uris, Set<String> goterms, Set<String>pmids, 
-			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, String date_search) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
+			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, String date_search,
+			int offset, int limit) 
+					throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
 		Set<String> type_uris = new HashSet<String>();
 		if(gene_product_class_uris!=null) {
 			type_uris.addAll(gene_product_class_uris);
@@ -191,6 +195,18 @@ public class ModelSearchHandler {
 			//e.g. 2019-06-26
 			date_constraint = "FILTER (?date > '"+date_search+"') \n";
 		}
+		String offset_constraint = "";
+		if(offset!=0) {
+			offset_constraint = "OFFSET "+offset+"\n";
+		}		
+		String limit_constraint = "";
+		if(limit!=0) {
+			limit_constraint = "LIMIT "+limit+"\n";
+		}
+		if(offset==0&&limit==0) {
+			limit_constraint = "LIMIT 1000\n";
+		}
+		
 		sparql = sparql.replaceAll("<ind_return_list>", ind_return_list);
 		sparql = sparql.replaceAll("<types>", types);
 		sparql = sparql.replaceAll("<pmid_constraints>", pmid_constraints);
@@ -199,6 +215,8 @@ public class ModelSearchHandler {
 		sparql = sparql.replaceAll("<contributor_constraint>", contributor_search_constraint);
 		sparql = sparql.replaceAll("<group_constraint>", group_search_constraint);
 		sparql = sparql.replaceAll("<date_constraint>", date_constraint);
+		sparql = sparql.replaceAll("<limit_constraint>", limit_constraint);
+		sparql = sparql.replaceAll("<offset_constraint>", offset_constraint);
 		
 		TupleQueryResult result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 10);
 		while(result.hasNext()) {
@@ -246,7 +264,7 @@ public class ModelSearchHandler {
 		return r;
 	}
 
-	public ModelSearchResult getAll() throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
+	public ModelSearchResult getAll(int offset, int limit) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
 		ModelSearchResult r = new ModelSearchResult();
 		Set<ModelMeta> models = new HashSet<ModelMeta>();
 		String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/GetAllModels.rq"), StandardCharsets.UTF_8);
