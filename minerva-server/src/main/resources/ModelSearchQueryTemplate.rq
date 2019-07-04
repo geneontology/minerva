@@ -19,8 +19,8 @@ WHERE {
         ?cam <http://purl.org/dc/elements/1.1/title> ?title ;
            <http://purl.org/dc/elements/1.1/date> ?date ;
            <http://purl.org/dc/elements/1.1/contributor> ?contributor ;   
-           <http://purl.org/pav/providedBy> ?group ;  
-           	lego:modelstate ?state . 
+        optional{?cam <http://purl.org/pav/providedBy> ?group } .   
+        optional{?cam lego:modelstate ?state } . 
 	  BIND(IF(bound(?id), ?id, concat("gomodel:", substr(str(?cam), 31))) as ?id) .    
       <types> 
       <state_constraint>
