@@ -86,7 +86,7 @@ public class StartUpTool {
 		
 		public String prefixesFile = null;
 
-		public int sparqlEndpointTimeout = 10;
+		public int sparqlEndpointTimeout = 100;
 	}
 	
 	public static void main(String[] args) throws Exception {

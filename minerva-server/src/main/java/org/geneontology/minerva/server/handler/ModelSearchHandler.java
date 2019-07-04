@@ -50,9 +50,9 @@ public class ModelSearchHandler {
 	public class ModelSearchResult {
 		private Integer n;
 		private Set<ModelMeta> models;
-		private void makeModelsDistinct() {
-
-		}
+		private String message;
+		private String error;
+		private String sparql;
 	}
 
 	public class ModelMeta{
@@ -89,19 +89,18 @@ public class ModelSearchHandler {
 			@QueryParam("date") String date,
 			@QueryParam("offset") int offset,
 			@QueryParam("limit") int limit
-			) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
-		if(gene_product_class_uris!=null
-				||goterms!=null
-				||pmids!=null
-				||title!=null
-				||state!=null
-				||contributor!=null
-				||group!=null
-				||date!=null) {
-			return search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit);
-		}else {
-			return getAll(offset, limit);
-		}
+			){
+		//		if(gene_product_class_uris!=null
+		//				||goterms!=null
+		//				||pmids!=null
+		//				||title!=null
+		//				||state!=null
+		//				||contributor!=null
+		//				||group!=null
+		//				||date!=null) {
+		ModelSearchResult result = new ModelSearchResult();
+			result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit);
+			return result;
 	}
 
 	//examples 
@@ -115,8 +114,7 @@ public class ModelSearchHandler {
 	public ModelSearchResult search(
 			Set<String> gene_product_class_uris, Set<String> goterms, Set<String>pmids, 
 			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, String date_search,
-			int offset, int limit) 
-					throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
+			int offset, int limit) {
 		Set<String> type_uris = new HashSet<String>();
 		if(gene_product_class_uris!=null) {
 			type_uris.addAll(gene_product_class_uris);
@@ -126,7 +124,13 @@ public class ModelSearchHandler {
 		}
 		ModelSearchResult r = new ModelSearchResult();
 		Map<String, ModelMeta> id_model = new HashMap<String, ModelMeta>();
-		String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/ModelSearchQueryTemplate.rq"), StandardCharsets.UTF_8);
+		String sparql="";
+		try {
+			sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/ModelSearchQueryTemplate.rq"), StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		Map<String, String> ind_return = new HashMap<String, String>();
 		String ind_return_list = ""; //<ind_return_list>
 		String types = ""; //<types>
@@ -206,7 +210,7 @@ public class ModelSearchHandler {
 		if(offset==0&&limit==0) {
 			limit_constraint = "LIMIT 1000\n";
 		}
-		
+
 		sparql = sparql.replaceAll("<ind_return_list>", ind_return_list);
 		sparql = sparql.replaceAll("<types>", types);
 		sparql = sparql.replaceAll("<pmid_constraints>", pmid_constraints);
@@ -217,48 +221,78 @@ public class ModelSearchHandler {
 		sparql = sparql.replaceAll("<date_constraint>", date_constraint);
 		sparql = sparql.replaceAll("<limit_constraint>", limit_constraint);
 		sparql = sparql.replaceAll("<offset_constraint>", offset_constraint);
-		
-		TupleQueryResult result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 10);
-		while(result.hasNext()) {
-			BindingSet bs = result.next();
-			//model meta
-			String id = bs.getBinding("id").getValue().stringValue();
-			String date = bs.getBinding("date").getValue().stringValue();
-			String title = bs.getBinding("title").getValue().stringValue();
-			String state = bs.getBinding("state").getValue().stringValue();
-			String contribs = bs.getBinding("contributors").getValue().stringValue();
-			String groups_ = bs.getBinding("groups").getValue().stringValue();
-			Set<String> contributors = new HashSet<String>();
-			if(contributors!=null) {
-				for(String c : contribs.split(";")) {
-					contributors.add(c);
+		r.sparql = sparql;
+
+		TupleQueryResult result;
+		try {
+			result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 10);
+		} catch (MalformedQueryException | QueryEvaluationException | RepositoryException e) {
+			if(e instanceof MalformedQueryException) {
+				r.message = "Malformed Query";
+			}else if(e instanceof QueryEvaluationException) {
+				r.message = "Query Evaluation Problem - probably a time out";
+			}else if(e instanceof RepositoryException) {
+				r.message = "Repository Exception";
+			}
+			r.error = e.getMessage();
+			e.printStackTrace();
+			return r;
+		}
+
+		try {
+			while(result.hasNext()) {
+				BindingSet bs = result.next();
+				//model meta
+				String id = bs.getBinding("id").getValue().stringValue();
+				String date = bs.getBinding("date").getValue().stringValue();
+				String title = bs.getBinding("title").getValue().stringValue();
+				String state = bs.getBinding("state").getValue().stringValue();
+				String contribs = bs.getBinding("contributors").getValue().stringValue();
+				String groups_ = bs.getBinding("groups").getValue().stringValue();
+				Set<String> contributors = new HashSet<String>();
+				if(contributors!=null) {
+					for(String c : contribs.split(";")) {
+						contributors.add(c);
+					}
 				}
-			}
-			Set<String> groups = new HashSet<String>();
-			if(groups_!=null) {
-				for(String c : groups_.split(";")) {
-					groups.add(c);
+				Set<String> groups = new HashSet<String>();
+				if(groups_!=null) {
+					for(String c : groups_.split(";")) {
+						groups.add(c);
+					}
 				}
-			}
-			ModelMeta mm = id_model.get(id);
-			if(mm==null) {
-				mm = new ModelMeta(id, date, title, state, contributors, groups);
-			}
-			//matching     		
-			for(String ind : ind_return.keySet()) {
-				String ind_class_match = bs.getBinding(ind.replace("?", "")).getValue().stringValue();
-				Set<String> matching_inds = mm.query_match.get(ind_return.get(ind));
-				if(matching_inds==null) {
-					matching_inds = new HashSet<String>();
+				ModelMeta mm = id_model.get(id);
+				if(mm==null) {
+					mm = new ModelMeta(id, date, title, state, contributors, groups);
 				}
-				matching_inds.add(ind_class_match);
-				mm.query_match.put(ind_return.get(ind), matching_inds);
+				//matching     		
+				for(String ind : ind_return.keySet()) {
+					String ind_class_match = bs.getBinding(ind.replace("?", "")).getValue().stringValue();
+					Set<String> matching_inds = mm.query_match.get(ind_return.get(ind));
+					if(matching_inds==null) {
+						matching_inds = new HashSet<String>();
+					}
+					matching_inds.add(ind_class_match);
+					mm.query_match.put(ind_return.get(ind), matching_inds);
+				}
+				id_model.put(id, mm);
 			}
-			id_model.put(id, mm);
+		} catch (QueryEvaluationException e) {
+			r.message = "Query Evaluation Problem - probably a time out";
+			r.error = e.getMessage();
+			e.printStackTrace();
+			return r;
 		}
 		r.n = id_model.size();
 		r.models = new HashSet<ModelMeta>(id_model.values());
-		result.close();
+		try {
+			result.close();
+		} catch (QueryEvaluationException e) {
+			r.message = "Query Evaluation Problem - can't close result set";
+			r.error = e.getMessage();
+			e.printStackTrace();
+			return r;
+		}
 		//test
 		//http://127.0.0.1:6800/modelsearch/?query=bla
 		return r;
