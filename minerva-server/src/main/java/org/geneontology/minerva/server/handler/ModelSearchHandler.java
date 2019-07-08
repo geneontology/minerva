@@ -22,6 +22,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.io.IOUtils;
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
+import org.openrdf.query.Binding;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryEvaluationException;
@@ -246,9 +247,18 @@ public class ModelSearchHandler {
 				String id = bs.getBinding("id").getValue().stringValue();
 				String date = bs.getBinding("date").getValue().stringValue();
 				String title = bs.getBinding("title").getValue().stringValue();
-				String state = bs.getBinding("state").getValue().stringValue();
 				String contribs = bs.getBinding("contributors").getValue().stringValue();
-				String groups_ = bs.getBinding("groups").getValue().stringValue();
+				//optional values (some are empty)
+				Binding state_binding = bs.getBinding("state");
+				String state = "";
+				if(state_binding!=null) {
+					state = state_binding.getValue().stringValue();
+				}
+				Binding group_binding = bs.getBinding("groups");
+				String groups_ = "";
+				if(group_binding!=null) {
+					groups_ = group_binding.getValue().stringValue();
+				}							
 				Set<String> contributors = new HashSet<String>();
 				if(contributors!=null) {
 					for(String c : contribs.split(";")) {
