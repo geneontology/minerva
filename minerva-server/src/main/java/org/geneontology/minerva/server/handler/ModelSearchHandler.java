@@ -5,9 +5,11 @@ package org.geneontology.minerva.server.handler;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,6 +24,8 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.io.IOUtils;
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
+import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.openrdf.query.Binding;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.MalformedQueryException;
@@ -29,6 +33,7 @@ import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.QueryResult;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.repository.RepositoryException;
+import org.semanticweb.owlapi.model.IRI;
 
 /**
  * Respond to queries for models in the running blazegraph instance backing minerva
@@ -91,14 +96,6 @@ public class ModelSearchHandler {
 			@QueryParam("offset") int offset,
 			@QueryParam("limit") int limit
 			){
-		//		if(gene_product_class_uris!=null
-		//				||goterms!=null
-		//				||pmids!=null
-		//				||title!=null
-		//				||state!=null
-		//				||contributor!=null
-		//				||group!=null
-		//				||date!=null) {
 		ModelSearchResult result = new ModelSearchResult();
 			result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit);
 			return result;
@@ -113,17 +110,35 @@ public class ModelSearchHandler {
 	//&pmid=PMID:19911006
 	//&state=development&state=review {development, production, closed, review, delete} or operator
 	public ModelSearchResult search(
-			Set<String> gene_product_class_uris, Set<String> goterms, Set<String>pmids, 
+			Set<String> gene_product_ids, Set<String> goterms, Set<String>pmids, 
 			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, String date_search,
 			int offset, int limit) {
-		Set<String> type_uris = new HashSet<String>();
-		if(gene_product_class_uris!=null) {
-			type_uris.addAll(gene_product_class_uris);
+		ModelSearchResult r = new ModelSearchResult();
+		Set<String> type_ids = new HashSet<String>();
+		if(gene_product_ids!=null) {
+			type_ids.addAll(gene_product_ids);
 		}
 		if(goterms!=null) {
-			type_uris.addAll(goterms);
+			type_ids.addAll(goterms);
 		}
-		ModelSearchResult r = new ModelSearchResult();
+		CurieHandler curie_handler = m3.getCuriHandler();
+		Set<String> type_uris = new HashSet<String>();
+		for(String curi : type_ids) {
+			if(curi.startsWith("http")) {
+				type_uris.add(curi);
+			}else {
+				try {
+					IRI iri = curie_handler.getIRI(curi);
+					if(iri!=null) {
+						type_uris.add(iri.toString());
+					}
+				} catch (UnknownIdentifierException e) {
+					r.error += e.getMessage()+" \n ";
+					e.printStackTrace();
+					return r;
+				}
+			}
+		}
 		Map<String, ModelMeta> id_model = new HashMap<String, ModelMeta>();
 		String sparql="";
 		try {
