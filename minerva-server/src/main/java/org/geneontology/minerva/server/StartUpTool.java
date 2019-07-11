@@ -1,8 +1,11 @@
 package org.geneontology.minerva.server;
 
 import org.apache.log4j.Logger;
+import org.eclipse.jetty.server.HttpConfiguration;
+import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.nio.SelectChannelConnector;
+import org.eclipse.jetty.server.ServerConnector;
+//import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.geneontology.minerva.ModelReaderHelper;
@@ -83,7 +86,7 @@ public class StartUpTool {
 		
 		public String prefixesFile = null;
 
-		public int sparqlEndpointTimeout = 10;
+		public int sparqlEndpointTimeout = 100;
 	}
 	
 	public static void main(String[] args) throws Exception {
@@ -379,15 +382,25 @@ public class StartUpTool {
 		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
 		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
 		SPARQLHandler sparqlHandler = new SPARQLHandler(models, conf.sparqlEndpointTimeout);
-		resourceConfig = resourceConfig.registerInstances(batchHandler, seedHandler, sparqlHandler);
+		ModelSearchHandler searchHandler = new ModelSearchHandler(models, conf.sparqlEndpointTimeout);
+		resourceConfig = resourceConfig.registerInstances(batchHandler, seedHandler, sparqlHandler, searchHandler);
 
 		// setup jetty server port, buffers and context path
 		Server server = new Server();
 		// create connector with port and custom buffer sizes
-		SelectChannelConnector connector = new SelectChannelConnector();
+		//old jetty
+		//SelectChannelConnector connector = new SelectChannelConnector();	
+		//old jetty - they must be configured somewhere else in new jetty
+		//connector.setRequestHeaderSize(conf.requestHeaderSize);
+		//connector.setRequestBufferSize(conf.requestBufferSize);
+		//new jetty - does not have setRequestBufferSize at all
+		//seems to push defaults harder here.
+		//to change request header size need to create a new connector and manipulate httpconfiguration
+        HttpConfiguration http_config = new HttpConfiguration();  
+        http_config.setRequestHeaderSize(conf.requestHeaderSize);
+		ServerConnector connector = new ServerConnector(server, new HttpConnectionFactory(http_config));
 		connector.setPort(conf.port);
-		connector.setRequestHeaderSize(conf.requestHeaderSize);
-		connector.setRequestBufferSize(conf.requestBufferSize);
+        
 		server.addConnector(connector);
 
 		ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
