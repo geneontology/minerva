@@ -97,8 +97,8 @@ public class ModelSearchHandler {
 			@QueryParam("limit") int limit
 			){
 		ModelSearchResult result = new ModelSearchResult();
-			result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit);
-			return result;
+		result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit);
+		return result;
 	}
 
 	//examples 
@@ -184,31 +184,27 @@ public class ModelSearchHandler {
 			// FILTER (?state IN ("production", , "development", "review", "closed", "delete" ))
 			state_search_constraint = "FILTER (?state IN ("+allowed_states+")) . \n";
 		}
+		//  	?cam  <http://purl.org/dc/elements/1.1/contributor> ?contributor1 . 
+	  	//		FILTER (?contributor1 = "GOC:pt") . 
 		String contributor_search_constraint = "";
 		if(contributor_search!=null&&contributor_search.size()>0) {
-			String allowed_contributors = "";
 			int c = 0;
 			for(String contributor : contributor_search) {
 				c++;
-				allowed_contributors+="\""+contributor+"\"";
-				if(c<contributor_search.size()) {
-					allowed_contributors+=",";
-				}
+				contributor_search_constraint+=
+						"?cam  <http://purl.org/dc/elements/1.1/contributor> ?contributor"+c+" ."
+						+ "FILTER (?contributor"+c+" = \""+contributor+"\") . ";
 			}
-			contributor_search_constraint = "FILTER (?contributor IN ("+allowed_contributors+")) . \n";
 		}
 		String group_search_constraint = "";
 		if(group_search!=null&&group_search.size()>0) {
-			String allowed_group = "";
 			int c = 0;
 			for(String group : group_search) {
 				c++;
-				allowed_group+="\""+group+"\"";
-				if(c<group_search.size()) {
-					allowed_group+=",";
-				}
+				group_search_constraint+=
+						"?cam  <http://purl.org/pav/providedBy> ?provider"+c+" ."
+						+ "FILTER (?provider"+c+" = \""+group+"\") . ";
 			}
-			contributor_search_constraint = "FILTER (?group IN ("+allowed_group+")) . \n";
 		}
 		String date_constraint = "";
 		if(date_search!=null&&date_search.length()==10) {
@@ -261,25 +257,32 @@ public class ModelSearchHandler {
 				//model meta
 				String id = bs.getBinding("id").getValue().stringValue();
 				String date = bs.getBinding("date").getValue().stringValue();
-				String title = bs.getBinding("title").getValue().stringValue();
-				String contribs = bs.getBinding("contributors").getValue().stringValue();
+				String title = bs.getBinding("title").getValue().stringValue();				
 				//optional values (some are empty)
 				Binding state_binding = bs.getBinding("state");
 				String state = "";
 				if(state_binding!=null) {
 					state = state_binding.getValue().stringValue();
 				}
+
+				//String contribs = bs.getBinding("contributors").getValue().stringValue();
+				Binding contrib_binding = bs.getBinding("contributors");
+				Set<String> contributors = new HashSet<String>();
+				String contribs_ = "";
+				if(contrib_binding!=null) {
+					contribs_ = contrib_binding.getValue().stringValue();
+				}
+				if(contribs_!=null) {
+					for(String c : contribs_.split(";")) {
+						contributors.add(c);
+					}
+				}
+
 				Binding group_binding = bs.getBinding("groups");
 				String groups_ = "";
 				if(group_binding!=null) {
 					groups_ = group_binding.getValue().stringValue();
 				}							
-				Set<String> contributors = new HashSet<String>();
-				if(contributors!=null) {
-					for(String c : contribs.split(";")) {
-						contributors.add(c);
-					}
-				}
 				Set<String> groups = new HashSet<String>();
 				if(groups_!=null) {
 					for(String c : groups_.split(";")) {
