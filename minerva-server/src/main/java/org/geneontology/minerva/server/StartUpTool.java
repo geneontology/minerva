@@ -37,6 +37,7 @@ import owltools.io.CatalogXmlIRIMapper;
 import owltools.io.ParserWrapper;
 
 import java.io.File;
+import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -94,8 +95,8 @@ public class StartUpTool {
 
 		public int sparqlEndpointTimeout = 100;
 		
-		public String shexpath = "./target/classes/go-cam-shapes.shex";
-		public String goshapemappath = "./target/classes/go-cam-shapes.shapeMap";
+		public String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
+		public String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
 		public ShexController shex;
 	
 	}
@@ -104,7 +105,13 @@ public class StartUpTool {
 		Opts opts = new Opts(args);
 		MinervaStartUpConfig conf = new MinervaStartUpConfig();
 		//TODO maybe make these command line parameters
-		conf.shex = new ShexController(conf.shexpath, conf.goshapemappath);
+		URL shex_schema_url = new URL(conf.shexFileUrl);
+		File shex_schema_file = new File("./target/shex-schema.shex");
+		org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);
+		URL shex_map_url = new URL(conf.goshapemapFileUrl);
+		File shex_map_file = new File("./target/go-cam-shapes.shapeMap");
+		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
+		conf.shex = new ShexController(shex_schema_file, shex_map_file);
 		
 		while (opts.hasArgs()) {
 			if (opts.nextEq("-g|--graph")) {

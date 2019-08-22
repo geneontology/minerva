@@ -50,6 +50,11 @@ public class ShexController {
 		GoQueryMap = makeGoQueryMap(goshapemappath);
 	}
 
+	public ShexController(File shex_schema_file, File shex_map_file) throws Exception {
+		schema = GenParser.parseSchema(shex_schema_file.toPath());
+		GoQueryMap = makeGoQueryMap(shex_map_file.getAbsolutePath());
+	}
+
 	public static Map<String, String> makeGoQueryMap(String shapemap_file) throws IOException{ 
 		Map<String, String> shapelabel_sparql = new HashMap<String, String>();
 		BufferedReader reader = new BufferedReader(new FileReader(shapemap_file));
