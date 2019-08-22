@@ -36,18 +36,6 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
-import fr.inria.lille.shexjava.schema.Label;
-import fr.inria.lille.shexjava.schema.ShexSchema;
-import fr.inria.lille.shexjava.schema.parsing.GenParser;
-import fr.inria.lille.shexjava.util.Pair;
-import fr.inria.lille.shexjava.validation.RecursiveValidation;
-import fr.inria.lille.shexjava.validation.Status;
-import fr.inria.lille.shexjava.validation.Typing;
-import org.apache.commons.rdf.api.RDF;
-import org.apache.commons.rdf.api.RDFTerm;
-import org.apache.commons.rdf.jena.JenaGraph;
-import org.apache.commons.rdf.jena.JenaRDF;
-
 public class MapInferenceProvider implements InferenceProvider {
 
 	private final boolean isConsistent;
@@ -57,9 +45,11 @@ public class MapInferenceProvider implements InferenceProvider {
 	private Set<String> nonconformant_uris; 
 	public static final String endpoint = "http://rdf.geneontology.org/blazegraph/sparql";
 	
-	public static InferenceProvider create(OWLReasoner r, OWLOntology ont) {
+	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, ShexController shex) {
 		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes = new HashMap<>();
 		boolean isConsistent = r.isConsistent();
+		//TODO
+		//Could get all inferred super types here (e.g. MF, BP) and return in response.
 		if (isConsistent) {
 			Set<OWLNamedIndividual> individuals = ont.getIndividualsInSignature();
 			for (OWLNamedIndividual individual : individuals) {
@@ -85,14 +75,9 @@ public class MapInferenceProvider implements InferenceProvider {
 		//TODO get this from a cache
 		//refactor all these methods into new class
 		//store on startup and re-use
-		String shexpath = "./target/classes/go-cam-shapes.shex";
-		String goshapemappath = "./target/classes/go-cam-shapes.shapeMap";
-		
-		ShexSchema schema;
+
 		try {
-			schema = GenParser.parseSchema(new File(shexpath).toPath());
-			Map<String, String> GoQueryMap = makeGoQueryMap(goshapemappath);
-			ModelValidationResult result = runShapeMapValidation(schema, model, true, GoQueryMap);
+			ModelValidationResult result = shex.runShapeMapValidation(model, true);
 			isConformant = result.model_is_valid;
 			for(String bad_node : result.node_is_valid.keySet()) {
 				if(!(result.node_is_valid.get(bad_node))) {
@@ -155,29 +140,7 @@ public class MapInferenceProvider implements InferenceProvider {
 		return model;
 	}
 	
-	public static Map<String, String> makeGoQueryMap(String shapemap_file) throws IOException{ //"../shapes/go-cam-shapes.shapeMap
-		Map<String, String> shapelabel_sparql = new HashMap<String, String>();
-		BufferedReader reader = new BufferedReader(new FileReader(shapemap_file));
-		String line = reader.readLine();
-		String all = line;
-		while(line!=null) {
-			all+=line;
-			line = reader.readLine();			
-		}
-		reader.close();
-		String[] maps = all.split(",");
-		for(String map : maps) {
-			String sparql = StringUtils.substringBetween(map, "'", "'");
-			sparql = sparql.replace("a/", "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?c . ?c ");
-			String[] shapemaprow = map.split("@");
-			String shapelabel = shapemaprow[1];
-			shapelabel = shapelabel.replace(">", "");
-			shapelabel = shapelabel.replace("<", "");
-			shapelabel = shapelabel.trim();
-			shapelabel_sparql.put(shapelabel, sparql);
-		}
-		return shapelabel_sparql;
-	}
+
 
 	public static class ModelValidationResult {
 		boolean model_is_valid; 
@@ -210,94 +173,6 @@ public class MapInferenceProvider implements InferenceProvider {
 			model_report = "shape id\tnode uri\tvalidation status\n";
 		}
 
-	}
-
-	public static ModelValidationResult runShapeMapValidation(ShexSchema schema, Model test_model, boolean stream_output, Map<String, String> GoQueryMap) throws Exception {
-		Map<String, Typing> shape_node_typing = validateGoShapeMap(schema, test_model, GoQueryMap);
-		ModelValidationResult r = new ModelValidationResult(test_model);
-		RDF rdfFactory = new SimpleRDF();
-		for(String shape_node : shape_node_typing.keySet()) {
-			Typing typing = shape_node_typing.get(shape_node);
-			String shape_id = shape_node.split(",")[0];
-			String focus_node_iri = shape_node.split(",")[1];
-			String result = getValidationReport(typing, rdfFactory, focus_node_iri, shape_id, true);
-			//TODO refactor
-			Label shape_label = new Label(rdfFactory.createIRI(shape_id));
-			RDFTerm focus_node = rdfFactory.createIRI(focus_node_iri);
-			Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(focus_node, shape_label);
-			Status node_r = typing.getStatusMap().get(p);
-			if(node_r.equals(Status.NONCONFORMANT)) {
-				r.node_is_valid.put(focus_node_iri, false);
-			}else {
-				r.node_is_valid.put(focus_node_iri, true);
-			}
-			r.model_report+=result;
-		}
-		if(r.model_report.contains("NONCONFORMANT")) {
-			r.model_is_valid=false;
-			if(stream_output) {
-				System.out.println("Invalid model: GO shape map report for model:"+r.model_title+"\n"+r.model_report);
-			}
-		}else {
-			r.model_is_valid=true;
-			if(stream_output) {
-				System.out.println("Valid model:"+r.model_title);
-			}
-		}
-		return r;
-	}
-
-	public static String getValidationReport(Typing typing_result, RDF rdfFactory, String focus_node_iri, String shape_id, boolean only_negative) throws Exception {
-		Label shape_label = new Label(rdfFactory.createIRI(shape_id));
-		RDFTerm focus_node = rdfFactory.createIRI(focus_node_iri);
-		Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(focus_node, shape_label);
-		Status r = typing_result.getStatusMap().get(p);
-		String s = "";
-		if(r!=null) {
-			if(only_negative) {
-				if(r.equals(Status.NONCONFORMANT)) {
-					s+=p.two+"\t"+p.one+"\t"+r.toString()+"\n";
-				}
-			}else { //report all
-				s+=p.two+"\t"+p.one+"\t"+r.toString()+"\n";
-			}
-		}
-		return s;
-	}
-	
-	public static Map<String, Typing> validateGoShapeMap(ShexSchema schema, Model jena_model, Map<String, String> GoQueryMap) throws Exception {
-		Map<String, Typing> shape_node_typing = new HashMap<String, Typing>();
-		Typing result = null;
-		RDF rdfFactory = new SimpleRDF();
-		JenaRDF jr = new JenaRDF();
-		//this shex implementation likes to use the commons JenaRDF interface, nothing exciting here
-		JenaGraph shexy_graph = jr.asGraph(jena_model);
-		//recursive only checks the focus node against the chosen shape.  
-		RecursiveValidation shex_recursive_validator = new RecursiveValidation(schema, shexy_graph);
-		for(String shapelabel : GoQueryMap.keySet()) {
-			Label shape_label = new Label(rdfFactory.createIRI(shapelabel));
-			Set<String> focus_nodes = getFocusNodesBySparql(jena_model, GoQueryMap.get(shapelabel));
-			for(String focus_node_iri : focus_nodes) {
-				RDFTerm focus_node = rdfFactory.createIRI(focus_node_iri);
-				shex_recursive_validator.validate(focus_node, shape_label);
-				result = shex_recursive_validator.getTyping();
-				shape_node_typing.put(shapelabel+","+focus_node_iri, result);
-			}
-		}
-		return shape_node_typing;
-	}
-
-	public static Set<String> getFocusNodesBySparql(Model model, String sparql){
-		Set<String> nodes = new HashSet<String>();
-		QueryExecution qe = QueryExecutionFactory.create(sparql, model);
-		ResultSet results = qe.execSelect();
-		while (results.hasNext()) {
-			QuerySolution qs = results.next();
-			Resource node = qs.getResource("x");
-			nodes.add(node.getURI());
-		}
-		qe.close();
-		return nodes;
 	}
 	
 	/**

@@ -18,11 +18,11 @@ public class CachingInferenceProviderCreatorImpl extends InferenceProviderCreato
 	
 	private final Map<ModelContainer, InferenceProvider> inferenceCache = new ConcurrentHashMap<>();
 	
-	protected CachingInferenceProviderCreatorImpl(OWLReasonerFactory rf, int maxConcurrent, boolean useSLME, String name) {
-		super(rf, maxConcurrent, useSLME, name);
+	protected CachingInferenceProviderCreatorImpl(OWLReasonerFactory rf, int maxConcurrent, boolean useSLME, String name, ShexController shex) {
+		super(rf, maxConcurrent, useSLME, name, shex);	
 	}
 
-	public static InferenceProviderCreator createElk(boolean useSLME) {
+	public static InferenceProviderCreator createElk(boolean useSLME, ShexController shex) {
 		String name;
 		if (useSLME) {
 			name = "Caching ELK-SLME";
@@ -30,21 +30,21 @@ public class CachingInferenceProviderCreatorImpl extends InferenceProviderCreato
 		else {
 			name = "Caching ELK";
 		}
-		return new CachingInferenceProviderCreatorImpl(new ElkReasonerFactory(), 1, useSLME, name);
+		return new CachingInferenceProviderCreatorImpl(new ElkReasonerFactory(), 1, useSLME, name, shex);
 	}
 
-	public static InferenceProviderCreator createHermiT() {
+	public static InferenceProviderCreator createHermiT(ShexController shex) {
 		int maxConcurrent = Runtime.getRuntime().availableProcessors();
-		return createHermiT(maxConcurrent);
+		return createHermiT(maxConcurrent, shex);
 	}
 	
-	public static InferenceProviderCreator createHermiT(int maxConcurrent) {
+	public static InferenceProviderCreator createHermiT(int maxConcurrent, ShexController shex) {
 		return new CachingInferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(),
-				maxConcurrent, true, "Caching Hermit-SLME");
+				maxConcurrent, true, "Caching Hermit-SLME", shex);
 	}
 	
-	public static InferenceProviderCreator createArachne(RuleEngine arachne) {
-		return new CachingInferenceProviderCreatorImpl(new ArachneOWLReasonerFactory(arachne), 1, false, "Caching Arachne");
+	public static InferenceProviderCreator createArachne(RuleEngine arachne, ShexController shex) {
+		return new CachingInferenceProviderCreatorImpl(new ArachneOWLReasonerFactory(arachne), 1, false, "Caching Arachne", shex);
 	}
 
 	@Override
