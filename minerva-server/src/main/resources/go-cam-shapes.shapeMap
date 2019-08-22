@@ -1,0 +1,5 @@
+SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/GO_0003674> }' @ <http://purl.obolibrary.org/obo/go/shapes/MolecularFunction>,
+SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/GO_0008150> }' @ <http://purl.obolibrary.org/obo/go/shapes/BiologicalProcess>,
+SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/GO_0005575> }' @ <http://purl.obolibrary.org/obo/go/shapes/CellularComponent>,
+SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/CHEBI_36080> }' @ <http://purl.obolibrary.org/obo/go/shapes/Protein>,
+SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/ECO_0000000> }' @ <http://purl.obolibrary.org/obo/go/shapes/Evidence>

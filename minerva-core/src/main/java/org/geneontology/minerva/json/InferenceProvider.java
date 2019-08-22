@@ -10,4 +10,8 @@ public interface InferenceProvider {
 	public boolean isConsistent();
 	
 	public Set<OWLClass> getTypes(OWLNamedIndividual i);
+	
+	public boolean isConformant();
+	
+	public Set<String> getNonconformant_uris();
 }
