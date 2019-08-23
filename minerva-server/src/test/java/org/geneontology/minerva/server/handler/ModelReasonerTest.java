@@ -51,7 +51,7 @@ public class ModelReasonerTest {
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		
 		models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
-		InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false);
+		InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false, null);
 		handler = new JsonOrJsonpBatchHandler(models, "development", ipc,
 				Collections.<OWLObjectProperty>emptySet(), (ExternalLookupService) null);
 		//models.setPathToOWLFiles("src/test/resources/reasoner-test");

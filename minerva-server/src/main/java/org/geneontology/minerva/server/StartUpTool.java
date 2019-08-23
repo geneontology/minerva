@@ -21,9 +21,14 @@ import org.geneontology.minerva.lookup.MonarchExternalLookupService;
 import org.geneontology.minerva.server.handler.*;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
+import org.geneontology.minerva.server.inferences.MapInferenceProvider.ModelValidationResult;
+import org.geneontology.minerva.server.inferences.ShexController;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.semanticweb.owlapi.model.*;
+
+import fr.inria.lille.shexjava.schema.ShexSchema;
+import fr.inria.lille.shexjava.schema.parsing.GenParser;
 import owltools.cli.Opts;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
@@ -32,8 +37,10 @@ import owltools.io.CatalogXmlIRIMapper;
 import owltools.io.ParserWrapper;
 
 import java.io.File;
+import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -87,12 +94,24 @@ public class StartUpTool {
 		public String prefixesFile = null;
 
 		public int sparqlEndpointTimeout = 100;
+		
+		public String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
+		public String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
+		public ShexController shex;
+	
 	}
 	
 	public static void main(String[] args) throws Exception {
 		Opts opts = new Opts(args);
 		MinervaStartUpConfig conf = new MinervaStartUpConfig();
-		
+		//TODO maybe make these command line parameters
+		URL shex_schema_url = new URL(conf.shexFileUrl);
+		File shex_schema_file = new File("./target/shex-schema.shex");
+		org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);
+		URL shex_map_url = new URL(conf.goshapemapFileUrl);
+		File shex_map_file = new File("./target/go-cam-shapes.shapeMap");
+		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
+		conf.shex = new ShexController(shex_schema_file, shex_map_file);
 		
 		while (opts.hasArgs()) {
 			if (opts.nextEq("-g|--graph")) {
@@ -337,12 +356,12 @@ public class StartUpTool {
 		return server;
 	}
 	
-	public static InferenceProviderCreator createInferenceProviderCreator(String reasonerOpt, UndoAwareMolecularModelManager models) { 
+	public static InferenceProviderCreator createInferenceProviderCreator(String reasonerOpt, UndoAwareMolecularModelManager models, ShexController shex) { 
 		switch(reasonerOpt) { 
-		case ("slme-hermit"): return CachingInferenceProviderCreatorImpl.createHermiT(); 
-		case ("slme-elk"): return CachingInferenceProviderCreatorImpl.createElk(true); 
-		case ("elk"): return CachingInferenceProviderCreatorImpl.createElk(false); 
-		case ("arachne"): return CachingInferenceProviderCreatorImpl.createArachne(models.getRuleEngine()); 
+		case ("slme-hermit"): return CachingInferenceProviderCreatorImpl.createHermiT(shex); 
+		case ("slme-elk"): return CachingInferenceProviderCreatorImpl.createElk(true, shex); 
+		case ("elk"): return CachingInferenceProviderCreatorImpl.createElk(false, shex); 
+		case ("arachne"): return CachingInferenceProviderCreatorImpl.createArachne(models.getRuleEngine(), shex); 
 		default: return null; 
 		} 
 	} 
@@ -373,7 +392,7 @@ public class StartUpTool {
 		}
 		LOGGER.info("SeedHandler config golrUrl: "+conf.golrSeedUrl);
 		
-		InferenceProviderCreator ipc = createInferenceProviderCreator(conf.reasonerOpt, models); 
+		InferenceProviderCreator ipc = createInferenceProviderCreator(conf.reasonerOpt, models, conf.shex); 
 		
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
 				ipc, conf.importantRelations, conf.lookupService);

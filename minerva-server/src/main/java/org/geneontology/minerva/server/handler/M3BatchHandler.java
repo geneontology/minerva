@@ -120,6 +120,12 @@ public interface M3BatchHandler {
 
 			@SerializedName("sparql-result")
 			public JsonObject sparqlResult;
+			
+			@SerializedName("uncomformant-p")
+			public Boolean unconformantFlag;
+
+			@SerializedName("noncomformant-uris")
+			public Set<String> nonconformant_uris;
 		}
 		
 		public static class MetaResponse {

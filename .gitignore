@@ -5,3 +5,5 @@ target/
 .classpath
 minerva-server/blazegraph.jnl
 /bin/
+*.icloud
+minerva-server/.DS_Store
