@@ -16,8 +16,8 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<owltools.version>0.3.0-SNAPSHOT</owltools.version>
-		<!--  <owlapi.version>4.2.8</owlapi.version>-->
-		<owlapi.version>4.5.7</owlapi.version>
+		<owlapi.version>4.2.8</owlapi.version>
+		<!-- <owlapi.version>4.5.7</owlapi.version> -->
 	</properties>
 
 	<build>
