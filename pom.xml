@@ -17,6 +17,7 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<owltools.version>0.3.0-SNAPSHOT</owltools.version>
 		<owlapi.version>4.2.8</owlapi.version>
+		<!-- <owlapi.version>4.5.7</owlapi.version> -->
 	</properties>
 
 	<build>
@@ -240,7 +241,8 @@
 			<dependency>
 				<groupId>org.apache.httpcomponents</groupId>
 				<artifactId>httpclient</artifactId>
-				<version>4.2.5</version>
+				<!-- <version>4.2.5</version>-->
+				<version>4.5.9</version>
 			</dependency>
 			<dependency>
 				<groupId>net.sourceforge.owlapi</groupId>

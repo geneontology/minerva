@@ -22,7 +22,7 @@
 					</excludes>
 				</configuration>
 			</plugin>
-			<plugin>
+		<!--  	<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<configuration>
@@ -50,16 +50,49 @@
 					</execution>
 				</executions>
 			</plugin>
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+						 <filters>
+        					<filter>
+            					<artifact>*:*</artifact>
+            					<excludes>
+                					<exclude>META-INF/*.SF</exclude>
+               					 	<exclude>META-INF/*.DSA</exclude>
+                					<exclude>META-INF/*.RSA</exclude>
+            					</excludes>
+        					</filter>
+    					</filters>
+							<outputFile>bin/minerva-server.jar</outputFile>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+							<transformers>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<manifestEntries>
+										<Main-Class>org.geneontology.minerva.server.StartUpTool</Main-Class>
+										<git-revision-sha1>${git.commit.id}</git-revision-sha1>
+										<git-revision-url>https://github.com/geneontology/minerva/commit/${git.commit.id}</git-revision-url>
+										<git-branch>${git.branch}</git-branch>
+										<git-dirty>${git.dirty}</git-dirty>
+									</manifestEntries>
+								</transformer>
+							</transformers>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
 	<dependencies>
-	<!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
-<dependency>
-    <groupId>org.apache.httpcomponents</groupId>
-    <artifactId>httpclient</artifactId>
-    <version>4.5.9</version>
-</dependency>
 		<dependency>
 			<groupId>org.geneontology</groupId>
 			<artifactId>minerva-core</artifactId>

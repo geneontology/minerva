@@ -1,9 +1,11 @@
 target/
-*.DS_Store
+/.DS_Store
 .project
 .settings
 .classpath
 minerva-server/blazegraph.jnl
 /bin/
 *.icloud
+minerva-server/.DS_Store
 minerva-cli/bin/reactome-entities-blazegraph.jnl
+minerva-core/.DS_Store
