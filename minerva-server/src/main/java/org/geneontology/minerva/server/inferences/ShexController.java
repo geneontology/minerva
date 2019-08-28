@@ -24,7 +24,7 @@ import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
-import org.geneontology.minerva.server.inferences.MapInferenceProvider.ModelValidationResult;
+import org.geneontology.minerva.server.inferences.MapInferenceProvider.ShexValidationResult;
 
 import fr.inria.lille.shexjava.schema.Label;
 import fr.inria.lille.shexjava.schema.ShexSchema;
@@ -79,9 +79,9 @@ public class ShexController {
 		return shapelabel_sparql;
 	}
 	
-	public ModelValidationResult runShapeMapValidation(Model test_model, boolean stream_output) throws Exception {
+	public ShexValidationResult runShapeMapValidation(Model test_model, boolean stream_output) throws Exception {
 		Map<String, Typing> shape_node_typing = validateGoShapeMap(schema, test_model, GoQueryMap);
-		ModelValidationResult r = new ModelValidationResult(test_model);
+		ShexValidationResult r = new ShexValidationResult(test_model);
 		RDF rdfFactory = new SimpleRDF();
 		for(String shape_node : shape_node_typing.keySet()) {
 			Typing typing = shape_node_typing.get(shape_node);

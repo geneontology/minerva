@@ -21,14 +21,11 @@ import org.geneontology.minerva.lookup.MonarchExternalLookupService;
 import org.geneontology.minerva.server.handler.*;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
-import org.geneontology.minerva.server.inferences.MapInferenceProvider.ModelValidationResult;
 import org.geneontology.minerva.server.inferences.ShexController;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.semanticweb.owlapi.model.*;
 
-import fr.inria.lille.shexjava.schema.ShexSchema;
-import fr.inria.lille.shexjava.schema.parsing.GenParser;
 import owltools.cli.Opts;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;

@@ -1,11 +1,5 @@
 package org.geneontology.minerva.server.inferences;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
@@ -15,8 +9,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.rdf.simple.SimpleRDF;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
@@ -29,6 +21,7 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.geneontology.minerva.json.InferenceProvider;
+import org.geneontology.minerva.server.validation.*;
 import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
@@ -37,13 +30,12 @@ import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 public class MapInferenceProvider implements InferenceProvider {
-
+ 
 	private final boolean isConsistent;
 	private final Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes;
 	//for shex-based validation
-	private final boolean isConformant;
-	private Set<String> nonconformant_uris; 
 	public static final String endpoint = "http://rdf.geneontology.org/blazegraph/sparql";
+	private Set<ModelValidationReport> validation_reports;
 	
 	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, ShexController shex) {
 		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes = new HashMap<>();
@@ -63,33 +55,38 @@ public class MapInferenceProvider implements InferenceProvider {
 				inferredTypes.put(individual, inferred);
 			}
 		}
+		//Aim to support multiple validation regimes - e.g. gorules, reasoner, shex
+		Set<ModelValidationReport> all_validation_results = new HashSet<ModelValidationReport>();
+		
 		//shex
-		boolean isConformant = true;
-		Set<String> nonconformant_uris = new HashSet<String>();
 		//generate an RDF model
 		Model model = getModel(ont);
 		//add superclasses to types used in model
 		//TODO examine how to get this done with reasoner here, avoiding external call 
 		model = enrichSuperClasses(model);
-		
-		//TODO get this from a cache
-		//refactor all these methods into new class
-		//store on startup and re-use
-
+		ModelValidationReport validation_report = null;
 		try {
-			ModelValidationResult result = shex.runShapeMapValidation(model, true);
-			isConformant = result.model_is_valid;
+			ShexValidationResult result = shex.runShapeMapValidation(model, true);
+			validation_report = new ModelValidationReport(
+					"GORULE:SHEX_SCHEMA",
+					"https://github.com/geneontology/go-shapes/issues", 
+					"https://github.com/geneontology/go-shapes/blob/master/shapes/go-cam-shapes.shex",
+					result.model_is_valid);
 			for(String bad_node : result.node_is_valid.keySet()) {
 				if(!(result.node_is_valid.get(bad_node))) {
-					nonconformant_uris.add(bad_node);
+					ShexViolation violation = new ShexViolation(bad_node);
+					validation_report.addViolation(violation);
 				}
+			}
+			if(validation_report!=null) {
+				all_validation_results.add(validation_report);
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
-		return new MapInferenceProvider(isConsistent, inferredTypes, isConformant, nonconformant_uris);
+		return new MapInferenceProvider(isConsistent, inferredTypes, all_validation_results);
 	}
 
 	public static Model enrichSuperClasses(Model model) {
@@ -142,7 +139,7 @@ public class MapInferenceProvider implements InferenceProvider {
 	
 
 
-	public static class ModelValidationResult {
+	public static class ShexValidationResult {
 		boolean model_is_valid; 
 		boolean model_is_consistent;
 		Map<String, Set<String>> node_shapes;
@@ -156,7 +153,7 @@ public class MapInferenceProvider implements InferenceProvider {
 		/**
 		 * 
 		 */
-		public ModelValidationResult(Model model) {
+		public ShexValidationResult(Model model) {
 			String q = "select ?cam ?title where {"
 					+ "?cam <http://purl.org/dc/elements/1.1/title> ?title }";
 			//	+ "?cam <"+DC.description.getURI()+"> ?title }";
@@ -203,11 +200,10 @@ public class MapInferenceProvider implements InferenceProvider {
 		}
 	}
 
-	MapInferenceProvider(boolean isConsistent, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes, boolean isConformant, Set<String> nonconformant_uris) {
+	MapInferenceProvider(boolean isConsistent, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes, Set<ModelValidationReport> validation_reports) {
 		this.isConsistent = isConsistent;
 		this.inferredTypes = inferredTypes;
-		this.isConformant = isConformant;
-		this.nonconformant_uris = nonconformant_uris;
+		this.validation_reports = validation_reports;
 	}
 
 	@Override
@@ -227,13 +223,7 @@ public class MapInferenceProvider implements InferenceProvider {
 		return result;
 	}
 
-	@Override
-	public boolean isConformant() {
-		return isConformant;
-	}
-
-	@Override
-	public Set<String> getNonconformant_uris() {
-		return nonconformant_uris;
+	public Set<ModelValidationReport> getValidation_reports() {
+		return validation_reports;
 	}
 }

@@ -4,6 +4,7 @@ import java.util.Set;
 
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
+import org.geneontology.minerva.server.validation.ModelValidationReport;
 
 public interface InferenceProvider {
 
@@ -11,7 +12,5 @@ public interface InferenceProvider {
 	
 	public Set<OWLClass> getTypes(OWLNamedIndividual i);
 	
-	public boolean isConformant();
-	
-	public Set<String> getNonconformant_uris();
+	public Set<ModelValidationReport> getValidation_reports();
 }
