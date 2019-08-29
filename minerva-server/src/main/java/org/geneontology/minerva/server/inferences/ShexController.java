@@ -18,13 +18,20 @@ import org.apache.commons.rdf.api.RDFTerm;
 import org.apache.commons.rdf.jena.JenaGraph;
 import org.apache.commons.rdf.jena.JenaRDF;
 import org.apache.commons.rdf.simple.SimpleRDF;
+import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.QueryFactory;
+import org.apache.jena.query.QueryParseException;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
+import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.geneontology.minerva.server.inferences.MapInferenceProvider.ShexValidationResult;
+import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLClass;
+import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 import fr.inria.lille.shexjava.schema.Label;
 import fr.inria.lille.shexjava.schema.ShexSchema;
@@ -41,6 +48,9 @@ import fr.inria.lille.shexjava.validation.Typing;
 public class ShexController {
 	public ShexSchema schema;
 	public Map<String, String> GoQueryMap;
+	public OWLReasoner tbox_reasoner;
+	public static final String endpoint = "http://rdf.geneontology.org/blazegraph/sparql";
+
 	/**
 	 * @throws Exception 
 	 * 
@@ -78,7 +88,7 @@ public class ShexController {
 		}
 		return shapelabel_sparql;
 	}
-	
+
 	public ShexValidationResult runShapeMapValidation(Model test_model, boolean stream_output) throws Exception {
 		Map<String, Typing> shape_node_typing = validateGoShapeMap(schema, test_model, GoQueryMap);
 		ShexValidationResult r = new ShexValidationResult(test_model);
@@ -131,7 +141,7 @@ public class ShexController {
 		}
 		return s;
 	}
-	
+
 	public static Map<String, Typing> validateGoShapeMap(ShexSchema schema, Model jena_model, Map<String, String> GoQueryMap) throws Exception {
 		Map<String, Typing> shape_node_typing = new HashMap<String, Typing>();
 		Typing result = null;
@@ -165,5 +175,72 @@ public class ShexController {
 		}
 		qe.close();
 		return nodes;
+	}
+
+	public Model enrichSuperClasses(Model model) {
+		String getOntTerms = 
+				"PREFIX owl: <http://www.w3.org/2002/07/owl#> "
+						+ "SELECT DISTINCT ?term " + 
+						"        WHERE { " + 
+						"        ?ind a owl:NamedIndividual . " + 
+						"        ?ind a ?term . " + 
+						"        FILTER(?term != owl:NamedIndividual)" + 
+						"        FILTER(isIRI(?term)) ." + 
+						"        }";
+		String terms = "";
+		Set<String> term_set = new HashSet<String>();
+		try{
+			QueryExecution qe = QueryExecutionFactory.create(getOntTerms, model);
+			ResultSet results = qe.execSelect();
+
+			while (results.hasNext()) {
+				QuerySolution qs = results.next();
+				Resource term = qs.getResource("term");
+				terms+=("<"+term.getURI()+"> ");
+				term_set.add(term.getURI());
+			}
+			qe.close();
+		} catch(QueryParseException e){
+			e.printStackTrace();
+		}
+		if(tbox_reasoner!=null) {
+			for(String term : term_set) {
+				OWLClass c = 
+						tbox_reasoner.
+						getRootOntology().
+						getOWLOntologyManager().
+						getOWLDataFactory().getOWLClass(IRI.create(term));
+				Resource child = model.createResource(term);
+				Set<OWLClass> supers = tbox_reasoner.getSuperClasses(c, false).getFlattened();
+				for(OWLClass parent_class : supers) {
+					Resource parent = model.createResource(parent_class.getIRI().toString());
+					model.add(model.createStatement(child, org.apache.jena.vocabulary.RDFS.subClassOf, parent));
+					model.add(model.createStatement(child, org.apache.jena.vocabulary.RDF.type, org.apache.jena.vocabulary.OWL.Class));
+				}
+			}
+		}else {
+			String superQuery = ""
+					+ "PREFIX owl: <http://www.w3.org/2002/07/owl#> "
+					+ "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> "
+					+ "CONSTRUCT { " + 
+					"        ?term rdfs:subClassOf ?superclass ." + 
+					"        ?term a owl:Class ." + 
+					"        }" + 
+					"        WHERE {" + 
+					"        VALUES ?term { "+terms+" } " + 
+					"        ?term rdfs:subClassOf* ?superclass ." + 
+					"        FILTER(isIRI(?superclass)) ." + 
+					"        }";
+
+			Query query = QueryFactory.create(superQuery); 
+			try ( 
+					QueryExecution qexec = QueryExecutionFactory.sparqlService(endpoint, query) ) {
+				qexec.execConstruct(model);
+				qexec.close();
+			} catch(QueryParseException e){
+				e.printStackTrace();
+			}
+		}
+		return model;
 	}
 }

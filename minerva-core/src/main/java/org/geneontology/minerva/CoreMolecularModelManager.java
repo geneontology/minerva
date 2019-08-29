@@ -71,6 +71,9 @@ import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
 import org.semanticweb.owlapi.model.SetOntologyID;
 import org.semanticweb.owlapi.model.parameters.Imports;
 import org.semanticweb.owlapi.oboformat.OBOFormatOWLAPIParserFactory;
+import org.semanticweb.owlapi.reasoner.OWLReasoner;
+import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
+import org.semanticweb.owlapi.reasoner.structural.StructuralReasonerFactory;
 import org.semanticweb.owlapi.rio.RioMemoryTripleSource;
 import org.semanticweb.owlapi.rio.RioParserImpl;
 import org.semanticweb.owlapi.util.PriorityCollection;
@@ -110,6 +113,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 
 	final OWLOntology tbox;
 //	final OWLReasonerFactory rf;
+	final OWLReasoner tbox_reasoner;
 	private final IRI tboxIRI;
 	final Map<IRI, ModelContainer> modelMap = new HashMap<IRI, ModelContainer>();
 	Set<IRI> additionalImports;
@@ -201,7 +205,14 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		initializeTboxLabelIndex();
 		initializeTboxShorthandIndex();
 		initializeDoNotAnnotateSubset();
+		this.tbox_reasoner = initializeTboxReasoner(tbox);
 		init();
+	}
+
+	private OWLReasoner initializeTboxReasoner(OWLOntology tbox) {
+		OWLReasonerFactory reasonerFactory = new StructuralReasonerFactory();
+		OWLReasoner r = reasonerFactory.createReasoner(tbox);
+		return r;
 	}
 
 	private static synchronized Set<OWLParserFactory> removeOBOParserFactories(OWLOntologyManager m) {
@@ -890,7 +901,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	protected abstract void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException;
 
 	ModelContainer addModel(IRI modelId, OWLOntology abox) throws OWLOntologyCreationException {
-		ModelContainer m = new ModelContainer(modelId, tbox, abox);
+		ModelContainer m = new ModelContainer(modelId, tbox, abox, tbox_reasoner);
 		modelMap.put(modelId, m);
 		return m;
 	}
@@ -1341,6 +1352,14 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		if (!changes.isEmpty()) {
 			m.applyChanges(changes);
 		}
+	}
+
+	public OWLOntology getTbox() {
+		return tbox;
+	}
+
+	public OWLReasoner getTbox_reasoner() {
+		return tbox_reasoner;
 	}
 	
 }

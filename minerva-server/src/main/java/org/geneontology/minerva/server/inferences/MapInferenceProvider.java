@@ -34,7 +34,6 @@ public class MapInferenceProvider implements InferenceProvider {
 	private final boolean isConsistent;
 	private final Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes;
 	//for shex-based validation
-	public static final String endpoint = "http://rdf.geneontology.org/blazegraph/sparql";
 	private Set<ModelValidationReport> validation_reports;
 	
 	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, ShexController shex) {
@@ -74,7 +73,7 @@ public class MapInferenceProvider implements InferenceProvider {
 		Model model = getModel(ont);
 		//add superclasses to types used in model
 		//TODO examine how to get this done with reasoner here, avoiding external call 
-		model = enrichSuperClasses(model);
+		model = shex.enrichSuperClasses(model);
 		ModelValidationReport validation_report = null;
 		try {
 			ShexValidationResult result = shex.runShapeMapValidation(model, true);
@@ -106,53 +105,7 @@ public class MapInferenceProvider implements InferenceProvider {
 		return new MapInferenceProvider(isConsistent, inferredTypes, all_validation_results);
 	}
 
-	public static Model enrichSuperClasses(Model model) {
-		String getOntTerms = 
-				"PREFIX owl: <http://www.w3.org/2002/07/owl#> "
-						+ "SELECT DISTINCT ?term " + 
-						"        WHERE { " + 
-						"        ?ind a owl:NamedIndividual . " + 
-						"        ?ind a ?term . " + 
-						"        FILTER(?term != owl:NamedIndividual)" + 
-						"        FILTER(isIRI(?term)) ." + 
-						"        }";
-		String terms = "";
-		try{
-			QueryExecution qe = QueryExecutionFactory.create(getOntTerms, model);
-			ResultSet results = qe.execSelect();
-
-			while (results.hasNext()) {
-				QuerySolution qs = results.next();
-				Resource term = qs.getResource("term");
-				terms+=("<"+term.getURI()+"> ");
-			}
-			qe.close();
-		} catch(QueryParseException e){
-			e.printStackTrace();
-		}
-		String superQuery = ""
-				+ "PREFIX owl: <http://www.w3.org/2002/07/owl#> "
-				+ "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> "
-				+ "CONSTRUCT { " + 
-				"        ?term rdfs:subClassOf ?superclass ." + 
-				"        ?term a owl:Class ." + 
-				"        }" + 
-				"        WHERE {" + 
-				"        VALUES ?term { "+terms+" } " + 
-				"        ?term rdfs:subClassOf* ?superclass ." + 
-				"        FILTER(isIRI(?superclass)) ." + 
-				"        }";
-
-		Query query = QueryFactory.create(superQuery); 
-		try ( 
-				QueryExecution qexec = QueryExecutionFactory.sparqlService(endpoint, query) ) {
-			qexec.execConstruct(model);
-			qexec.close();
-		} catch(QueryParseException e){
-			e.printStackTrace();
-		}
-		return model;
-	}
+	
 	
 
 

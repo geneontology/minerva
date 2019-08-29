@@ -202,7 +202,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		InferenceProvider inferenceProvider = null;
 		boolean isConsistent = true;
 		boolean isConformant = true;
-		
 		if (inferenceProviderCreator != null && useReasoner) {
 			inferenceProvider = inferenceProviderCreator.create(values.model);
 			isConsistent = inferenceProvider.isConsistent();

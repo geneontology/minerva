@@ -347,7 +347,7 @@ public class StartUpTool {
 				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder);
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
-		
+		conf.shex.tbox_reasoner = models.getTbox_reasoner();
 		// start server
 		Server server = startUp(models, conf);
 		return server;
