@@ -3,6 +3,7 @@
  */
 package org.geneontology.minerva.server.validation;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -17,6 +18,17 @@ public class ShexViolation extends Violation {
 	 */
 	public ShexViolation(String node_id) {
 		super(node_id);
+		explanations = new HashSet<ShexExplanation>();
+	}
+	public Set<ShexExplanation> getExplanations() {
+		return explanations;
+	}
+	public void setExplanations(Set<ShexExplanation> explanations) {
+		this.explanations = explanations;
+	}
+	public void addExplanation(ShexExplanation explanation) {
+		this.explanations.add(explanation);
 	}
 
+	
 }

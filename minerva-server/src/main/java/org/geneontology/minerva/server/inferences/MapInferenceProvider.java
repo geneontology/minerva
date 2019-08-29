@@ -55,9 +55,20 @@ public class MapInferenceProvider implements InferenceProvider {
 				inferredTypes.put(individual, inferred);
 			}
 		}
-		//Aim to support multiple validation regimes - e.g. gorules, reasoner, shex
+		//Aim to support multiple validation regimes - e.g. reasoner, shex, gorules
 		Set<ModelValidationReport> all_validation_results = new HashSet<ModelValidationReport>();
-		
+		//reasoner
+		ModelValidationReport reasoner_validation_report = new ModelValidationReport(
+				"GORULE:OWL_REASONER",
+				"https://github.com/geneontology/helpdesk/issues", 
+				"https://github.com/geneontology/go-ontology",
+				isConsistent);
+		if(!isConsistent) {
+			Violation i_v = new Violation("id of inconsistent node");
+			i_v.setCommentary("comment about why");
+			reasoner_validation_report.addViolation(i_v);
+		}
+		all_validation_results.add(reasoner_validation_report);
 		//shex
 		//generate an RDF model
 		Model model = getModel(ont);
@@ -75,6 +86,12 @@ public class MapInferenceProvider implements InferenceProvider {
 			for(String bad_node : result.node_is_valid.keySet()) {
 				if(!(result.node_is_valid.get(bad_node))) {
 					ShexViolation violation = new ShexViolation(bad_node);
+					violation.setCommentary("Some explanatory text would go here");
+					ShexExplanation explanation = new ShexExplanation();
+					explanation.setShape_id("the shape id that this node should fit here");
+					ShexConstraint constraint = new ShexConstraint("unmatched_property_id", "Range of property id");
+					explanation.addConstraint(constraint);
+					violation.addExplanation(explanation);
 					validation_report.addViolation(violation);
 				}
 			}
