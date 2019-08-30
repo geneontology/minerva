@@ -19,14 +19,14 @@ public class MapInferenceProvider implements InferenceProvider {
  
 	private final boolean isConsistent;
 	private final Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes;
-	//for shex-based validation
+	private final Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects;
+	//for shex and other validation
 	private Set<ModelValidationReport> validation_reports;
 	
 	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, ShexValidator shex) {
 		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes = new HashMap<>();
+		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects = new HashMap<>();
 		boolean isConsistent = r.isConsistent();
-		//TODO
-		//Could get all inferred super types here (e.g. MF, BP) and return in response.
 		if (isConsistent) {
 			Set<OWLNamedIndividual> individuals = ont.getIndividualsInSignature();
 			for (OWLNamedIndividual individual : individuals) {
@@ -38,16 +38,23 @@ public class MapInferenceProvider implements InferenceProvider {
 					}
 				}
 				inferredTypes.put(individual, inferred);
+				//adding the rest of the types
+				//TODO consider filtering down to root types - depending on uses cases
+				Set<OWLClass> all_inferred = new HashSet<>();
+				Set<OWLClass> all_flattened = r.getTypes(individual, false).getFlattened();
+				for (OWLClass cls : all_flattened) {
+					if (cls.isBuiltIn() == false) {
+						all_inferred.add(cls);
+					}
+				}
+				inferredTypesWithIndirects.put(individual, all_inferred);
 			}
 		}
 		//Aim to support multiple validation regimes - e.g. reasoner, shex, gorules
 		Set<ModelValidationReport> all_validation_results = new HashSet<ModelValidationReport>();
 		//reasoner
-		ModelValidationReport reasoner_validation_report = new ModelValidationReport(
-				"GORULE:OWL_REASONER",
-				"https://github.com/geneontology/helpdesk/issues", 
-				"https://github.com/geneontology/go-ontology",
-				isConsistent);
+		ModelValidationReport reasoner_validation_report = new OWLValidationReport();
+		reasoner_validation_report.setConformant(isConsistent);
 		if(!isConsistent) {
 			Violation i_v = new Violation("id of inconsistent node");
 			i_v.setCommentary("comment about why");
@@ -69,12 +76,13 @@ public class MapInferenceProvider implements InferenceProvider {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}	
-		return new MapInferenceProvider(isConsistent, inferredTypes, all_validation_results);
+		return new MapInferenceProvider(isConsistent, inferredTypes, inferredTypesWithIndirects, all_validation_results);
 	}
 
-	MapInferenceProvider(boolean isConsistent, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes, Set<ModelValidationReport> validation_reports) {
+	MapInferenceProvider(boolean isConsistent, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects, Set<ModelValidationReport> validation_reports) {
 		this.isConsistent = isConsistent;
 		this.inferredTypes = inferredTypes;
+		this.inferredTypesWithIndirects = inferredTypesWithIndirects;
 		this.validation_reports = validation_reports;
 	}
 
@@ -88,6 +96,17 @@ public class MapInferenceProvider implements InferenceProvider {
 		Set<OWLClass> result = Collections.emptySet();
 		if (isConsistent && i != null) {
 			Set<OWLClass> inferences = inferredTypes.get(i);
+			if (inferences != null) {
+				result = Collections.unmodifiableSet(inferences);
+			}
+		}
+		return result;
+	}
+	@Override
+	public Set<OWLClass> getAllTypes(OWLNamedIndividual i) {
+		Set<OWLClass> result = Collections.emptySet();
+		if (isConsistent && i != null) {
+			Set<OWLClass> inferences = inferredTypesWithIndirects.get(i);
 			if (inferences != null) {
 				result = Collections.unmodifiableSet(inferences);
 			}

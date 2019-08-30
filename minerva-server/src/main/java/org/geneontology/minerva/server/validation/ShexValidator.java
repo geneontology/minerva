@@ -87,81 +87,93 @@ public class ShexValidator {
 		return shapelabel_sparql;
 	}
 
-	public ShexValidationResult runShapeMapValidation(Model test_model, boolean stream_output) throws Exception {
-		Map<String, Typing> shape_node_typing = validateGoShapeMap(schema, test_model, GoQueryMap);
-		ShexValidationResult r = new ShexValidationResult(test_model);
+	public ShexValidationReport runShapeMapValidation(Model test_model, boolean stream_output) throws Exception {
+		ShexValidationReport r = new ShexValidationReport(null, test_model);	
 		RDF rdfFactory = new SimpleRDF();
-		for(String shape_node : shape_node_typing.keySet()) {
-			Typing typing = shape_node_typing.get(shape_node);
-			String shape_id = shape_node.split(",")[0];
-			String focus_node_iri = shape_node.split(",")[1];
-			String result = getValidationReport(typing, rdfFactory, focus_node_iri, shape_id, true);
-			//TODO refactor
-			Label shape_label = new Label(rdfFactory.createIRI(shape_id));
-			RDFTerm focus_node = rdfFactory.createIRI(focus_node_iri);
-			Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(focus_node, shape_label);
-			Status node_r = typing.getStatusMap().get(p);
-			if(node_r.equals(Status.NONCONFORMANT)) {
-				r.node_is_valid.put(focus_node_iri, false);
-			}else {
-				r.node_is_valid.put(focus_node_iri, true);
-			}
-			r.model_report+=result;
-		}
-		if(r.model_report.contains("NONCONFORMANT")) {
-			r.model_is_valid=false;
-			if(stream_output) {
-				System.out.println("Invalid model: GO shape map report for model:"+r.model_title+"\n"+r.model_report);
-			}
-		}else {
-			r.model_is_valid=true;
-			if(stream_output) {
-				System.out.println("Valid model:"+r.model_title);
+		JenaRDF jr = new JenaRDF();
+		//this shex implementation likes to use the commons JenaRDF interface, nothing exciting here
+		JenaGraph shexy_graph = jr.asGraph(test_model);
+		//recursive only checks the focus node against the chosen shape.  
+		RecursiveValidation shex_recursive_validator = new RecursiveValidation(schema, shexy_graph);
+		//for each shape in the query map (e.g. MF, BP, CC, etc.)
+		for(String shapelabel : GoQueryMap.keySet()) {
+			Label shape_label = new Label(rdfFactory.createIRI(shapelabel));
+			//get the nodes in this model that SHOULD match the shape
+			Set<String> focus_nodes = getFocusNodesBySparql(test_model, GoQueryMap.get(shapelabel));
+			for(String focus_node_iri : focus_nodes) {
+				RDFTerm focus_node = rdfFactory.createIRI(focus_node_iri);
+				//check the node against the intended shape
+				shex_recursive_validator.validate(focus_node, shape_label);
+				Typing typing = shex_recursive_validator.getTyping();
+				//capture the result
+				Status status = typing.getStatus(focus_node, shape_label);
+				if(status.equals(Status.CONFORMANT)) {
+					Set<String> shape_ids = r.node_matched_shapes.get(focus_node_iri);
+					if(shape_ids==null) {
+						shape_ids = new HashSet<String>();
+					}
+					shape_ids.add(shapelabel);
+					r.node_matched_shapes.put(focus_node_iri, shape_ids);
+				}else if(status.equals(Status.NONCONFORMANT)) {
+					Set<String> shape_ids = r.node_unmatched_shapes.get(focus_node_iri);
+					if(shape_ids==null) {
+						shape_ids = new HashSet<String>();
+					}
+					shape_ids.add(shapelabel);
+					r.node_unmatched_shapes.put(focus_node_iri, shape_ids);
+					//all tested here should match
+					r.node_is_valid.put(focus_node_iri, false);
+					//if any of these tests is invalid, the model is invalid
+					String error = focus_node_iri+" did not match "+shapelabel;
+					r.node_report.put(focus_node_iri, error);
+					r.model_is_valid = false;
+					if(stream_output) {
+						System.out.println("Invalid model:"+r.model_title+"\n\t"+error);
+					}
+					r.model_report += error+"\n";
+					//implementing a start on a generic violation report structure here.. maybe replacing above
+					//somewhat redundant now. 
+					ShexViolation violation = new ShexViolation(focus_node_iri);
+					violation.setCommentary(error);
+					ShexExplanation explanation = new ShexExplanation();
+					explanation.setShape_id(shapelabel);
+						ShexConstraint constraint = new ShexConstraint("unmatched_property_id_1", "Range of property id_1");
+						explanation.addConstraint(constraint);
+						violation.addExplanation(explanation);
+						
+						ShexConstraint constraint2 = new ShexConstraint("unmatched_property_id_2", "Range of property id_2");
+						explanation.addConstraint(constraint2);
+						violation.addExplanation(explanation);
+					r.addViolation(violation);
+				}else if(status.equals(Status.NOTCOMPUTED)) {
+					//if any of these are not computed, there is a problem
+					String error = focus_node_iri+" was not tested against "+shapelabel;
+					r.node_report.put(focus_node_iri, error);
+					if(stream_output) {
+						System.out.println("Invalid model:"+r.model_title+"\n\t"+error);
+					}
+					r.model_report += error+"\n";
+				}
 			}
 		}
 		return r;
 	}
-
-	public static String getValidationReport(Typing typing_result, RDF rdfFactory, String focus_node_iri, String shape_id, boolean only_negative) throws Exception {
-		Label shape_label = new Label(rdfFactory.createIRI(shape_id));
-		RDFTerm focus_node = rdfFactory.createIRI(focus_node_iri);
-		Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(focus_node, shape_label);
-		Status r = typing_result.getStatusMap().get(p);
-		String s = "";
-		if(r!=null) {
-			if(only_negative) {
-				if(r.equals(Status.NONCONFORMANT)) {
-					s+=p.two+"\t"+p.one+"\t"+r.toString()+"\n";
+/**
+ * 		for(String bad_node : result.node_is_valid.keySet()) {
+				if(!(result.node_is_valid.get(bad_node))) {
+					ShexViolation violation = new ShexViolation(bad_node);
+					violation.setCommentary("Some explanatory text would go here");
+					ShexExplanation explanation = new ShexExplanation();
+					explanation.setShape_id("the shape id that this node should fit here");
+					ShexConstraint constraint = new ShexConstraint("unmatched_property_id", "Range of property id");
+					explanation.addConstraint(constraint);
+					violation.addExplanation(explanation);
+					validation_report.addViolation(violation);
 				}
-			}else { //report all
-				s+=p.two+"\t"+p.one+"\t"+r.toString()+"\n";
 			}
-		}
-		return s;
-	}
 
-	public static Map<String, Typing> validateGoShapeMap(ShexSchema schema, Model jena_model, Map<String, String> GoQueryMap) throws Exception {
-		Map<String, Typing> shape_node_typing = new HashMap<String, Typing>();
-		Typing result = null;
-		RDF rdfFactory = new SimpleRDF();
-		JenaRDF jr = new JenaRDF();
-		//this shex implementation likes to use the commons JenaRDF interface, nothing exciting here
-		JenaGraph shexy_graph = jr.asGraph(jena_model);
-		//recursive only checks the focus node against the chosen shape.  
-		RecursiveValidation shex_recursive_validator = new RecursiveValidation(schema, shexy_graph);
-		for(String shapelabel : GoQueryMap.keySet()) {
-			Label shape_label = new Label(rdfFactory.createIRI(shapelabel));
-			Set<String> focus_nodes = getFocusNodesBySparql(jena_model, GoQueryMap.get(shapelabel));
-			for(String focus_node_iri : focus_nodes) {
-				RDFTerm focus_node = rdfFactory.createIRI(focus_node_iri);
-				shex_recursive_validator.validate(focus_node, shape_label);
-				result = shex_recursive_validator.getTyping();
-				shape_node_typing.put(shapelabel+","+focus_node_iri, result);
-			}
-		}
-		return shape_node_typing;
-	}
-
+ *
+ */
 	public static Set<String> getFocusNodesBySparql(Model model, String sparql){
 		Set<String> nodes = new HashSet<String>();
 		QueryExecution qe = QueryExecutionFactory.create(sparql, model);
@@ -243,24 +255,8 @@ public class ShexValidator {
 	}
 
 	public ModelValidationReport createValidationReport(Model model) throws Exception {
-		ShexValidationResult result = runShapeMapValidation(model, true);
-		ModelValidationReport validation_report = new ModelValidationReport(
-					"GORULE:SHEX_SCHEMA",
-					"https://github.com/geneontology/go-shapes/issues", 
-					"https://github.com/geneontology/go-shapes/blob/master/shapes/go-cam-shapes.shex",
-					result.model_is_valid);
-			for(String bad_node : result.node_is_valid.keySet()) {
-				if(!(result.node_is_valid.get(bad_node))) {
-					ShexViolation violation = new ShexViolation(bad_node);
-					violation.setCommentary("Some explanatory text would go here");
-					ShexExplanation explanation = new ShexExplanation();
-					explanation.setShape_id("the shape id that this node should fit here");
-					ShexConstraint constraint = new ShexConstraint("unmatched_property_id", "Range of property id");
-					explanation.addConstraint(constraint);
-					violation.addExplanation(explanation);
-					validation_report.addViolation(violation);
-				}
-			}
+		boolean stream_output_for_debug = true;
+		ShexValidationReport validation_report = runShapeMapValidation(model, stream_output_for_debug);
 		return validation_report;
 	}
 }

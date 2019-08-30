@@ -13,4 +13,6 @@ public interface InferenceProvider {
 	public Set<OWLClass> getTypes(OWLNamedIndividual i);
 	
 	public Set<ModelValidationReport> getValidation_reports();
+
+	Set<OWLClass> getAllTypes(OWLNamedIndividual i);
 }

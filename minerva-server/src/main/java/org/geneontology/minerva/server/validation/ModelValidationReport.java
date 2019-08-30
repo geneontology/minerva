@@ -11,28 +11,23 @@ import java.util.Set;
  *
  */
 public class ModelValidationReport {
-	String id;
-	boolean isConformant;
-	String tracker;
-	String rulefile;
+	final String id;
+	boolean conformant;
+	final String tracker;
+	final String rulefile;
 	Set<Violation> violations;
 	
 	/**
 	 * 
 	 */
-	public ModelValidationReport(String id, String tracker, String rulefile, boolean isConformant) {
-		setId(id);
-		setTracker(tracker);
-		setConformant(isConformant);
-		setRulefile(rulefile);
+	public ModelValidationReport(String id, String tracker, String rulefile) {
+		this.id = id;
+		this.tracker = tracker;
+		this.rulefile = rulefile;
 	}
 
 	public String getId() {
 		return id;
-	}
-
-	public void setId(String id) {
-		this.id = id;
 	}
 
 	public Set<Violation> getViolations() {
@@ -51,27 +46,19 @@ public class ModelValidationReport {
 	}
 
 	public boolean isConformant() {
-		return isConformant;
+		return conformant;
 	}
 
-	public void setConformant(boolean isConformant) {
-		this.isConformant = isConformant;
+	public void setConformant(boolean conformant) {
+		this.conformant = conformant;
 	}
 
 	public String getTracker() {
 		return tracker;
 	}
 
-	public void setTracker(String tracker) {
-		this.tracker = tracker;
-	}
-
 	public String getRulefile() {
 		return rulefile;
-	}
-
-	public void setRulefile(String rulefile) {
-		this.rulefile = rulefile;
 	}
 	
 }

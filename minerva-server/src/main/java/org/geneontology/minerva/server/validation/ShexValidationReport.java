@@ -20,21 +20,23 @@ import org.apache.jena.rdf.model.Resource;
  *
  */
 
-public class ShexValidationResult {
+public class ShexValidationReport extends ModelValidationReport{
+	public static final String report_type_id = "SHEX_CORE_SCHEMA";
+	public static final String tracker = "https://github.com/geneontology/go-shapes/issues";
+	public static final String rulefile = "https://github.com/geneontology/go-shapes/blob/master/shapes/go-cam-shapes.shex";
+	
 	public boolean model_is_valid; 
-	public boolean model_is_consistent;
-	public Map<String, Set<String>> node_shapes;
-	public Map<String, Set<String>> node_types;
-	public Map<String, String> node_report;
+	public Map<String, Set<String>> node_matched_shapes = new HashMap<String, Set<String>>();
+	public Map<String, Set<String>> node_unmatched_shapes = new HashMap<String, Set<String>>();
+	public Map<String, String> node_report = new HashMap<String, String>();
 	public Map<String, Boolean> node_is_valid = new HashMap<String, Boolean>();
-	public Map<String, Boolean> node_is_consistent;
-	public String model_report;
-	public String model_id;
-	public String model_title;
+	public String model_report = "";
+	public String model_title = "";
 	/**
 	 * 
 	 */
-	public ShexValidationResult(Model model) {
+	public ShexValidationReport(String id, Model model) {
+		super(id, tracker, rulefile);
 		String q = "select ?cam ?title where {"
 				+ "?cam <http://purl.org/dc/elements/1.1/title> ?title }";
 		//	+ "?cam <"+DC.description.getURI()+"> ?title }";
@@ -42,9 +44,11 @@ public class ShexValidationResult {
 		ResultSet results = qe.execSelect();
 		if (results.hasNext()) {
 			QuerySolution qs = results.next();
-			Resource id = qs.getResource("cam");
+			Resource model_id_resource = qs.getResource("cam");
 			Literal title = qs.getLiteral("title");
-			model_id = id.getURI();
+			if(id==null) {
+				id = model_id_resource.getURI();
+			}
 			model_title = title.getString();
 		}
 		qe.close();
