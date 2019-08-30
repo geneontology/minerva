@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.geneontology.minerva.server.inferences;
+package org.geneontology.minerva.server.validation;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -27,8 +27,6 @@ import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
-import org.eclipse.rdf4j.model.vocabulary.RDFS;
-import org.geneontology.minerva.server.inferences.MapInferenceProvider.ShexValidationResult;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
@@ -45,7 +43,7 @@ import fr.inria.lille.shexjava.validation.Typing;
  * @author bgood
  *
  */
-public class ShexController {
+public class ShexValidator {
 	public ShexSchema schema;
 	public Map<String, String> GoQueryMap;
 	public OWLReasoner tbox_reasoner;
@@ -55,12 +53,12 @@ public class ShexController {
 	 * @throws Exception 
 	 * 
 	 */
-	public ShexController(String shexpath, String goshapemappath) throws Exception {
+	public ShexValidator(String shexpath, String goshapemappath) throws Exception {
 		schema = GenParser.parseSchema(new File(shexpath).toPath());
 		GoQueryMap = makeGoQueryMap(goshapemappath);
 	}
 
-	public ShexController(File shex_schema_file, File shex_map_file) throws Exception {
+	public ShexValidator(File shex_schema_file, File shex_map_file) throws Exception {
 		schema = GenParser.parseSchema(shex_schema_file.toPath());
 		GoQueryMap = makeGoQueryMap(shex_map_file.getAbsolutePath());
 	}
@@ -242,5 +240,27 @@ public class ShexController {
 			}
 		}
 		return model;
+	}
+
+	public ModelValidationReport createValidationReport(Model model) throws Exception {
+		ShexValidationResult result = runShapeMapValidation(model, true);
+		ModelValidationReport validation_report = new ModelValidationReport(
+					"GORULE:SHEX_SCHEMA",
+					"https://github.com/geneontology/go-shapes/issues", 
+					"https://github.com/geneontology/go-shapes/blob/master/shapes/go-cam-shapes.shex",
+					result.model_is_valid);
+			for(String bad_node : result.node_is_valid.keySet()) {
+				if(!(result.node_is_valid.get(bad_node))) {
+					ShexViolation violation = new ShexViolation(bad_node);
+					violation.setCommentary("Some explanatory text would go here");
+					ShexExplanation explanation = new ShexExplanation();
+					explanation.setShape_id("the shape id that this node should fit here");
+					ShexConstraint constraint = new ShexConstraint("unmatched_property_id", "Range of property id");
+					explanation.addConstraint(constraint);
+					violation.addExplanation(explanation);
+					validation_report.addViolation(violation);
+				}
+			}
+		return validation_report;
 	}
 }

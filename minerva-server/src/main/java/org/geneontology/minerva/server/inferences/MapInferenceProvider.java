@@ -1,32 +1,18 @@
 package org.geneontology.minerva.server.inferences;
 
-import java.io.IOException;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QueryExecutionFactory;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.query.QueryParseException;
-import org.apache.jena.query.QuerySolution;
-import org.apache.jena.query.ResultSet;
-import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.Resource;
 import org.geneontology.minerva.json.InferenceProvider;
 import org.geneontology.minerva.server.validation.*;
-import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
+import org.geneontology.minerva.util.JenaOwlTool;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 public class MapInferenceProvider implements InferenceProvider {
@@ -36,7 +22,7 @@ public class MapInferenceProvider implements InferenceProvider {
 	//for shex-based validation
 	private Set<ModelValidationReport> validation_reports;
 	
-	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, ShexController shex) {
+	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, ShexValidator shex) {
 		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes = new HashMap<>();
 		boolean isConsistent = r.isConsistent();
 		//TODO
@@ -70,104 +56,20 @@ public class MapInferenceProvider implements InferenceProvider {
 		all_validation_results.add(reasoner_validation_report);
 		//shex
 		//generate an RDF model
-		Model model = getModel(ont);
-		//add superclasses to types used in model
-		//TODO examine how to get this done with reasoner here, avoiding external call 
+		Model model = JenaOwlTool.getJenaModel(ont);
+		//add superclasses to types used in model 
 		model = shex.enrichSuperClasses(model);
 		ModelValidationReport validation_report = null;
 		try {
-			ShexValidationResult result = shex.runShapeMapValidation(model, true);
-			validation_report = new ModelValidationReport(
-					"GORULE:SHEX_SCHEMA",
-					"https://github.com/geneontology/go-shapes/issues", 
-					"https://github.com/geneontology/go-shapes/blob/master/shapes/go-cam-shapes.shex",
-					result.model_is_valid);
-			for(String bad_node : result.node_is_valid.keySet()) {
-				if(!(result.node_is_valid.get(bad_node))) {
-					ShexViolation violation = new ShexViolation(bad_node);
-					violation.setCommentary("Some explanatory text would go here");
-					ShexExplanation explanation = new ShexExplanation();
-					explanation.setShape_id("the shape id that this node should fit here");
-					ShexConstraint constraint = new ShexConstraint("unmatched_property_id", "Range of property id");
-					explanation.addConstraint(constraint);
-					violation.addExplanation(explanation);
-					validation_report.addViolation(violation);
-				}
-			}
+			validation_report = shex.createValidationReport(model);
 			if(validation_report!=null) {
 				all_validation_results.add(validation_report);
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
-
+		}	
 		return new MapInferenceProvider(isConsistent, inferredTypes, all_validation_results);
-	}
-
-	
-	
-
-
-	public static class ShexValidationResult {
-		boolean model_is_valid; 
-		boolean model_is_consistent;
-		Map<String, Set<String>> node_shapes;
-		Map<String, Set<String>> node_types;
-		Map<String, String> node_report;
-		Map<String, Boolean> node_is_valid = new HashMap<String, Boolean>();
-		Map<String, Boolean> node_is_consistent;
-		String model_report;
-		String model_id;
-		String model_title;
-		/**
-		 * 
-		 */
-		public ShexValidationResult(Model model) {
-			String q = "select ?cam ?title where {"
-					+ "?cam <http://purl.org/dc/elements/1.1/title> ?title }";
-			//	+ "?cam <"+DC.description.getURI()+"> ?title }";
-			QueryExecution qe = QueryExecutionFactory.create(q, model);
-			ResultSet results = qe.execSelect();
-			if (results.hasNext()) {
-				QuerySolution qs = results.next();
-				Resource id = qs.getResource("cam");
-				Literal title = qs.getLiteral("title");
-				model_id = id.getURI();
-				model_title = title.getString();
-			}
-			qe.close();
-			model_report = "shape id\tnode uri\tvalidation status\n";
-		}
-
-	}
-	
-	/**
-	 * From https://stackoverflow.com/questions/46866783/conversion-from-owlontology-to-jena-model-in-java
-	 * Converts an OWL API ontology into a JENA API model.
-	 * @param ontology the OWL API ontology
-	 * @return the JENA API model
-	 */
-	public static Model getModel(final OWLOntology ontology) {
-		Model model = ModelFactory.createDefaultModel();
-
-		try (PipedInputStream is = new PipedInputStream(); PipedOutputStream os = new PipedOutputStream(is)) {
-			new Thread(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						ontology.getOWLOntologyManager().saveOntology(ontology, new TurtleDocumentFormat(), os);
-						os.close();
-					} catch (OWLOntologyStorageException | IOException e) {
-						e.printStackTrace();
-					}
-				}
-			}).start();
-			model.read(is, null, "TURTLE");
-			return model;
-		} catch (Exception e) {
-			throw new RuntimeException("Could not convert OWL API ontology to JENA API model.", e);
-		}
 	}
 
 	MapInferenceProvider(boolean isConsistent, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes, Set<ModelValidationReport> validation_reports) {
