@@ -209,7 +209,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			createImports(abox, tbox.getOntologyID(), metadata);
 
 			// generate model
-			model = new ModelContainer(modelId, tbox, abox);
+			model = new ModelContainer(modelId, tbox, abox, tbox_reasoner);
 		} catch (OWLOntologyCreationException exception) {
 			if (abox != null) {
 				m.removeOntology(abox);
@@ -360,6 +360,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		if (ontologyFormat == null) {
 			ontologyFormat = this.ontologyFormat;
 		}
+		
 		return exportModel(model, ontologyFormat);
 	}
 

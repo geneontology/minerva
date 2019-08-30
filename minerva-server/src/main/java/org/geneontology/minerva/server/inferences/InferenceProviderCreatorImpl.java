@@ -7,6 +7,7 @@ import java.util.concurrent.Semaphore;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.json.InferenceProvider;
+import org.geneontology.minerva.server.validation.ShexValidator;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLEntity;
@@ -27,9 +28,9 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 	private final Semaphore concurrentLock;
 	private final boolean useSLME;
 	private final String name;
-	private final ShexController shex;
+	private final ShexValidator shex;
 
-	InferenceProviderCreatorImpl(OWLReasonerFactory rf, int maxConcurrent, boolean useSLME, String name, ShexController shex) {
+	InferenceProviderCreatorImpl(OWLReasonerFactory rf, int maxConcurrent, boolean useSLME, String name, ShexValidator shex) {
 		super();
 		this.rf = rf;
 		this.useSLME = useSLME;
@@ -38,7 +39,7 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		this.shex = shex;
 	}
 
-	public static InferenceProviderCreator createElk(boolean useSLME, ShexController shex) {
+	public static InferenceProviderCreator createElk(boolean useSLME, ShexValidator shex) {
 		String name;
 		if (useSLME) {
 			name = "ELK-SLME";
@@ -49,12 +50,12 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		return new InferenceProviderCreatorImpl(new ElkReasonerFactory(), 1, useSLME, name, shex);
 	}
 	
-	public static InferenceProviderCreator createHermiT(ShexController shex) {
+	public static InferenceProviderCreator createHermiT(ShexValidator shex) {
 		int maxConcurrent = Runtime.getRuntime().availableProcessors();
 		return createHermiT(maxConcurrent, shex);
 	}
 	
-	public static InferenceProviderCreator createHermiT(int maxConcurrent, ShexController shex) {
+	public static InferenceProviderCreator createHermiT(int maxConcurrent, ShexValidator shex) {
 		return new InferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(), maxConcurrent, true, "Hermit-SLME", shex);
 	}
 

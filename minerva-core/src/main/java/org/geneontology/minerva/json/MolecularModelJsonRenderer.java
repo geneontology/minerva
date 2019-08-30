@@ -218,6 +218,22 @@ public class MolecularModelJsonRenderer {
 			if (inferredTypeObjs.isEmpty() == false) {
 				json.inferredType = inferredTypeObjs.toArray(new JsonOwlObject[inferredTypeObjs.size()]);
 			}
+			//testing approach to adding additional type information to response
+			List<JsonOwlObject> inferredTypeObjsWithAll = new ArrayList<JsonOwlObject>();
+			Set<OWLClass> inferredTypesWithAll = inferenceProvider.getAllTypes(i);
+			// optimization, do not render inferences, if they are equal to the asserted ones
+			if (assertedTypes.equals(inferredTypesWithAll) == false) {
+				for(OWLClass c : inferredTypesWithAll) {
+					if (c.isBuiltIn() == false) {
+						inferredTypeObjsWithAll.add(renderObject(c));
+					}
+				}
+			}
+			if (inferredTypeObjsWithAll.isEmpty() == false) {
+				json.inferredTypeWithAll = inferredTypeObjsWithAll.toArray(new JsonOwlObject[inferredTypeObjsWithAll.size()]);
+			}
+			
+			
 		}
 		
 		final List<JsonAnnotation> anObjs = new ArrayList<JsonAnnotation>();

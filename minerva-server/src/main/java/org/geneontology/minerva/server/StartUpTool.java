@@ -21,14 +21,11 @@ import org.geneontology.minerva.lookup.MonarchExternalLookupService;
 import org.geneontology.minerva.server.handler.*;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
-import org.geneontology.minerva.server.inferences.MapInferenceProvider.ModelValidationResult;
-import org.geneontology.minerva.server.inferences.ShexController;
+import org.geneontology.minerva.server.validation.ShexValidator;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.semanticweb.owlapi.model.*;
 
-import fr.inria.lille.shexjava.schema.ShexSchema;
-import fr.inria.lille.shexjava.schema.parsing.GenParser;
 import owltools.cli.Opts;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
@@ -97,7 +94,7 @@ public class StartUpTool {
 		
 		public String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 		public String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
-		public ShexController shex;
+		public ShexValidator shex;
 	
 	}
 	
@@ -111,7 +108,7 @@ public class StartUpTool {
 		URL shex_map_url = new URL(conf.goshapemapFileUrl);
 		File shex_map_file = new File("./target/go-cam-shapes.shapeMap");
 		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
-		conf.shex = new ShexController(shex_schema_file, shex_map_file);
+		conf.shex = new ShexValidator(shex_schema_file, shex_map_file);
 		
 		while (opts.hasArgs()) {
 			if (opts.nextEq("-g|--graph")) {
@@ -350,13 +347,13 @@ public class StartUpTool {
 				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder);
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
-		
+		conf.shex.tbox_reasoner = models.getTbox_reasoner();
 		// start server
 		Server server = startUp(models, conf);
 		return server;
 	}
 	
-	public static InferenceProviderCreator createInferenceProviderCreator(String reasonerOpt, UndoAwareMolecularModelManager models, ShexController shex) { 
+	public static InferenceProviderCreator createInferenceProviderCreator(String reasonerOpt, UndoAwareMolecularModelManager models, ShexValidator shex) { 
 		switch(reasonerOpt) { 
 		case ("slme-hermit"): return CachingInferenceProviderCreatorImpl.createHermiT(shex); 
 		case ("slme-elk"): return CachingInferenceProviderCreatorImpl.createElk(true, shex); 

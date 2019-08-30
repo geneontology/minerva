@@ -13,6 +13,7 @@ import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.parameters.ChangeApplied;
+import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 import com.google.common.base.Optional;
 
@@ -24,6 +25,7 @@ public class ModelContainer {
 	private OWLOntology aboxOntology = null;
 	private boolean aboxModified = false;
 	private OWLOntology tboxOntology = null;
+	private OWLReasoner tboxReasoner = null;
 	
 	private final List<ModelChangeListener> listeners = new CopyOnWriteArrayList<>();
 
@@ -53,10 +55,11 @@ public class ModelContainer {
 	 * @param abox
 	 * @throws OWLOntologyCreationException
 	 */
-	public ModelContainer(IRI modelId, OWLOntology tbox, OWLOntology abox) throws OWLOntologyCreationException {
+	public ModelContainer(IRI modelId, OWLOntology tbox, OWLOntology abox, OWLReasoner tbox_reasoner) throws OWLOntologyCreationException {
 		tboxOntology = tbox;
 		aboxOntology = abox;
 		this.modelId = modelId;
+		this.tboxReasoner = tbox_reasoner;
 		init();
 	}
 

@@ -100,7 +100,7 @@ public class ModelSearchHandler {
 			result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit);
 			return result;
 	}
-
+	//TODO make junit tests out of these. 
 	//examples 
 	//http://127.0.0.1:6800/search/?
 	//?gene_product_class_uri=http://identifiers.org/mgi/MGI:1328355

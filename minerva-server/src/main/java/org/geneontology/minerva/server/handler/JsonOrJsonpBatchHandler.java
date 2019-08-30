@@ -10,6 +10,7 @@ import org.geneontology.minerva.json.*;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
+import org.geneontology.minerva.server.validation.ModelValidationReport;
 import org.glassfish.jersey.server.JSONP;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 
@@ -201,15 +202,19 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		InferenceProvider inferenceProvider = null;
 		boolean isConsistent = true;
 		boolean isConformant = true;
-		Set<String> nonconformant_uris = new HashSet<String>();
 		if (inferenceProviderCreator != null && useReasoner) {
 			inferenceProvider = inferenceProviderCreator.create(values.model);
 			isConsistent = inferenceProvider.isConsistent();
 			response.setReasoned(true);
 			values.renderBulk = true; // to ensure that all indivuduals are in the response
-			//TODO @goodb extend response with shape validation information
-			isConformant = inferenceProvider.isConformant();
-			nonconformant_uris = inferenceProvider.getNonconformant_uris();
+			//TODO @goodb fill in explanations for shape and owl validation
+			for(ModelValidationReport report : inferenceProvider.getValidation_reports()) {
+				//if any of the validation tests come back noncomformant, set nonconformant ("something is wrong") flag
+				if(!report.isConformant()) {
+					isConformant = false;
+					break;
+				}
+			}			
 		}
 
 		// create response.data
@@ -239,9 +244,8 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			response.data.inconsistentFlag =  Boolean.TRUE;
 		}
 		if(!isConformant) {
-			response.data.unconformantFlag = Boolean.TRUE;
-			response.data.nonconformant_uris = nonconformant_uris;
-			response.message = "invalid shapes for: "+nonconformant_uris;
+			response.data.nonconformantFlag = Boolean.TRUE;
+			response.data.validation_results = inferenceProvider.getValidation_reports();
 		}
 		response.data.modifiedFlag = Boolean.valueOf(values.model.isModified());
 		// These are required for an "okay" response.
