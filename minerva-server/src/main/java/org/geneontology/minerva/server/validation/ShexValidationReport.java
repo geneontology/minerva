@@ -25,11 +25,8 @@ public class ShexValidationReport extends ModelValidationReport{
 	public static final String tracker = "https://github.com/geneontology/go-shapes/issues";
 	public static final String rulefile = "https://github.com/geneontology/go-shapes/blob/master/shapes/go-cam-shapes.shex";
 	
-	public boolean model_is_valid; 
 	public Map<String, Set<String>> node_matched_shapes = new HashMap<String, Set<String>>();
-	public Map<String, Set<String>> node_unmatched_shapes = new HashMap<String, Set<String>>();
 	public Map<String, String> node_report = new HashMap<String, String>();
-	public Map<String, Boolean> node_is_valid = new HashMap<String, Boolean>();
 	public String model_report = "";
 	public String model_title = "";
 	/**

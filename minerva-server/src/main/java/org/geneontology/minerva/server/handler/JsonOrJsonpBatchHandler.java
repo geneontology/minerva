@@ -206,8 +206,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			inferenceProvider = inferenceProviderCreator.create(values.model);
 			isConsistent = inferenceProvider.isConsistent();
 			response.setReasoned(true);
-			values.renderBulk = true; // to ensure that all indivuduals are in the response
-			//TODO @goodb fill in explanations for shape and owl validation
+			values.renderBulk = true; // to ensure that all individuals are in the response
 			for(ModelValidationReport report : inferenceProvider.getValidation_reports()) {
 				//if any of the validation tests come back noncomformant, set nonconformant ("something is wrong") flag
 				if(!report.isConformant()) {
@@ -246,6 +245,8 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		if(!isConformant) {
 			response.data.nonconformantFlag = Boolean.TRUE;
 			response.data.validation_results = inferenceProvider.getValidation_reports();
+		}else {
+			response.data.nonconformantFlag = Boolean.FALSE;
 		}
 		response.data.modifiedFlag = Boolean.valueOf(values.model.isModified());
 		// These are required for an "okay" response.
