@@ -163,7 +163,7 @@ public class ShexValidator {
 					violation.setCommentary(error);
 					 					
 					ShexExplanation explanation = new ShexExplanation();
-					explanation.setShape_id(shapelabel);
+					explanation.setShape(shapelabel);
 				
 					Set<ShexConstraint> unmet_constraints = getUnmetConstraints(focus_node_resource, shapelabel, test_model);
 					

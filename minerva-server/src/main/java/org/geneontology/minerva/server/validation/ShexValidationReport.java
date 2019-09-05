@@ -15,6 +15,7 @@ import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 
+
 /**
  * @author bgood
  *
@@ -49,7 +50,29 @@ public class ShexValidationReport extends ModelValidationReport{
 			model_title = title.getString();
 		}
 		qe.close();
-		model_report = "shape id\tnode uri\tvalidation status\n";
 	}
-
+	
+	public String getAsText() {
+		String report = "report type id = "+report_type_id+"\nrulefile = "+rulefile+"\ntracker = "+tracker+"\n";
+		report+="Model tested name = "+model_title+"\n";
+		if(conformant) {
+			report+="No errors detected";
+			return report;
+		}
+		report+=getViolations().size()+" noncomformant nodes detected:\n";
+		for(Violation violation : getViolations()) {
+			report+="node: "+violation.getNode()+" ";
+			ShexViolation sv = (ShexViolation) violation;
+			for(ShexExplanation e : sv.getExplanations()) {
+				report+="was expected to match shape: "+e.shape;
+				report+=" but did not fit the following constraints:";
+				for(ShexConstraint c : e.getConstraints()) {
+					report+="\n\tthe objects of assertions made with "+c.getProperty()+" should be nodes that fit the one of these shapes: ";
+					report+="\n\t\t"+c.getIntended_range_shapes(); 
+					report+="\n\t\tbut, sadly, the object "+c.getObject()+" of one such assertion emanating from the failing node here did not.\n";
+				}
+			}  
+		}
+		return report;
+	}
 }

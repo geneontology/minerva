@@ -11,7 +11,7 @@ import java.util.Set;
  *
  */
 public class ShexExplanation {
-	String shape_id;
+	String shape;
 	Set<ShexConstraint> constraints;
 	/**
 	 * 
@@ -19,11 +19,11 @@ public class ShexExplanation {
 	public ShexExplanation() {
 		constraints = new HashSet<ShexConstraint>();
 	}
-	public String getShape_id() {
-		return shape_id;
+	public String getShape() {
+		return shape;
 	}
-	public void setShape_id(String shape_id) {
-		this.shape_id = shape_id;
+	public void setShape(String shape) {
+		this.shape = shape;
 	}
 	public Set<ShexConstraint> getConstraints() {
 		return constraints;
