@@ -31,6 +31,7 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDFS;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
@@ -63,6 +64,7 @@ public class ShexValidator {
 	public Map<String, String> GoQueryMap;
 	public OWLReasoner tbox_reasoner;
 	public static final String endpoint = "http://rdf.geneontology.org/blazegraph/sparql";
+	public CurieHandler curieHandler;
 
 	/**
 	 * @throws Exception 
@@ -136,42 +138,45 @@ public class ShexValidator {
 					focus_node = rdfFactory.createBlankNode(focus_node_resource.getId().getLabelString());
 					focus_node_id = focus_node_resource.getId().getLabelString();
 				}
-				
+				//deal with curies for output
+				String node = focus_node_id;
+				if(curieHandler!=null) {
+					node = curieHandler.getCuri(IRI.create(focus_node_resource.getURI()));
+				}
 				//check the node against the intended shape
 				shex_recursive_validator.validate(focus_node, shape_label);
 				Typing typing = shex_recursive_validator.getTyping();
 				//capture the result
 				Status status = typing.getStatus(focus_node, shape_label);
 				if(status.equals(Status.CONFORMANT)) {
-					Set<String> shape_ids = r.node_matched_shapes.get(focus_node_id);
+					Set<String> shape_ids = r.node_matched_shapes.get(node);
 					if(shape_ids==null) {
 						shape_ids = new HashSet<String>();
 					}
-					shape_ids.add(shapelabel);
-					r.node_matched_shapes.put(focus_node_id, shape_ids);
+					shape_ids.add(shapelabel);				
+					r.node_matched_shapes.put(node, shape_ids);
 				}else if(status.equals(Status.NONCONFORMANT)) {
 					//if any of these tests is invalid, the model is invalid
 					all_good = false;
-					String error = focus_node_id+" did not match "+shapelabel;
-					r.node_report.put(focus_node_id, error);
+					//implementing a start on a generic violation report structure here
+					ShexViolation violation = new ShexViolation(node);				 					
+					ShexExplanation explanation = new ShexExplanation();
+					explanation.setShape(shapelabel);				
+					Set<ShexConstraint> unmet_constraints = getUnmetConstraints(focus_node_resource, shapelabel, test_model);				
+					for(ShexConstraint constraint : unmet_constraints) {
+						explanation.addConstraint(constraint);
+						violation.addExplanation(explanation);
+					}	
+					r.addViolation(violation);
+					String error = r.getAsText(); 
+					r.node_report.put(node, error);
 					if(stream_output) {
 						System.out.println("Invalid model:"+r.model_title+"\n\t"+error);
 					}
 					r.model_report += error+"\n";
-					//implementing a start on a generic violation report structure here
-					ShexViolation violation = new ShexViolation(focus_node_id);
-					violation.setCommentary(error);
-					 					
-					ShexExplanation explanation = new ShexExplanation();
-					explanation.setShape(shapelabel);
-				
-					Set<ShexConstraint> unmet_constraints = getUnmetConstraints(focus_node_resource, shapelabel, test_model);
+					violation.setCommentary(error);	
 					
-					for(ShexConstraint constraint : unmet_constraints) {
-						explanation.addConstraint(constraint);
-						violation.addExplanation(explanation);
-					}				
-					r.addViolation(violation);
+					
 				}else if(status.equals(Status.NOTCOMPUTED)) {
 					//if any of these are not computed, there is a problem
 					String error = focus_node_id+" was not tested against "+shapelabel;
@@ -315,8 +320,14 @@ public class ShexValidator {
 					}
 				}
 				if(!good) {
-					explanation+="\n"+obj+" range of "+prop+"\n\tshould match one of the following shapes but does not: \n\t\t"+expected_property_ranges.get(prop_uri);
-					ShexConstraint constraint = new ShexConstraint(obj.asResource().getURI(), prop_uri, expected_property_ranges.get(prop_uri));
+					String object = obj.toString();
+					String property = prop.toString();
+					if(curieHandler!=null) {
+						object = curieHandler.getCuri(IRI.create(object));
+						property = curieHandler.getCuri(IRI.create(property));
+					}
+					explanation+="\n"+object+" range of "+property+"\n\tshould match one of the following shapes but does not: \n\t\t"+expected_property_ranges.get(prop_uri);
+					ShexConstraint constraint = new ShexConstraint(object, property, expected_property_ranges.get(prop_uri));
 					unmet_constraints.add(constraint);
 				}
 			}
