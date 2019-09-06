@@ -5,6 +5,8 @@ package org.geneontology.minerva.server.validation;
 
 import java.util.Set;
 
+import com.google.gson.annotations.SerializedName;
+
 /**
  * @author bgood
  *
@@ -12,6 +14,8 @@ import java.util.Set;
 public class ShexConstraint {
 	String object;
 	String property;
+	
+	@SerializedName("intended-range-shapes")
 	Set<String> intended_range_shapes;
 	/**
 	 * 

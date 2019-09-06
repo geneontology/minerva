@@ -15,6 +15,8 @@ import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 
+import com.google.gson.annotations.SerializedName;
+
 
 /**
  * @author bgood
@@ -22,39 +24,24 @@ import org.apache.jena.rdf.model.Resource;
  */
 
 public class ShexValidationReport extends ModelValidationReport{
+	@SerializedName("report-type")
 	public static final String report_type_id = "SHEX_CORE_SCHEMA";
 	public static final String tracker = "https://github.com/geneontology/go-shapes/issues";
+	
+	@SerializedName("rule-file")
 	public static final String rulefile = "https://github.com/geneontology/go-shapes/blob/master/shapes/go-cam-shapes.shex";
 	
+	@SerializedName("node-matched-shapes")
 	public Map<String, Set<String>> node_matched_shapes = new HashMap<String, Set<String>>();
-	public Map<String, String> node_report = new HashMap<String, String>();
-	public String model_report = "";
-	public String model_title = "";
 	/**
 	 * 
 	 */
 	public ShexValidationReport(String id, Model model) {
 		super(id, tracker, rulefile);
-		String q = "select ?cam ?title where {"
-				+ "?cam <http://purl.org/dc/elements/1.1/title> ?title }";
-		//	+ "?cam <"+DC.description.getURI()+"> ?title }";
-		QueryExecution qe = QueryExecutionFactory.create(q, model);
-		ResultSet results = qe.execSelect();
-		if (results.hasNext()) {
-			QuerySolution qs = results.next();
-			Resource model_id_resource = qs.getResource("cam");
-			Literal title = qs.getLiteral("title");
-			if(id==null) {
-				id = model_id_resource.getURI();
-			}
-			model_title = title.getString();
-		}
-		qe.close();
 	}
 	
 	public String getAsText() {
 		String report = "report type id = "+report_type_id+"\nrulefile = "+rulefile+"\ntracker = "+tracker+"\n";
-		report+="Model tested name = "+model_title+"\n";
 		if(conformant) {
 			report+="No errors detected";
 			return report;

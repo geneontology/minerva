@@ -25,6 +25,7 @@ import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.QueryParseException;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
+import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
@@ -105,6 +106,7 @@ public class ShexValidator {
 	}
 	
 	public ShexValidationReport runShapeMapValidation(Model test_model, boolean stream_output) throws Exception {
+		String model_title = getModelTitle(test_model);
 		ShexValidationReport r = new ShexValidationReport(null, test_model);	
 		RDF rdfFactory = new SimpleRDF();
 		JenaRDF jr = new JenaRDF();
@@ -169,22 +171,15 @@ public class ShexValidator {
 					}	
 					r.addViolation(violation);
 					String error = r.getAsText(); 
-					r.node_report.put(node, error);
 					if(stream_output) {
-						System.out.println("Invalid model:"+r.model_title+"\n\t"+error);
-					}
-					r.model_report += error+"\n";
-					violation.setCommentary(error);	
-					
-					
+						System.out.println("Invalid model:"+model_title+"\n\t"+error);
+					}				
 				}else if(status.equals(Status.NOTCOMPUTED)) {
 					//if any of these are not computed, there is a problem
 					String error = focus_node_id+" was not tested against "+shapelabel;
-					r.node_report.put(focus_node_id, error);
 					if(stream_output) {
-						System.out.println("Invalid model:"+r.model_title+"\n\t"+error);
+						System.out.println("Invalid model:"+model_title+"\n\t"+error);
 					}
-					r.model_report += error+"\n";
 				}
 			}
 		}
@@ -428,5 +423,22 @@ public class ShexValidator {
 			System.out.println("currently ignoring "+expr);
 		}
 		return shape_refs;
+	}
+	
+	public static String getModelTitle(Model model) {
+		String model_title = null;
+		String q = "select ?cam ?title where {"
+				+ "?cam <http://purl.org/dc/elements/1.1/title> ?title }";
+		//	+ "?cam <"+DC.description.getURI()+"> ?title }";
+		QueryExecution qe = QueryExecutionFactory.create(q, model);
+		ResultSet results = qe.execSelect();
+		if (results.hasNext()) {
+			QuerySolution qs = results.next();
+			Resource model_id_resource = qs.getResource("cam");
+			Literal title = qs.getLiteral("title");
+			model_title = title.getString();
+		}
+		qe.close();
+		return model_title;
 	}
 }

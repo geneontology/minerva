@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import org.geneontology.minerva.json.*;
 import org.geneontology.minerva.server.validation.ModelValidationReport;
+import org.geneontology.minerva.server.validation.ValidationResultSet;
 
 import javax.ws.rs.*;
 import java.util.List;
@@ -126,7 +127,7 @@ public interface M3BatchHandler {
 			public Boolean nonconformantFlag;
 
 			@SerializedName("validation-results")
-			public Set<ModelValidationReport> validation_results;
+			public ValidationResultSet validation_results;
 
 		}
 		

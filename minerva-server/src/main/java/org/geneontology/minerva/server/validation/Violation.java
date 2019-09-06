@@ -10,7 +10,6 @@ package org.geneontology.minerva.server.validation;
 public class Violation {
 
 	String node;
-	String commentary;
 	/**
 	 * 
 	 */
@@ -22,12 +21,6 @@ public class Violation {
 	}
 	public void setNode(String node) {
 		this.node = node;
-	}
-	public String getCommentary() {
-		return commentary;
-	}
-	public void setCommentary(String commentary) {
-		this.commentary = commentary;
 	}
 
 	

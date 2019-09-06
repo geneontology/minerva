@@ -11,6 +11,7 @@ import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.server.validation.ModelValidationReport;
+import org.geneontology.minerva.server.validation.ValidationResultSet;
 import org.glassfish.jersey.server.JSONP;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 
@@ -207,13 +208,8 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			isConsistent = inferenceProvider.isConsistent();
 			response.setReasoned(true);
 			values.renderBulk = true; // to ensure that all individuals are in the response
-			for(ModelValidationReport report : inferenceProvider.getValidation_reports()) {
-				//if any of the validation tests come back noncomformant, set nonconformant ("something is wrong") flag
-				if(!report.isConformant()) {
-					isConformant = false;
-					break;
-				}
-			}			
+			ValidationResultSet validations = inferenceProvider.getValidation_results();
+			isConformant = validations.allConformant();	
 		}
 
 		// create response.data
@@ -244,7 +240,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		}
 		if(!isConformant) {
 			response.data.nonconformantFlag = Boolean.TRUE;
-			response.data.validation_results = inferenceProvider.getValidation_reports();
+			response.data.validation_results = inferenceProvider.getValidation_results();
 		}else {
 			response.data.nonconformantFlag = Boolean.FALSE;
 		}

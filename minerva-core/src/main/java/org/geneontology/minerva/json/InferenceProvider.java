@@ -4,7 +4,7 @@ import java.util.Set;
 
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
-import org.geneontology.minerva.server.validation.ModelValidationReport;
+import org.geneontology.minerva.server.validation.ValidationResultSet;
 
 public interface InferenceProvider {
 
@@ -12,7 +12,7 @@ public interface InferenceProvider {
 	
 	public Set<OWLClass> getTypes(OWLNamedIndividual i);
 	
-	public Set<ModelValidationReport> getValidation_reports();
+	public ValidationResultSet  getValidation_results();
 
 	Set<OWLClass> getAllTypes(OWLNamedIndividual i);
 }
