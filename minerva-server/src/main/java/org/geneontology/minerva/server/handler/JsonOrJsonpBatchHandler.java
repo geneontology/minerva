@@ -239,10 +239,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			response.data.inconsistentFlag =  Boolean.TRUE;
 		}
 		if(!isConformant) {
-			response.data.nonconformantFlag = Boolean.TRUE;
 			response.data.validation_results = inferenceProvider.getValidation_results();
-		}else {
-			response.data.nonconformantFlag = Boolean.FALSE;
 		}
 		response.data.modifiedFlag = Boolean.valueOf(values.model.isModified());
 		// These are required for an "okay" response.

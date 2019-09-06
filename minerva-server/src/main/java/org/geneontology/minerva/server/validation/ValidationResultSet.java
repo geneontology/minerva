@@ -10,6 +10,10 @@ import com.google.gson.annotations.SerializedName;
  *
  */
 public class ValidationResultSet {
+	
+	@SerializedName("is-conformant")
+	boolean all_conformant;
+	
 	@SerializedName("owl-validation")
 	OWLValidationReport owl_validation; 
 	
@@ -22,6 +26,11 @@ public class ValidationResultSet {
 		super();
 		this.owl_validation = owlvalidation;
 		this.shex_validation = shexvalidation;
+		if(owlvalidation.conformant&&shex_validation.conformant) {
+			all_conformant = true;
+		}else {
+			all_conformant = false;
+		}
 	}
 
 	public OWLValidationReport getOwlvalidation() {

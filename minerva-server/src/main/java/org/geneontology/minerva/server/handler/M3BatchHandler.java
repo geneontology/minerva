@@ -122,9 +122,6 @@ public interface M3BatchHandler {
 
 			@SerializedName("sparql-result")
 			public JsonObject sparqlResult;
-			
-			@SerializedName("noncomformant-p")
-			public Boolean nonconformantFlag;
 
 			@SerializedName("validation-results")
 			public ValidationResultSet validation_results;
