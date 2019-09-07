@@ -21,7 +21,7 @@ public class MapInferenceProvider implements InferenceProvider {
 	private final Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes;
 	private final Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects;
 	//for shex and other validation
-	private Set<ModelValidationReport> validation_reports;
+	private ValidationResultSet validation_results;
 	
 	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, ShexValidator shex) {
 		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes = new HashMap<>();
@@ -50,40 +50,36 @@ public class MapInferenceProvider implements InferenceProvider {
 				inferredTypesWithIndirects.put(individual, all_inferred);
 			}
 		}
-		//Aim to support multiple validation regimes - e.g. reasoner, shex, gorules
-		Set<ModelValidationReport> all_validation_results = new HashSet<ModelValidationReport>();
 		//reasoner
-		ModelValidationReport reasoner_validation_report = new OWLValidationReport();
-		reasoner_validation_report.setConformant(isConsistent);
+		OWLValidationReport reasoner_validation = new OWLValidationReport();
+		reasoner_validation.setConformant(isConsistent);
 		if(!isConsistent) {
 			Violation i_v = new Violation("id of inconsistent node");
-			i_v.setCommentary("comment about why");
-			reasoner_validation_report.addViolation(i_v);
+			reasoner_validation.addViolation(i_v);
 		}
-		all_validation_results.add(reasoner_validation_report);
+
 		//shex
 		//generate an RDF model
 		Model model = JenaOwlTool.getJenaModel(ont);
 		//add superclasses to types used in model 
 		model = shex.enrichSuperClasses(model);
-		ModelValidationReport validation_report = null;
+		ShexValidationReport shex_validation = null;
 		try {
-			validation_report = shex.createValidationReport(model);
-			if(validation_report!=null) {
-				all_validation_results.add(validation_report);
-			}
+			boolean stream_output_for_debug = true;
+			shex_validation = shex.runShapeMapValidation(model, stream_output_for_debug);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}	
-		return new MapInferenceProvider(isConsistent, inferredTypes, inferredTypesWithIndirects, all_validation_results);
+		ValidationResultSet all_validations = new ValidationResultSet(reasoner_validation, shex_validation);
+		return new MapInferenceProvider(isConsistent, inferredTypes, inferredTypesWithIndirects, all_validations);
 	}
 
-	MapInferenceProvider(boolean isConsistent, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects, Set<ModelValidationReport> validation_reports) {
+	MapInferenceProvider(boolean isConsistent, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects, ValidationResultSet validation_reports) {
 		this.isConsistent = isConsistent;
 		this.inferredTypes = inferredTypes;
 		this.inferredTypesWithIndirects = inferredTypesWithIndirects;
-		this.validation_reports = validation_reports;
+		this.validation_results = validation_reports;
 	}
 
 	@Override
@@ -114,7 +110,9 @@ public class MapInferenceProvider implements InferenceProvider {
 		return result;
 	}
 
-	public Set<ModelValidationReport> getValidation_reports() {
-		return validation_reports;
+	public ValidationResultSet getValidation_results() {
+		return validation_results;
 	}
+
+
 }

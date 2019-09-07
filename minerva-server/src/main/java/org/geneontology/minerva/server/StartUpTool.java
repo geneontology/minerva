@@ -348,6 +348,7 @@ public class StartUpTool {
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
 		conf.shex.tbox_reasoner = models.getTbox_reasoner();
+		conf.shex.curieHandler = conf.curieHandler;
 		// start server
 		Server server = startUp(models, conf);
 		return server;

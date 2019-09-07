@@ -9,25 +9,18 @@ package org.geneontology.minerva.server.validation;
  */
 public class Violation {
 
-	String node_id;
-	String commentary;
+	String node;
 	/**
 	 * 
 	 */
-	public Violation(String node_id) {
-		setNode_id(node_id);
+	public Violation(String node) {
+		setNode(node);
 	}
-	public String getNode_id() {
-		return node_id;
+	public String getNode() {
+		return node;
 	}
-	public void setNode_id(String node_id) {
-		this.node_id = node_id;
-	}
-	public String getCommentary() {
-		return commentary;
-	}
-	public void setCommentary(String commentary) {
-		this.commentary = commentary;
+	public void setNode(String node) {
+		this.node = node;
 	}
 
 	

@@ -3,32 +3,53 @@
  */
 package org.geneontology.minerva.server.validation;
 
+import java.util.Set;
+
+import com.google.gson.annotations.SerializedName;
+
 /**
  * @author bgood
  *
  */
 public class ShexConstraint {
-	String property_id;
-	String propery_range;
+	String object;
+	String property;
+	
+	@SerializedName("intended-range-shapes")
+	Set<String> intended_range_shapes;
 	/**
 	 * 
 	 */
-	public ShexConstraint(String property_id, String propery_range) {
-		this.property_id = property_id;
-		this.propery_range = propery_range;
+
+
+	public ShexConstraint(String object, String property, Set<String> intended_range_shapes) {
+		super();
+		this.object = object;
+		this.property = property;
+		this.intended_range_shapes = intended_range_shapes;
+	}
+	
+	public Set<String> getIntended_range_shapes() {
+		return intended_range_shapes;
+	}
+	public void setIntended_range_shapes(Set<String> intended_range_shapes) {
+		this.intended_range_shapes = intended_range_shapes;
 	}
 
-	public String getProperty_id() {
-		return property_id;
+	public String getObject() {
+		return object;
 	}
-	public void setProperty_id(String property_id) {
-		this.property_id = property_id;
+
+	public void setObject(String object) {
+		this.object = object;
 	}
-	public String getPropery_range() {
-		return propery_range;
+
+	public String getProperty() {
+		return property;
 	}
-	public void setPropery_range(String propery_range) {
-		this.propery_range = propery_range;
+
+	public void setProperty(String property) {
+		this.property = property;
 	}
 
 }

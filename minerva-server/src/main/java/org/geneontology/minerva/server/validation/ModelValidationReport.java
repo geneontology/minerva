@@ -6,14 +6,20 @@ package org.geneontology.minerva.server.validation;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.google.gson.annotations.SerializedName;
+
 /**
  * @author bgood
  *
  */
 public class ModelValidationReport {
 	final String id;
+	
+	@SerializedName("is-conformant")
 	boolean conformant;
 	final String tracker;
+	
+	@SerializedName("rule-file")
 	final String rulefile;
 	Set<Violation> violations;
 	

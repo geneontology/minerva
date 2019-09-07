@@ -16,8 +16,8 @@ public class ShexViolation extends Violation {
 	/**
 	 * 
 	 */
-	public ShexViolation(String node_id) {
-		super(node_id);
+	public ShexViolation(String node) {
+		super(node);
 		explanations = new HashSet<ShexExplanation>();
 	}
 	public Set<ShexExplanation> getExplanations() {
