@@ -13,6 +13,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
+import org.geneontology.rules.engine.WorkingMemory;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
@@ -314,5 +315,6 @@ public class UndoAwareMolecularModelManager extends MolecularModelManager<UndoMe
 	protected void applyChanges(ModelContainer model, List<OWLOntologyChange> changes) {
 		model.applyChanges(changes);
 	}
+
 	
 }

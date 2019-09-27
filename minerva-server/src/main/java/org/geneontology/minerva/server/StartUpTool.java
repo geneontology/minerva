@@ -25,6 +25,8 @@ import org.geneontology.minerva.server.validation.ShexValidator;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.search.EntitySearcher;
+import org.semanticweb.owlapi.search.Searcher;
 
 import owltools.cli.Opts;
 import owltools.gaf.eco.EcoMapperFactory;
@@ -35,6 +37,7 @@ import owltools.io.ParserWrapper;
 
 import java.io.File;
 import java.net.URL;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
@@ -43,7 +46,7 @@ import java.util.concurrent.TimeUnit;
 
 
 public class StartUpTool {
-	
+
 	private static final Logger LOGGER = Logger.getLogger(StartUpTool.class);
 
 	public static class MinervaStartUpConfig {
@@ -54,9 +57,9 @@ public class StartUpTool {
 		public String exportFolder = null;
 		public String modelIdPrefix = "http://model.geneontology.org/";
 		public String modelIdcurie = "gomodel";
-		
+
 		public String defaultModelState = "development";
-		
+
 		public String golrUrl = null;
 		public String monarchUrl = null;
 		public String golrSeedUrl = null;
@@ -67,7 +70,7 @@ public class StartUpTool {
 		public boolean checkLiteralIds = true;
 
 		public String reasonerOpt = null;
-		
+
 		public CurieHandler curieHandler;
 
 		// The subset of highly relevant relations is configured using super property
@@ -79,25 +82,25 @@ public class StartUpTool {
 		public int port = 6800; 
 		public String contextPrefix = null; // root context by default
 		public String contextString = null;
-		
+
 		// increase default size to deal with large HTTP GET requests
 		public int requestHeaderSize = 64*1024;
 		public int requestBufferSize = 128*1024;
-		
+
 		public boolean useRequestLogging = false;
-		
+
 		public boolean useGolrUrlLogging = false;
-		
+
 		public String prefixesFile = null;
 
 		public int sparqlEndpointTimeout = 100;
-		
+
 		public String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 		public String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
 		public ShexValidator shex;
-	
+
 	}
-	
+
 	public static void main(String[] args) throws Exception {
 		Opts opts = new Opts(args);
 		MinervaStartUpConfig conf = new MinervaStartUpConfig();
@@ -109,7 +112,7 @@ public class StartUpTool {
 		File shex_map_file = new File("./target/go-cam-shapes.shapeMap");
 		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
 		conf.shex = new ShexValidator(shex_schema_file, shex_map_file);
-		
+
 		while (opts.hasArgs()) {
 			if (opts.nextEq("-g|--graph")) {
 				conf.ontology = opts.nextOpt();
@@ -225,7 +228,7 @@ public class StartUpTool {
 		if (conf.contextPrefix != null) {
 			conf.contextString = "/"+conf.contextPrefix;
 		}
-		
+
 		// set curie handler
 		final CurieMappings mappings;
 		if (conf.prefixesFile != null) {
@@ -251,7 +254,7 @@ public class StartUpTool {
 					" use url logging: "+conf.useGolrUrlLogging);
 			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
 		}
-		
+
 		Server server = startUp(conf);
 		try {
 			server.join();
@@ -261,7 +264,7 @@ public class StartUpTool {
 			server.destroy();
 		}
 	}
-	
+
 	/**
 	 * Try to resolve the given string into an {@link OWLObjectProperty}.
 	 * 
@@ -288,7 +291,7 @@ public class StartUpTool {
 		}
 		return p;
 	}
-	
+
 	/**
 	 * Find all asserted direct sub properties of the parent property.
 	 * 
@@ -321,8 +324,24 @@ public class StartUpTool {
 			pw.addIRIMapper(new CatalogXmlIRIMapper(conf.catalog));
 		}
 		OWLGraphWrapper graph = pw.parseToOWLGraph(conf.ontology);
-		
-		// try to get important relations
+		//In some cases, go-lego is not pre-merged and parseToOWLgraph keeps the imports separate
+		//most OWL API methods have an include-imports option that makes this work
+		//but EntitySearcher methods that deal with annotation assertions do not.
+		//The current pattern for mapping external ontologies to local ones (e.g. reactome to uniprot)
+		//involves the use of an annotation property..  To get that to work,
+		//need to pre-merge the ontologies.  
+		OWLOntology full_tbox = graph.getSourceOntology();	
+		Set<OWLOntology> import_set = graph.getAllOntologies();
+		if(import_set!=null) {
+			for(OWLOntology ont : import_set) {
+				if(!ont.equals(full_tbox)) {
+					full_tbox.getOWLOntologyManager().addAxioms(full_tbox, ont.getAxioms());
+					full_tbox.getOWLOntologyManager().removeOntology(ont);
+				}
+			}
+		}
+		graph.setSourceOntology(full_tbox);
+
 		if (conf.importantRelationParent != null) {
 			// try to find parent property
 			OWLObjectProperty parentProperty = getRelation(conf.importantRelationParent, graph);
@@ -339,8 +358,8 @@ public class StartUpTool {
 		}
 
 		// set folder to  models
-				LOGGER.info("Model path: "+conf.journalFile);
-		
+		LOGGER.info("Model path: "+conf.journalFile);
+
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph.getSourceOntology(),
@@ -353,7 +372,7 @@ public class StartUpTool {
 		Server server = startUp(models, conf);
 		return server;
 	}
-	
+
 	public static InferenceProviderCreator createInferenceProviderCreator(String reasonerOpt, UndoAwareMolecularModelManager models, ShexValidator shex) { 
 		switch(reasonerOpt) { 
 		case ("slme-hermit"): return CachingInferenceProviderCreatorImpl.createHermiT(shex); 
@@ -363,7 +382,7 @@ public class StartUpTool {
 		default: return null; 
 		} 
 	} 
-	
+
 	public static Server startUp(UndoAwareMolecularModelManager models, MinervaStartUpConfig conf)
 			throws Exception {
 		LOGGER.info("Setup Jetty config.");
@@ -378,7 +397,7 @@ public class StartUpTool {
 			resourceConfig.register(LoggingApplicationEventListener.class);
 		}
 		//resourceConfig.register(AuthorizationRequestFilter.class);
-		
+
 		LOGGER.info("BatchHandler config inference provider: "+conf.reasonerOpt);
 		LOGGER.info("BatchHandler config importantRelations: "+conf.importantRelations);
 		LOGGER.info("BatchHandler config lookupService: "+conf.lookupService);
@@ -389,13 +408,13 @@ public class StartUpTool {
 			conf.golrSeedUrl = conf.golrUrl;
 		}
 		LOGGER.info("SeedHandler config golrUrl: "+conf.golrSeedUrl);
-		
+
 		InferenceProviderCreator ipc = createInferenceProviderCreator(conf.reasonerOpt, models, conf.shex); 
-		
+
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
 				ipc, conf.importantRelations, conf.lookupService);
 		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
-		
+
 		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
 		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
 		SPARQLHandler sparqlHandler = new SPARQLHandler(models, conf.sparqlEndpointTimeout);
@@ -413,11 +432,11 @@ public class StartUpTool {
 		//new jetty - does not have setRequestBufferSize at all
 		//seems to push defaults harder here.
 		//to change request header size need to create a new connector and manipulate httpconfiguration
-        HttpConfiguration http_config = new HttpConfiguration();  
-        http_config.setRequestHeaderSize(conf.requestHeaderSize);
+		HttpConfiguration http_config = new HttpConfiguration();  
+		http_config.setRequestHeaderSize(conf.requestHeaderSize);
 		ServerConnector connector = new ServerConnector(server, new HttpConnectionFactory(http_config));
 		connector.setPort(conf.port);
-        
+
 		server.addConnector(connector);
 
 		ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
