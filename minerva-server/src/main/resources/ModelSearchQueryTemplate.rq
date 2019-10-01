@@ -13,7 +13,7 @@ PREFIX causally_upstream_of: <http://purl.obolibrary.org/obo/RO_0002411>
 PREFIX provides_direct_input_for: <http://purl.obolibrary.org/obo/RO_0002413>
 PREFIX directly_positively_regulates: <http://purl.obolibrary.org/obo/RO_0002629>
 
-SELECT  ?cam ?id ?date ?title ?state <ind_return_list> (GROUP_CONCAT(?contributor;separator=";") AS ?contributors) (GROUP_CONCAT(?group;separator=";") AS ?groups)   
+SELECT  <return_block>    
 WHERE {
   GRAPH ?cam {  
         ?cam <http://purl.org/dc/elements/1.1/title> ?title ;
@@ -31,7 +31,7 @@ WHERE {
       <title_constraint>
     }
   } 
-  GROUP BY ?id ?date ?title ?cam ?state <ind_return_list> 
+  <group_by_constraint>
   ORDER BY desc(?date)  
 <limit_constraint>
 <offset_constraint>
