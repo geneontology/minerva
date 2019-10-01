@@ -94,25 +94,27 @@ public class ModelSearchHandler {
 			@QueryParam("group") Set<String> group,
 			@QueryParam("date") String date,
 			@QueryParam("offset") int offset,
-			@QueryParam("limit") int limit
+			@QueryParam("limit") int limit,
+			@QueryParam("count") String count
 			){
 		ModelSearchResult result = new ModelSearchResult();
-			result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit);
-			return result;
+		result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit, count);
+		return result;
 	}
 	//TODO make junit tests out of these. 
 	//examples 
 	//http://127.0.0.1:6800/search/?
-	//?gene_product_class_uri=http://identifiers.org/mgi/MGI:1328355
-	//&gene_product_class_uri=http://identifiers.org/mgi/MGI:87986
+	//?gp=http://identifiers.org/mgi/MGI:1328355
+	//&gp=http://identifiers.org/mgi/MGI:87986
 	//&goterm=http://purl.obolibrary.org/obo/GO_0030968
 	//&title=mouse
 	//&pmid=PMID:19911006
 	//&state=development&state=review {development, production, closed, review, delete} or operator
+	//&count
 	public ModelSearchResult search(
 			Set<String> gene_product_ids, Set<String> goterms, Set<String>pmids, 
 			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, String date_search,
-			int offset, int limit) {
+			int offset, int limit, String count) {
 		ModelSearchResult r = new ModelSearchResult();
 		Set<String> type_ids = new HashSet<String>();
 		if(gene_product_ids!=null) {
@@ -226,7 +228,18 @@ public class ModelSearchHandler {
 		if(offset==0&&limit==0) {
 			limit_constraint = "LIMIT 1000\n";
 		}
-
+		//default group by
+		String group_by_constraint = "GROUP BY ?id ?date ?title ?cam ?state <ind_return_list> ";
+		//default return block
+		String return_block = "?cam ?id ?date ?title ?state <ind_return_list> (GROUP_CONCAT(?contributor;separator=\";\") AS ?contributors) (GROUP_CONCAT(?group;separator=\";\") AS ?groups)";
+		if(count!=null) {
+			return_block = "(count(distinct ?cam) as ?count)";
+			limit_constraint = "";
+			offset_constraint = "";
+			group_by_constraint = "";
+		}
+		sparql = sparql.replaceAll("<return_block>", return_block);
+		sparql = sparql.replaceAll("<group_by_constraint>", group_by_constraint);
 		sparql = sparql.replaceAll("<ind_return_list>", ind_return_list);
 		sparql = sparql.replaceAll("<types>", types);
 		sparql = sparql.replaceAll("<pmid_constraints>", pmid_constraints);
@@ -254,62 +267,69 @@ public class ModelSearchHandler {
 			e.printStackTrace();
 			return r;
 		}
-
+		String n_count = null;
 		try {
 			while(result.hasNext()) {
 				BindingSet bs = result.next();
-				//model meta
-				String id = bs.getBinding("id").getValue().stringValue();
-				String date = bs.getBinding("date").getValue().stringValue();
-				String title = bs.getBinding("title").getValue().stringValue();
-				String contribs = bs.getBinding("contributors").getValue().stringValue();
-				//optional values (some are empty)
-				Binding state_binding = bs.getBinding("state");
-				String state = "";
-				if(state_binding!=null) {
-					state = state_binding.getValue().stringValue();
-				}
-				Binding group_binding = bs.getBinding("groups");
-				String groups_ = "";
-				if(group_binding!=null) {
-					groups_ = group_binding.getValue().stringValue();
-				}							
-				Set<String> contributors = new HashSet<String>();
-				if(contributors!=null) {
-					for(String c : contribs.split(";")) {
-						contributors.add(c);
+				if(count!=null) {
+					n_count = bs.getBinding("count").getValue().stringValue();
+				}else {
+					//model meta
+					String id = bs.getBinding("id").getValue().stringValue();
+					String date = bs.getBinding("date").getValue().stringValue();
+					String title = bs.getBinding("title").getValue().stringValue();
+					String contribs = bs.getBinding("contributors").getValue().stringValue();
+					//optional values (some are empty)
+					Binding state_binding = bs.getBinding("state");
+					String state = "";
+					if(state_binding!=null) {
+						state = state_binding.getValue().stringValue();
 					}
-				}
-				Set<String> groups = new HashSet<String>();
-				if(groups_!=null) {
-					for(String c : groups_.split(";")) {
-						groups.add(c);
+					Binding group_binding = bs.getBinding("groups");
+					String groups_ = "";
+					if(group_binding!=null) {
+						groups_ = group_binding.getValue().stringValue();
+					}							
+					Set<String> contributors = new HashSet<String>();
+					if(contributors!=null) {
+						for(String c : contribs.split(";")) {
+							contributors.add(c);
+						}
 					}
-				}
-				ModelMeta mm = id_model.get(id);
-				if(mm==null) {
-					mm = new ModelMeta(id, date, title, state, contributors, groups);
-				}
-				//matching     		
-				for(String ind : ind_return.keySet()) {
-					String ind_class_match = bs.getBinding(ind.replace("?", "")).getValue().stringValue();
-					Set<String> matching_inds = mm.query_match.get(ind_return.get(ind));
-					if(matching_inds==null) {
-						matching_inds = new HashSet<String>();
+					Set<String> groups = new HashSet<String>();
+					if(groups_!=null) {
+						for(String c : groups_.split(";")) {
+							groups.add(c);
+						}
 					}
-					matching_inds.add(ind_class_match);
-					mm.query_match.put(ind_return.get(ind), matching_inds);
+					ModelMeta mm = id_model.get(id);
+					if(mm==null) {
+						mm = new ModelMeta(id, date, title, state, contributors, groups);
+					}
+					//matching     		
+					for(String ind : ind_return.keySet()) {
+						String ind_class_match = bs.getBinding(ind.replace("?", "")).getValue().stringValue();
+						Set<String> matching_inds = mm.query_match.get(ind_return.get(ind));
+						if(matching_inds==null) {
+							matching_inds = new HashSet<String>();
+						}
+						matching_inds.add(ind_class_match);
+						mm.query_match.put(ind_return.get(ind), matching_inds);
+					}
+					id_model.put(id, mm);
 				}
-				id_model.put(id, mm);
 			}
 		} catch (QueryEvaluationException e) {
 			r.message = "Query Evaluation Problem - probably a time out";
 			r.error = e.getMessage();
 			e.printStackTrace();
 			return r;
-		}
-		r.n = id_model.size();
-		r.models = new HashSet<ModelMeta>(id_model.values());
+		}		if(n_count!=null) {
+			r.n = Integer.parseInt(n_count);
+		}else {
+			r.n = id_model.size();
+			r.models = new HashSet<ModelMeta>(id_model.values());
+		}		
 		try {
 			result.close();
 		} catch (QueryEvaluationException e) {
