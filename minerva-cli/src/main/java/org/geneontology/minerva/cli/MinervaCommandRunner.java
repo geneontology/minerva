@@ -417,17 +417,21 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(ontology, curieHandler, modelIdPrefix, inputDB, null);
-		for (IRI modelIRI : m3.getAvailableModelIds()) {
+		final String immutableModelIdPrefix = modelIdPrefix;
+		final String immutableGpadOutputFolder = gpadOutputFolder;
+		m3.getAvailableModelIds().stream().parallel().forEach(modelIRI -> {
 			try {
 				String gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createInferredModel(modelIRI));
-				String fileName = StringUtils.replaceOnce(modelIRI.toString(), modelIdPrefix, "") + ".gpad";
-				Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(gpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
+				String fileName = StringUtils.replaceOnce(modelIRI.toString(), immutableModelIdPrefix, "") + ".gpad";
+				Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(immutableGpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
 				writer.write(gpad);
-				writer.close();	
+				writer.close();
 			} catch (InconsistentOntologyException e) {
 				LOGGER.error("Inconsistent ontology: " + modelIRI);
+			} catch (IOException e) {
+				LOGGER.error("Couldn't export GPAD for: " + modelIRI, e);
 			}
-		}
+		});
 		m3.dispose();
 	}
 	
