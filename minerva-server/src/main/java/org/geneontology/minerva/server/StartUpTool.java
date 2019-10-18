@@ -21,7 +21,7 @@ import org.geneontology.minerva.lookup.MonarchExternalLookupService;
 import org.geneontology.minerva.server.handler.*;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
-import org.geneontology.minerva.server.validation.ShexValidator;
+import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.semanticweb.owlapi.model.*;
@@ -97,21 +97,13 @@ public class StartUpTool {
 
 		public String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 		public String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
-		public ShexValidator shex;
+		public MinervaShexValidator shex;
 
 	}
 
 	public static void main(String[] args) throws Exception {
 		Opts opts = new Opts(args);
 		MinervaStartUpConfig conf = new MinervaStartUpConfig();
-		//TODO maybe make these command line parameters
-		URL shex_schema_url = new URL(conf.shexFileUrl);
-		File shex_schema_file = new File("./target/shex-schema.shex");
-		org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);
-		URL shex_map_url = new URL(conf.goshapemapFileUrl);
-		File shex_map_file = new File("./target/go-cam-shapes.shapeMap");
-		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
-		conf.shex = new ShexValidator(shex_schema_file, shex_map_file);
 
 		while (opts.hasArgs()) {
 			if (opts.nextEq("-g|--graph")) {
@@ -238,7 +230,15 @@ public class StartUpTool {
 		}
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(conf.modelIdcurie, conf.modelIdPrefix));
 		conf.curieHandler = new MappedCurieHandler(mappings, localMappings);
-
+		//TODO maybe make these command line parameters
+		URL shex_schema_url = new URL(conf.shexFileUrl);
+		File shex_schema_file = new File("./target/shex-schema.shex");
+		org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);
+		URL shex_map_url = new URL(conf.goshapemapFileUrl);
+		File shex_map_file = new File("./target/go-cam-shapes.shapeMap");
+		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
+		conf.shex = new MinervaShexValidator(shex_schema_file, shex_map_file, conf.curieHandler);
+		
 		// wrap the Golr service with a cache
 		if (conf.golrUrl != null) {
 			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler, conf.useGolrUrlLogging);
@@ -373,7 +373,7 @@ public class StartUpTool {
 		return server;
 	}
 
-	public static InferenceProviderCreator createInferenceProviderCreator(String reasonerOpt, UndoAwareMolecularModelManager models, ShexValidator shex) { 
+	public static InferenceProviderCreator createInferenceProviderCreator(String reasonerOpt, UndoAwareMolecularModelManager models, MinervaShexValidator shex) { 
 		switch(reasonerOpt) { 
 		case ("slme-hermit"): return CachingInferenceProviderCreatorImpl.createHermiT(shex); 
 		case ("slme-elk"): return CachingInferenceProviderCreatorImpl.createElk(true, shex); 

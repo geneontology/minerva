@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.ModelContainer.ModelChangeListener;
 import org.geneontology.minerva.json.InferenceProvider;
-import org.geneontology.minerva.server.validation.ShexValidator;
+import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.geneontology.rules.engine.RuleEngine;
 import org.geneontology.rules.util.ArachneOWLReasonerFactory;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
@@ -19,11 +19,11 @@ public class CachingInferenceProviderCreatorImpl extends InferenceProviderCreato
 	
 	private final Map<ModelContainer, InferenceProvider> inferenceCache = new ConcurrentHashMap<>();
 	
-	protected CachingInferenceProviderCreatorImpl(OWLReasonerFactory rf, int maxConcurrent, boolean useSLME, String name, ShexValidator shex) {
+	protected CachingInferenceProviderCreatorImpl(OWLReasonerFactory rf, int maxConcurrent, boolean useSLME, String name, MinervaShexValidator shex) {
 		super(rf, maxConcurrent, useSLME, name, shex);	
 	}
 
-	public static InferenceProviderCreator createElk(boolean useSLME, ShexValidator shex) {
+	public static InferenceProviderCreator createElk(boolean useSLME, MinervaShexValidator shex) {
 		String name;
 		if (useSLME) {
 			name = "Caching ELK-SLME";
@@ -34,17 +34,17 @@ public class CachingInferenceProviderCreatorImpl extends InferenceProviderCreato
 		return new CachingInferenceProviderCreatorImpl(new ElkReasonerFactory(), 1, useSLME, name, shex);
 	}
 
-	public static InferenceProviderCreator createHermiT(ShexValidator shex) {
+	public static InferenceProviderCreator createHermiT(MinervaShexValidator shex) {
 		int maxConcurrent = Runtime.getRuntime().availableProcessors();
 		return createHermiT(maxConcurrent, shex);
 	}
 	
-	public static InferenceProviderCreator createHermiT(int maxConcurrent, ShexValidator shex) {
+	public static InferenceProviderCreator createHermiT(int maxConcurrent, MinervaShexValidator shex) {
 		return new CachingInferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(),
 				maxConcurrent, true, "Caching Hermit-SLME", shex);
 	}
 	
-	public static InferenceProviderCreator createArachne(RuleEngine arachne, ShexValidator shex) {
+	public static InferenceProviderCreator createArachne(RuleEngine arachne, MinervaShexValidator shex) {
 		return new CachingInferenceProviderCreatorImpl(new ArachneOWLReasonerFactory(arachne), 1, false, "Caching Arachne", shex);
 	}
 
