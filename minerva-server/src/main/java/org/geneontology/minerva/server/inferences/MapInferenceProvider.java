@@ -8,10 +8,11 @@ import java.util.Set;
 
 import org.apache.jena.rdf.model.Model;
 import org.geneontology.minerva.json.InferenceProvider;
-import org.geneontology.minerva.server.validation.*;
+import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.geneontology.minerva.util.JenaOwlTool;
 import org.geneontology.shapes.OWLValidationReport;
 import org.geneontology.shapes.ShexValidationReport;
+import org.geneontology.shapes.ValidationResultSet;
 import org.geneontology.shapes.Violation;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
@@ -117,5 +118,6 @@ public class MapInferenceProvider implements InferenceProvider {
 		return validation_results;
 	}
 
+	
 
 }
