@@ -2,7 +2,7 @@ package org.geneontology.minerva.json;
 
 import java.util.Set;
 
-import org.geneontology.shapes.ValidationResultSet;
+import org.geneontology.minerva.validation.ValidationResultSet;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 

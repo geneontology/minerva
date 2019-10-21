@@ -206,7 +206,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			isConsistent = inferenceProvider.isConsistent();
 			response.setReasoned(true);
 			values.renderBulk = true; // to ensure that all individuals are in the response
-			org.geneontology.shapes.ValidationResultSet validations = inferenceProvider.getValidation_results();
+			org.geneontology.minerva.validation.ValidationResultSet validations = inferenceProvider.getValidation_results();
 			isConformant = validations.allConformant();	
 		}
 

@@ -7,7 +7,7 @@ import java.io.File;
 
 import org.apache.jena.rdf.model.Resource;
 import org.geneontology.minerva.curie.CurieHandler;
-import org.geneontology.shapes.ShexValidator;
+import org.geneontology.minerva.validation.ShexValidator;
 import org.semanticweb.owlapi.model.IRI;
 
 /**
