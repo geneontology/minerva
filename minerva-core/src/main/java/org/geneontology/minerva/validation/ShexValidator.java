@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.geneontology.minerva.server.validation;
+package org.geneontology.minerva.validation;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -32,7 +32,6 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDFS;
-import org.geneontology.minerva.curie.CurieHandler;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
@@ -65,7 +64,6 @@ public class ShexValidator {
 	public Map<String, String> GoQueryMap;
 	public OWLReasoner tbox_reasoner;
 	public static final String endpoint = "http://rdf.geneontology.org/blazegraph/sparql";
-	public CurieHandler curieHandler;
 
 	/**
 	 * @throws Exception 
@@ -142,9 +140,10 @@ public class ShexValidator {
 				}
 				//deal with curies for output
 				String node = focus_node_id;
-				if(curieHandler!=null) {
-					node = curieHandler.getCuri(IRI.create(focus_node_resource.getURI()));
-				}
+				node = getPreferredId(node, focus_node_resource);
+//				if(curieHandler!=null) {
+//					node = curieHandler.getCuri(IRI.create(focus_node_resource.getURI()));
+//				}
 				//check the node against the intended shape
 				shex_recursive_validator.validate(focus_node, shape_label);
 				Typing typing = shex_recursive_validator.getTyping();
@@ -297,6 +296,10 @@ public class ShexValidator {
 			for (StmtIterator i = focus_node.listProperties(prop); i.hasNext(); ) {
 				RDFNode obj = i.nextStatement().getObject();
 				//check the computed shapes for this individual
+				if(!obj.isResource()) {
+					continue;
+					//no checks on literal values at this time
+				}
 				RDFTerm range_obj = rdfFactory.createIRI(obj.asResource().getURI());
 				//does it hit any allowable shapes?
 				boolean good = false;
@@ -317,10 +320,12 @@ public class ShexValidator {
 				if(!good) {
 					String object = obj.toString();
 					String property = prop.toString();
-					if(curieHandler!=null) {
-						object = curieHandler.getCuri(IRI.create(object));
-						property = curieHandler.getCuri(IRI.create(property));
-					}
+					object = getPreferredId(object, IRI.create(object));
+					property = getPreferredId(property, IRI.create(property));
+//					if(curieHandler!=null) {
+//						object = curieHandler.getCuri(IRI.create(object));
+//						property = curieHandler.getCuri(IRI.create(property));
+//					}
 					explanation+="\n"+object+" range of "+property+"\n\tshould match one of the following shapes but does not: \n\t\t"+expected_property_ranges.get(prop_uri);
 					ShexConstraint constraint = new ShexConstraint(object, property, expected_property_ranges.get(prop_uri));
 					unmet_constraints.add(constraint);
@@ -328,6 +333,21 @@ public class ShexValidator {
 			}
 		}
 		return unmet_constraints;
+	}
+	
+	
+	/**
+	 * If implementation has something like a curie handler and preference, override these methods
+	 * @param node
+	 * @param iri
+	 * @return
+	 */
+	public String getPreferredId(String node, IRI iri) {
+		return node;
+	}
+
+	public String getPreferredId(String node, Resource resource) {
+		return node;
 	}
 	
 	public static Map<String, Set<String>> getPropertyRangeMap(ShapeExpr expr, Map<String, Set<String>> prop_range){

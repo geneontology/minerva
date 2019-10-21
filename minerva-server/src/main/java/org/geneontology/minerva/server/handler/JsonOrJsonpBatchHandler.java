@@ -10,8 +10,6 @@ import org.geneontology.minerva.json.*;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
-import org.geneontology.minerva.server.validation.ModelValidationReport;
-import org.geneontology.minerva.server.validation.ValidationResultSet;
 import org.glassfish.jersey.server.JSONP;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 
@@ -208,7 +206,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			isConsistent = inferenceProvider.isConsistent();
 			response.setReasoned(true);
 			values.renderBulk = true; // to ensure that all individuals are in the response
-			ValidationResultSet validations = inferenceProvider.getValidation_results();
+			org.geneontology.minerva.validation.ValidationResultSet validations = inferenceProvider.getValidation_results();
 			isConformant = validations.allConformant();	
 		}
 

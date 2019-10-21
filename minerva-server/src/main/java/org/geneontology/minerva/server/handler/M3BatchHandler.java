@@ -3,8 +3,7 @@ package org.geneontology.minerva.server.handler;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import org.geneontology.minerva.json.*;
-import org.geneontology.minerva.server.validation.ModelValidationReport;
-import org.geneontology.minerva.server.validation.ValidationResultSet;
+import org.geneontology.minerva.validation.ValidationResultSet;
 
 import javax.ws.rs.*;
 import java.util.List;

@@ -1,4 +1,5 @@
-package org.geneontology.minerva.server.validation;
+package org.geneontology.minerva.validation;
+
 
 public class OWLValidationReport extends ModelValidationReport {
 	public static final String report_type_id = "OWL_REASONER";

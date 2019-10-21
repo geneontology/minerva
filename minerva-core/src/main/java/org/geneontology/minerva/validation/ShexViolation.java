@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.geneontology.minerva.server.validation;
+package org.geneontology.minerva.validation;
 
 import java.util.HashSet;
 import java.util.Set;

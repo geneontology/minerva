@@ -8,8 +8,12 @@ import java.util.Set;
 
 import org.apache.jena.rdf.model.Model;
 import org.geneontology.minerva.json.InferenceProvider;
-import org.geneontology.minerva.server.validation.*;
+import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.geneontology.minerva.util.JenaOwlTool;
+import org.geneontology.minerva.validation.OWLValidationReport;
+import org.geneontology.minerva.validation.ShexValidationReport;
+import org.geneontology.minerva.validation.ValidationResultSet;
+import org.geneontology.minerva.validation.Violation;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -23,7 +27,7 @@ public class MapInferenceProvider implements InferenceProvider {
 	//for shex and other validation
 	private ValidationResultSet validation_results;
 	
-	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, ShexValidator shex) {
+	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, MinervaShexValidator shex) {
 		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes = new HashMap<>();
 		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects = new HashMap<>();
 		boolean isConsistent = r.isConsistent();
@@ -114,5 +118,6 @@ public class MapInferenceProvider implements InferenceProvider {
 		return validation_results;
 	}
 
+	
 
 }

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package org.geneontology.minerva.server.validation;
+package org.geneontology.minerva.validation;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -29,7 +29,7 @@ public class ValidationResultSet {
 		if(owlvalidation.conformant&&shex_validation.conformant) {
 			all_conformant = true;
 		}else {
-			all_conformant = false;
+			all_conformant = false; 
 		}
 	}
 
