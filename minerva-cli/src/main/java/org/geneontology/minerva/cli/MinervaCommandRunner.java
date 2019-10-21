@@ -64,9 +64,9 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class MinervaCommandRunner extends JsCommandRunner {
-	
+
 	private static final Logger LOGGER = Logger.getLogger(MinervaCommandRunner.class);
-	
+
 	@CLIMethod("--dump-owl-models")
 	public void modelsToOWL(Opts opts) throws Exception {
 		opts.info("[-j|--journal JOURNALFILE] [-f|--folder OWLFILESFOLDER] [-p|--prefix MODELIDPREFIX]",
@@ -94,7 +94,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				break;
 			}
 		}
-		
+
 		// minimal inputs
 		if (journalFilePath == null) {
 			System.err.println("No journal file was configured.");
@@ -106,14 +106,14 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			exit(-1);
 			return;
 		}
-		
+
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 		CurieHandler curieHandler = new MappedCurieHandler();
 		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, outputFolder);
 		m3.dumpAllStoredModels();
 		m3.dispose();
 	}
-	
+
 	@CLIMethod("--import-owl-models")
 	public void importOWLModels(Opts opts) throws Exception {
 		opts.info("[-j|--journal JOURNALFILE] [-f|--folder OWLFILESFOLDER]",
@@ -136,7 +136,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				break;
 			}
 		}
-		
+
 		// minimal inputs
 		if (journalFilePath == null) {
 			System.err.println("No journal file was configured.");
@@ -148,7 +148,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			exit(-1);
 			return;
 		}
-		
+
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 		String modelIdPrefix = "http://model.geneontology.org/"; // this will not be used for anything
 		CurieHandler curieHandler = new MappedCurieHandler();
@@ -159,7 +159,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		}
 		m3.dispose();
 	}
-	
+
 	@CLIMethod("--sparql-update")
 	public void sparqlUpdate(Opts opts) throws OWLOntologyCreationException, IOException, RepositoryException, MalformedQueryException, UpdateExecutionException {
 		opts.info("[-j|--journal JOURNALFILE] [-f|--file SPARQL UPDATE FILE]",
@@ -242,7 +242,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				break;
 			}
 		}
-		
+
 		// minimal inputs
 		if (input == null) {
 			System.err.println("No input model was configured.");
@@ -254,7 +254,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			exit(-1);
 			return;
 		}
-		
+
 		// configuration
 		CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 		GsonBuilder gsonBuilder = new GsonBuilder();
@@ -262,7 +262,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			gsonBuilder.setPrettyPrinting();
 		}
 		Gson gson = gsonBuilder.create();
-		
+
 		// process each model
 		if (LOGGER.isInfoEnabled()) {
 			LOGGER.info("Loading model from file: "+input);
@@ -339,7 +339,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				merge = false;
 			}
 			else if (opts.nextEq("-m|--minimize")) {
-			    opts.info("", "use module extraction to include module of ontology");
+				opts.info("", "use module extraction to include module of ontology");
 				minimize = true;
 			}
 			else {
@@ -349,22 +349,22 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		if (g != null && gafdoc != null && output != null) {
 			GafToLegoIndividualTranslator tr = new GafToLegoIndividualTranslator(g, curieHandler, addLineNumber);
 			OWLOntology lego = tr.translate(gafdoc);
-			
+
 			if (merge) {
 				new OWLGraphWrapper(lego).mergeImportClosure(true);	
 			}
 			if (minimize) {
 				final OWLOntologyManager m = lego.getOWLOntologyManager();
-				
+
 				SyntacticLocalityModuleExtractor sme = new SyntacticLocalityModuleExtractor(m, lego, ModuleType.BOT);
 				Set<OWLEntity> sig = new HashSet<OWLEntity>(lego.getIndividualsInSignature());
 				Set<OWLAxiom> moduleAxioms = sme.extract(sig);
-				
+
 				OWLOntology module = m.createOntology(IRI.generateDocumentIRI());
 				m.addAxioms(module, moduleAxioms);
 				lego = module;
 			}
-			
+
 			OWLOntologyManager manager = lego.getOWLOntologyManager();
 			OutputStream outputStream = null;
 			try {
@@ -389,7 +389,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			return;
 		}
 	}
-	
+
 	/**
 	 * Will test a go-cam model or directory of models against a shex schema and shape map to test conformance
 	 * Example invocation: --validate-go-cams -s /Users/bgood/Documents/GitHub/GO_Shapes/shapes/go-cam-shapes.shex -m /Users/bgood/Documents/GitHub/GO_Shapes/shapes/go-cam-shapes.shapeMap -f /Users/bgood/Documents/GitHub/GO_Shapes/test_ttl/go_cams/should_pass/ -e -r /Users/bgood/Desktop/shapely_report.txt
@@ -406,13 +406,21 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		String report_file = null;
 		boolean addSuperClasses = false;
 		boolean addSuperClassesLocal = false;
+		boolean travisMode = false; 
+		boolean shouldPass = true;
 		String extra_endpoint = null;
 		Map<String, Model> name_model = new HashMap<String, Model>();
-		
+
 		while (opts.hasOpts()) {
-			if (opts.nextEq("-f|--file")) {
+			if(opts.nextEq("-t|--travis")) {
+				travisMode = true;
+			}
+			else if (opts.nextEq("-f|--file")) {
 				model_file = opts.nextOpt();
 				name_model = Enricher.loadRDF(model_file);
+			}
+			else if (opts.nextEq("-shouldfail")) {
+				shouldPass = false;
 			}
 			else if (opts.nextEq("-s|--shexpath")) {
 				shexpath = opts.nextOpt();
@@ -435,10 +443,12 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				break;
 			}
 		}
+		//requirements
 		if(model_file==null) {
 			System.err.println("-f .No go-cam file or directory provided to validate.");
 			exit(-1);
-		}else if(shexpath==null) {
+		}
+		else if(shexpath==null) {
 			System.err.println("-s .No shex schema provided.");
 			exit(-1);
 		}else if(shapemappath==null) {
@@ -474,14 +484,22 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				if(validator.GoQueryMap!=null){
 					boolean stream_output = true;
 					ShexValidationReport r = validator.runShapeMapValidation(test_model, stream_output);
-					System.out.println(r.getAsText());
+					System.out.println(name+" conformant:"+r.isConformant());
 					w.write(name+"\t");
 					if(!r.isConformant()) {
 						w.write("invalid\n");
 						bad++;
+						if(travisMode&&(shouldPass)) {
+							System.out.println(name+" should have validated but did not "+r.getAsText());
+							System.exit(-1);
+						}
 					}else {
 						good++;
 						w.write("valid\n");
+						if(travisMode&&(!shouldPass)) {
+							System.out.println(name+" should NOT have validated but did ");
+							System.exit(-1);
+						}
 					}
 				}
 			}
@@ -538,7 +556,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		}
 		m3.dispose();
 	}
-	
+
 	@CLIMethod("--lego-to-gpad")
 	public void legoToAnnotations(Opts opts) throws Exception {
 		String modelIdPrefix = "http://model.geneontology.org/";
@@ -570,10 +588,10 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			else if (opts.nextEq("--model-id-prefix")) {
 				modelIdPrefix = opts.nextOpt();
 			}
-            else if (opts.nextEq("-s|--input-file-suffix")) {
-                opts.info("SUFFIX", "if a directory is specified, use only files with this suffix. Default is 'ttl'");
-                fileSuffix = opts.nextOpt();
-            }
+			else if (opts.nextEq("-s|--input-file-suffix")) {
+				opts.info("SUFFIX", "if a directory is specified, use only files with this suffix. Default is 'ttl'");
+				fileSuffix = opts.nextOpt();
+			}
 			else if (opts.nextEq("--model-id-curie")) {
 				modelIdcurie = opts.nextOpt();
 			}
@@ -598,7 +616,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 							}
 						}
 					}
-					
+
 				}
 			}
 			else if (opts.nextEq("--add-model-organism-group")) {
@@ -619,7 +637,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		// create curie handler
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-		
+
 		ExternalLookupService lookup= null;
 
 		SimpleEcoMapper mapper = EcoMapperFactory.createSimple();
@@ -633,17 +651,17 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			groupingTranslator.translate(model);
 		}
 		else if (inputFolder != null) {
-		    final String fileSuffixFinal = fileSuffix;
-		    File inputFile = new File(inputFolder).getCanonicalFile();
+			final String fileSuffixFinal = fileSuffix;
+			File inputFile = new File(inputFolder).getCanonicalFile();
 			if (inputFile.isDirectory()) {
 				File[] files = inputFile.listFiles(new FilenameFilter() {
 
 					@Override
 					public boolean accept(File dir, String name) {
-					    if (fileSuffixFinal != null && fileSuffixFinal.length() > 0)
-					        return name.endsWith("."+fileSuffixFinal);
-					    else
-					        return StringUtils.isAlphanumeric(name);
+						if (fileSuffixFinal != null && fileSuffixFinal.length() > 0)
+							return name.endsWith("."+fileSuffixFinal);
+						else
+							return StringUtils.isAlphanumeric(name);
 					}
 				});
 				for (File file : files) {
@@ -666,7 +684,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				}
 			}
 		}
-		
+
 		// by organism
 		if (taxonGroups != null) {
 			for(String group : groupingTranslator.getTaxonGroups()) {
@@ -680,7 +698,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				}
 			}
 		}
-		
+
 		// production only by organism
 		if (taxonGroups != null) {
 			for(String group : groupingTranslator.getProductionTaxonGroups()) {
