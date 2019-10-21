@@ -10,6 +10,7 @@ import com.google.gson.GsonBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.rdf.model.Model;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.GafToLegoIndividualTranslator;
@@ -25,6 +26,9 @@ import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
 import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.util.BlazegraphMutationCounter;
+import org.geneontology.minerva.validation.Enricher;
+import org.geneontology.minerva.validation.ShexValidationReport;
+import org.geneontology.minerva.validation.ShexValidator;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.UpdateExecutionException;
@@ -36,6 +40,10 @@ import org.semanticweb.owlapi.formats.RDFXMLDocumentFormat;
 import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
+import org.semanticweb.owlapi.reasoner.OWLReasoner;
+import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
+import org.semanticweb.owlapi.reasoner.structural.StructuralReasonerFactory;
+
 import owltools.cli.JsCommandRunner;
 import owltools.cli.Opts;
 import owltools.cli.tools.CLIMethod;
@@ -50,6 +58,7 @@ import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
 import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
 
 import java.io.*;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.*;
@@ -381,6 +390,105 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		}
 	}
 	
+	/**
+	 * Will test a go-cam model or directory of models against a shex schema and shape map to test conformance
+	 * Example invocation: --validate-go-cams -s /Users/bgood/Documents/GitHub/GO_Shapes/shapes/go-cam-shapes.shex -m /Users/bgood/Documents/GitHub/GO_Shapes/shapes/go-cam-shapes.shapeMap -f /Users/bgood/Documents/GitHub/GO_Shapes/test_ttl/go_cams/should_pass/ -e -r /Users/bgood/Desktop/shapely_report.txt
+	 * @param opts
+	 * @throws Exception
+	 */
+	@CLIMethod("--validate-go-cams")
+	public void validateGoCams(Opts opts) throws Exception {
+		String url_for_tbox = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
+		ShexValidator validator = null;
+		String shexpath = null;//"../shapes/go-cam-shapes.shex";
+		String shapemappath = null;
+		String model_file = null;//"../test_ttl/go_cams/should_pass/typed_reactome-homosapiens-Acetylation.ttl";
+		String report_file = null;
+		boolean addSuperClasses = false;
+		boolean addSuperClassesLocal = false;
+		String extra_endpoint = null;
+		Map<String, Model> name_model = new HashMap<String, Model>();
+		
+		while (opts.hasOpts()) {
+			if (opts.nextEq("-f|--file")) {
+				model_file = opts.nextOpt();
+				name_model = Enricher.loadRDF(model_file);
+			}
+			else if (opts.nextEq("-s|--shexpath")) {
+				shexpath = opts.nextOpt();
+			}
+			else if(opts.nextEq("-m|--shapemap")) { 
+				shapemappath = opts.nextOpt();
+			}
+			else if(opts.nextEq("-r|--report")) { 
+				report_file = opts.nextOpt();
+			}
+			else if(opts.nextEq("-e|--expand")) { 
+				addSuperClasses = true;
+			}
+			else if(opts.nextEq("-el|--elocal")) { 
+				addSuperClassesLocal = true;
+			}
+			else if(opts.nextEq("-extra_endpoint")) { 
+				extra_endpoint = opts.nextOpt();
+			}else {
+				break;
+			}
+		}
+		if(model_file==null) {
+			System.err.println("-f .No go-cam file or directory provided to validate.");
+			exit(-1);
+		}else if(shexpath==null) {
+			System.err.println("-s .No shex schema provided.");
+			exit(-1);
+		}else if(shapemappath==null) {
+			System.err.println("-m .No shape map file provided.");
+			exit(-1);
+		}else if(report_file==null) {
+			System.err.println("-r .No report file specified");
+			exit(-1);
+		}
+		else {
+			validator = new ShexValidator(shexpath, shapemappath);
+			FileWriter w = new FileWriter(report_file);
+			int good = 0; int bad = 0;
+			Enricher enrich = new Enricher(extra_endpoint, null);
+			if(addSuperClassesLocal) {
+				URL tbox_location = new URL(url_for_tbox);
+				File tbox_file = new File("./target/go-lego.owl");
+				System.out.println("downloading tbox ontology from "+url_for_tbox);
+				org.apache.commons.io.FileUtils.copyURLToFile(tbox_location, tbox_file);
+				System.out.println("loading tbox ontology from "+tbox_file.getAbsolutePath());
+				OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();					
+				OWLOntology tbox = ontman.loadOntologyFromOntologyDocument(tbox_file);
+				System.out.println("done loading, building structural reasoner");
+				OWLReasonerFactory reasonerFactory = new StructuralReasonerFactory();
+				OWLReasoner tbox_reasoner = reasonerFactory.createReasoner(tbox);
+				enrich = new Enricher(null, tbox_reasoner);
+			}
+			for(String name : name_model.keySet()) {
+				Model test_model = name_model.get(name);
+				if(addSuperClasses||addSuperClassesLocal) {
+					test_model = enrich.enrichSuperClasses(test_model);
+				}
+				if(validator.GoQueryMap!=null){
+					boolean stream_output = true;
+					ShexValidationReport r = validator.runShapeMapValidation(test_model, stream_output);
+					System.out.println(r.getAsText());
+					w.write(name+"\t");
+					if(!r.isConformant()) {
+						w.write("invalid\n");
+						bad++;
+					}else {
+						good++;
+						w.write("valid\n");
+					}
+				}
+			}
+			w.close();
+			System.out.println("input: "+model_file+" total:"+name_model.size()+" Good:"+good+" Bad:"+bad);
+		}
+	}
 	/**
 	 * Output GPAD files via inference+SPARQL, for testing only
 	 * @param opts
