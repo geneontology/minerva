@@ -412,7 +412,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		Map<String, Model> name_model = new HashMap<String, Model>();
 
 		while (opts.hasOpts()) {
-			if(opts.nextEq("-t|--travis")) {
+			if(opts.nextEq("-travis")) {
 				travisMode = true;
 			}
 			else if (opts.nextEq("-f|--file")) {
@@ -431,7 +431,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			else if(opts.nextEq("-r|--report")) { 
 				report_file = opts.nextOpt();
 			}
-			else if(opts.nextEq("-e|--expand")) { 
+			else if(opts.nextEq("-expand")) { 
 				addSuperClasses = true;
 			}
 			else if(opts.nextEq("-el|--elocal")) { 
@@ -482,7 +482,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 					test_model = enrich.enrichSuperClasses(test_model);
 				}
 				if(validator.GoQueryMap!=null){
-					boolean stream_output = true;
+					boolean stream_output = false;
 					ShexValidationReport r = validator.runShapeMapValidation(test_model, stream_output);
 					System.out.println(name+" conformant:"+r.isConformant());
 					w.write(name+"\t");
