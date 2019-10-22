@@ -412,6 +412,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		boolean travisMode = false; 
 		boolean shouldPass = true;
 		String extra_endpoint = null;
+		String local_go_lego = null;
 		Map<String, Model> name_model = new HashMap<String, Model>();
 
 		while (opts.hasOpts()) {
@@ -442,7 +443,11 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			}
 			else if(opts.nextEq("-extra_endpoint")) { 
 				extra_endpoint = opts.nextOpt();
-			}else {
+			}
+			else if(opts.nextEq("-local-go-lego")) {
+				local_go_lego = opts.nextOpt();
+			}
+			else {
 				break;
 			}
 		}
@@ -480,11 +485,16 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			int good = 0; int bad = 0;
 			Enricher enrich = new Enricher(extra_endpoint, null);
 			if(addSuperClassesLocal) {
-				URL tbox_location = new URL(url_for_tbox);
 				File tbox_file = new File("./target/go-lego.owl");
-				System.out.println("downloading tbox ontology from "+url_for_tbox);
-				org.apache.commons.io.FileUtils.copyURLToFile(tbox_location, tbox_file);
-				System.out.println("loading tbox ontology from "+tbox_file.getAbsolutePath());
+				if(local_go_lego!=null) {
+					tbox_file = new File(local_go_lego);
+					System.out.println("using local tbox "+local_go_lego);
+				}else {
+					URL tbox_location = new URL(url_for_tbox);
+					System.out.println("downloading tbox ontology from "+url_for_tbox);
+					org.apache.commons.io.FileUtils.copyURLToFile(tbox_location, tbox_file);
+					System.out.println("loading tbox ontology from "+tbox_file.getAbsolutePath());
+				}
 				OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();					
 				OWLOntology tbox = ontman.loadOntologyFromOntologyDocument(tbox_file);
 				System.out.println("done loading, building structural reasoner");
