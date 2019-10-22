@@ -399,6 +399,9 @@ public class MinervaCommandRunner extends JsCommandRunner {
 	@CLIMethod("--validate-go-cams")
 	public void validateGoCams(Opts opts) throws Exception {
 		String url_for_tbox = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
+		String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
+		String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
+
 		ShexValidator validator = null;
 		String shexpath = null;//"../shapes/go-cam-shapes.shex";
 		String shapemappath = null;
@@ -434,7 +437,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			else if(opts.nextEq("-expand")) { 
 				addSuperClasses = true;
 			}
-			else if(opts.nextEq("-el|--elocal")) { 
+			else if(opts.nextEq("-downloadtbox")) { 
 				addSuperClassesLocal = true;
 			}
 			else if(opts.nextEq("-extra_endpoint")) { 
@@ -443,22 +446,35 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				break;
 			}
 		}
+		if(shexpath==null) {
+			//fall back on downloading from shapes repo
+			URL shex_schema_url = new URL(shexFileUrl);
+			shexpath = "./go-cam-schema.shex";
+			File shex_schema_file = new File(shexpath);
+			org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);			
+			System.err.println("-s .No shex schema provided, using: "+shexFileUrl);
+		}
+		if(shapemappath==null) {
+			URL shex_map_url = new URL(goshapemapFileUrl);
+			shapemappath = "./go-cam-shapes.shapeMap";
+			File shex_map_file = new File(shapemappath);
+			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
+			System.err.println("-m .No shape map file provided, using: "+goshapemapFileUrl);
+		}
+		if(report_file==null) {
+			report_file = "./shex_report.txt";
+			System.err.println("-r .No report file specified, using "+report_file);
+		}
+		if(!addSuperClassesLocal) {
+			System.out.println("Using RDF endpoint for super class expansion: "+Enricher.go_endpoint);
+			System.out.println("add -downloadtbox to retrieve the ontology from http://purl.obolibrary.org/obo/go/extensions/go-lego.owl "
+					+ "and do the inferences locally.  This is slower and uses much more memory (set to 8g), but at least you know what you are getting.");
+		}
 		//requirements
 		if(model_file==null) {
 			System.err.println("-f .No go-cam file or directory provided to validate.");
 			exit(-1);
-		}
-		else if(shexpath==null) {
-			System.err.println("-s .No shex schema provided.");
-			exit(-1);
-		}else if(shapemappath==null) {
-			System.err.println("-m .No shape map file provided.");
-			exit(-1);
-		}else if(report_file==null) {
-			System.err.println("-r .No report file specified");
-			exit(-1);
-		}
-		else {
+		}else {
 			validator = new ShexValidator(shexpath, shapemappath);
 			FileWriter w = new FileWriter(report_file);
 			int good = 0; int bad = 0;
