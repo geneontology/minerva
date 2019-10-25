@@ -69,7 +69,7 @@ public class MapInferenceProvider implements InferenceProvider {
 		model = shex.enrichSuperClasses(model);
 		ShexValidationReport shex_validation = null;
 		try {
-			boolean stream_output_for_debug = true;
+			boolean stream_output_for_debug = false;
 			shex_validation = shex.runShapeMapValidation(model, stream_output_for_debug);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block

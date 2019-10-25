@@ -5,15 +5,18 @@ import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 import com.google.common.base.Optional;
+import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.GafToLegoIndividualTranslator;
+import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
@@ -25,10 +28,16 @@ import org.geneontology.minerva.legacy.GroupingTranslator;
 import org.geneontology.minerva.legacy.LegoToGeneAnnotationTranslator;
 import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
 import org.geneontology.minerva.lookup.ExternalLookupService;
+import org.geneontology.minerva.server.StartUpTool;
+import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
+import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.geneontology.minerva.util.BlazegraphMutationCounter;
 import org.geneontology.minerva.validation.Enricher;
 import org.geneontology.minerva.validation.ShexValidationReport;
 import org.geneontology.minerva.validation.ShexValidator;
+import org.geneontology.minerva.validation.ValidationResultSet;
+import org.geneontology.rules.engine.WorkingMemory;
+import org.geneontology.rules.util.Bridge;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.UpdateExecutionException;
@@ -54,6 +63,7 @@ import owltools.gaf.eco.SimpleEcoMapper;
 import owltools.gaf.io.GafWriter;
 import owltools.gaf.io.GpadWriter;
 import owltools.graph.OWLGraphWrapper;
+import scala.collection.JavaConverters;
 import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
 import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
 
@@ -62,6 +72,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class MinervaCommandRunner extends JsCommandRunner {
 
@@ -389,6 +400,122 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			return;
 		}
 	}
+
+	/**
+	 * Output whether each model provided is logically consistent or not
+	 * example parameters for invocation:
+	 *   --owlcheck-go-cams -i /GitHub/GO_Shapes/test_ttl/go_cams/should_pass/ -c ./catalog-no-import.xml
+	 * @param opts
+	 * @throws Exception
+	 */
+	@CLIMethod("--owlcheck-go-cams")
+	public void owlCheckGoCams(Opts opts) throws Exception {
+		String catalog = null;
+		String modelIdPrefix = "http://model.geneontology.org/";
+		String modelIdcurie = "gomodel";
+		String inputDB = "blazegraph.jnl";
+		String explanationOutputFile = null;
+		String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
+		String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
+		String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
+		String shexpath = null;
+		String shapemappath = null;
+		while (opts.hasOpts()) {
+			if (opts.nextEq("-i|--input")) {
+				String input = opts.nextOpt();
+				if(input.endsWith(".jnl")) {
+					inputDB = input;
+					System.out.println("loaded blazegraph journal: "+input);
+				}else {
+					File i = new File(input);
+					if(i.exists()) {
+						OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
+						CurieHandler curieHandler = new MappedCurieHandler();
+						BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null);
+						if(i.isDirectory()) {
+							for (File file : FileUtils.listFiles(i, null, true)) {
+								if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
+									LOGGER.info("Loading " + file);
+									m3.importModelToDatabase(file, true);
+								}
+							}
+						}else {
+							LOGGER.info("Loading " + i);
+							m3.importModelToDatabase(i, true);
+						}
+						System.out.println("loaded files into blazegraph journal: "+input);
+						m3.dispose();
+					}
+				}
+			}
+			else if (opts.nextEq("--explanation-output-file")) {
+				explanationOutputFile = opts.nextOpt();
+			}
+			else if (opts.nextEq("--model-id-prefix")) {
+				modelIdPrefix = opts.nextOpt();
+			}
+			else if (opts.nextEq("--model-id-curie")) {
+				modelIdcurie = opts.nextOpt();
+			}
+			else if (opts.nextEq("--ontology")) {
+				ontologyIRI = opts.nextOpt();
+			}
+			else if (opts.nextEq("-c|--catalog")) {
+				catalog = opts.nextOpt();
+			}
+			else {
+				break;
+			}
+		}
+		if(shexpath==null) {
+			//fall back on downloading from shapes repo
+			URL shex_schema_url = new URL(shexFileUrl);
+			shexpath = "./go-cam-schema.shex";
+			File shex_schema_file = new File(shexpath);
+			org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);			
+			System.err.println("-s .No shex schema provided, using: "+shexFileUrl);
+		}
+		if(shapemappath==null) {
+			URL shex_map_url = new URL(goshapemapFileUrl);
+			shapemappath = "./go-cam-shapes.shapeMap";
+			File shex_map_file = new File(shapemappath);
+			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
+			System.err.println("-m .No shape map file provided, using: "+goshapemapFileUrl);
+		}
+		
+		System.out.println("loading tbox ontology: "+ontologyIRI);
+		
+		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
+		if(catalog!=null) {
+			System.out.println("using catalog: "+catalog);
+			ontman.setIRIMappers(Sets.newHashSet(new owltools.io.CatalogXmlIRIMapper(catalog)));
+		}else {
+			System.out.println("no catalog, resolving all ontology uris directly");
+		}
+		OWLOntology ontology = ontman.loadOntology(IRI.create(ontologyIRI));
+		System.out.println("ontology axioms loaded: "+ontology.getAxiomCount());
+		System.out.println("building model manager");
+		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
+		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
+		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(ontology, curieHandler, modelIdPrefix, inputDB, null);
+		String reasonerOpt = "arachne";
+		System.out.println("Building inference provider: "+reasonerOpt);
+		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler);
+		InferenceProviderCreator ipc = StartUpTool.createInferenceProviderCreator(reasonerOpt, m3, shex);
+
+		for (IRI modelIRI : m3.getAvailableModelIds()) {
+			boolean isConsistent = true;
+			boolean isConformant = true;
+			InferenceProvider ip = ipc.create(m3.getModel(modelIRI));
+			isConsistent = ip.isConsistent();
+			System.out.print(modelIRI+"\tOWL\t"+isConsistent+"\tshex\t");
+			ValidationResultSet validations = ip.getValidation_results();
+			isConformant = validations.allConformant();	
+			System.out.print(isConformant+"\n");
+		}
+		m3.dispose();
+	}
+
 
 	/**
 	 * Will test a go-cam model or directory of models against a shex schema and shape map to test conformance
