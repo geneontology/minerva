@@ -237,7 +237,7 @@ public class StartUpTool {
 		URL shex_map_url = new URL(conf.goshapemapFileUrl);
 		File shex_map_file = new File("./target/go-cam-shapes.shapeMap");
 		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
-		conf.shex = new MinervaShexValidator(shex_schema_file, shex_map_file, conf.curieHandler);
+		conf.shex = new MinervaShexValidator(shex_schema_file, shex_map_file, conf.curieHandler, null);
 		
 		// wrap the Golr service with a cache
 		if (conf.golrUrl != null) {
@@ -324,22 +324,7 @@ public class StartUpTool {
 			pw.addIRIMapper(new CatalogXmlIRIMapper(conf.catalog));
 		}
 		OWLGraphWrapper graph = pw.parseToOWLGraph(conf.ontology);
-		//In some cases, go-lego is not pre-merged and parseToOWLgraph keeps the imports separate
-		//most OWL API methods have an include-imports option that makes this work
-		//but EntitySearcher methods that deal with annotation assertions do not.
-		//The current pattern for mapping external ontologies to local ones (e.g. reactome to uniprot)
-		//involves the use of an annotation property..  To get that to work,
-		//need to pre-merge the ontologies.  
-		OWLOntology full_tbox = graph.getSourceOntology();	
-		Set<OWLOntology> import_set = graph.getAllOntologies();
-		if(import_set!=null) {
-			for(OWLOntology ont : import_set) {
-				if(!ont.equals(full_tbox)) {
-					full_tbox.getOWLOntologyManager().addAxioms(full_tbox, ont.getAxioms());
-					full_tbox.getOWLOntologyManager().removeOntology(ont);
-				}
-			}
-		}
+		OWLOntology full_tbox = forceMergeImports(graph.getSourceOntology(), graph.getAllOntologies());
 		graph.setSourceOntology(full_tbox);
 
 		if (conf.importantRelationParent != null) {
@@ -371,6 +356,26 @@ public class StartUpTool {
 		// start server
 		Server server = startUp(models, conf);
 		return server;
+	}
+
+	public static OWLOntology forceMergeImports(OWLOntology sourceOntology, Set<OWLOntology> import_set) {
+
+		//In some cases, go-lego is not pre-merged and parseToOWLgraph keeps the imports separate
+		//most OWL API methods have an include-imports option that makes this work
+		//but EntitySearcher methods that deal with annotation assertions do not.
+		//The current pattern for mapping external ontologies to local ones (e.g. reactome to uniprot)
+		//involves the use of an annotation property..  To get that to work,
+		//need to pre-merge the ontologies.  
+		OWLOntology full_tbox = sourceOntology;
+		if(import_set!=null) {
+			for(OWLOntology ont : import_set) {
+				if(!ont.equals(full_tbox)) {
+					full_tbox.getOWLOntologyManager().addAxioms(full_tbox, ont.getAxioms());
+					full_tbox.getOWLOntologyManager().removeOntology(ont);
+				}
+			}
+		}
+		return full_tbox;
 	}
 
 	public static InferenceProviderCreator createInferenceProviderCreator(String reasonerOpt, UndoAwareMolecularModelManager models, MinervaShexValidator shex) { 

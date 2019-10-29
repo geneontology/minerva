@@ -69,14 +69,16 @@ public class ShexValidator {
 	 * @throws Exception 
 	 * 
 	 */
-	public ShexValidator(String shexpath, String goshapemappath) throws Exception {
+	public ShexValidator(String shexpath, String goshapemappath, OWLReasoner tbox_reasoner_) throws Exception {
 		schema = GenParser.parseSchema(new File(shexpath).toPath());
 		GoQueryMap = makeGoQueryMap(goshapemappath);
+		tbox_reasoner = tbox_reasoner_;
 	}
 
-	public ShexValidator(File shex_schema_file, File shex_map_file) throws Exception {
+	public ShexValidator(File shex_schema_file, File shex_map_file, OWLReasoner tbox_reasoner_) throws Exception {
 		schema = GenParser.parseSchema(shex_schema_file.toPath());
 		GoQueryMap = makeGoQueryMap(shex_map_file.getAbsolutePath());
+		tbox_reasoner = tbox_reasoner_;
 	}
 
 	public static Map<String, String> makeGoQueryMap(String shapemap_file) throws IOException{ 

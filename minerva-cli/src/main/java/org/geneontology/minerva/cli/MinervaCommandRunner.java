@@ -13,9 +13,11 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.GafToLegoIndividualTranslator;
+import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
@@ -410,6 +412,9 @@ public class MinervaCommandRunner extends JsCommandRunner {
 	 */
 	@CLIMethod("--owlcheck-go-cams")
 	public void owlCheckGoCams(Opts opts) throws Exception {
+		Logger LOG = Logger.getLogger(BlazegraphMolecularModelManager.class);
+		LOG.setLevel(Level.ERROR);
+		LOGGER.setLevel(Level.ERROR);
 		String catalog = null;
 		String modelIdPrefix = "http://model.geneontology.org/";
 		String modelIdcurie = "gomodel";
@@ -429,6 +434,12 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				}else {
 					File i = new File(input);
 					if(i.exists()) {
+						//remove anything that existed earlier
+						File bgdb = new File(inputDB);
+						if(bgdb.exists()) {
+							bgdb.delete();
+						}
+						//load everything into a bg journal
 						OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 						CurieHandler curieHandler = new MappedCurieHandler();
 						BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null);
@@ -492,21 +503,25 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		}else {
 			System.out.println("no catalog, resolving all ontology uris directly");
 		}
-		OWLOntology ontology = ontman.loadOntology(IRI.create(ontologyIRI));
-		System.out.println("ontology axioms loaded: "+ontology.getAxiomCount());
+		OWLOntology tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
+		tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
+		System.out.println("ontology axioms loaded: "+tbox_ontology.getAxiomCount());
 		System.out.println("building model manager");
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(ontology, curieHandler, modelIdPrefix, inputDB, null);
-		String reasonerOpt = "arachne";
+		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null);
+		String reasonerOpt = "arachne"; 
 		System.out.println("Building inference provider: "+reasonerOpt);
-		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler);
+		System.out.println("tbox reasoner for shex "+m3.getTbox_reasoner().getReasonerName());		
+		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getTbox_reasoner());
+		
 		InferenceProviderCreator ipc = StartUpTool.createInferenceProviderCreator(reasonerOpt, m3, shex);
 
 		for (IRI modelIRI : m3.getAvailableModelIds()) {
 			boolean isConsistent = true;
 			boolean isConformant = true;
-			InferenceProvider ip = ipc.create(m3.getModel(modelIRI));
+			ModelContainer mc = m3.getModel(modelIRI);			
+			InferenceProvider ip = ipc.create(mc);
 			isConsistent = ip.isConsistent();
 			System.out.print(modelIRI+"\tOWL\t"+isConsistent+"\tshex\t");
 			ValidationResultSet validations = ip.getValidation_results();
@@ -528,18 +543,18 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		String url_for_tbox = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
 		String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 		String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
-
+		
 		ShexValidator validator = null;
 		String shexpath = null;//"../shapes/go-cam-shapes.shex";
 		String shapemappath = null;
 		String model_file = null;//"../test_ttl/go_cams/should_pass/typed_reactome-homosapiens-Acetylation.ttl";
 		String report_file = null;
-		boolean addSuperClasses = false;
+		boolean addSuperClasses = true;//this always needs to be on unless we have a major shex refactor
 		boolean addSuperClassesLocal = false;
 		boolean travisMode = false; 
 		boolean shouldPass = true;
 		String extra_endpoint = null;
-		String local_go_lego = null;
+		String catalog = null;
 		Map<String, Model> name_model = new HashMap<String, Model>();
 
 		while (opts.hasOpts()) {
@@ -562,17 +577,14 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			else if(opts.nextEq("-r|--report")) { 
 				report_file = opts.nextOpt();
 			}
-			else if(opts.nextEq("-expand")) { 
-				addSuperClasses = true;
-			}
-			else if(opts.nextEq("-downloadtbox")) { 
-				addSuperClassesLocal = true;
+			else if(opts.nextEq("-localtbox")) { 
+				addSuperClassesLocal = true; //this will download the beast unless there is a catalogue file
 			}
 			else if(opts.nextEq("-extra_endpoint")) { 
 				extra_endpoint = opts.nextOpt();
 			}
-			else if(opts.nextEq("-local-go-lego")) {
-				local_go_lego = opts.nextOpt();
+			else if (opts.nextEq("-c|--catalog")) {
+				catalog = opts.nextOpt();
 			}
 			else {
 				break;
@@ -607,31 +619,33 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			System.err.println("-f .No go-cam file or directory provided to validate.");
 			exit(-1);
 		}else {
-			validator = new ShexValidator(shexpath, shapemappath);
 			FileWriter w = new FileWriter(report_file);
 			int good = 0; int bad = 0;
 			Enricher enrich = new Enricher(extra_endpoint, null);
 			if(addSuperClassesLocal) {
-				File tbox_file = new File("./target/go-lego.owl");
-				if(local_go_lego!=null) {
-					tbox_file = new File(local_go_lego);
-					System.out.println("using local tbox "+local_go_lego);
+				OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();	
+				if(catalog!=null) {
+					System.out.println("using catalog: "+catalog);
+					ontman.setIRIMappers(Sets.newHashSet(new owltools.io.CatalogXmlIRIMapper(catalog)));
 				}else {
-					URL tbox_location = new URL(url_for_tbox);
-					System.out.println("downloading tbox ontology from "+url_for_tbox);
-					org.apache.commons.io.FileUtils.copyURLToFile(tbox_location, tbox_file);
-					System.out.println("loading tbox ontology from "+tbox_file.getAbsolutePath());
-				}
-				OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();					
-				OWLOntology tbox = ontman.loadOntologyFromOntologyDocument(tbox_file);
+					System.out.println("no catalog, resolving all import ontology uris directly, be patient...");
+				}				
+				OWLOntology tbox_ontology = ontman.loadOntology(IRI.create(url_for_tbox));
+				tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
+				System.out.println("ontology axioms loaded: "+tbox_ontology.getAxiomCount());
+				System.out.println("building model manager");
+				
 				System.out.println("done loading, building structural reasoner");
 				OWLReasonerFactory reasonerFactory = new StructuralReasonerFactory();
-				OWLReasoner tbox_reasoner = reasonerFactory.createReasoner(tbox);
+				OWLReasoner tbox_reasoner = reasonerFactory.createReasoner(tbox_ontology);
+				validator = new ShexValidator(shexpath, shapemappath, tbox_reasoner);
 				enrich = new Enricher(null, tbox_reasoner);
+			}else {
+				validator = new ShexValidator(shexpath, shapemappath, null);
 			}
 			for(String name : name_model.keySet()) {
 				Model test_model = name_model.get(name);
-				if(addSuperClasses||addSuperClassesLocal) {
+				if(addSuperClasses) {
 					test_model = enrich.enrichSuperClasses(test_model);
 				}
 				if(validator.GoQueryMap!=null){
