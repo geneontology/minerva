@@ -650,8 +650,11 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		}
 		if(!addSuperClassesLocal) {
 			System.out.println("Using RDF endpoint for super class expansion: "+Enricher.go_endpoint);
-			System.out.println("add -downloadtbox to retrieve the ontology from http://purl.obolibrary.org/obo/go/extensions/go-lego.owl "
-					+ "and do the inferences locally.  This is slower and uses much more memory (set to 8g), but at least you know what you are getting.");
+			System.out.println("add -localtbox to retrieve the ontology from http://purl.obolibrary.org/obo/go/extensions/go-lego.owl "
+					+ "and do the inferences locally.  This is slower and uses much more memory, but at least you know what you are getting. "
+					+ "You can use a catalog file by adding -c yourcatalog.xml "
+					+ "- catalog files allow you to map URIs to local files to change "
+					+ "what they resolve to and to reduce network traffic time.");
 		}
 		//requirements
 		if(model_file==null) {
