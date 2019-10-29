@@ -44,6 +44,8 @@ import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryException;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.RDFParseException;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.FunctionalSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.ManchesterSyntaxDocumentFormat;
@@ -414,50 +416,26 @@ public class MinervaCommandRunner extends JsCommandRunner {
 	public void owlCheckGoCams(Opts opts) throws Exception {
 		Logger LOG = Logger.getLogger(BlazegraphMolecularModelManager.class);
 		LOG.setLevel(Level.ERROR);
-		LOGGER.setLevel(Level.ERROR);
+		LOGGER.setLevel(Level.INFO);
 		String catalog = null;
 		String modelIdPrefix = "http://model.geneontology.org/";
 		String modelIdcurie = "gomodel";
 		String inputDB = "blazegraph.jnl";
 		String explanationOutputFile = null;
+		String basicOutputFile = null;
 		String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
 		String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 		String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
 		String shexpath = null;
 		String shapemappath = null;
+		String input = null;
+		Map<String, String> modelid_filename = new HashMap<String, String>();
 		while (opts.hasOpts()) {
 			if (opts.nextEq("-i|--input")) {
-				String input = opts.nextOpt();
-				if(input.endsWith(".jnl")) {
-					inputDB = input;
-					System.out.println("loaded blazegraph journal: "+input);
-				}else {
-					File i = new File(input);
-					if(i.exists()) {
-						//remove anything that existed earlier
-						File bgdb = new File(inputDB);
-						if(bgdb.exists()) {
-							bgdb.delete();
-						}
-						//load everything into a bg journal
-						OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
-						CurieHandler curieHandler = new MappedCurieHandler();
-						BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null);
-						if(i.isDirectory()) {
-							for (File file : FileUtils.listFiles(i, null, true)) {
-								if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
-									LOGGER.info("Loading " + file);
-									m3.importModelToDatabase(file, true);
-								}
-							}
-						}else {
-							LOGGER.info("Loading " + i);
-							m3.importModelToDatabase(i, true);
-						}
-						System.out.println("loaded files into blazegraph journal: "+input);
-						m3.dispose();
-					}
-				}
+				input = opts.nextOpt();
+			}
+			else if (opts.nextEq("--output-file")) {
+				basicOutputFile = opts.nextOpt();
 			}
 			else if (opts.nextEq("--explanation-output-file")) {
 				explanationOutputFile = opts.nextOpt();
@@ -478,6 +456,54 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				break;
 			}
 		}
+		if(basicOutputFile==null) {
+			LOGGER.error("please specific an output file with --output-file ");
+			System.exit(-1);
+		}
+		if(input==null) {
+			LOGGER.error("please provide an input file - either a directory of ttl files or a blazegraph journal");
+			System.exit(-1);
+		}
+		if(input.endsWith(".jnl")) {
+			inputDB = input;
+			LOGGER.info("loaded blazegraph journal: "+input);
+		}else {
+			LOGGER.info("no journal found, trying as directory: "+input);
+			File i = new File(input);
+			if(i.exists()) {
+				//remove anything that existed earlier
+				File bgdb = new File(inputDB);
+				if(bgdb.exists()) {
+					bgdb.delete();
+				}
+				//load everything into a bg journal
+				OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
+				CurieHandler curieHandler = new MappedCurieHandler();
+				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null);
+				if(i.isDirectory()) {
+					FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
+						//for (File file : 
+						//m3.getAvailableModelIds().stream().parallel().forEach(modelIRI -> {
+						if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
+							LOGGER.info("Loading " + file);
+							try {
+								String modeluri = m3.importModelToDatabase(file, true);
+								modelid_filename.put(modeluri, file.getName());
+							} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
+									| RDFHandlerException | IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						} 
+					});
+				}else {
+					LOGGER.info("Loading " + i);
+					m3.importModelToDatabase(i, true);
+				}
+				LOGGER.info("loaded files into blazegraph journal: "+input);
+				m3.dispose();
+			}
+		}
 		if(shexpath==null) {
 			//fall back on downloading from shapes repo
 			URL shex_schema_url = new URL(shexFileUrl);
@@ -493,42 +519,55 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
 			System.err.println("-m .No shape map file provided, using: "+goshapemapFileUrl);
 		}
-		
-		System.out.println("loading tbox ontology: "+ontologyIRI);
-		
+
+		LOGGER.info("loading tbox ontology: "+ontologyIRI);
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		if(catalog!=null) {
-			System.out.println("using catalog: "+catalog);
+			LOGGER.info("using catalog: "+catalog);
 			ontman.setIRIMappers(Sets.newHashSet(new owltools.io.CatalogXmlIRIMapper(catalog)));
 		}else {
-			System.out.println("no catalog, resolving all ontology uris directly");
+			LOGGER.info("no catalog, resolving all ontology uris directly");
 		}
 		OWLOntology tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
 		tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
-		System.out.println("ontology axioms loaded: "+tbox_ontology.getAxiomCount());
-		System.out.println("building model manager");
+		LOGGER.info("ontology axioms loaded: "+tbox_ontology.getAxiomCount());
+		LOGGER.info("building model manager and structural reasoner");
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null);
 		String reasonerOpt = "arachne"; 
-		System.out.println("Building inference provider: "+reasonerOpt);
-		System.out.println("tbox reasoner for shex "+m3.getTbox_reasoner().getReasonerName());		
+		LOGGER.info("tbox reasoner for shex "+m3.getTbox_reasoner().getReasonerName());		
 		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getTbox_reasoner());
-		
+		LOGGER.info("Building OWL inference provider: "+reasonerOpt);
 		InferenceProviderCreator ipc = StartUpTool.createInferenceProviderCreator(reasonerOpt, m3, shex);
-
-		for (IRI modelIRI : m3.getAvailableModelIds()) {
-			boolean isConsistent = true;
-			boolean isConformant = true;
-			ModelContainer mc = m3.getModel(modelIRI);			
-			InferenceProvider ip = ipc.create(mc);
-			isConsistent = ip.isConsistent();
-			System.out.print(modelIRI+"\tOWL\t"+isConsistent+"\tshex\t");
-			ValidationResultSet validations = ip.getValidation_results();
-			isConformant = validations.allConformant();	
-			System.out.print(isConformant+"\n");
+		LOGGER.info("Validating models: "+reasonerOpt);
+		FileWriter basic_output = new FileWriter(basicOutputFile);
+		try {
+			basic_output.write("filename\tmodel_id\tOWL_consistent\tshex_valid\n");
+			m3.getAvailableModelIds().stream().parallel().forEach(modelIRI -> {
+				try {
+					String filename = modelid_filename.get(modelIRI.toString());
+					boolean isConsistent = true;
+					boolean isConformant = true;
+					LOGGER.info("processing "+filename+"\t"+modelIRI);
+					ModelContainer mc = m3.getModel(modelIRI);			
+					InferenceProvider ip = ipc.create(mc);
+					isConsistent = ip.isConsistent();
+					ValidationResultSet validations = ip.getValidation_results();
+					isConformant = validations.allConformant();	
+					LOGGER.info(filename+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:"+isConformant);
+					basic_output.write(filename+"\t"+modelIRI+"\t"+isConsistent+"\t"+isConformant+"\n");
+				} catch (InconsistentOntologyException e) {
+					LOGGER.error("Inconsistent model: " + modelIRI);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			});
+			m3.dispose();
+		}finally{
+			basic_output.close();
 		}
-		m3.dispose();
 	}
 
 
@@ -543,7 +582,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		String url_for_tbox = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
 		String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 		String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
-		
+
 		ShexValidator validator = null;
 		String shexpath = null;//"../shapes/go-cam-shapes.shex";
 		String shapemappath = null;
@@ -634,7 +673,7 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
 				System.out.println("ontology axioms loaded: "+tbox_ontology.getAxiomCount());
 				System.out.println("building model manager");
-				
+
 				System.out.println("done loading, building structural reasoner");
 				OWLReasonerFactory reasonerFactory = new StructuralReasonerFactory();
 				OWLReasoner tbox_reasoner = reasonerFactory.createReasoner(tbox_ontology);
