@@ -429,10 +429,14 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		String shexpath = null;
 		String shapemappath = null;
 		String input = null;
+		boolean checkShex = false;
 		Map<String, String> modelid_filename = new HashMap<String, String>();
 		while (opts.hasOpts()) {
 			if (opts.nextEq("-i|--input")) {
 				input = opts.nextOpt();
+			}
+			else if (opts.nextEq("--shex")) {
+				checkShex = true;
 			}
 			else if (opts.nextEq("--output-file")) {
 				basicOutputFile = opts.nextOpt();
@@ -504,22 +508,6 @@ public class MinervaCommandRunner extends JsCommandRunner {
 				m3.dispose();
 			}
 		}
-		if(shexpath==null) {
-			//fall back on downloading from shapes repo
-			URL shex_schema_url = new URL(shexFileUrl);
-			shexpath = "./go-cam-schema.shex";
-			File shex_schema_file = new File(shexpath);
-			org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);			
-			System.err.println("-s .No shex schema provided, using: "+shexFileUrl);
-		}
-		if(shapemappath==null) {
-			URL shex_map_url = new URL(goshapemapFileUrl);
-			shapemappath = "./go-cam-shapes.shapeMap";
-			File shex_map_file = new File(shapemappath);
-			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
-			System.err.println("-m .No shape map file provided, using: "+goshapemapFileUrl);
-		}
-
 		LOGGER.info("loading tbox ontology: "+ontologyIRI);
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		if(catalog!=null) {
@@ -537,32 +525,62 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null);
 		String reasonerOpt = "arachne"; 
 		LOGGER.info("tbox reasoner for shex "+m3.getTbox_reasoner().getReasonerName());		
+		if(shexpath==null) {
+			//fall back on downloading from shapes repo
+			URL shex_schema_url = new URL(shexFileUrl);
+			shexpath = "./go-cam-schema.shex";
+			File shex_schema_file = new File(shexpath);
+			org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);			
+			System.err.println("-s .No shex schema provided, using: "+shexFileUrl);
+		}
+		if(shapemappath==null) {
+			URL shex_map_url = new URL(goshapemapFileUrl);
+			shapemappath = "./go-cam-shapes.shapeMap";
+			File shex_map_file = new File(shapemappath);
+			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
+			System.err.println("-m .No shape map file provided, using: "+goshapemapFileUrl);
+		}
 		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getTbox_reasoner());
+		if(checkShex) {
+			if(checkShex) {
+				shex.setActive(true);
+			}else {
+				shex.setActive(false);
+			}
+		}
 		LOGGER.info("Building OWL inference provider: "+reasonerOpt);
 		InferenceProviderCreator ipc = StartUpTool.createInferenceProviderCreator(reasonerOpt, m3, shex);
 		LOGGER.info("Validating models: "+reasonerOpt);
+
 		FileWriter basic_output = new FileWriter(basicOutputFile);
 		try {
 			basic_output.write("filename\tmodel_id\tOWL_consistent\tshex_valid\n");
-			m3.getAvailableModelIds().stream().parallel().forEach(modelIRI -> {
+			final boolean shex_output = checkShex;
+			m3.getAvailableModelIds().stream().forEach(modelIRI -> {
 				try {
 					String filename = modelid_filename.get(modelIRI.toString());
 					boolean isConsistent = true;
 					boolean isConformant = true;
 					LOGGER.info("processing "+filename+"\t"+modelIRI);
-					ModelContainer mc = m3.getModel(modelIRI);			
+					ModelContainer mc = m3.getModel(modelIRI);		
+					//not reporting OWL errors ?
 					InferenceProvider ip = ipc.create(mc);
 					isConsistent = ip.isConsistent();
-					ValidationResultSet validations = ip.getValidation_results();
-					isConformant = validations.allConformant();	
-					LOGGER.info(filename+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:"+isConformant);
-					basic_output.write(filename+"\t"+modelIRI+"\t"+isConsistent+"\t"+isConformant+"\n");
+					if(shex_output) {
+						ValidationResultSet validations = ip.getValidation_results();
+						isConformant = validations.allConformant();	
+						LOGGER.info(filename+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:"+isConformant);
+						basic_output.write(filename+"\t"+modelIRI+"\t"+isConsistent+"\t"+isConformant+"\n");
+					}else {
+						LOGGER.info(filename+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:not checked");
+						basic_output.write(filename+"\t"+modelIRI+"\t"+isConsistent+"\tnot checked\n");						
+					}
 				} catch (InconsistentOntologyException e) {
 					LOGGER.error("Inconsistent model: " + modelIRI);
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				}
+				} 
 			});
 			m3.dispose();
 		}finally{

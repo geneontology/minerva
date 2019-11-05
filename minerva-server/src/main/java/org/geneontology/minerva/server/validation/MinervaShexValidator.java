@@ -18,7 +18,16 @@ import org.semanticweb.owlapi.reasoner.OWLReasoner;
 public class MinervaShexValidator extends ShexValidator {
 
 	public CurieHandler curieHandler;
+	boolean active = true;
 	
+	public boolean isActive() {
+		return active;
+	}
+
+	public void setActive(boolean active) {
+		this.active = active;
+	}
+
 	/**
 	 * @param shexpath
 	 * @param goshapemappath
