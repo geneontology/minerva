@@ -405,6 +405,256 @@ public class MinervaCommandRunner extends JsCommandRunner {
 		}
 	}
 
+
+	/**
+	 * Output GPAD files via inference+SPARQL, for testing only
+	 * @param opts
+	 * @throws Exception
+	 */
+	@CLIMethod("--lego-to-gpad-sparql")
+	public void legoToAnnotationsSPARQL(Opts opts) throws Exception {
+		String modelIdPrefix = "http://model.geneontology.org/";
+		String modelIdcurie = "gomodel";
+		String inputDB = "blazegraph.jnl";
+		String gpadOutputFolder = null;
+		String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
+		while (opts.hasOpts()) {
+			if (opts.nextEq("-i|--input")) {
+				inputDB = opts.nextOpt();
+			}
+			else if (opts.nextEq("--gpad-output")) {
+				gpadOutputFolder = opts.nextOpt();
+			}
+			else if (opts.nextEq("--model-id-prefix")) {
+				modelIdPrefix = opts.nextOpt();
+			}
+			else if (opts.nextEq("--model-id-curie")) {
+				modelIdcurie = opts.nextOpt();
+			}
+			else if (opts.nextEq("--ontology")) {
+				ontologyIRI = opts.nextOpt();
+			}
+			else {
+				break;
+			}
+		}
+		OWLOntology ontology = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(ontologyIRI));
+		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
+		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(ontology, curieHandler, modelIdPrefix, inputDB, null);
+		final String immutableModelIdPrefix = modelIdPrefix;
+		final String immutableGpadOutputFolder = gpadOutputFolder;
+		m3.getAvailableModelIds().stream().parallel().forEach(modelIRI -> {
+			try {
+				String gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createInferredModel(modelIRI));
+				String fileName = StringUtils.replaceOnce(modelIRI.toString(), immutableModelIdPrefix, "") + ".gpad";
+				Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(immutableGpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
+				writer.write(gpad);
+				writer.close();
+			} catch (InconsistentOntologyException e) {
+				LOGGER.error("Inconsistent ontology: " + modelIRI);
+			} catch (IOException e) {
+				LOGGER.error("Couldn't export GPAD for: " + modelIRI, e);
+			}
+		});
+		m3.dispose();
+	}
+
+	@CLIMethod("--lego-to-gpad")
+	public void legoToAnnotations(Opts opts) throws Exception {
+		String modelIdPrefix = "http://model.geneontology.org/";
+		String modelIdcurie = "gomodel";
+		String inputFolder = null;
+		String singleFile = null;
+		String gpadOutputFolder = null;
+		String gafOutputFolder = null;
+		Map<String, String> taxonGroups = null;
+		String defaultTaxonGroup = "other";
+		boolean addLegoModelId = true;
+		String fileSuffix = "ttl";
+		while (opts.hasOpts()) {
+			if (opts.nextEq("-i|--input")) {
+				inputFolder = opts.nextOpt();
+			}
+			else if (opts.nextEq("--input-single-file")) {
+				singleFile = opts.nextOpt();
+			}
+			else if (opts.nextEq("--gpad-output")) {
+				gpadOutputFolder = opts.nextOpt();
+			}
+			else if (opts.nextEq("--gaf-output")) {
+				gafOutputFolder = opts.nextOpt();
+			}
+			else if (opts.nextEq("--remove-lego-model-ids")) {
+				addLegoModelId = false;
+			}
+			else if (opts.nextEq("--model-id-prefix")) {
+				modelIdPrefix = opts.nextOpt();
+			}
+			else if (opts.nextEq("-s|--input-file-suffix")) {
+				opts.info("SUFFIX", "if a directory is specified, use only files with this suffix. Default is 'ttl'");
+				fileSuffix = opts.nextOpt();
+			}
+			else if (opts.nextEq("--model-id-curie")) {
+				modelIdcurie = opts.nextOpt();
+			}
+			else if (opts.nextEq("--group-by-model-organisms")) {
+				if (taxonGroups == null) {
+					taxonGroups = new HashMap<>();
+				}
+				// get the pre-defined groups from the model-organism-groups.tsv resource
+				List<String> lines = IOUtils.readLines(MinervaCommandRunner.class.getResourceAsStream("/model-organism-groups.tsv"));
+				for (String line : lines) {
+					line = StringUtils.trimToEmpty(line);
+					if (line.isEmpty() == false && line.charAt(0) != '#') {
+						String[] split = StringUtils.splitByWholeSeparator(line, "\t");
+						if (split.length > 1) {
+							String group = split[0];
+							Set<String> taxonIds = new HashSet<>();
+							for (int i = 1; i < split.length; i++) {
+								taxonIds.add(split[i]);
+							}
+							for(String taxonId : taxonIds) {
+								taxonGroups.put(taxonId, group);
+							}
+						}
+					}
+
+				}
+			}
+			else if (opts.nextEq("--add-model-organism-group")) {
+				if (taxonGroups == null) {
+					taxonGroups = new HashMap<>();
+				}
+				String group = opts.nextOpt();
+				String taxon = opts.nextOpt();
+				taxonGroups.put(taxon, group);
+			}
+			else if (opts.nextEq("--set-default-model-group")) {
+				defaultTaxonGroup = opts.nextOpt();
+			}
+			else {
+				break;
+			}
+		}
+		// create curie handler
+		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
+		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
+
+		ExternalLookupService lookup= null;
+
+		SimpleEcoMapper mapper = EcoMapperFactory.createSimple();
+		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(g.getSourceOntology(), curieHandler, mapper);
+		GroupingTranslator groupingTranslator = new GroupingTranslator(translator, lookup, taxonGroups, defaultTaxonGroup, addLegoModelId);
+
+		final OWLOntologyManager m = g.getManager();
+		if (singleFile != null) {
+			File file = new File(singleFile).getCanonicalFile();
+			OWLOntology model = m.loadOntology(IRI.create(file));
+			groupingTranslator.translate(model);
+		}
+		else if (inputFolder != null) {
+			final String fileSuffixFinal = fileSuffix;
+			File inputFile = new File(inputFolder).getCanonicalFile();
+			if (inputFile.isDirectory()) {
+				File[] files = inputFile.listFiles(new FilenameFilter() {
+
+					@Override
+					public boolean accept(File dir, String name) {
+						if (fileSuffixFinal != null && fileSuffixFinal.length() > 0)
+							return name.endsWith("."+fileSuffixFinal);
+						else
+							return StringUtils.isAlphanumeric(name);
+					}
+				});
+				for (File file : files) {
+					OWLOntology model = m.loadOntology(IRI.create(file));
+					groupingTranslator.translate(model);
+				}
+			}
+		}
+
+		// by state
+		for(String modelState : groupingTranslator.getModelStates()) {
+			GafDocument annotations = groupingTranslator.getAnnotationsByState(modelState);
+			sortAnnotations(annotations);
+			if (annotations != null) {
+				if (gpadOutputFolder != null) {
+					writeGpad(annotations, gpadOutputFolder, "all-"+modelState);
+				}
+				if (gafOutputFolder != null) {
+					writeGaf(annotations, gafOutputFolder, "all-"+modelState);
+				}
+			}
+		}
+
+		// by organism
+		if (taxonGroups != null) {
+			for(String group : groupingTranslator.getTaxonGroups()) {
+				GafDocument filtered = groupingTranslator.getAnnotationsByGroup(group);
+				sortAnnotations(filtered);
+				if (gpadOutputFolder != null) {
+					writeGpad(filtered, gpadOutputFolder, group);
+				}
+				if (gafOutputFolder != null) {
+					writeGaf(filtered, gafOutputFolder, group);
+				}
+			}
+		}
+
+		// production only by organism
+		if (taxonGroups != null) {
+			for(String group : groupingTranslator.getProductionTaxonGroups()) {
+				GafDocument filtered = groupingTranslator.getProductionAnnotationsByGroup(group);
+				sortAnnotations(filtered);
+				if (gpadOutputFolder != null) {
+					String productionFolder = new File(gpadOutputFolder, "production").getAbsolutePath();
+					writeGpad(filtered, productionFolder+"", group);
+				}
+				if (gafOutputFolder != null) {
+					String productionFolder = new File(gafOutputFolder, "production").getAbsolutePath();
+					writeGaf(filtered, productionFolder, group);
+				}
+			}
+		}
+	}
+
+	static void sortAnnotations(GafDocument annotations) {
+		Collections.sort(annotations.getGeneAnnotations(), new Comparator<GeneAnnotation>() {
+			@Override
+			public int compare(GeneAnnotation a1, GeneAnnotation a2) {
+				return a1.toString().compareTo(a2.toString());
+			}
+		});
+	}
+
+	private void writeGaf(GafDocument annotations, String outputFolder, String fileName) {
+		File outputFile = new File(outputFolder, fileName+".gaf");
+		GafWriter writer = new GafWriter();
+		try {
+			outputFile.getParentFile().mkdirs();
+			writer.setStream(outputFile);
+			writer.write(annotations);
+		}
+		finally {
+			IOUtils.closeQuietly(writer);	
+		}
+	}
+
+	private void writeGpad(GafDocument annotations, String outputFolder, String fileName) throws FileNotFoundException {
+		PrintWriter fileWriter = null;
+		File outputFile = new File(outputFolder, fileName+".gpad");
+		try {
+			outputFile.getParentFile().mkdirs();
+			fileWriter = new PrintWriter(outputFile);
+			GpadWriter writer = new GpadWriter(fileWriter, 1.2d);
+			writer.write(annotations);
+		}
+		finally {
+			IOUtils.closeQuietly(fileWriter);	
+		}
+	}
+	
 	/**
 	 * Output whether each model provided is logically consistent or not
 	 * example parameters for invocation:
@@ -732,250 +982,6 @@ public class MinervaCommandRunner extends JsCommandRunner {
 			}
 			w.close();
 			System.out.println("input: "+model_file+" total:"+name_model.size()+" Good:"+good+" Bad:"+bad);
-		}
-	}
-	/**
-	 * Output GPAD files via inference+SPARQL, for testing only
-	 * @param opts
-	 * @throws Exception
-	 */
-	@CLIMethod("--lego-to-gpad-sparql")
-	public void legoToAnnotationsSPARQL(Opts opts) throws Exception {
-		String modelIdPrefix = "http://model.geneontology.org/";
-		String modelIdcurie = "gomodel";
-		String inputDB = "blazegraph.jnl";
-		String gpadOutputFolder = null;
-		String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
-		while (opts.hasOpts()) {
-			if (opts.nextEq("-i|--input")) {
-				inputDB = opts.nextOpt();
-			}
-			else if (opts.nextEq("--gpad-output")) {
-				gpadOutputFolder = opts.nextOpt();
-			}
-			else if (opts.nextEq("--model-id-prefix")) {
-				modelIdPrefix = opts.nextOpt();
-			}
-			else if (opts.nextEq("--model-id-curie")) {
-				modelIdcurie = opts.nextOpt();
-			}
-			else if (opts.nextEq("--ontology")) {
-				ontologyIRI = opts.nextOpt();
-			}
-			else {
-				break;
-			}
-		}
-		OWLOntology ontology = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(ontologyIRI));
-		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
-		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(ontology, curieHandler, modelIdPrefix, inputDB, null);
-		for (IRI modelIRI : m3.getAvailableModelIds()) {
-			try {
-				String gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createCanonicalInferredModel(modelIRI));
-				String fileName = StringUtils.replaceOnce(modelIRI.toString(), modelIdPrefix, "") + ".gpad";
-				Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(gpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
-				writer.write(gpad);
-				writer.close();	
-			} catch (InconsistentOntologyException e) {
-				LOGGER.error("Inconsistent ontology: " + modelIRI);
-			}
-		}
-		m3.dispose();
-	}
-
-	@CLIMethod("--lego-to-gpad")
-	public void legoToAnnotations(Opts opts) throws Exception {
-		String modelIdPrefix = "http://model.geneontology.org/";
-		String modelIdcurie = "gomodel";
-		String inputFolder = null;
-		String singleFile = null;
-		String gpadOutputFolder = null;
-		String gafOutputFolder = null;
-		Map<String, String> taxonGroups = null;
-		String defaultTaxonGroup = "other";
-		boolean addLegoModelId = true;
-		String fileSuffix = "ttl";
-		while (opts.hasOpts()) {
-			if (opts.nextEq("-i|--input")) {
-				inputFolder = opts.nextOpt();
-			}
-			else if (opts.nextEq("--input-single-file")) {
-				singleFile = opts.nextOpt();
-			}
-			else if (opts.nextEq("--gpad-output")) {
-				gpadOutputFolder = opts.nextOpt();
-			}
-			else if (opts.nextEq("--gaf-output")) {
-				gafOutputFolder = opts.nextOpt();
-			}
-			else if (opts.nextEq("--remove-lego-model-ids")) {
-				addLegoModelId = false;
-			}
-			else if (opts.nextEq("--model-id-prefix")) {
-				modelIdPrefix = opts.nextOpt();
-			}
-			else if (opts.nextEq("-s|--input-file-suffix")) {
-				opts.info("SUFFIX", "if a directory is specified, use only files with this suffix. Default is 'ttl'");
-				fileSuffix = opts.nextOpt();
-			}
-			else if (opts.nextEq("--model-id-curie")) {
-				modelIdcurie = opts.nextOpt();
-			}
-			else if (opts.nextEq("--group-by-model-organisms")) {
-				if (taxonGroups == null) {
-					taxonGroups = new HashMap<>();
-				}
-				// get the pre-defined groups from the model-organism-groups.tsv resource
-				List<String> lines = IOUtils.readLines(MinervaCommandRunner.class.getResourceAsStream("/model-organism-groups.tsv"));
-				for (String line : lines) {
-					line = StringUtils.trimToEmpty(line);
-					if (line.isEmpty() == false && line.charAt(0) != '#') {
-						String[] split = StringUtils.splitByWholeSeparator(line, "\t");
-						if (split.length > 1) {
-							String group = split[0];
-							Set<String> taxonIds = new HashSet<>();
-							for (int i = 1; i < split.length; i++) {
-								taxonIds.add(split[i]);
-							}
-							for(String taxonId : taxonIds) {
-								taxonGroups.put(taxonId, group);
-							}
-						}
-					}
-
-				}
-			}
-			else if (opts.nextEq("--add-model-organism-group")) {
-				if (taxonGroups == null) {
-					taxonGroups = new HashMap<>();
-				}
-				String group = opts.nextOpt();
-				String taxon = opts.nextOpt();
-				taxonGroups.put(taxon, group);
-			}
-			else if (opts.nextEq("--set-default-model-group")) {
-				defaultTaxonGroup = opts.nextOpt();
-			}
-			else {
-				break;
-			}
-		}
-		// create curie handler
-		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
-		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-
-		ExternalLookupService lookup= null;
-
-		SimpleEcoMapper mapper = EcoMapperFactory.createSimple();
-		LegoToGeneAnnotationTranslator translator = new LegoToGeneAnnotationTranslator(g.getSourceOntology(), curieHandler, mapper);
-		GroupingTranslator groupingTranslator = new GroupingTranslator(translator, lookup, taxonGroups, defaultTaxonGroup, addLegoModelId);
-
-		final OWLOntologyManager m = g.getManager();
-		if (singleFile != null) {
-			File file = new File(singleFile).getCanonicalFile();
-			OWLOntology model = m.loadOntology(IRI.create(file));
-			groupingTranslator.translate(model);
-		}
-		else if (inputFolder != null) {
-			final String fileSuffixFinal = fileSuffix;
-			File inputFile = new File(inputFolder).getCanonicalFile();
-			if (inputFile.isDirectory()) {
-				File[] files = inputFile.listFiles(new FilenameFilter() {
-
-					@Override
-					public boolean accept(File dir, String name) {
-						if (fileSuffixFinal != null && fileSuffixFinal.length() > 0)
-							return name.endsWith("."+fileSuffixFinal);
-						else
-							return StringUtils.isAlphanumeric(name);
-					}
-				});
-				for (File file : files) {
-					OWLOntology model = m.loadOntology(IRI.create(file));
-					groupingTranslator.translate(model);
-				}
-			}
-		}
-
-		// by state
-		for(String modelState : groupingTranslator.getModelStates()) {
-			GafDocument annotations = groupingTranslator.getAnnotationsByState(modelState);
-			sortAnnotations(annotations);
-			if (annotations != null) {
-				if (gpadOutputFolder != null) {
-					writeGpad(annotations, gpadOutputFolder, "all-"+modelState);
-				}
-				if (gafOutputFolder != null) {
-					writeGaf(annotations, gafOutputFolder, "all-"+modelState);
-				}
-			}
-		}
-
-		// by organism
-		if (taxonGroups != null) {
-			for(String group : groupingTranslator.getTaxonGroups()) {
-				GafDocument filtered = groupingTranslator.getAnnotationsByGroup(group);
-				sortAnnotations(filtered);
-				if (gpadOutputFolder != null) {
-					writeGpad(filtered, gpadOutputFolder, group);
-				}
-				if (gafOutputFolder != null) {
-					writeGaf(filtered, gafOutputFolder, group);
-				}
-			}
-		}
-
-		// production only by organism
-		if (taxonGroups != null) {
-			for(String group : groupingTranslator.getProductionTaxonGroups()) {
-				GafDocument filtered = groupingTranslator.getProductionAnnotationsByGroup(group);
-				sortAnnotations(filtered);
-				if (gpadOutputFolder != null) {
-					String productionFolder = new File(gpadOutputFolder, "production").getAbsolutePath();
-					writeGpad(filtered, productionFolder+"", group);
-				}
-				if (gafOutputFolder != null) {
-					String productionFolder = new File(gafOutputFolder, "production").getAbsolutePath();
-					writeGaf(filtered, productionFolder, group);
-				}
-			}
-		}
-	}
-
-	static void sortAnnotations(GafDocument annotations) {
-		Collections.sort(annotations.getGeneAnnotations(), new Comparator<GeneAnnotation>() {
-			@Override
-			public int compare(GeneAnnotation a1, GeneAnnotation a2) {
-				return a1.toString().compareTo(a2.toString());
-			}
-		});
-	}
-
-	private void writeGaf(GafDocument annotations, String outputFolder, String fileName) {
-		File outputFile = new File(outputFolder, fileName+".gaf");
-		GafWriter writer = new GafWriter();
-		try {
-			outputFile.getParentFile().mkdirs();
-			writer.setStream(outputFile);
-			writer.write(annotations);
-		}
-		finally {
-			IOUtils.closeQuietly(writer);	
-		}
-	}
-
-	private void writeGpad(GafDocument annotations, String outputFolder, String fileName) throws FileNotFoundException {
-		PrintWriter fileWriter = null;
-		File outputFile = new File(outputFolder, fileName+".gpad");
-		try {
-			outputFile.getParentFile().mkdirs();
-			fileWriter = new PrintWriter(outputFile);
-			GpadWriter writer = new GpadWriter(fileWriter, 1.2d);
-			writer.write(annotations);
-		}
-		finally {
-			IOUtils.closeQuietly(fileWriter);	
 		}
 	}
 }
