@@ -29,10 +29,11 @@
 			<artifactId>minerva-json</artifactId>
 			<version>${project.parent.version}</version>
 		</dependency>
-		<dependency>
+<!--  		<dependency>
 			<groupId>org.bbop</groupId>
 			<artifactId>OWLTools-Annotation</artifactId>
 		</dependency>
+-->
 		<dependency>
 			<groupId>org.bbop</groupId>
 			<artifactId>OWLTools-Core</artifactId>
