@@ -9,6 +9,7 @@ import org.apache.jena.rdf.model.Resource;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.validation.ShexValidator;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 /**
  * @author bgood
@@ -17,15 +18,23 @@ import org.semanticweb.owlapi.model.IRI;
 public class MinervaShexValidator extends ShexValidator {
 
 	public CurieHandler curieHandler;
+	boolean active = true;
 	
+	public boolean isActive() {
+		return active;
+	}
+
+	public void setActive(boolean active) {
+		this.active = active;
+	}
+
 	/**
 	 * @param shexpath
 	 * @param goshapemappath
 	 * @throws Exception
 	 */
-	public MinervaShexValidator(String shexpath, String goshapemappath, CurieHandler curieHandler) throws Exception {
-		super(shexpath, goshapemappath);
-		// TODO Auto-generated constructor stub
+	public MinervaShexValidator(String shexpath, String goshapemappath, CurieHandler curieHandler, OWLReasoner tbox_reasoner) throws Exception {
+		super(shexpath, goshapemappath, tbox_reasoner);
 	}
 
 	/**
@@ -33,9 +42,8 @@ public class MinervaShexValidator extends ShexValidator {
 	 * @param shex_map_file
 	 * @throws Exception
 	 */
-	public MinervaShexValidator(File shex_schema_file, File shex_map_file, CurieHandler curieHandler) throws Exception {
-		super(shex_schema_file, shex_map_file);
-		// TODO Auto-generated constructor stub
+	public MinervaShexValidator(File shex_schema_file, File shex_map_file, CurieHandler curieHandler, OWLReasoner tbox_reasoner) throws Exception {
+		super(shex_schema_file, shex_map_file, tbox_reasoner);
 	}
 	
 	@Override

@@ -20,13 +20,13 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 public class MapInferenceProvider implements InferenceProvider {
- 
+
 	private final boolean isConsistent;
 	private final Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes;
 	private final Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects;
 	//for shex and other validation
 	private ValidationResultSet validation_results;
-	
+
 	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, MinervaShexValidator shex) {
 		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes = new HashMap<>();
 		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects = new HashMap<>();
@@ -63,18 +63,20 @@ public class MapInferenceProvider implements InferenceProvider {
 		}
 
 		//shex
-		//generate an RDF model
-		Model model = JenaOwlTool.getJenaModel(ont);
-		//add superclasses to types used in model 
-		model = shex.enrichSuperClasses(model);
-		ShexValidationReport shex_validation = null;
-		try {
-			boolean stream_output_for_debug = true;
-			shex_validation = shex.runShapeMapValidation(model, stream_output_for_debug);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}	
+		ShexValidationReport shex_validation = null;	
+		if(shex.isActive()) {
+			//generate an RDF model
+			Model model = JenaOwlTool.getJenaModel(ont);
+			//add superclasses to types used in model 
+			model = shex.enrichSuperClasses(model);	
+			try {
+				boolean stream_output_for_debug = false;
+				shex_validation = shex.runShapeMapValidation(model, stream_output_for_debug);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}	
+		}
 		ValidationResultSet all_validations = new ValidationResultSet(reasoner_validation, shex_validation);
 		return new MapInferenceProvider(isConsistent, inferredTypes, inferredTypesWithIndirects, all_validations);
 	}
@@ -118,6 +120,6 @@ public class MapInferenceProvider implements InferenceProvider {
 		return validation_results;
 	}
 
-	
+
 
 }

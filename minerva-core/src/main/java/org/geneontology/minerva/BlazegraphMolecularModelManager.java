@@ -597,8 +597,9 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @throws IOException
 	 * @throws RepositoryException
 	 */
-	public void importModelToDatabase(File file, boolean skipMarkedDelete) throws OWLOntologyCreationException, RepositoryException, IOException, RDFParseException, RDFHandlerException {
+	public String importModelToDatabase(File file, boolean skipMarkedDelete) throws OWLOntologyCreationException, RepositoryException, IOException, RDFParseException, RDFHandlerException {
 		synchronized(repo) {
+			String modeliri = null;
 			final BigdataSailRepositoryConnection connection = repo.getUnisolatedConnection();
 			try {
 				connection.begin();
@@ -617,6 +618,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 							//FIXME Turtle format is hard-coded here
 							connection.add(file, "", RDFFormat.TURTLE, graph);
 							connection.commit();
+							modeliri = graph.toString();
 						} else {
 							throw new OWLOntologyCreationException("Detected anonymous ontology; must have IRI");
 						}
@@ -628,7 +630,9 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			} finally {
 				connection.close();
 			}
+			return modeliri;
 		}
+		
 	}
 
 	/**
