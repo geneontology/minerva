@@ -118,11 +118,6 @@ public class ParserWrapper {
         return new OWLGraphWrapper(parse(iriString));		
     }
 
-    @SuppressWarnings("deprecation")
-    public OWLGraphWrapper parseToOWLGraph(String iriString, boolean isMergeImportClosure) throws OWLOntologyCreationException, IOException {
-        return new OWLGraphWrapper(parse(iriString), isMergeImportClosure);		
-    }
-
     public OWLOntology parse(String iriString) throws OWLOntologyCreationException, IOException {
         return parseOWL(iriString);
     }
