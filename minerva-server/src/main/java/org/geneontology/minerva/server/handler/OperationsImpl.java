@@ -13,7 +13,6 @@ import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.ChangeEvent;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
 import org.geneontology.minerva.json.*;
-import org.geneontology.minerva.legacy.GafExportTool;
 import org.geneontology.minerva.legacy.sparql.ExportExplanation;
 import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
 import org.geneontology.minerva.lookup.ExternalLookupService;
@@ -685,17 +684,17 @@ abstract class OperationsImpl extends ModelCreator {
 			initMetaResponse(response);
 			response.data.exportModel = ExportExplanation.exportExplanation(m3.createInferredModel(model.getModelId()), externalLookupService, m3.getLegacyRelationShorthandIndex());
 		} else {
-			final GafExportTool exportTool = GafExportTool.getInstance();
-			if (format == null) {
-				format = "gaf"; // set a default format, if necessary
-			}
-			Map<String, String> allExported = exportTool.exportModelLegacy(model, curieHandler, externalLookupService, Collections.singleton(format));
-			String exported = allExported.get(format);
-			if (exported == null) {
+//			final GafExportTool exportTool = GafExportTool.getInstance();
+//			if (format == null) {
+//				format = "gaf"; // set a default format, if necessary
+//			}
+//			Map<String, String> allExported = exportTool.exportModelLegacy(model, curieHandler, externalLookupService, Collections.singleton(format));
+//			String exported = allExported.get(format);
+//			if (exported == null) {
 				throw new IOException("Unknown export format: "+format);
-			}
-			initMetaResponse(response);
-			response.data.exportModel = exported;
+//			}
+//			initMetaResponse(response);
+//			response.data.exportModel = exported;
 		}
 	}
 
