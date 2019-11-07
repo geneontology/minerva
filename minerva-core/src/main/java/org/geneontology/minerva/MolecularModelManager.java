@@ -25,6 +25,7 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 import owltools.graph.OWLGraphWrapper;
+//import owltools.graph.OWLGraphWrapper;
 import owltools.vocab.OBOUpperVocabulary;
 
 /**
@@ -292,7 +293,7 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 	}
 	private OWLClass getClass(String cid, ModelContainer model) throws UnknownIdentifierException {
 		OWLGraphWrapper graph = new OWLGraphWrapper(model.getAboxOntology());
-		return getClass(cid, graph);
+		return getClass(cid, graph); 
 	}
 	private OWLClass getClass(String cid, OWLGraphWrapper graph) throws UnknownIdentifierException {
 		IRI iri = getCuriHandler().getIRI(cid);

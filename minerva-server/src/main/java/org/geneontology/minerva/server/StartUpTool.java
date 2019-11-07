@@ -421,10 +421,10 @@ public class StartUpTool {
 		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
 
 		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
-		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
+//		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
 		SPARQLHandler sparqlHandler = new SPARQLHandler(models, conf.sparqlEndpointTimeout);
 		ModelSearchHandler searchHandler = new ModelSearchHandler(models, conf.sparqlEndpointTimeout);
-		resourceConfig = resourceConfig.registerInstances(batchHandler, seedHandler, sparqlHandler, searchHandler);
+		resourceConfig = resourceConfig.registerInstances(batchHandler, sparqlHandler, searchHandler);
 
 		// setup jetty server port, buffers and context path
 		Server server = new Server();

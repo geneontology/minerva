@@ -33,13 +33,13 @@
 			<groupId>org.bbop</groupId>
 			<artifactId>OWLTools-Annotation</artifactId>
 		</dependency>
--->
 		<dependency>
 			<groupId>org.bbop</groupId>
 			<artifactId>OWLTools-Core</artifactId>
 			<type>test-jar</type>
 			<scope>test</scope>
 		</dependency>
+-->
 		<dependency>
 			<groupId>com.blazegraph</groupId>
 			<artifactId>bigdata-core</artifactId>
@@ -82,5 +82,10 @@
        			</exclusion>
       		</exclusions> 
  		</dependency>
+ 		<dependency> 
+   			<groupId>org.semanticweb.elk</groupId> 
+   			<artifactId>elk-owlapi</artifactId> 
+   			<version>0.4.3</version> 
+		</dependency>
 	</dependencies>
 </project>

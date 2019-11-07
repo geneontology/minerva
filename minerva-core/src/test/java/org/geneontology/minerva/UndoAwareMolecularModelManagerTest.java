@@ -24,11 +24,11 @@ import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 
 import org.semanticweb.owlapi.model.OWLOntology;
-import owltools.OWLToolsTestBasics;
+//import owltools.OWLToolsTestBasics;
 import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
 
-public class UndoAwareMolecularModelManagerTest extends OWLToolsTestBasics {
+public class UndoAwareMolecularModelManagerTest  {
 
 	static OWLGraphWrapper g = null;
 	static CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();

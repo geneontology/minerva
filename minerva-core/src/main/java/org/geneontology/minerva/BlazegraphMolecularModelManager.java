@@ -72,8 +72,6 @@ import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 import com.google.common.base.Optional;
 
 import info.aduna.iteration.Iterations;
-import owltools.gaf.parser.GafObjectsBuilder;
-import owltools.graph.OWLGraphWrapper;
 
 public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularModelManager<METADATA> {
 
@@ -89,7 +87,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 
 	private final String modelIdPrefix;
 
-	GafObjectsBuilder builder = new GafObjectsBuilder();
 	OWLDocumentFormat ontologyFormat = new TurtleDocumentFormat();
 
 	private final List<PreFileSaveHandler> preFileSaveHandlers = new ArrayList<PreFileSaveHandler>();
