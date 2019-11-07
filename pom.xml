@@ -15,7 +15,7 @@
 	</issueManagement>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<owltools.version>0.3.0-SNAPSHOT</owltools.version>
+<!--  <owltools.version>0.3.0-SNAPSHOT</owltools.version> -->		
 		<owlapi.version>4.5.13</owlapi.version>
 		<sesame.version>2.7.12</sesame.version> <!-- use same as Blazegraph  -->
 		<jetty.version>9.2.3.v20140905</jetty.version> <!--  needs to be exactly 9.2.3.v20140905 - older or newer version of jetty will not work with text search api-->

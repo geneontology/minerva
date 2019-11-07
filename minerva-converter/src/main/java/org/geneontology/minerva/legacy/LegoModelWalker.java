@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.geneontology.minerva.MinervaOWLGraphWrapper;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.util.AnnotationShorthand;
@@ -33,7 +34,6 @@ import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.util.OWLClassExpressionVisitorAdapter;
 
-import owltools.graph.OWLGraphWrapper;
 import owltools.vocab.OBOUpperVocabulary;
 
 abstract class LegoModelWalker<PAYLOAD> {
@@ -111,7 +111,7 @@ abstract class LegoModelWalker<PAYLOAD> {
 	}
 
 	public void walkModel(OWLOntology model, ExternalLookupService lookup, Collection<PAYLOAD> allPayloads) throws UnknownIdentifierException {
-		final OWLGraphWrapper modelGraph = new OWLGraphWrapper(model);
+		final MinervaOWLGraphWrapper modelGraph = new MinervaOWLGraphWrapper(model);
 		
 		String modelId = null;
 		for(OWLAnnotation modelAnnotation : model.getAnnotations()) {
@@ -378,7 +378,7 @@ abstract class LegoModelWalker<PAYLOAD> {
 		return result;
 	}
 	
-	protected abstract PAYLOAD initPayload(OWLNamedIndividual object, OWLClass objectType, OWLOntology model, OWLGraphWrapper modelGraph, ExternalLookupService lookup) throws UnknownIdentifierException;
+	protected abstract PAYLOAD initPayload(OWLNamedIndividual object, OWLClass objectType, OWLOntology model, MinervaOWLGraphWrapper modelGraph, ExternalLookupService lookup) throws UnknownIdentifierException;
 	
 	protected abstract boolean handleCC(PAYLOAD payload, OWLClass cls, Metadata metadata, Set<Evidence> evidences, Set<OWLObjectSomeValuesFrom> expressions);
 	
@@ -392,7 +392,7 @@ abstract class LegoModelWalker<PAYLOAD> {
 		return f.getOWLObjectSomeValuesFrom(p, c);
 	}
 	
-	private Metadata extractMetadata(OWLNamedIndividual individual, OWLGraphWrapper modelGraph, String modelId) {
+	private Metadata extractMetadata(OWLNamedIndividual individual, MinervaOWLGraphWrapper modelGraph, String modelId) {
 		Metadata metadata = new Metadata();
 		metadata.modelId = modelId;
 		metadata.individualIds = new HashSet<IRI>();
@@ -432,7 +432,7 @@ abstract class LegoModelWalker<PAYLOAD> {
 		}
 	}
 
-	private Metadata extractMetadata(Collection<OWLAnnotation> annotations, OWLGraphWrapper modelGraph, String modelId) {
+	private Metadata extractMetadata(Collection<OWLAnnotation> annotations, MinervaOWLGraphWrapper modelGraph, String modelId) {
 		Metadata metadata = new Metadata();
 		metadata.modelId = modelId;
 		if (annotations != null && !annotations.isEmpty()) {

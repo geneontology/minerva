@@ -20,8 +20,6 @@ import org.semanticweb.owlapi.model.OWLOntologyChange;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 
-import owltools.graph.OWLGraphWrapper;
-
 /**
  * Provide undo and redo operations for the {@link MolecularModelManager}.
  */

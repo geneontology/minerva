@@ -8,6 +8,7 @@ import org.eclipse.jetty.server.ServerConnector;
 //import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.geneontology.minerva.MinervaOWLGraphWrapper;
 import org.geneontology.minerva.ModelReaderHelper;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -31,7 +32,6 @@ import org.semanticweb.owlapi.search.Searcher;
 import owltools.cli.Opts;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
-import owltools.graph.OWLGraphWrapper;
 import owltools.io.CatalogXmlIRIMapper;
 import owltools.io.ParserWrapper;
 
@@ -272,7 +272,7 @@ public class StartUpTool {
 	 * @param g
 	 * @return property or null
 	 */
-	public static OWLObjectProperty getRelation(String rel, OWLGraphWrapper g) {
+	public static OWLObjectProperty getRelation(String rel, MinervaOWLGraphWrapper g) {
 		if (rel == null || rel.isEmpty()) {
 			return null;
 		}
@@ -299,7 +299,7 @@ public class StartUpTool {
 	 * @param g
 	 * @return set
 	 */
-	public static Set<OWLObjectProperty> getAssertedSubProperties(OWLObjectProperty parent, OWLGraphWrapper g) {
+	public static Set<OWLObjectProperty> getAssertedSubProperties(OWLObjectProperty parent, MinervaOWLGraphWrapper g) {
 		Set<OWLObjectProperty> properties = new HashSet<OWLObjectProperty>();
 		for(OWLOntology ont : g.getAllOntologies()) {
 			Set<OWLSubObjectPropertyOfAxiom> axioms = ont.getObjectSubPropertyAxiomsForSuperProperty(parent);
@@ -323,7 +323,7 @@ public class StartUpTool {
 			LOGGER.info("Adding catalog xml: "+conf.catalog);
 			pw.addIRIMapper(new CatalogXmlIRIMapper(conf.catalog));
 		}
-		OWLGraphWrapper graph = pw.parseToOWLGraph(conf.ontology);
+		MinervaOWLGraphWrapper graph = pw.parseToOWLGraph(conf.ontology);
 		OWLOntology full_tbox = forceMergeImports(graph.getSourceOntology(), graph.getAllOntologies());
 		graph.setSourceOntology(full_tbox);
 

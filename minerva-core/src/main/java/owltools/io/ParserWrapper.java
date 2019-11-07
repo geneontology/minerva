@@ -15,6 +15,7 @@ import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.apache.log4j.lf5.util.StreamUtils;
+import org.geneontology.minerva.MinervaOWLGraphWrapper;
 import org.obolibrary.oboformat.model.Frame;
 import org.obolibrary.oboformat.model.OBODoc;
 import org.obolibrary.oboformat.parser.OBOFormatConstants.OboFormatTag;
@@ -39,8 +40,6 @@ import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Optional;
-
-import owltools.graph.OWLGraphWrapper;
 
 /**
  * Convenience class wrapping org.oboformat that abstracts away underlying details of ontology format or location
@@ -114,8 +113,8 @@ public class ParserWrapper {
         }
     }
 
-    public OWLGraphWrapper parseToOWLGraph(String iriString) throws OWLOntologyCreationException, IOException {
-        return new OWLGraphWrapper(parse(iriString));		
+    public MinervaOWLGraphWrapper parseToOWLGraph(String iriString) throws OWLOntologyCreationException, IOException {
+        return new MinervaOWLGraphWrapper(parse(iriString));		
     }
 
     public OWLOntology parse(String iriString) throws OWLOntologyCreationException, IOException {
@@ -286,19 +285,19 @@ public class ParserWrapper {
 
     /**
      * Provide names for the {@link OBOFormatWriter} using an
-     * {@link OWLGraphWrapper}.
+     * {@link MinervaOWLGraphWrapper}.
      * 
      * @see OboAndOwlNameProvider use the {@link OboAndOwlNameProvider}, the
      *      pure OWL lookup is problematic for relations.
      */
     public static class OWLGraphWrapperNameProvider implements NameProvider {
-        private final OWLGraphWrapper graph;
+        private final MinervaOWLGraphWrapper graph;
         private final String defaultOboNamespace;
 
         /**
          * @param graph
          */
-        public OWLGraphWrapperNameProvider(OWLGraphWrapper graph) {
+        public OWLGraphWrapperNameProvider(MinervaOWLGraphWrapper graph) {
             super();
             this.graph = graph;
             this.defaultOboNamespace = null;
@@ -309,7 +308,7 @@ public class ParserWrapper {
          * @param graph
          * @param defaultOboNamespace
          */
-        public OWLGraphWrapperNameProvider(OWLGraphWrapper graph, String defaultOboNamespace) {
+        public OWLGraphWrapperNameProvider(MinervaOWLGraphWrapper graph, String defaultOboNamespace) {
             super();
             this.graph = graph;
             this.defaultOboNamespace = defaultOboNamespace;
@@ -323,7 +322,7 @@ public class ParserWrapper {
          * If an {@link OBODoc} is available use {@link OboAndOwlNameProvider}.
          */
         @Deprecated
-        public OWLGraphWrapperNameProvider(OWLGraphWrapper graph, OBODoc oboDoc) {
+        public OWLGraphWrapperNameProvider(MinervaOWLGraphWrapper graph, OBODoc oboDoc) {
             super();
             this.graph = graph;
             String defaultOboNamespace = null;
@@ -355,13 +354,13 @@ public class ParserWrapper {
 
     /**
      * Provide names for the {@link OBOFormatWriter} using an {@link OBODoc}
-     * first and an {@link OWLGraphWrapper} as secondary.
+     * first and an {@link MinervaOWLGraphWrapper} as secondary.
      */
     public static class OboAndOwlNameProvider extends OBODocNameProvider {
 
-        private final OWLGraphWrapper graph;
+        private final MinervaOWLGraphWrapper graph;
 
-        public OboAndOwlNameProvider(OBODoc oboDoc, OWLGraphWrapper wrapper) {
+        public OboAndOwlNameProvider(OBODoc oboDoc, MinervaOWLGraphWrapper wrapper) {
             super(oboDoc);
             this.graph = wrapper;
         }

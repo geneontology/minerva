@@ -34,15 +34,17 @@ public class CachingInferenceProviderCreatorImpl extends InferenceProviderCreato
 		return new CachingInferenceProviderCreatorImpl(new ElkReasonerFactory(), 1, useSLME, name, shex);
 	}
 
-	public static InferenceProviderCreator createHermiT(MinervaShexValidator shex) {
-		int maxConcurrent = Runtime.getRuntime().availableProcessors();
-		return createHermiT(maxConcurrent, shex);
-	}
+//TODO current Hermit doesn't provide a reasonerfactory ?  
+//Not using hermit anyway, can probably just delete.  
+//	public static InferenceProviderCreator createHermiT(MinervaShexValidator shex) {
+//		int maxConcurrent = Runtime.getRuntime().availableProcessors();
+//		return createHermiT(maxConcurrent, shex);
+//	}
 	
-	public static InferenceProviderCreator createHermiT(int maxConcurrent, MinervaShexValidator shex) {
-		return new CachingInferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(),
-				maxConcurrent, true, "Caching Hermit-SLME", shex);
-	}
+//	public static InferenceProviderCreator createHermiT(int maxConcurrent, MinervaShexValidator shex) {
+//		return new CachingInferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(),
+//				maxConcurrent, true, "Caching Hermit-SLME", shex);
+//	}
 	
 	public static InferenceProviderCreator createArachne(RuleEngine arachne, MinervaShexValidator shex) {
 		return new CachingInferenceProviderCreatorImpl(new ArachneOWLReasonerFactory(arachne), 1, false, "Caching Arachne", shex);

@@ -10,6 +10,7 @@ import java.util.Set;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.geneontology.minerva.MinervaOWLGraphWrapper;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
@@ -35,12 +36,11 @@ import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 
-import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
 
 public class MolecularModelJsonRendererTest {
 
-	private static OWLGraphWrapper g = null;
+	private static MinervaOWLGraphWrapper g = null;
 	private static CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	private static OWLOntologyManager m = null;
 	private static OWLDataFactory f = null;
@@ -51,7 +51,7 @@ public class MolecularModelJsonRendererTest {
 		ParserWrapper pw = new ParserWrapper();
 		File file = new File("src/test/resources/mgi-go.obo").getCanonicalFile();
 		OWLOntology ont = pw.parseOWL(IRI.create(file));
-		g = new OWLGraphWrapper(ont);
+		g = new MinervaOWLGraphWrapper(ont);
 		f = g.getDataFactory();
 		m = g.getManager();
 		partOf = g.getOWLObjectPropertyByIdentifier("BFO:0000050"); 
@@ -162,7 +162,7 @@ public class MolecularModelJsonRendererTest {
 		assertNotNull(jsonOwlIndividualParse);
 		assertEquals(jsonOwlIndividualOriginal, jsonOwlIndividualParse);
 		
-		Set<OWLClassExpression> ces = TestJsonOwlObjectParser.parse(new OWLGraphWrapper(o), jsonOwlIndividualParse.type);
+		Set<OWLClassExpression> ces = TestJsonOwlObjectParser.parse(new MinervaOWLGraphWrapper(o), jsonOwlIndividualParse.type);
 		assertEquals(1, ces.size());
 		assertEquals(ce, ces.iterator().next());
 	}
@@ -231,7 +231,7 @@ public class MolecularModelJsonRendererTest {
 	}
 	
 	static class TestJsonOwlObjectParser {
-		static OWLClassExpression parse(OWLGraphWrapper g, JsonOwlObject expression)
+		static OWLClassExpression parse(MinervaOWLGraphWrapper g, JsonOwlObject expression)
 				throws Exception {
 			if (expression == null) {
 				throw new Exception("Missing expression: null is not a valid expression.");
@@ -285,7 +285,7 @@ public class MolecularModelJsonRendererTest {
 			}
 		}
 		
-		static OWLClassExpression parse(OWLGraphWrapper g, JsonOwlObject[] expressions, JsonOwlObjectType type)
+		static OWLClassExpression parse(MinervaOWLGraphWrapper g, JsonOwlObject[] expressions, JsonOwlObjectType type)
 				throws Exception {
 			if (expressions.length == 0) {
 				throw new Exception("Missing expressions: empty expression list is not allowed.");
@@ -309,7 +309,7 @@ public class MolecularModelJsonRendererTest {
 			}
 		}
 		
-		static Set<OWLClassExpression> parse(OWLGraphWrapper g, JsonOwlObject[] expressions)
+		static Set<OWLClassExpression> parse(MinervaOWLGraphWrapper g, JsonOwlObject[] expressions)
 				throws Exception {
 			if (expressions.length == 0) {
 				throw new Exception("Missing expressions: empty expression list is not allowed.");

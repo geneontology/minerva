@@ -1,4 +1,4 @@
-package owltools.graph;
+package org.geneontology.minerva;
 
 
 import java.io.Closeable;
@@ -46,11 +46,11 @@ import owltools.util.OwlHelper;
 
 
 /**
- * bastardization of owltools owlgraphwrapper
+ * Consolidation of methods actually used in Minerva from the OWLTools OWLGraphWrapper class
  */
-public class OWLGraphWrapper implements Closeable {
+public class MinervaOWLGraphWrapper implements Closeable {
 
-	private static final Logger LOG = Logger.getLogger(OWLGraphWrapper.class);
+	private static final Logger LOG = Logger.getLogger(MinervaOWLGraphWrapper.class);
 	private Map<String,OWLObject> altIdMap = null;
 	private String defaultIDSpace = "";
 	final Map<String,String> idSpaceMap;
@@ -58,13 +58,13 @@ public class OWLGraphWrapper implements Closeable {
 	public static Map<String,IRI> annotationPropertyMap = initAnnotationPropertyMap();
 	public Set<OWLOntology> supportOntologySet = new HashSet<OWLOntology>();
 	
-	public OWLGraphWrapper(OWLOntology ontology) {
+	public MinervaOWLGraphWrapper(OWLOntology ontology) {
 		super();
 		idSpaceMap = new HashMap<String,String>();
 		sourceOntology = ontology;
 	}
 
-	public OWLGraphWrapper(String iri) throws OWLOntologyCreationException {
+	public MinervaOWLGraphWrapper(String iri) throws OWLOntologyCreationException {
 		super();
 		idSpaceMap = new HashMap<String,String>();
 		ParserWrapper pw = new ParserWrapper();

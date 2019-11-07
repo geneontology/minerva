@@ -50,14 +50,14 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		return new InferenceProviderCreatorImpl(new ElkReasonerFactory(), 1, useSLME, name, shex);
 	}
 	
-	public static InferenceProviderCreator createHermiT(MinervaShexValidator shex) {
-		int maxConcurrent = Runtime.getRuntime().availableProcessors();
-		return createHermiT(maxConcurrent, shex);
-	}
+//	public static InferenceProviderCreator createHermiT(MinervaShexValidator shex) {
+//		int maxConcurrent = Runtime.getRuntime().availableProcessors();
+//		return createHermiT(maxConcurrent, shex);
+//	}
 	
-	public static InferenceProviderCreator createHermiT(int maxConcurrent, MinervaShexValidator shex) {
-		return new InferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(), maxConcurrent, true, "Hermit-SLME", shex);
-	}
+//	public static InferenceProviderCreator createHermiT(int maxConcurrent, MinervaShexValidator shex) {
+//		return new InferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(), maxConcurrent, true, "Hermit-SLME", shex);
+//	}
 
 	@Override
 	public InferenceProvider create(ModelContainer model) throws OWLOntologyCreationException, InterruptedException {

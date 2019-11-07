@@ -21,13 +21,6 @@
 			<version>${project.parent.version}</version>
 			<scope>test</scope>
 		</dependency>
-<!--  		<dependency>
-			<groupId>org.bbop</groupId>
-			<artifactId>OWLTools-Core</artifactId>
-			<type>test-jar</type>
-			<scope>test</scope>
-		</dependency>
--->
 	</dependencies>
 
 </project>

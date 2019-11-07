@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.io.IOException;
 
+import org.geneontology.minerva.MinervaOWLGraphWrapper;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
@@ -22,13 +23,12 @@ import org.semanticweb.owlapi.model.OWLObjectComplementOf;
 import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
-import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
 
 public class M3ExpressionParserTest {
 
 	private static final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
-	private static OWLGraphWrapper graph;
+	private static MinervaOWLGraphWrapper graph;
 	
 	// these are present in the test module
     private static final String CELL_MORPHOGENESIS = "GO:0000902";
@@ -43,7 +43,7 @@ public class M3ExpressionParserTest {
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
 	    /* File file = new File("src/test/resources/go-lego-module.omn.gz").getCanonicalFile(); */
 	    File file = new File("src/test/resources/go-lego-module-compact.omn.gz").getCanonicalFile();
-		graph = new OWLGraphWrapper(pw.parseOWL(IRI.create(file)));
+		graph = new MinervaOWLGraphWrapper(pw.parseOWL(IRI.create(file)));
 	}
 
 	@Test(expected=MissingParameterException.class)

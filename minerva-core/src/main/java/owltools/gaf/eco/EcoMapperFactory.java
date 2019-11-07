@@ -18,6 +18,7 @@ import java.util.Set;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.geneontology.minerva.MinervaOWLGraphWrapper;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -30,7 +31,6 @@ import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 
 import com.google.common.base.Optional;
 
-import owltools.graph.OWLGraphWrapper;
 import owltools.io.ParserWrapper;
 
 /**
@@ -46,14 +46,14 @@ public class EcoMapperFactory {
 	
 	public static class OntologyMapperPair<MAPPER extends EcoMapper> {
 		
-		private final OWLGraphWrapper graph;
+		private final MinervaOWLGraphWrapper graph;
 		private final MAPPER mapper;
 		
 		/**
 		 * @param graph
 		 * @param mapper
 		 */
-		OntologyMapperPair(OWLGraphWrapper graph, MAPPER mapper) {
+		OntologyMapperPair(MinervaOWLGraphWrapper graph, MAPPER mapper) {
 			this.graph = graph;
 			this.mapper = mapper;
 		}
@@ -61,7 +61,7 @@ public class EcoMapperFactory {
 		/**
 		 * @return the graph
 		 */
-		public OWLGraphWrapper getGraph() {
+		public MinervaOWLGraphWrapper getGraph() {
 			return graph;
 		}
 
@@ -163,7 +163,7 @@ public class EcoMapperFactory {
 	 */
 	public static OntologyMapperPair<EcoMapper> createEcoMapper(ParserWrapper p, String location) throws OWLException, IOException {
 		final OWLOntology eco = p.parseOWL(location);
-		final OWLGraphWrapper graph = new OWLGraphWrapper(eco);
+		final MinervaOWLGraphWrapper graph = new MinervaOWLGraphWrapper(eco);
 		final EcoMapper mapper = createEcoMapper(graph);
 		final OntologyMapperPair<EcoMapper> pair = new OntologyMapperPair<EcoMapper>(graph, mapper);
 		return pair ;
@@ -179,7 +179,7 @@ public class EcoMapperFactory {
 	 * 
 	 * @see EcoMapper#ECO_MAPPING_PURL
 	 */
-	public static EcoMapper createEcoMapper(OWLGraphWrapper graph) throws IOException {
+	public static EcoMapper createEcoMapper(MinervaOWLGraphWrapper graph) throws IOException {
 		Reader reader = null;
 		try {
 			reader = createReader(EcoMapper.ECO_MAPPING_PURL);
@@ -258,7 +258,7 @@ public class EcoMapperFactory {
 		OWLReasoner reasoner = reasonerFactor.createReasoner(eco);
 		Reader reader = null;
 		try {
-			OWLGraphWrapper ecoGraph = new OWLGraphWrapper(eco);
+			MinervaOWLGraphWrapper ecoGraph = new MinervaOWLGraphWrapper(eco);
 			reader = createReader(EcoMapper.ECO_MAPPING_PURL);
 			final TraversingEcoMapper mapper = createTraversingEcoMapper(reader, ecoGraph, reasoner, true);
 			return new OntologyMapperPair<TraversingEcoMapper>(ecoGraph, mapper);
@@ -270,7 +270,7 @@ public class EcoMapperFactory {
 	
 	/**
 	 * Create a {@link TraversingEcoMapper} instance using the given
-	 * {@link OWLGraphWrapper}. It is assumed that ECO can be retrieved from the
+	 * {@link MinervaOWLGraphWrapper}. It is assumed that ECO can be retrieved from the
 	 * graph using its default IRI. The mappings are retrieved using the PURL.
 	 * <p>
 	 * Uses the given reasoner in the traversal methods. If disposeReasoner is
@@ -289,12 +289,12 @@ public class EcoMapperFactory {
 	 * @throws OWLException
 	 * @throws IllegalArgumentException
 	 *             throw when the reasoner is null, or the
-	 *             {@link OWLGraphWrapper} does not contain ECO.
+	 *             {@link MinervaOWLGraphWrapper} does not contain ECO.
 	 * 
 	 * @see EcoMapper#ECO_PURL_IRI
 	 * @see EcoMapper#ECO_MAPPING_PURL
 	 */
-	public static TraversingEcoMapper createTraversingEcoMapper(OWLGraphWrapper all, OWLReasoner reasoner, boolean disposeReasoner) throws IOException, OWLException {
+	public static TraversingEcoMapper createTraversingEcoMapper(MinervaOWLGraphWrapper all, OWLReasoner reasoner, boolean disposeReasoner) throws IOException, OWLException {
 		
 		// This has bitten me, so let's try and be specific...
 		if( reasoner == null )	{
@@ -319,7 +319,7 @@ public class EcoMapperFactory {
 			throw new IllegalArgumentException("The specified graph did not contain ECO with the IRI: "+EcoMapper.ECO_PURL_IRI);
 		}
 
-		OWLGraphWrapper ecoGraph = new OWLGraphWrapper(eco);
+		MinervaOWLGraphWrapper ecoGraph = new MinervaOWLGraphWrapper(eco);
 		Reader reader = null;
 		try {
 			reader = createReader(EcoMapper.ECO_MAPPING_PURL);
@@ -443,12 +443,12 @@ public class EcoMapperFactory {
 		return errorMsg;
 	}
 	
-	static TraversingEcoMapper createTraversingEcoMapper(Reader mappingsReader, OWLGraphWrapper eco, OWLReasoner reasoner, boolean disposeReasoner) throws IOException, OWLException {
+	static TraversingEcoMapper createTraversingEcoMapper(Reader mappingsReader, MinervaOWLGraphWrapper eco, OWLReasoner reasoner, boolean disposeReasoner) throws IOException, OWLException {
 		EcoMappings<OWLClass> mappings = loadEcoMappings(mappingsReader, eco);
 		return new TraversingEcoMapperImpl(mappings, reasoner, disposeReasoner);
 	}
 	
-	private static EcoMappings<OWLClass> loadEcoMappings(Reader mappingsReader, OWLGraphWrapper eco) throws IOException {
+	private static EcoMappings<OWLClass> loadEcoMappings(Reader mappingsReader, MinervaOWLGraphWrapper eco) throws IOException {
 		EcoMappings<OWLClass> mappings = new EcoMappings<OWLClass>();
 		List<String> lines = IOUtils.readLines(mappingsReader);
 		for (String line : lines) {
