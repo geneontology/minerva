@@ -380,7 +380,7 @@ public class StartUpTool {
 
 	public static InferenceProviderCreator createInferenceProviderCreator(String reasonerOpt, UndoAwareMolecularModelManager models, MinervaShexValidator shex) { 
 		switch(reasonerOpt) { 
-		case ("slme-hermit"): return CachingInferenceProviderCreatorImpl.createHermiT(shex); 
+	//	case ("slme-hermit"): return CachingInferenceProviderCreatorImpl.createHermiT(shex); 
 		case ("slme-elk"): return CachingInferenceProviderCreatorImpl.createElk(true, shex); 
 		case ("elk"): return CachingInferenceProviderCreatorImpl.createElk(false, shex); 
 		case ("arachne"): return CachingInferenceProviderCreatorImpl.createArachne(models.getRuleEngine(), shex); 

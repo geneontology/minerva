@@ -117,6 +117,11 @@
 			<groupId>org.bbop</groupId>
 			<artifactId>golr-client</artifactId>
 		</dependency>
+
+  	<dependency>
+			<groupId>org.bbop</groupId>
+			<artifactId>OWLTools-Runner</artifactId>
+		</dependency>
 -->
 		<!-- https://mvnrepository.com/artifact/org.apache.ant/ant -->
 <dependency>

@@ -83,11 +83,7 @@
 			<artifactId>minerva-server</artifactId>
 			<version>${project.parent.version}</version>
 		</dependency>
-<!--  	<dependency>
-			<groupId>org.bbop</groupId>
-			<artifactId>OWLTools-Runner</artifactId>
-		</dependency>
--->	
+	
 	</dependencies>
 
 </project>
