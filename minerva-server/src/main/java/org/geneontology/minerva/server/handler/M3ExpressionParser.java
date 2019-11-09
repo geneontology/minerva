@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.geneontology.minerva.MinervaOWLGraphWrapper;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -18,8 +19,6 @@ import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLException;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
-
-import owltools.graph.OWLGraphWrapper;
 
 public class M3ExpressionParser {
 	
@@ -38,11 +37,11 @@ public class M3ExpressionParser {
 	OWLClassExpression parse(ModelContainer model, JsonOwlObject expression, 
 			ExternalLookupService externalLookupService)
 			throws MissingParameterException, UnknownIdentifierException, OWLException {
-		OWLGraphWrapper g = new OWLGraphWrapper(model.getAboxOntology());
+		MinervaOWLGraphWrapper g = new MinervaOWLGraphWrapper(model.getAboxOntology());
 		return parse(g, expression, externalLookupService);
 	}
 	
-	OWLClassExpression parse(OWLGraphWrapper g, JsonOwlObject expression,
+	OWLClassExpression parse(MinervaOWLGraphWrapper g, JsonOwlObject expression,
 			ExternalLookupService externalLookupService)
 			throws MissingParameterException, UnknownIdentifierException, OWLException {
 		if (expression == null) {
@@ -119,7 +118,7 @@ public class M3ExpressionParser {
 		}
 	}
 	
-	private OWLClassExpression parse(OWLGraphWrapper g, JsonOwlObject[] expressions, 
+	private OWLClassExpression parse(MinervaOWLGraphWrapper g, JsonOwlObject[] expressions, 
 			ExternalLookupService externalLookupService, JsonOwlObjectType type)
 			throws MissingParameterException, UnknownIdentifierException, OWLException {
 		if (expressions.length == 0) {
@@ -144,7 +143,7 @@ public class M3ExpressionParser {
 		}
 	}
 	
-	private OWLClass createClass(IRI iri, OWLGraphWrapper g) {
+	private OWLClass createClass(IRI iri, MinervaOWLGraphWrapper g) {
 		return g.getDataFactory().getOWLClass(iri);
 	}
 	

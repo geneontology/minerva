@@ -1,6 +1,7 @@
 package org.geneontology.minerva.server.handler;
 
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
+import org.geneontology.minerva.MinervaOWLGraphWrapper;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
@@ -26,7 +27,7 @@ import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.parameters.Imports;
-import owltools.graph.OWLGraphWrapper;
+
 import owltools.io.ParserWrapper;
 
 import java.io.IOException;
@@ -59,7 +60,7 @@ public class BatchModelHandlerTest {
 	}
 
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException, UnknownIdentifierException {
-		final OWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl");
+		final MinervaOWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl");
 		final OWLObjectProperty legorelParent = StartUpTool.getRelation("http://purl.obolibrary.org/obo/LEGOREL_0000000", graph);
 		assertNotNull(legorelParent);
 		importantRelations = StartUpTool.getAssertedSubProperties(legorelParent, graph);

@@ -83,7 +83,6 @@ import org.semanticweb.owlapi.util.PriorityCollection;
 
 import com.google.common.base.Optional;
 
-import owltools.graph.OWLGraphWrapper;
 import owltools.vocab.OBOUpperVocabulary;
 import scala.collection.JavaConverters;
 

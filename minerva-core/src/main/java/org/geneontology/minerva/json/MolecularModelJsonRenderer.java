@@ -15,6 +15,7 @@ import java.util.Set;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
+import org.geneontology.minerva.MinervaOWLGraphWrapper;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -52,7 +53,6 @@ import com.google.gson.GsonBuilder;
 import owltools.gaf.eco.EcoMapper;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.EcoMapperFactory.OntologyMapperPair;
-import owltools.graph.OWLGraphWrapper;
 import owltools.util.OwlHelper;
 
 /**
@@ -67,7 +67,7 @@ public class MolecularModelJsonRenderer {
 
 	private final String modelId;
 	private final OWLOntology ont;
-	private final OWLGraphWrapper graph;
+	private final MinervaOWLGraphWrapper graph;
 	private final CurieHandler curieHandler;
 	private final InferenceProvider inferenceProvider;
 	
@@ -83,19 +83,19 @@ public class MolecularModelJsonRenderer {
 	public MolecularModelJsonRenderer(ModelContainer model, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
 		this(curieHandler.getCuri(model.getModelId()),
 				model.getAboxOntology(),
-				new OWLGraphWrapper(model.getAboxOntology()), 
+				new MinervaOWLGraphWrapper(model.getAboxOntology()), 
 				inferenceProvider, curieHandler);
 	}
 	
 	public MolecularModelJsonRenderer(String modelId, OWLOntology ontology, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
-		this(modelId, ontology, new OWLGraphWrapper(ontology), inferenceProvider, curieHandler);
+		this(modelId, ontology, new MinervaOWLGraphWrapper(ontology), inferenceProvider, curieHandler);
 	}
 	
-	public MolecularModelJsonRenderer(String modelId, OWLGraphWrapper graph, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+	public MolecularModelJsonRenderer(String modelId, MinervaOWLGraphWrapper graph, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
 		this(modelId, graph.getSourceOntology(), graph, inferenceProvider, curieHandler);
 	}
 
-	private MolecularModelJsonRenderer(String modelId, OWLOntology ont, OWLGraphWrapper graph, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+	private MolecularModelJsonRenderer(String modelId, OWLOntology ont, MinervaOWLGraphWrapper graph, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
 		super();
 		this.modelId = modelId;
 		this.ont = ont;
@@ -370,7 +370,7 @@ public class MolecularModelJsonRenderer {
 		 */
 		// retrieve (or load) all ontologies
 		// put in a new wrapper
-		OWLGraphWrapper wrapper = new OWLGraphWrapper(mmm.getOntology());
+		MinervaOWLGraphWrapper wrapper = new MinervaOWLGraphWrapper(mmm.getOntology());
 		Collection<IRI> imports = mmm.getImports();
 		OWLOntologyManager manager = wrapper.getManager();
 		for (IRI iri : imports) {
@@ -460,7 +460,7 @@ public class MolecularModelJsonRenderer {
 			}
 			pair = eco;
 		}
-		final OWLGraphWrapper graph = pair.getGraph();
+		final MinervaOWLGraphWrapper graph = pair.getGraph();
 		final EcoMapper mapper = pair.getMapper();
 		Set<OWLClass> ecoClasses = graph.getAllOWLClasses();
 		Map<OWLClass, String> codesForEcoClasses = mapper.getCodesForEcoClasses();

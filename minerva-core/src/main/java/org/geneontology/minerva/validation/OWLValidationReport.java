@@ -12,4 +12,11 @@ public class OWLValidationReport extends ModelValidationReport {
 		super(report_type_id, tracker, rulefile);
 	}
 
+
+
+	public String getAsText() {
+		String e = "A human readable explanation of any OWL inconsistencies ought to go here.";
+		return e;
+	}
+
 }

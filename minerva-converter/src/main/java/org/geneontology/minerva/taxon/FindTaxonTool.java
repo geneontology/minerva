@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
+import org.geneontology.minerva.MinervaOWLGraphWrapper;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.obolibrary.obo2owl.Obo2OWLConstants;
@@ -18,8 +19,6 @@ import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
 import org.semanticweb.owlapi.util.OWLClassExpressionVisitorExAdapter;
-
-import owltools.graph.OWLGraphWrapper;
 
 public class FindTaxonTool {
 	
@@ -41,7 +40,7 @@ public class FindTaxonTool {
 		OWLClass cls = df.getOWLClass(curieHandler.getIRI(curie));
 		String taxon = getEntityTaxon(cls, model);
 		if (taxon == null) {
-			OWLGraphWrapper g = new OWLGraphWrapper(model);
+			MinervaOWLGraphWrapper g = new MinervaOWLGraphWrapper(model);
 			cls = g.getOWLClassByIdentifier(curie);
 			if (cls != null) {
 				taxon = getEntityTaxon(cls, model);
