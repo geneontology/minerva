@@ -1,6 +1,7 @@
 package org.geneontology.minerva.lookup;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -93,7 +94,11 @@ public class GolrExternalLookupServiceTest {
 		IRI gp_iri = handler.getIRI("UniProtKB:P32241-1");
 		List<LookupEntry> lookup = s.lookup(gp_iri);
 		assertEquals(1, lookup.size());
-		assertEquals("VIPR1 Hsap", lookup.get(0).label);
+		LookupEntry e = lookup.get(0);
+		assertEquals("VIPR1 Hsap", e.label);
+		assertEquals(32, e.isa_closure.size());
+		assertTrue(e.isa_closure.contains("PR:000000001"));
+		
 	}
 	
 	@Test

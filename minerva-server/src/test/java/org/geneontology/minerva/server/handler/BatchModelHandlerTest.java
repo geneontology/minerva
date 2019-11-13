@@ -92,13 +92,13 @@ public class BatchModelHandlerTest {
 	private static ExternalLookupService createTestProteins(CurieHandler curieHandler) throws UnknownIdentifierException {
 		List<LookupEntry> testEntries = new ArrayList<LookupEntry>();
 		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0000"),
-				"P0000", "protein", "fake-taxon-id"));
+				"P0000", "protein", "fake-taxon-id", null));
 		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0001"),
-				"P0001", "protein", "fake-taxon-id"));
+				"P0001", "protein", "fake-taxon-id", null));
 		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0002"),
-				"P0002", "protein", "fake-taxon-id"));
+				"P0002", "protein", "fake-taxon-id", null));
 		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0003"),
-				"P0003", "protein", "fake-taxon-id"));
+				"P0003", "protein", "fake-taxon-id", null));
 		return new TableLookupService(testEntries);
 	}
 

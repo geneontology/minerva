@@ -18,6 +18,7 @@ public interface ExternalLookupService {
 		public final String label;
 		public final String type;
 		public final String taxon;
+		public final List<String> isa_closure;
 		
 		/**
 		 * @param id
@@ -25,11 +26,12 @@ public interface ExternalLookupService {
 		 * @param type
 		 * @param taxon
 		 */
-		public LookupEntry(IRI id, String label, String type, String taxon) {
+		public LookupEntry(IRI id, String label, String type, String taxon, List<String> isa_closure) {
 			this.id = id;
 			this.label = label;
 			this.type = type;
 			this.taxon = taxon;
+			this.isa_closure = isa_closure;
 		}
 	}
 	

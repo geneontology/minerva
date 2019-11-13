@@ -71,7 +71,7 @@ public class GolrExternalLookupService implements ExternalLookupService {
 			if (bioentites != null && !bioentites.isEmpty()) {
 				result = new ArrayList<ExternalLookupService.LookupEntry>(bioentites.size());
 				for(GolrBioentityDocument doc : bioentites) {
-					result.add(new LookupEntry(id, doc.bioentity_label, doc.type, doc.taxon));
+					result.add(new LookupEntry(id, doc.bioentity_label, doc.type, doc.taxon, null));
 				}
 			}
 			else 
@@ -80,11 +80,11 @@ public class GolrExternalLookupService implements ExternalLookupService {
 				if (ontologyEntities != null && !ontologyEntities.isEmpty()) {
 					result = new ArrayList<ExternalLookupService.LookupEntry>(ontologyEntities.size());
 					for(GolrOntologyClassDocument doc : ontologyEntities) {
-						result.add(new LookupEntry(id, doc.annotation_class_label, "ontology_class", doc.only_in_taxon));
+						result.add(new LookupEntry(id, doc.annotation_class_label, "ontology_class", doc.only_in_taxon, doc.isa_partof_closure));
 					}
 				}
 			}
-		}
+		} 
 		catch(IOException exception) {
 			if (LOG.isDebugEnabled()) {
 				LOG.debug("Error during retrieval for id: "+id+" GOLR-URL: "+golrUrl, exception);
