@@ -36,7 +36,18 @@ public abstract class AbstractRetrieveGolr {
 	protected abstract boolean isIndentJson();
 	
 	protected abstract List<String> getRelevantFields();
+
+	/*
+	http://noctua-golr.berkeleybop.org/select?indent=on
+	&wt=json&rows=10&start=0
+	&fl=id,isa_closure
+	&json.nl=arrarr
+	&q=*:*
+	&fq=document_category:%22ontology_class%22
+	&fq=is_obsolete:%22false%22
+	&fq=id:%22UniProtKB:P32241-1%22
 	
+	*/
 	URI createGolrRequest(List<String []> tagvalues, String category, int start, int pagination) throws IOException {
 		try {
 			URIBuilder builder = new URIBuilder(server);

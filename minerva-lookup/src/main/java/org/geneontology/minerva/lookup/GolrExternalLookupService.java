@@ -74,12 +74,13 @@ public class GolrExternalLookupService implements ExternalLookupService {
 					result.add(new LookupEntry(id, doc.bioentity_label, doc.type, doc.taxon));
 				}
 			}
-			else if (ontologyClient != null){
+			else 
+				if (ontologyClient != null){
 				List<GolrOntologyClassDocument> ontologyEntities = ontologyClient.getGolrOntologyCls(curie);
 				if (ontologyEntities != null && !ontologyEntities.isEmpty()) {
 					result = new ArrayList<ExternalLookupService.LookupEntry>(ontologyEntities.size());
 					for(GolrOntologyClassDocument doc : ontologyEntities) {
-						result.add(new LookupEntry(id, doc.annotation_class_label, "ontology_class", null));
+						result.add(new LookupEntry(id, doc.annotation_class_label, "ontology_class", doc.only_in_taxon));
 					}
 				}
 			}
