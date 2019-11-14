@@ -16,6 +16,7 @@ import org.geneontology.minerva.json.*;
 import org.geneontology.minerva.legacy.sparql.ExportExplanation;
 import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
 import org.geneontology.minerva.lookup.ExternalLookupService;
+import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.MetaResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
@@ -148,6 +149,12 @@ abstract class OperationsImpl extends ModelCreator {
 			for(JsonOwlObject expression : request.arguments.expressions) {
 				OWLClassExpression cls = parseM3Expression(expression, values);
 				clsExpressions.add(cls);
+				//check for parentage 
+				List<LookupEntry> lookup = externalLookupService.lookup(cls.asOWLClass().getIRI());
+				if(lookup!=null&lookup.get(0).direct_parent_iri!=null) {
+					OWLClass parent_class = m3.getOntology().getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(lookup.get(0).direct_parent_iri));			
+					clsExpressions.add(parent_class);
+				}
 			}
 			if (values.notVariable(request.arguments.individual)) {
 				// create indivdual

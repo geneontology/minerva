@@ -168,6 +168,7 @@ public class StartUpTool {
 				String sizeString = opts.nextOpt();
 				conf.golrCacheSize = Integer.parseInt(sizeString);
 			}
+			//--golr-labels http://noctua-golr.berkeleybop.org/
 			else if (opts.nextEq("--golr-labels")) {
 				conf.golrUrl = opts.nextOpt();
 			}
@@ -214,6 +215,10 @@ public class StartUpTool {
 		}
 		if (conf.journalFile == null) {
 			System.err.println("No journal file available");
+			System.exit(-1);
+		} 
+		if (conf.golrUrl == null) {
+			System.err.println("No GOLR service set.  This is required, please add e.g. --golr-labels http://noctua-golr.berkeleybop.org/ to start up parameters ");
 			System.exit(-1);
 		} 
 		conf.contextString = "/";
