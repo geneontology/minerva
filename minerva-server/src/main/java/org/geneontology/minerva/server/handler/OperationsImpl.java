@@ -150,10 +150,12 @@ abstract class OperationsImpl extends ModelCreator {
 				OWLClassExpression cls = parseM3Expression(expression, values);
 				clsExpressions.add(cls);
 				//check for parentage 
-				List<LookupEntry> lookup = externalLookupService.lookup(cls.asOWLClass().getIRI());
-				if(lookup!=null&lookup.get(0).direct_parent_iri!=null) {
-					OWLClass parent_class = m3.getOntology().getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(lookup.get(0).direct_parent_iri));			
-					clsExpressions.add(parent_class);
+				if(externalLookupService!=null) {
+					List<LookupEntry> lookup = externalLookupService.lookup(cls.asOWLClass().getIRI());
+					if(lookup!=null&&!lookup.isEmpty()&&lookup.get(0).direct_parent_iri!=null) {
+						OWLClass parent_class = m3.getOntology().getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(lookup.get(0).direct_parent_iri));			
+						clsExpressions.add(parent_class);
+					}
 				}
 			}
 			if (values.notVariable(request.arguments.individual)) {
@@ -691,17 +693,17 @@ abstract class OperationsImpl extends ModelCreator {
 			initMetaResponse(response);
 			response.data.exportModel = ExportExplanation.exportExplanation(m3.createInferredModel(model.getModelId()), externalLookupService, m3.getLegacyRelationShorthandIndex());
 		} else {
-//			final GafExportTool exportTool = GafExportTool.getInstance();
-//			if (format == null) {
-//				format = "gaf"; // set a default format, if necessary
-//			}
-//			Map<String, String> allExported = exportTool.exportModelLegacy(model, curieHandler, externalLookupService, Collections.singleton(format));
-//			String exported = allExported.get(format);
-//			if (exported == null) {
-				throw new IOException("Unknown export format: "+format);
-//			}
-//			initMetaResponse(response);
-//			response.data.exportModel = exported;
+			//			final GafExportTool exportTool = GafExportTool.getInstance();
+			//			if (format == null) {
+			//				format = "gaf"; // set a default format, if necessary
+			//			}
+			//			Map<String, String> allExported = exportTool.exportModelLegacy(model, curieHandler, externalLookupService, Collections.singleton(format));
+			//			String exported = allExported.get(format);
+			//			if (exported == null) {
+			throw new IOException("Unknown export format: "+format);
+			//			}
+			//			initMetaResponse(response);
+			//			response.data.exportModel = exported;
 		}
 	}
 
