@@ -67,6 +67,7 @@ public class GolrExternalLookupService implements ExternalLookupService {
 		}
 		List<LookupEntry> result = new ArrayList<LookupEntry>();
 		try {
+			//in current noctua, minerva context, this is never used.  noctua.golr loads everything as ontologies
 			List<GolrBioentityDocument> bioentites = bioentityClient.getGolrBioentites(curie);
 			if (bioentites != null && !bioentites.isEmpty()) {
 				result = new ArrayList<ExternalLookupService.LookupEntry>(bioentites.size());
