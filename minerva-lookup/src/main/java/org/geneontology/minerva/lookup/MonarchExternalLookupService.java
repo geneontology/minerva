@@ -58,7 +58,7 @@ public class MonarchExternalLookupService implements ExternalLookupService {
 				if (entities != null && !entities.isEmpty()) {
 					result = new ArrayList<ExternalLookupService.LookupEntry>(entities.size());
 					for(GolrOntologyClassDocument doc : entities) {
-						result.add(new LookupEntry(id, doc.annotation_class_label, "ontology_class", null, doc.isa_partof_closure));
+						result.add(new LookupEntry(id, doc.annotation_class_label, "ontology_class", null, doc.isa_closure));
 					}
 				}
 			}
