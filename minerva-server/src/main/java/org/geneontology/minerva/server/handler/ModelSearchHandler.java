@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -141,7 +142,7 @@ public class ModelSearchHandler {
 				}
 			}
 		}
-		Map<String, ModelMeta> id_model = new HashMap<String, ModelMeta>();
+		Map<String, ModelMeta> id_model = new LinkedHashMap<String, ModelMeta>();
 		String sparql="";
 		try {
 			sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/ModelSearchQueryTemplate.rq"), StandardCharsets.UTF_8);
@@ -229,11 +230,11 @@ public class ModelSearchHandler {
 			limit_constraint = "LIMIT 1000\n";
 		}
 		//default group by
-		String group_by_constraint = "GROUP BY ?id ?date ?title ?cam ?state <ind_return_list> ";
+		String group_by_constraint = "GROUP BY ?id ?date ?title ?state <ind_return_list> ";
 		//default return block
-		String return_block = "?cam ?id ?date ?title ?state <ind_return_list> (GROUP_CONCAT(?contributor;separator=\";\") AS ?contributors) (GROUP_CONCAT(?group;separator=\";\") AS ?groups)";
+		String return_block = "?id ?date ?title ?state <ind_return_list> (GROUP_CONCAT(?contributor;separator=\";\") AS ?contributors) (GROUP_CONCAT(?group;separator=\";\") AS ?groups)";
 		if(count!=null) {
-			return_block = "(count(distinct ?cam) as ?count)";
+			return_block = "(count(distinct ?id) as ?count)";
 			limit_constraint = "";
 			offset_constraint = "";
 			group_by_constraint = "";
@@ -276,6 +277,16 @@ public class ModelSearchHandler {
 				}else {
 					//model meta
 					String id = bs.getBinding("id").getValue().stringValue();
+					try {
+						String curie = curie_handler.getCuri(IRI.create(id));
+						if(curie!=null) {
+							id = curie;
+						}
+					} catch (Exception e) {
+						r.error += e.getMessage()+" \n ";
+						e.printStackTrace();
+						return r;
+					}
 					String date = bs.getBinding("date").getValue().stringValue();
 					String title = bs.getBinding("title").getValue().stringValue();
 					String contribs = bs.getBinding("contributors").getValue().stringValue();
