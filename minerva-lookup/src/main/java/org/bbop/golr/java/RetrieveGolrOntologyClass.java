@@ -81,7 +81,8 @@ public class RetrieveGolrOntologyClass extends AbstractRetrieveGolr {
 		public List<String> subset;
 		public List<String> definition_xref;
 		public List<String> database_xref;
-		public List<String> isa_partof_closure;
+		//public List<String> isa_partof_closure;
+		public List<String> isa_closure;
 		public List<String> regulates_closure;
 		public String only_in_taxon;
 		public List<String> only_in_taxon_closure;
@@ -101,7 +102,8 @@ public class RetrieveGolrOntologyClass extends AbstractRetrieveGolr {
 					"subset",
 					"definition_xref",
 					"database_xref",
-					"isa_partof_closure",
+					//"isa_partof_closure",
+					"isa_closure", 
 					"regulates_closure",
 					"only_in_taxon",
 					"only_in_taxon_closure");

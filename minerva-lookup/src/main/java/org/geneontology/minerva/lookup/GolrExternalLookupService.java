@@ -81,7 +81,7 @@ public class GolrExternalLookupService implements ExternalLookupService {
 				if (ontologyEntities != null && !ontologyEntities.isEmpty()) {
 					result = new ArrayList<ExternalLookupService.LookupEntry>(ontologyEntities.size());
 					for(GolrOntologyClassDocument doc : ontologyEntities) {
-						result.add(new LookupEntry(id, doc.annotation_class_label, "ontology_class", doc.only_in_taxon, doc.isa_partof_closure));
+						result.add(new LookupEntry(id, doc.annotation_class_label, "ontology_class", doc.only_in_taxon, doc.isa_closure));
 					}
 				}
 			}

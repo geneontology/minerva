@@ -15,13 +15,12 @@ PREFIX directly_positively_regulates: <http://purl.obolibrary.org/obo/RO_0002629
 
 SELECT  <return_block>    
 WHERE {
-  GRAPH ?cam {  
-        ?cam <http://purl.org/dc/elements/1.1/title> ?title ;
+  GRAPH ?id {  
+        ?id <http://purl.org/dc/elements/1.1/title> ?title ;
            <http://purl.org/dc/elements/1.1/date> ?date ;
            <http://purl.org/dc/elements/1.1/contributor> ?contributor ;   
-        optional{?cam <http://purl.org/pav/providedBy> ?group } .   
-        optional{?cam lego:modelstate ?state } . 
-	  BIND(IF(bound(?id), ?id, concat("gomodel:", substr(str(?cam), 31))) as ?id) .    
+        optional{?id <http://purl.org/pav/providedBy> ?group } .   
+        optional{?id lego:modelstate ?state } .    
       <types> 
       <state_constraint>
       <contributor_constraint>
