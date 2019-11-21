@@ -13,6 +13,7 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -40,6 +41,8 @@ import org.geneontology.minerva.json.InferenceProvider;
 import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
+import org.geneontology.minerva.lookup.GolrExternalLookupService;
+import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.server.validation.MinervaShexValidator;
@@ -56,6 +59,10 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLClass;
+import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
+import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
@@ -80,8 +87,6 @@ public class CommandLineInterface {
 	private static final Logger LOGGER = Logger.getLogger(CommandLineInterface.class);
 	
 	public static void main(String[] args) throws Exception {
-		//MinervaCommandRunner cr = new MinervaCommandRunner();
-		//cr.run(args);
 		Options main_options = new Options();
 		OptionGroup methods = new OptionGroup();
 		methods.setRequired(true);
@@ -127,6 +132,13 @@ public class CommandLineInterface {
         .hasArg(false)
         .build();
 		methods.addOption(validate);
+		//update-gene-product-types
+		Option update_gps = Option.builder()
+		        .longOpt("update-gene-product-types")
+		        .desc("Given a directory of go-cam ttl files, assert the root type (e.g. protein) for each gene product instance")
+		        .hasArg(false)
+		        .build();
+		methods.addOption(update_gps);
 		main_options.addOptionGroup(methods);
 				
 		CommandLineParser parser = new DefaultParser();
@@ -264,6 +276,24 @@ public class CommandLineInterface {
 				checkShex = true;
 			}
 			validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex);
+		}else if(cmd.hasOption("update-gene-product-types")) {
+			Options options = new Options();
+			options.addOption(update_gps);
+			options.addOption("i", "input", true, "Sets the folder of GO-CAM ttl files to update");
+			options.addOption("o", "output", true, "Sets the output folder the updated GO-CAM files");
+			options.addOption("n", "neo", true, "Sets the location of the neo file.");
+			options.addOption("c", "catalog", true, "Sets the location for the catalog file for handling go-lego.owl imports");
+			try {
+				cmd = parser.parse( options, args, false);
+				String neo_file = cmd.getOptionValue("n"); 
+				String catalog = cmd.getOptionValue("c"); 
+				String input_dir = cmd.getOptionValue("i"); 
+				String output_dir = cmd.getOptionValue("o"); 		
+				TypeUpdater updater = new TypeUpdater(neo_file, catalog);
+				updater.runBatchUpdate(input_dir, output_dir);
+			}catch( ParseException exp ) {
+				System.out.println( "Unexpected exception:" + exp.getMessage() );
+			}
 		}
 		}catch( ParseException exp ) {
 		    System.out.println( "Unexpected exception:" + exp.getMessage() );
