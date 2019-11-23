@@ -1,0 +1,37 @@
+PREFIX owl: <http://www.w3.org/2002/07/owl#> 
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> 
+#model metadata
+PREFIX metago: <http://model.geneontology.org/>
+PREFIX lego: <http://geneontology.org/lego/> 
+#model data
+PREFIX part_of: <http://purl.obolibrary.org/obo/BFO_0000050>
+PREFIX occurs_in: <http://purl.obolibrary.org/obo/BFO_0000066>
+PREFIX enabled_by: <http://purl.obolibrary.org/obo/RO_0002333>
+PREFIX has_input: <http://purl.obolibrary.org/obo/RO_0002233>
+PREFIX has_output: <http://purl.obolibrary.org/obo/RO_0002234>
+PREFIX causally_upstream_of: <http://purl.obolibrary.org/obo/RO_0002411>
+PREFIX provides_direct_input_for: <http://purl.obolibrary.org/obo/RO_0002413>
+PREFIX directly_positively_regulates: <http://purl.obolibrary.org/obo/RO_0002629>
+
+SELECT  <return_block>    
+WHERE {
+  GRAPH ?id {  
+        ?id <http://purl.org/dc/elements/1.1/title> ?title ;
+           <http://purl.org/dc/elements/1.1/date> ?date ;
+           <http://purl.org/dc/elements/1.1/contributor> ?contributor ;   
+        optional{?id <http://purl.org/pav/providedBy> ?group } .   
+        optional{?id lego:modelstate ?state } .    
+      <types> 
+      <state_constraint>
+      <contributor_constraint>
+      <group_constraint> 
+      <date_constraint>
+      <pmid_constraints>
+      <title_constraint>
+    }
+  } 
+  <group_by_constraint>
+  ORDER BY desc(?date)  
+<limit_constraint>
+<offset_constraint>
+ 

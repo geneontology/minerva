@@ -17,6 +17,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Type;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 import static org.geneontology.minerva.server.handler.OperationsTools.*;
@@ -199,11 +200,14 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		// report state
 		InferenceProvider inferenceProvider = null;
 		boolean isConsistent = true;
+		boolean isConformant = true;
 		if (inferenceProviderCreator != null && useReasoner) {
 			inferenceProvider = inferenceProviderCreator.create(values.model);
 			isConsistent = inferenceProvider.isConsistent();
 			response.setReasoned(true);
-			values.renderBulk = true; // to ensure that all indivuduals are in the response
+			values.renderBulk = true; // to ensure that all individuals are in the response
+			org.geneontology.minerva.validation.ValidationResultSet validations = inferenceProvider.getValidation_results();
+			isConformant = validations.allConformant();	
 		}
 
 		// create response.data
@@ -231,6 +235,9 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		// add other infos to data
 		if (!isConsistent) {
 			response.data.inconsistentFlag =  Boolean.TRUE;
+		}
+		if(!isConformant) {
+			response.data.validation_results = inferenceProvider.getValidation_results();
 		}
 		response.data.modifiedFlag = Boolean.valueOf(values.model.isModified());
 		// These are required for an "okay" response.

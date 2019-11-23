@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.ModelContainer.ModelChangeListener;
 import org.geneontology.minerva.json.InferenceProvider;
+import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.geneontology.rules.engine.RuleEngine;
 import org.geneontology.rules.util.ArachneOWLReasonerFactory;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
@@ -18,11 +19,11 @@ public class CachingInferenceProviderCreatorImpl extends InferenceProviderCreato
 	
 	private final Map<ModelContainer, InferenceProvider> inferenceCache = new ConcurrentHashMap<>();
 	
-	protected CachingInferenceProviderCreatorImpl(OWLReasonerFactory rf, int maxConcurrent, boolean useSLME, String name) {
-		super(rf, maxConcurrent, useSLME, name);
+	protected CachingInferenceProviderCreatorImpl(OWLReasonerFactory rf, int maxConcurrent, boolean useSLME, String name, MinervaShexValidator shex) {
+		super(rf, maxConcurrent, useSLME, name, shex);	
 	}
 
-	public static InferenceProviderCreator createElk(boolean useSLME) {
+	public static InferenceProviderCreator createElk(boolean useSLME, MinervaShexValidator shex) {
 		String name;
 		if (useSLME) {
 			name = "Caching ELK-SLME";
@@ -30,21 +31,23 @@ public class CachingInferenceProviderCreatorImpl extends InferenceProviderCreato
 		else {
 			name = "Caching ELK";
 		}
-		return new CachingInferenceProviderCreatorImpl(new ElkReasonerFactory(), 1, useSLME, name);
+		return new CachingInferenceProviderCreatorImpl(new ElkReasonerFactory(), 1, useSLME, name, shex);
 	}
 
-	public static InferenceProviderCreator createHermiT() {
-		int maxConcurrent = Runtime.getRuntime().availableProcessors();
-		return createHermiT(maxConcurrent);
-	}
+//TODO current Hermit doesn't provide a reasonerfactory ?  
+//Not using hermit anyway, can probably just delete.  
+//	public static InferenceProviderCreator createHermiT(MinervaShexValidator shex) {
+//		int maxConcurrent = Runtime.getRuntime().availableProcessors();
+//		return createHermiT(maxConcurrent, shex);
+//	}
 	
-	public static InferenceProviderCreator createHermiT(int maxConcurrent) {
-		return new CachingInferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(),
-				maxConcurrent, true, "Caching Hermit-SLME");
-	}
+//	public static InferenceProviderCreator createHermiT(int maxConcurrent, MinervaShexValidator shex) {
+//		return new CachingInferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(),
+//				maxConcurrent, true, "Caching Hermit-SLME", shex);
+//	}
 	
-	public static InferenceProviderCreator createArachne(RuleEngine arachne) {
-		return new CachingInferenceProviderCreatorImpl(new ArachneOWLReasonerFactory(arachne), 1, false, "Caching Arachne");
+	public static InferenceProviderCreator createArachne(RuleEngine arachne, MinervaShexValidator shex) {
+		return new CachingInferenceProviderCreatorImpl(new ArachneOWLReasonerFactory(arachne), 1, false, "Caching Arachne", shex);
 	}
 
 	@Override

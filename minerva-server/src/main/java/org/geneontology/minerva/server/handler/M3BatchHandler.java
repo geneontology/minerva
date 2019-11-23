@@ -3,6 +3,7 @@ package org.geneontology.minerva.server.handler;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import org.geneontology.minerva.json.*;
+import org.geneontology.minerva.validation.ValidationResultSet;
 
 import javax.ws.rs.*;
 import java.util.List;
@@ -120,6 +121,10 @@ public interface M3BatchHandler {
 
 			@SerializedName("sparql-result")
 			public JsonObject sparqlResult;
+
+			@SerializedName("validation-results")
+			public ValidationResultSet validation_results;
+
 		}
 		
 		public static class MetaResponse {

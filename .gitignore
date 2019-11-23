@@ -1,7 +1,12 @@
 target/
-/.DS_Store
+*.DS_Store
 .project
 .settings
 .classpath
 minerva-server/blazegraph.jnl
 /bin/
+*.icloud
+minerva-cli/bin/reactome-entities-blazegraph.jnl
+*.jnl
+minerva-cli/go-cam-schema.shex
+minerva-cli/go-cam-shapes.shapeMap

@@ -121,7 +121,7 @@ public class ParallelModelReasonerTest {
 		final AtomicLong miss = new AtomicLong(0L);
 		
 		private CountingCachingInferenceProvider(boolean useSLME) {
-			super(new ElkReasonerFactory(), 1, useSLME, "Counting Caching ELK");
+			super(new ElkReasonerFactory(), 1, useSLME, "Counting Caching ELK", null);
 		}
 
 		@Override

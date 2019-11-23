@@ -22,7 +22,7 @@
 					</excludes>
 				</configuration>
 			</plugin>
-			<plugin>
+		<!--  	<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<configuration>
@@ -50,6 +50,45 @@
 					</execution>
 				</executions>
 			</plugin>
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+						 <filters>
+        					<filter>
+            					<artifact>*:*</artifact>
+            					<excludes>
+                					<exclude>META-INF/*.SF</exclude>
+               					 	<exclude>META-INF/*.DSA</exclude>
+                					<exclude>META-INF/*.RSA</exclude>
+            					</excludes>
+        					</filter>
+    					</filters>
+							<outputFile>bin/minerva-server.jar</outputFile>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+							<transformers>
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<manifestEntries>
+										<Main-Class>org.geneontology.minerva.server.StartUpTool</Main-Class>
+										<git-revision-sha1>${git.commit.id}</git-revision-sha1>
+										<git-revision-url>https://github.com/geneontology/minerva/commit/${git.commit.id}</git-revision-url>
+										<git-branch>${git.branch}</git-branch>
+										<git-dirty>${git.dirty}</git-dirty>
+									</manifestEntries>
+								</transformer>
+							</transformers>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
@@ -74,10 +113,22 @@
 			<artifactId>minerva-converter</artifactId>
 			<version>${project.parent.version}</version>
 		</dependency>
-		<dependency>
+<!-- 	<dependency>
 			<groupId>org.bbop</groupId>
 			<artifactId>golr-client</artifactId>
 		</dependency>
+
+  	<dependency>
+			<groupId>org.bbop</groupId>
+			<artifactId>OWLTools-Runner</artifactId>
+		</dependency>
+-->
+		<!-- https://mvnrepository.com/artifact/org.apache.ant/ant -->
+<dependency>
+    <groupId>org.apache.ant</groupId>
+    <artifactId>ant</artifactId>
+    <version>1.9.14</version>
+</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-server</artifactId>
@@ -117,6 +168,14 @@
 		<dependency>
 			<groupId>org.glassfish.jersey.containers</groupId>
 			<artifactId>jersey-container-servlet-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.glassfish.jersey.core</groupId>
+			<artifactId>jersey-common</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.glassfish.jersey.inject</groupId>
+			<artifactId>jersey-hk2</artifactId>
 		</dependency>
 	</dependencies>
 </project>

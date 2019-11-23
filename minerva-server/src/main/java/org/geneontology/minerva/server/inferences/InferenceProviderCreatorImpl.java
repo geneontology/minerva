@@ -7,6 +7,7 @@ import java.util.concurrent.Semaphore;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.json.InferenceProvider;
+import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLEntity;
@@ -27,16 +28,18 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 	private final Semaphore concurrentLock;
 	private final boolean useSLME;
 	private final String name;
+	private final MinervaShexValidator shex;
 
-	InferenceProviderCreatorImpl(OWLReasonerFactory rf, int maxConcurrent, boolean useSLME, String name) {
+	InferenceProviderCreatorImpl(OWLReasonerFactory rf, int maxConcurrent, boolean useSLME, String name, MinervaShexValidator shex) {
 		super();
 		this.rf = rf;
 		this.useSLME = useSLME;
 		this.name = name;
 		this.concurrentLock = new Semaphore(maxConcurrent);
+		this.shex = shex;
 	}
 
-	public static InferenceProviderCreator createElk(boolean useSLME) {
+	public static InferenceProviderCreator createElk(boolean useSLME, MinervaShexValidator shex) {
 		String name;
 		if (useSLME) {
 			name = "ELK-SLME";
@@ -44,17 +47,17 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		else {
 			name = "ELK";
 		}
-		return new InferenceProviderCreatorImpl(new ElkReasonerFactory(), 1, useSLME, name);
+		return new InferenceProviderCreatorImpl(new ElkReasonerFactory(), 1, useSLME, name, shex);
 	}
 	
-	public static InferenceProviderCreator createHermiT() {
-		int maxConcurrent = Runtime.getRuntime().availableProcessors();
-		return createHermiT(maxConcurrent);
-	}
+//	public static InferenceProviderCreator createHermiT(MinervaShexValidator shex) {
+//		int maxConcurrent = Runtime.getRuntime().availableProcessors();
+//		return createHermiT(maxConcurrent, shex);
+//	}
 	
-	public static InferenceProviderCreator createHermiT(int maxConcurrent) {
-		return new InferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(), maxConcurrent, true, "Hermit-SLME");
-	}
+//	public static InferenceProviderCreator createHermiT(int maxConcurrent, MinervaShexValidator shex) {
+//		return new InferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(), maxConcurrent, true, "Hermit-SLME", shex);
+//	}
 
 	@Override
 	public InferenceProvider create(ModelContainer model) throws OWLOntologyCreationException, InterruptedException {
@@ -76,7 +79,7 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 						LOG.info("Done creating module: "+model.getModelId());
 					}
 					reasoner = rf.createReasoner(ont);
-					provider = MapInferenceProvider.create(reasoner, ont);
+					provider = MapInferenceProvider.create(reasoner, ont, shex);
 				}
 				finally {
 					concurrentLock.release();

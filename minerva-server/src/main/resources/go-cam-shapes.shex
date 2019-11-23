@@ -1,0 +1,232 @@
+BASE   <http://purl.obolibrary.org/obo/go/shapes/>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+#metadata
+PREFIX bl: <https://w3id.org/biolink/vocab/>
+PREFIX contributor: <http://purl.org/dc/elements/1.1/contributor>
+PREFIX provided_by: <http://purl.org/pav/providedBy>
+PREFIX date: <http://purl.org/dc/elements/1.1/date>
+PREFIX xref: <http://www.geneontology.org/formats/oboInOwl#hasDbXref>
+PREFIX exact_match: <http://www.w3.org/2004/02/skos/core#exactMatch>
+PREFIX source: <http://purl.org/dc/elements/1.1/source>
+PREFIX evidence: <http://geneontology.org/lego/evidence>
+PREFIX with: <http://geneontology.org/lego/evidence-with>
+#semantic: classes
+PREFIX GoInformationBiomacromolecule: <http://purl.obolibrary.org/obo/CHEBI_33695>
+PREFIX GoProtein: <http://purl.obolibrary.org/obo/CHEBI_36080>
+PREFIX GoProteinContainingComplex: <http://purl.obolibrary.org/obo/GO_0032991>
+PREFIX GoCellularComponent: <http://purl.obolibrary.org/obo/GO_0005575>
+PREFIX GoBiologicalProcess: <http://purl.obolibrary.org/obo/GO_0008150>
+PREFIX GoMolecularFunction: <http://purl.obolibrary.org/obo/GO_0003674>
+PREFIX GoMolecularEntity: <http://purl.obolibrary.org/obo/CHEBI_23367>
+PREFIX GoChemicalEntity: <http://purl.obolibrary.org/obo/CHEBI_24431>
+PREFIX GoEvidence: <http://purl.obolibrary.org/obo/ECO_0000000>
+PREFIX GoAnatomicalEntity: <http://purl.obolibrary.org/obo/CARO_0000000>
+PREFIX GoOrganism: <http://purl.obolibrary.org/obo/NCBITaxon_1>
+PREFIX GoBiologicalPhase: <http://purl.obolibrary.org/obo/GO_0044848>
+#semantic: relations
+PREFIX part_of: <http://purl.obolibrary.org/obo/BFO_0000050>
+PREFIX occurs_in: <http://purl.obolibrary.org/obo/BFO_0000066>
+PREFIX enabled_by: <http://purl.obolibrary.org/obo/RO_0002333>
+PREFIX has_input: <http://purl.obolibrary.org/obo/RO_0002233>
+PREFIX has_output: <http://purl.obolibrary.org/obo/RO_0002234>
+PREFIX directly_provides_input_for: <http://purl.obolibrary.org/obo/RO_0002413>
+PREFIX directly_positively_regulates: <http://purl.obolibrary.org/obo/RO_0002629>
+PREFIX located_in: <http://purl.obolibrary.org/obo/RO_0001025>
+PREFIX happens_during: <http://purl.obolibrary.org/obo/RO_0002092>
+PREFIX regulates: <http://purl.obolibrary.org/obo/RO_0002211>
+PREFIX negatively_regulates: <http://purl.obolibrary.org/obo/RO_0002212>
+PREFIX positively_regulates: <http://purl.obolibrary.org/obo/RO_0002213>
+PREFIX directly_regulates: <http://purl.obolibrary.org/obo/RO_0002578>
+PREFIX directly_negatively_regulates: <http://purl.obolibrary.org/obo/RO_0002630>
+PREFIX directly_positively_regulates: <http://purl.obolibrary.org/obo/RO_0002406>
+PREFIX causally_upstream_of_or_within: <http://purl.obolibrary.org/obo/RO_0002418>
+PREFIX causally_upstream_of_or_within_negative_effect: <http://purl.obolibrary.org/obo/RO_0004046>
+PREFIX causally_upstream_of_or_within_positive_effect: <http://purl.obolibrary.org/obo/RO_0004047>
+PREFIX causally_upstream_of: <http://purl.obolibrary.org/obo/RO_0002411>
+PREFIX causally_upstream_of_negative_effect: <http://purl.obolibrary.org/obo/RO_0002305>
+PREFIX causally_upstream_of_positive_effect: <http://purl.obolibrary.org/obo/RO_0002304>
+
+<ProvenanceAnnotated> {
+  contributor: xsd:string *; #TODO would be better as an IRI
+  date: xsd:string *; #TODO can we make this an xsd:date?
+  provided_by: xsd:string *; #TODO would be better as an IRI
+  rdfs:comment xsd:string *
+}
+
+<GoCamEntity> IRI @<ProvenanceAnnotated> AND EXTRA a {
+  a [owl:NamedIndividual] * // rdfs:comment  "Every entity we care about is a named individual";
+  xref: . *;
+  rdfs:label . {0,1};
+  exact_match: . *;
+} // rdfs:comment  "Default allowable metadata for GO-CAM entities"
+
+<OwlClass> {
+  rdf:type [ owl:Class ] {1};
+}
+
+<BiologicalProcessClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoBiologicalProcess: ] ;
+}
+
+<NegatedBiologicalProcessClass> BNode @<OwlClass> AND {
+  owl:complementOf @<BiologicalProcessClass>
+}
+
+##something wrong with this one
+# note it effects other shapes that use it
+<BiologicalProcess> @<GoCamEntity> AND EXTRA a {
+  a ( @<BiologicalProcessClass> OR @<NegatedBiologicalProcessClass> ) {1};
+  part_of: @<BiologicalProcess> {0,1};
+  has_input: ( @<MolecularEntity> OR @<AnatomicalEntity> ) *;
+  has_output: ( @<MolecularEntity> OR @<AnatomicalEntity> ) *;
+} // rdfs:comment  "A biological process"
+
+
+<MolecularFunctionClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoMolecularFunction: ] ;
+}
+
+<NegatedMolecularFunctionClass> BNode @<OwlClass> AND {
+  owl:complementOf @<MolecularFunctionClass>
+}
+
+<MolecularFunction> @<GoCamEntity> AND EXTRA a {
+  a ( @<MolecularFunctionClass> OR @<NegatedMolecularFunctionClass> ) {1};
+  enabled_by:  ( @<Protein> OR @<Complex> OR @<InformationBiomacromolecule> ) {0,1}; # get rid of protein
+  part_of: @<BiologicalProcess> {0,1};
+  occurs_in: (@<CellularComponent> OR @<AnatomicalEntity>) {0,1};
+  has_output: @<MolecularEntity> *;
+  has_input: @<MolecularEntity> *;
+  directly_provides_input_for: @<MolecularFunction> *;
+  regulates: @<MolecularFunction> *;
+  negatively_regulates: @<MolecularFunction> *;
+  positively_regulates: @<MolecularFunction> *;
+  directly_regulates: @<MolecularFunction> *;
+  directly_negatively_regulates: @<MolecularFunction> *;
+  directly_positively_regulates: @<MolecularFunction> *;
+  causally_upstream_of_or_within: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
+  causally_upstream_of_or_within_negative_effect: @<BiologicalProcess> *;
+  causally_upstream_of_or_within_positive_effect: @<BiologicalProcess> *;
+  causally_upstream_of: @<BiologicalProcess> *;
+  causally_upstream_of_negative_effect: @<BiologicalProcess> *;
+  causally_upstream_of_positive_effect: @<BiologicalProcess> *;
+  happens_during: @<BiologicalPhase> *;
+} // rdfs:comment  "A molecular function"
+
+<BiologicalPhase> @<GoCamEntity> AND {
+  bl:category [GoBiologicalPhase:];
+}// rdfs:comment  "an biological phase"
+
+<AnatomicalEntityClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoAnatomicalEntity: ];
+}
+
+<AnatomicalEntity> @<GoCamEntity> AND EXTRA a {
+  a @<AnatomicalEntityClass>;
+}// rdfs:comment  "an anatomical entity"
+
+<CellularComponentClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoCellularComponent: ];
+}
+
+<NegatedCellularComponentClass> BNode @<OwlClass> AND {
+  owl:complementOf @<CellularComponentClass>
+}
+
+#<CellularComponent> @<AnatomicalEntity> AND EXTRA a { # If we want to intersect with anatomical entity, then GO cellular_component needs to subclass anatomical entity in go-lego
+<CellularComponent> @<GoCamEntity> AND EXTRA a {
+  a ( @<CellularComponentClass> OR @<NegatedCellularComponentClass> ) {1};
+  part_of: @<CellularComponent> {0,1};
+  part_of: @<Cell> {0,1};
+# allow direct pass-through for single-cell organisms"
+  part_of: @<Organism> {0,1};
+} // rdfs:comment  "a cellular component"
+
+<Cell> @<AnatomicalEntity> AND {
+  part_of: @<GrossAnatomicalEntity> {0,1};
+} // rdfs:comment  "a cell type"
+
+<GrossAnatomicalEntity>  @<AnatomicalEntity> AND {
+  part_of: @<Organism> {0,1};
+} // rdfs:comment  "an anatomical entity"
+
+<Organism> {
+} // rdfs:comment  "an organism"
+
+#<Complex> @<MolecularEntity> AND EXTRA a {
+<Complex> EXTRA a {
+  a @<ProteinContainingComplexClass>;
+  located_in: @<CellularComponent> {0,1};
+}// rdfs:comment  "a protein complex"
+
+<ProteinContainingComplexClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoProteinContainingComplex: ];
+}
+
+<MolecularEntity> @<GoCamEntity> AND EXTRA a {
+  a @<MolecularEntityClass>;
+}// rdfs:comment  "a molecular entity (a gene product, chemical, or complex typically)"
+
+<MolecularEntityClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf  {
+  #rdfs:subClassOf [ GoMolecularEntity: ];
+  rdfs:subClassOf [ GoChemicalEntity: ]; # Weakened this from molecular entity to chemical entity until we clarify the requirements. A test model used 'methylated polymer', which is not under molecular entity.
+}
+
+<Gene> @<MolecularEntity> AND {
+  located_in: @<CellularComponent> {0,1};
+}// rdfs:comment  "a gene (a piece of DNA with a purpose)"
+
+<ProteinClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoProtein: ];
+}
+<Protein> @<MolecularEntity> AND EXTRA a {
+  a @<ProteinClass> ;
+  located_in: @<CellularComponent> {0,1};
+}// rdfs:comment  "a protein"
+
+
+<InformationBiomacromoleculeClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoInformationBiomacromolecule: ];
+}
+<InformationBiomacromolecule> @<MolecularEntity> AND EXTRA a {
+   a @<InformationBiomacromoleculeClass> ;
+   located_in: @<CellularComponent> {0,1};
+}// rdfs:comment  "an information biomacromolecule - e.g. a protein or RNA product"
+
+<ChemicalEntity> EXTRA bl:category{
+}// rdfs:comment  "a chemical entity"
+
+<EvidenceClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoEvidence: ] ;
+}
+
+<Evidence> @<GoCamEntity> AND EXTRA a  {
+  a @<EvidenceClass> {1};
+  source: xsd:string {1,};
+  with: xsd:string {0,1}
+}// rdfs:comment  "A kind of evidence"
+
+<AnnotatedEdge> BNode @<ProvenanceAnnotated> AND {
+  a owl:Axiom ;
+  owl:annotatedSource @<GoCamEntity> ;
+  owl:annotatedProperty IRI ;
+  owl:annotatedTarget @<GoCamEntity> ;
+  evidence: @<Evidence> {0,1}
+}
+
+#<BL_UNTYPED> {
+#   bl:category . {0}
+#   // rdfs:comment  "has no type tag inside" ;
+#} // rdfs:comment  "has no type tag full rule"
+
+#<BL_TYPED> {
+#   bl:category . {1}
+#} // rdfs:comment  "has exactly one type tag"
+
+#<BL_MULTI_TYPED> {
+#   bl:category . {2,}
+#} // rdfs:comment  "has multiple type tags"

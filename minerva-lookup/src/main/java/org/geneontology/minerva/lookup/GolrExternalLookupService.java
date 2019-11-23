@@ -67,23 +67,25 @@ public class GolrExternalLookupService implements ExternalLookupService {
 		}
 		List<LookupEntry> result = new ArrayList<LookupEntry>();
 		try {
+			//in current noctua, minerva context, this is never used.  noctua.golr loads everything as ontologies
 			List<GolrBioentityDocument> bioentites = bioentityClient.getGolrBioentites(curie);
 			if (bioentites != null && !bioentites.isEmpty()) {
 				result = new ArrayList<ExternalLookupService.LookupEntry>(bioentites.size());
 				for(GolrBioentityDocument doc : bioentites) {
-					result.add(new LookupEntry(id, doc.bioentity_label, doc.type, doc.taxon));
+					result.add(new LookupEntry(id, doc.bioentity_label, doc.type, doc.taxon, null));
 				}
 			}
-			else if (ontologyClient != null){
+			else 
+				if (ontologyClient != null){
 				List<GolrOntologyClassDocument> ontologyEntities = ontologyClient.getGolrOntologyCls(curie);
 				if (ontologyEntities != null && !ontologyEntities.isEmpty()) {
 					result = new ArrayList<ExternalLookupService.LookupEntry>(ontologyEntities.size());
 					for(GolrOntologyClassDocument doc : ontologyEntities) {
-						result.add(new LookupEntry(id, doc.annotation_class_label, "ontology_class", null));
+						result.add(new LookupEntry(id, doc.annotation_class_label, "ontology_class", doc.only_in_taxon, doc.isa_closure));
 					}
 				}
 			}
-		}
+		} 
 		catch(IOException exception) {
 			if (LOG.isDebugEnabled()) {
 				LOG.debug("Error during retrieval for id: "+id+" GOLR-URL: "+golrUrl, exception);

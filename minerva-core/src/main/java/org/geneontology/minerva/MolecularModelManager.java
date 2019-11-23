@@ -24,7 +24,7 @@ import org.semanticweb.owlapi.model.OWLObjectPropertyExpression;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
-import owltools.graph.OWLGraphWrapper;
+//import owltools.graph.OWLGraphWrapper;
 import owltools.vocab.OBOUpperVocabulary;
 
 /**
@@ -291,15 +291,15 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 		return individual;
 	}
 	private OWLClass getClass(String cid, ModelContainer model) throws UnknownIdentifierException {
-		OWLGraphWrapper graph = new OWLGraphWrapper(model.getAboxOntology());
-		return getClass(cid, graph);
+		MinervaOWLGraphWrapper graph = new MinervaOWLGraphWrapper(model.getAboxOntology());
+		return getClass(cid, graph); 
 	}
-	private OWLClass getClass(String cid, OWLGraphWrapper graph) throws UnknownIdentifierException {
+	private OWLClass getClass(String cid, MinervaOWLGraphWrapper graph) throws UnknownIdentifierException {
 		IRI iri = getCuriHandler().getIRI(cid);
 		return graph.getOWLClass(iri);
 	}
 	public OWLObjectProperty getObjectProperty(String pid, ModelContainer model) throws UnknownIdentifierException {
-		OWLGraphWrapper graph = new OWLGraphWrapper(model.getAboxOntology());
+		MinervaOWLGraphWrapper graph = new MinervaOWLGraphWrapper(model.getAboxOntology());
 		IRI iri = getCuriHandler().getIRI(pid);
 		return graph.getOWLObjectProperty(iri);
 	}

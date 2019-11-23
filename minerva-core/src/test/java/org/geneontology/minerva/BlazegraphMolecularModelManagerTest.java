@@ -18,7 +18,7 @@ import org.openrdf.query.QueryResult;
 import org.openrdf.query.TupleQueryResult;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
-import owltools.OWLToolsTestBasics;
+//import owltools.OWLToolsTestBasics;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,7 +27,7 @@ import java.util.*;
 
 import static org.junit.Assert.*;
 
-public class BlazegraphMolecularModelManagerTest extends OWLToolsTestBasics {
+public class BlazegraphMolecularModelManagerTest  {
     private final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 
     @Rule

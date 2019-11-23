@@ -1,6 +1,7 @@
 package org.geneontology.minerva.server.handler;
 
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
+import org.geneontology.minerva.MinervaOWLGraphWrapper;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
@@ -26,7 +27,7 @@ import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.parameters.Imports;
-import owltools.graph.OWLGraphWrapper;
+
 import owltools.io.ParserWrapper;
 
 import java.io.IOException;
@@ -59,7 +60,7 @@ public class BatchModelHandlerTest {
 	}
 
 	static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException, UnknownIdentifierException {
-		final OWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl");
+		final MinervaOWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl");
 		final OWLObjectProperty legorelParent = StartUpTool.getRelation("http://purl.obolibrary.org/obo/LEGOREL_0000000", graph);
 		assertNotNull(legorelParent);
 		importantRelations = StartUpTool.getAssertedSubProperties(legorelParent, graph);
@@ -69,7 +70,7 @@ public class BatchModelHandlerTest {
 		final String modelIdPrefix = "http://model.geneontology.org/";
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-		InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false);
+		InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false, null);
 		models = new UndoAwareMolecularModelManager(graph.getSourceOntology(), curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
 		lookupService = createTestProteins(curieHandler);
 		handler = new JsonOrJsonpBatchHandler(models, "development", ipc, importantRelations, lookupService) {
@@ -91,13 +92,13 @@ public class BatchModelHandlerTest {
 	private static ExternalLookupService createTestProteins(CurieHandler curieHandler) throws UnknownIdentifierException {
 		List<LookupEntry> testEntries = new ArrayList<LookupEntry>();
 		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0000"),
-				"P0000", "protein", "fake-taxon-id"));
+				"P0000", "protein", "fake-taxon-id", null));
 		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0001"),
-				"P0001", "protein", "fake-taxon-id"));
+				"P0001", "protein", "fake-taxon-id", null));
 		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0002"),
-				"P0002", "protein", "fake-taxon-id"));
+				"P0002", "protein", "fake-taxon-id", null));
 		testEntries.add(new LookupEntry(curieHandler.getIRI("UniProtKB:P0003"),
-				"P0003", "protein", "fake-taxon-id"));
+				"P0003", "protein", "fake-taxon-id", null));
 		return new TableLookupService(testEntries);
 	}
 

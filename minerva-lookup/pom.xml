@@ -30,10 +30,6 @@
 			<artifactId>minerva-core</artifactId>
 			<version>${project.parent.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>org.bbop</groupId>
-			<artifactId>golr-client</artifactId>
-		</dependency>
 	</dependencies>
 
 </project>

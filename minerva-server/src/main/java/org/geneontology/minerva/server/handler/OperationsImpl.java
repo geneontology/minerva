@@ -13,10 +13,10 @@ import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.ChangeEvent;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
 import org.geneontology.minerva.json.*;
-import org.geneontology.minerva.legacy.GafExportTool;
 import org.geneontology.minerva.legacy.sparql.ExportExplanation;
 import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
 import org.geneontology.minerva.lookup.ExternalLookupService;
+import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.MetaResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
@@ -149,6 +149,14 @@ abstract class OperationsImpl extends ModelCreator {
 			for(JsonOwlObject expression : request.arguments.expressions) {
 				OWLClassExpression cls = parseM3Expression(expression, values);
 				clsExpressions.add(cls);
+				//check for parentage 
+				if(externalLookupService!=null) {
+					List<LookupEntry> lookup = externalLookupService.lookup(cls.asOWLClass().getIRI());
+					if(lookup!=null&&!lookup.isEmpty()&&lookup.get(0).direct_parent_iri!=null) {
+						OWLClass parent_class = m3.getOntology().getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(lookup.get(0).direct_parent_iri));			
+						clsExpressions.add(parent_class);
+					}
+				}
 			}
 			if (values.notVariable(request.arguments.individual)) {
 				// create indivdual
@@ -676,7 +684,7 @@ abstract class OperationsImpl extends ModelCreator {
 		if ("gpad".equals(format)) {
 			initMetaResponse(response);
 			try {
-				response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createInferredModel(model.getModelId()));
+				response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createCanonicalInferredModel(model.getModelId()));
 			} catch (InconsistentOntologyException e) {
 				response.messageType = MinervaResponse.MESSAGE_TYPE_ERROR;
 				response.message = "The model is inconsistent; a GPAD cannot be created.";
@@ -685,17 +693,17 @@ abstract class OperationsImpl extends ModelCreator {
 			initMetaResponse(response);
 			response.data.exportModel = ExportExplanation.exportExplanation(m3.createInferredModel(model.getModelId()), externalLookupService, m3.getLegacyRelationShorthandIndex());
 		} else {
-			final GafExportTool exportTool = GafExportTool.getInstance();
-			if (format == null) {
-				format = "gaf"; // set a default format, if necessary
-			}
-			Map<String, String> allExported = exportTool.exportModelLegacy(model, curieHandler, externalLookupService, Collections.singleton(format));
-			String exported = allExported.get(format);
-			if (exported == null) {
-				throw new IOException("Unknown export format: "+format);
-			}
-			initMetaResponse(response);
-			response.data.exportModel = exported;
+			//			final GafExportTool exportTool = GafExportTool.getInstance();
+			//			if (format == null) {
+			//				format = "gaf"; // set a default format, if necessary
+			//			}
+			//			Map<String, String> allExported = exportTool.exportModelLegacy(model, curieHandler, externalLookupService, Collections.singleton(format));
+			//			String exported = allExported.get(format);
+			//			if (exported == null) {
+			throw new IOException("Unknown export format: "+format);
+			//			}
+			//			initMetaResponse(response);
+			//			response.data.exportModel = exported;
 		}
 	}
 
