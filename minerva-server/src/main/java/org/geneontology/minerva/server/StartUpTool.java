@@ -98,6 +98,8 @@ public class StartUpTool {
 		public String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 		public String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
 		public MinervaShexValidator shex;
+		public String shexSchemaFile;
+		public String shexShapeMap;
 
 	}
 
@@ -205,6 +207,12 @@ public class StartUpTool {
 			else if (opts.nextEq("--sparql-endpoint-timeout")) {
 				conf.sparqlEndpointTimeout = Integer.parseInt(opts.nextOpt());
 			}
+			else if (opts.nextEq("--shex-schema")) {
+				conf.shexSchemaFile = opts.nextOpt();
+			}
+			else if (opts.nextEq("--shex-map")) {
+				conf.shexShapeMap = opts.nextOpt();
+			}
 			else {
 				break;
 			}
@@ -236,12 +244,22 @@ public class StartUpTool {
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(conf.modelIdcurie, conf.modelIdPrefix));
 		conf.curieHandler = new MappedCurieHandler(mappings, localMappings);
 		//TODO maybe make these command line parameters
-		URL shex_schema_url = new URL(conf.shexFileUrl);
-		File shex_schema_file = new File("./target/shex-schema.shex");
-		org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);
-		URL shex_map_url = new URL(conf.goshapemapFileUrl);
-		File shex_map_file = new File("./target/go-cam-shapes.shapeMap");
-		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
+		File shex_schema_file = null;
+		if(conf.shexSchemaFile==null) {
+			URL shex_schema_url = new URL(conf.shexFileUrl);
+			shex_schema_file = new File("./target/shex-schema.shex");
+			org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);
+		}else {
+			shex_schema_file = new File(conf.shexSchemaFile);
+		}
+		File shex_map_file = null;
+		if(conf.shexSchemaFile==null) {
+			URL shex_map_url = new URL(conf.goshapemapFileUrl);
+			shex_map_file = new File("./target/go-cam-shapes.shapeMap");
+			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
+		}else {
+			shex_map_file = new File(conf.shexShapeMap);
+		}	
 		conf.shex = new MinervaShexValidator(shex_schema_file, shex_map_file, conf.curieHandler, null);
 		
 		// wrap the Golr service with a cache
