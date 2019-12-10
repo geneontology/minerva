@@ -17,6 +17,7 @@ import org.geneontology.minerva.validation.Violation;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 public class MapInferenceProvider implements InferenceProvider {
@@ -24,10 +25,18 @@ public class MapInferenceProvider implements InferenceProvider {
 	private final boolean isConsistent;
 	private final Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes;
 	private final Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects;
+
 	//for shex and other validation
 	private ValidationResultSet validation_results;
 
-	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, MinervaShexValidator shex) {
+	MapInferenceProvider(boolean isConsistent, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects, ValidationResultSet validation_reports) {
+		this.isConsistent = isConsistent;
+		this.inferredTypes = inferredTypes;
+		this.inferredTypesWithIndirects = inferredTypesWithIndirects;
+		this.validation_results = validation_reports;
+	}
+	
+	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, MinervaShexValidator shex) throws OWLOntologyCreationException {
 		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes = new HashMap<>();
 		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects = new HashMap<>();
 		boolean isConsistent = r.isConsistent();
@@ -81,13 +90,8 @@ public class MapInferenceProvider implements InferenceProvider {
 		return new MapInferenceProvider(isConsistent, inferredTypes, inferredTypesWithIndirects, all_validations);
 	}
 
-	MapInferenceProvider(boolean isConsistent, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes, Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects, ValidationResultSet validation_reports) {
-		this.isConsistent = isConsistent;
-		this.inferredTypes = inferredTypes;
-		this.inferredTypesWithIndirects = inferredTypesWithIndirects;
-		this.validation_results = validation_reports;
-	}
 
+	
 	@Override
 	public boolean isConsistent() {
 		return isConsistent;

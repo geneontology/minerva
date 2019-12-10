@@ -259,9 +259,7 @@ public class StartUpTool {
 			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
 		}else {
 			shex_map_file = new File(conf.shexShapeMap);
-		}	
-		conf.shex = new MinervaShexValidator(shex_schema_file, shex_map_file, conf.curieHandler, null);
-		
+		}			
 		// wrap the Golr service with a cache
 		if (conf.golrUrl != null) {
 			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler, conf.useGolrUrlLogging);
@@ -277,6 +275,7 @@ public class StartUpTool {
 					" use url logging: "+conf.useGolrUrlLogging);
 			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
 		}
+		conf.shex = new MinervaShexValidator(shex_schema_file, shex_map_file, conf.curieHandler, null, conf.lookupService);
 
 		Server server = startUp(conf);
 		try {

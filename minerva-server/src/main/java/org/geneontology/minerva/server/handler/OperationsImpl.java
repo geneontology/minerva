@@ -149,14 +149,6 @@ abstract class OperationsImpl extends ModelCreator {
 			for(JsonOwlObject expression : request.arguments.expressions) {
 				OWLClassExpression cls = parseM3Expression(expression, values);
 				clsExpressions.add(cls);
-				//check for parentage 
-				if(externalLookupService!=null) {
-					List<LookupEntry> lookup = externalLookupService.lookup(cls.asOWLClass().getIRI());
-					if(lookup!=null&&!lookup.isEmpty()&&lookup.get(0).direct_parent_iri!=null) {
-						OWLClass parent_class = m3.getOntology().getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(lookup.get(0).direct_parent_iri));			
-						clsExpressions.add(parent_class);
-					}
-				}
 			}
 			if (values.notVariable(request.arguments.individual)) {
 				// create indivdual
