@@ -66,6 +66,7 @@ import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
@@ -88,6 +89,7 @@ public class CommandLineInterface {
 	private static final Logger LOGGER = Logger.getLogger(CommandLineInterface.class);
 
 	public static void main(String[] args) throws Exception {
+		reportSystemParams();
 		Options main_options = new Options();
 		OptionGroup methods = new OptionGroup();
 		methods.setRequired(true);
@@ -623,9 +625,16 @@ public class CommandLineInterface {
 		}else {
 			LOGGER.info("no catalog, resolving all ontology uris directly");
 		}
+		for(OWLOntologyIRIMapper m : ontman.getIRIMappers()) {
+			IRI neo_iri = m.getDocumentIRI(IRI.create("http://purl.obolibrary.org/obo/go/noctua/neo.owl"));
+			LOGGER.info("neo mapped iri: "+neo_iri);
+			OWLOntology neo_test = ontman.loadOntology(neo_iri);
+			LOGGER.info("neo axioms "+neo_test.getAxiomCount());
+		}
 		OWLOntology tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
+		LOGGER.info("tbox ontologies loaded: "+tbox_ontology.getAxiomCount());
 		tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
-		LOGGER.info("ontology axioms loaded: "+tbox_ontology.getAxiomCount());
+		LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
 		LOGGER.info("building model manager and structural reasoner");
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
@@ -749,6 +758,37 @@ public class CommandLineInterface {
 		}
 		System.out.println(key+"\t"+value);
 		return value;
+	}
+	
+	public static void reportSystemParams() {
+		 /* Total number of processors or cores available to the JVM */
+		LOGGER.info("Available processors (cores): " + 
+		  Runtime.getRuntime().availableProcessors());
+
+		  /* Total amount of free memory available to the JVM */
+		LOGGER.info("Free memory (m bytes): " + 
+		  Runtime.getRuntime().freeMemory()/1048576);
+
+		  /* This will return Long.MAX_VALUE if there is no preset limit */
+		  long maxMemory = Runtime.getRuntime().maxMemory()/1048576;
+		  /* Maximum amount of memory the JVM will attempt to use */
+		  LOGGER.info("Maximum memory (m bytes): " + 
+		  (maxMemory == Long.MAX_VALUE ? "no limit" : maxMemory));
+
+		  /* Total memory currently in use by the JVM */
+		  LOGGER.info("Total memory (m bytes): " + 
+		  Runtime.getRuntime().totalMemory()/1048576);
+
+		  /* Get a list of all filesystem roots on this system */
+		  File[] roots = File.listRoots();
+
+		  /* For each filesystem root, print some info */
+		  for (File root : roots) {
+			  LOGGER.info("File system root: " + root.getAbsolutePath());
+			  LOGGER.info("Total space (bytes): " + root.getTotalSpace());
+			  LOGGER.info("Free space (bytes): " + root.getFreeSpace());
+			  LOGGER.info("Usable space (bytes): " + root.getUsableSpace());
+		  }
 	}
 
 }
