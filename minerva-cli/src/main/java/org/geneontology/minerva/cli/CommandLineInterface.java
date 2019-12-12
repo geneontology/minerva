@@ -700,9 +700,6 @@ public class CommandLineInterface {
 							LOGGER.error(filename+"\t"+modelIRI+"\tOWL:is inconsistent, quitting");							
 							System.exit(-1);
 						}
-					}else if(travisMode&&isConsistent&&shouldFail) {
-						LOGGER.error(filename+"\t"+modelIRI+"\tOWL:is consistent, but it should not be, quitting");
-						System.exit(-1);
 					}
 					if(shex_output) {
 						ValidationResultSet validations = ip.getValidation_results();
