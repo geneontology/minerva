@@ -144,6 +144,9 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		for (OWLNamedIndividual individual : individuals) {		
 			Collection<OWLClassExpression> asserted_types = EntitySearcher.getTypes(individual, asserted_ont);
 			for(OWLClassExpression cls : asserted_types) {
+				if(cls.isAnonymous()) {
+					continue;
+				}
 				List<LookupEntry> lookup = externalLookupService.lookup(cls.asOWLClass().getIRI());
 				if(lookup!=null&&!lookup.isEmpty()&&lookup.get(0).direct_parent_iri!=null) {
 					OWLClass parent_class = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(lookup.get(0).direct_parent_iri));	

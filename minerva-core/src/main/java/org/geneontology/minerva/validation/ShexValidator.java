@@ -319,9 +319,9 @@ public class ShexValidator {
 		//get the focus node in the rdf model
 		//check for assertions with properties in the target shape
 		for(String prop_uri : expected_property_ranges.keySet()) {
-			if(prop_uri.equals(org.apache.jena.vocabulary.RDF.type.getURI())){
-				continue;//TODO types need more work..
-			}
+//			if(prop_uri.equals(org.apache.jena.vocabulary.RDF.type.getURI())){
+//				continue;//TODO types need more work..
+//			}
 			Property prop = model.getProperty(prop_uri);
 			//checking on objects of this property for the problem node.
 			for (StmtIterator i = focus_node.listProperties(prop); i.hasNext(); ) {
@@ -330,6 +330,8 @@ public class ShexValidator {
 				if(!obj.isResource()) {
 					continue;
 					//no checks on literal values at this time
+				}else if(prop_uri.equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")&&obj.asResource().getURI().equals("http://www.w3.org/2002/07/owl#NamedIndividual")) {
+					continue; //ignore type owl individual
 				}
 				RDFTerm range_obj = rdfFactory.createIRI(obj.asResource().getURI());
 				//does it hit any allowable shapes?
