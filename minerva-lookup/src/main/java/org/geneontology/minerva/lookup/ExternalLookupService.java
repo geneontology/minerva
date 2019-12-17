@@ -34,9 +34,10 @@ public interface ExternalLookupService {
 			this.taxon = taxon;
 			this.isa_closure = isa_closure;
 			if(isa_closure!=null) {
-				if(isa_closure.contains("CHEBI:36080")) {
+				if(isa_closure.contains("CHEBI:36080")||isa_closure.contains("PR:000000001")) {
 					//protein
-					direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_36080";
+					//direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_36080";
+					direct_parent_iri = "http://purl.obolibrary.org/obo/PR_000000001";
 				}else if(isa_closure.contains("CHEBI:33695")) {
 					//information biomacrolecule (gene, complex)
 					direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_33695";

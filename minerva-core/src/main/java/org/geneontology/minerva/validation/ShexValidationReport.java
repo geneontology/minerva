@@ -27,10 +27,10 @@ public class ShexValidationReport extends ModelValidationReport{
 	@SerializedName("report-type")
 	public static final String report_type_id = "SHEX_CORE_SCHEMA";
 	public static final String tracker = "https://github.com/geneontology/go-shapes/issues";
-	
+
 	@SerializedName("rule-file")
 	public static final String rulefile = "https://github.com/geneontology/go-shapes/blob/master/shapes/go-cam-shapes.shex";
-	
+
 	@SerializedName("node-matched-shapes")
 	public Map<String, Set<String>> node_matched_shapes = new HashMap<String, Set<String>>();
 	/**
@@ -39,7 +39,7 @@ public class ShexValidationReport extends ModelValidationReport{
 	public ShexValidationReport(String id, Model model) {
 		super(id, tracker, rulefile);
 	}
-	
+
 	public String getAsText() {
 		String report = "report type id = "+report_type_id+"\nrulefile = "+rulefile+"\ntracker = "+tracker+"\n";
 		if(conformant) {
@@ -57,6 +57,21 @@ public class ShexValidationReport extends ModelValidationReport{
 					report+="\n\tthe objects of assertions made with "+c.getProperty()+" should be nodes that fit the one of these shapes: ";
 					report+="\n\t\t"+c.getIntended_range_shapes(); 
 					report+="\n\t\tbut, sadly, the object "+c.getObject()+" of one such assertion emanating from the failing node here did not.\n";
+				}
+			}  
+		}
+		return report;
+	}
+	public String getAsTab(String prefix) {
+		if(conformant) {
+			return "conformant\n";
+		}
+		String report = "";
+		for(Violation violation : getViolations()) {			
+			ShexViolation sv = (ShexViolation) violation;
+			for(ShexExplanation e : sv.getExplanations()) {
+				for(ShexConstraint c : e.getConstraints()) {
+					report+=prefix+"\t"+violation.getNode()+"\t"+c.getNode_types()+"\t"+c.getProperty()+"\t"+c.getIntended_range_shapes()+"\t"+c.getObject()+"\t"+c.getObject_types()+"\n";
 				}
 			}  
 		}

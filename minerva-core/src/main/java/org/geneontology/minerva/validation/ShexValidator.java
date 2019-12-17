@@ -273,10 +273,39 @@ public class ShexValidator {
 		return model;
 	}
 
+	public Set<String> getNodeTypes(Model model, String node_uri) {
+		String getOntTerms = 
+				"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
+			+ "PREFIX owl: <http://www.w3.org/2002/07/owl#> "
+						+ "SELECT DISTINCT ?type " + 
+						"        WHERE { " + 
+						"<"+node_uri+"> rdf:type ?type . " + 
+						"FILTER(?type != owl:NamedIndividual)" + 
+						"        }";
+		Set<String> types = new HashSet<String>();
+		try{
+			QueryExecution qe = QueryExecutionFactory.create(getOntTerms, model);
+			ResultSet results = qe.execSelect();
+			while (results.hasNext()) {
+				QuerySolution qs = results.next();
+				Resource type = qs.getResource("type");
+				types.add(type.getURI());
+				OWLClass t = tbox_reasoner.getRootOntology().getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(type.getURI()));
+				for(OWLClass p : tbox_reasoner.getSuperClasses(t, false).getFlattened()) {
+					types.add(p.getIRI().toString());
+				}
+			}
+			qe.close();
+		} catch(QueryParseException e){
+			e.printStackTrace();
+		}
+		
+		return types;
+	}
 	
 	private Set<ShexConstraint> getUnmetConstraints(Resource focus_node, String shape_id, Model model) {
+		Set<String> node_types = getNodeTypes(model, focus_node.getURI());		
 		Set<ShexConstraint> unmet_constraints = new HashSet<ShexConstraint>();
-		String explanation = "";
 		RDF rdfFactory = new SimpleRDF();
 		Label shape_label = new Label(rdfFactory.createIRI(shape_id));
 		ShapeExpr rule = schema.getRules().get(shape_label);
@@ -290,9 +319,9 @@ public class ShexValidator {
 		//get the focus node in the rdf model
 		//check for assertions with properties in the target shape
 		for(String prop_uri : expected_property_ranges.keySet()) {
-			if(prop_uri.equals(org.apache.jena.vocabulary.RDF.type.getURI())){
-				continue;//TODO types need more work..
-			}
+//			if(prop_uri.equals(org.apache.jena.vocabulary.RDF.type.getURI())){
+//				continue;//TODO types need more work..
+//			}
 			Property prop = model.getProperty(prop_uri);
 			//checking on objects of this property for the problem node.
 			for (StmtIterator i = focus_node.listProperties(prop); i.hasNext(); ) {
@@ -301,6 +330,8 @@ public class ShexValidator {
 				if(!obj.isResource()) {
 					continue;
 					//no checks on literal values at this time
+				}else if(prop_uri.equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")&&obj.asResource().getURI().equals("http://www.w3.org/2002/07/owl#NamedIndividual")) {
+					continue; //ignore type owl individual
 				}
 				RDFTerm range_obj = rdfFactory.createIRI(obj.asResource().getURI());
 				//does it hit any allowable shapes?
@@ -321,6 +352,7 @@ public class ShexValidator {
 				}
 				if(!good) {
 					String object = obj.toString();
+					Set<String> object_types = getNodeTypes(model, object);
 					String property = prop.toString();
 					object = getPreferredId(object, IRI.create(object));
 					property = getPreferredId(property, IRI.create(property));
@@ -328,8 +360,7 @@ public class ShexValidator {
 //						object = curieHandler.getCuri(IRI.create(object));
 //						property = curieHandler.getCuri(IRI.create(property));
 //					}
-					explanation+="\n"+object+" range of "+property+"\n\tshould match one of the following shapes but does not: \n\t\t"+expected_property_ranges.get(prop_uri);
-					ShexConstraint constraint = new ShexConstraint(object, property, expected_property_ranges.get(prop_uri));
+					ShexConstraint constraint = new ShexConstraint(object, property, expected_property_ranges.get(prop_uri), node_types, object_types);
 					unmet_constraints.add(constraint);
 				}
 			}
