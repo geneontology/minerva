@@ -319,9 +319,6 @@ public class ShexValidator {
 		//get the focus node in the rdf model
 		//check for assertions with properties in the target shape
 		for(String prop_uri : expected_property_ranges.keySet()) {
-//			if(prop_uri.equals(org.apache.jena.vocabulary.RDF.type.getURI())){
-//				continue;//TODO types need more work..
-//			}
 			Property prop = model.getProperty(prop_uri);
 			//checking on objects of this property for the problem node.
 			for (StmtIterator i = focus_node.listProperties(prop); i.hasNext(); ) {
@@ -350,7 +347,7 @@ public class ShexValidator {
 						break;
 					}
 				}
-				if(!good) {
+				if(!good) {					
 					String object = obj.toString();
 					Set<String> object_types = getNodeTypes(model, object);
 					String property = prop.toString();
@@ -361,6 +358,19 @@ public class ShexValidator {
 //						property = curieHandler.getCuri(IRI.create(property));
 //					}
 					ShexConstraint constraint = new ShexConstraint(object, property, expected_property_ranges.get(prop_uri), node_types, object_types);
+					//return all shapes that are matched by this node for explanation
+					Set<Label> all_shapes_in_schema = getAllShapesInSchema();
+					Set<String> obj_matched_shapes = new HashSet<String>();
+					for(Label target_shape_label : all_shapes_in_schema) {
+						shex_recursive_validator.validate(range_obj, target_shape_label);
+						Typing shape_test = shex_recursive_validator.getTyping();
+						Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(range_obj, target_shape_label);
+						Status r = shape_test.getStatusMap().get(p);
+						if(r.equals(Status.CONFORMANT)) {
+							obj_matched_shapes.add(target_shape_label.stringValue());
+						}
+					}
+					constraint.setMatched_range_shapes(obj_matched_shapes);
 					unmet_constraints.add(constraint);
 				}
 			}
@@ -369,6 +379,10 @@ public class ShexValidator {
 	}
 	
 	
+	private Set<Label> getAllShapesInSchema() {		
+		return schema.getRules().keySet();
+	}
+
 	/**
 	 * If implementation has something like a curie handler and preference, override these methods
 	 * @param node

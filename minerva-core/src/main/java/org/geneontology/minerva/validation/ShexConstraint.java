@@ -17,6 +17,19 @@ public class ShexConstraint {
 	Set<String> node_types;
 	Set<String> object_types;
 	
+	@SerializedName("matched_range_shapes")
+	Set<String> matched_range_shapes;
+	
+	
+
+	public Set<String> getMatched_range_shapes() {
+		return matched_range_shapes;
+	}
+
+	public void setMatched_range_shapes(Set<String> matched_range_shapes) {
+		this.matched_range_shapes = matched_range_shapes;
+	}
+
 	public Set<String> getObject_types() {
 		return object_types;
 	}
