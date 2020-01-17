@@ -39,9 +39,9 @@ public class FindGoCodesTest {
 		assertNotNull(pair1);
 		assertEquals("IC", pair1.getLeft());
 		
-		Pair<String, String> pair2 = lookup("ECO:0001828");
+		Pair<String, String> pair2 = lookup("ECO:0000269");
 		assertNotNull(pair2);
-		assertEquals("IC", pair2.getLeft());
+		assertEquals("EXP", pair2.getLeft());
 	}
 	
 	private Pair<String, String> lookup(String testId) throws UnknownIdentifierException {
