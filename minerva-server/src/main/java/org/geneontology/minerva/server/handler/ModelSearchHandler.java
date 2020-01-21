@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,7 +57,7 @@ public class ModelSearchHandler {
 
 	public class ModelSearchResult {
 		private Integer n;
-		private Set<ModelMeta> models;
+		private LinkedHashSet<ModelMeta> models;
 		private String message;
 		private String error;
 		private String sparql;
@@ -232,7 +233,8 @@ public class ModelSearchHandler {
 		//default group by
 		String group_by_constraint = "GROUP BY ?id ?date ?title ?state <ind_return_list> ";
 		//default return block
-		String return_block = "?id ?date ?title ?state <ind_return_list> (GROUP_CONCAT(?contributor;separator=\";\") AS ?contributors) (GROUP_CONCAT(?group;separator=\";\") AS ?groups)";
+		//TODO investigate need to add DISTINCT to GROUP_CONCAT here
+		String return_block = "?id ?date ?title ?state <ind_return_list> (GROUP_CONCAT(DISTINCT ?contributor;separator=\";\") AS ?contributors) (GROUP_CONCAT(DISTINCT ?group;separator=\";\") AS ?groups)";
 		if(count!=null) {
 			return_block = "(count(distinct ?id) as ?count)";
 			limit_constraint = "";
@@ -335,11 +337,12 @@ public class ModelSearchHandler {
 			r.error = e.getMessage();
 			e.printStackTrace();
 			return r;
-		}		if(n_count!=null) {
+		}		
+		if(n_count!=null) {
 			r.n = Integer.parseInt(n_count);
 		}else {
 			r.n = id_model.size();
-			r.models = new HashSet<ModelMeta>(id_model.values());
+			r.models = new LinkedHashSet<ModelMeta>(id_model.values());
 		}		
 		try {
 			result.close();
@@ -356,7 +359,7 @@ public class ModelSearchHandler {
 
 	public ModelSearchResult getAll(int offset, int limit) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
 		ModelSearchResult r = new ModelSearchResult();
-		Set<ModelMeta> models = new HashSet<ModelMeta>();
+		LinkedHashSet<ModelMeta> models = new LinkedHashSet<ModelMeta>();
 		String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/GetAllModels.rq"), StandardCharsets.UTF_8);
 		TupleQueryResult result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 100);
 		int n_models = 0;
