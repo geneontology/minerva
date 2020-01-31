@@ -108,7 +108,7 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 					}
 					//add root types for gene products.  
 					//TODO investigate performance impact
-					//tradefoff these queries versus loading all possible genes into tbox
+					//tradefoff these queries versus loading all possible genes into tbox 
 					temp_ont = addRootTypesToCopy(ont, shex.externalLookupService);
 					//do reasoning and validation on the enhanced model
 					reasoner = rf.createReasoner(temp_ont);
@@ -147,7 +147,11 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 				if(cls.isAnonymous()) {
 					continue;
 				}
-				List<LookupEntry> lookup = externalLookupService.lookup(cls.asOWLClass().getIRI());
+				IRI class_iri = cls.asOWLClass().getIRI();
+				if(class_iri.toString().contains("ECO")) {
+					continue; //this only deals with genes, chemicals, proteins, and complexes.  
+				}
+				List<LookupEntry> lookup = externalLookupService.lookup(class_iri);
 				if(lookup!=null&&!lookup.isEmpty()&&lookup.get(0).direct_parent_iri!=null) {
 					OWLClass parent_class = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(lookup.get(0).direct_parent_iri));	
 					OWLClassAssertionAxiom add_root = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClassAssertionAxiom(parent_class, individual);

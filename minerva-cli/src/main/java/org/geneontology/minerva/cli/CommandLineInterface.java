@@ -81,6 +81,8 @@ import com.google.common.collect.Sets;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import fr.inria.lille.shexjava.schema.ShexSchema;
+import fr.inria.lille.shexjava.schema.parsing.GenParser;
 import owltools.cli.Opts;
 import owltools.io.ParserWrapper;
 
@@ -89,6 +91,9 @@ public class CommandLineInterface {
 	private static final Logger LOGGER = Logger.getLogger(CommandLineInterface.class);
 
 	public static void main(String[] args) throws Exception {
+		ShexSchema schema = GenParser.parseSchema(new File("/Users/benjamingood/GitHub/GO_Shapes/shapes/go-cam-shapes.shex").toPath());
+		
+		
 		reportSystemParams();
 		Options main_options = new Options();
 		OptionGroup methods = new OptionGroup();
@@ -594,20 +599,17 @@ public class CommandLineInterface {
 				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null);
 				if(i.isDirectory()) {
 					FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
-						if(!(file.getName().equals("reactome-homosapiens-Synthesis_of_PIPs_at_the_plasma_membrane.ttl"))
-							&&!(file.getName().equals("reactome-homosapiens-Circadian_Clock.ttl"))) {
-							if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
-								LOGGER.info("Loading " + file);
-								try {
-									String modeluri = m3.importModelToDatabase(file, true);
-									modelid_filename.put(modeluri, file.getName());
-								} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
-										| RDFHandlerException | IOException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
-							} 
-						}
+						if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
+							LOGGER.info("Loading " + file);
+							try {
+								String modeluri = m3.importModelToDatabase(file, true);
+								modelid_filename.put(modeluri, file.getName());
+							} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
+									| RDFHandlerException | IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						} 
 					});
 				}else {
 					LOGGER.info("Loading " + i);
@@ -687,8 +689,10 @@ public class CommandLineInterface {
 					boolean isConsistent = true;
 					boolean isConformant = true;
 					LOGGER.info("processing "+filename+"\t"+modelIRI);
-					ModelContainer mc = m3.getModel(modelIRI);		
+					ModelContainer mc = m3.getModel(modelIRI);	
+					LOGGER.info("building inference provider "+filename+"\t"+modelIRI);
 					InferenceProvider ip = ipc.create(mc);
+					LOGGER.info("writing results, isConsistent = "+ip.isConsistent());
 					isConsistent = ip.isConsistent();
 					if(!isConsistent&&explanationOutputFile!=null) {
 						FileWriter explanations = new FileWriter(explanationOutputFile, true);
@@ -737,7 +741,7 @@ public class CommandLineInterface {
 		}finally{
 			basic_output.close();
 		}
-		
+
 	}
 
 
@@ -756,36 +760,36 @@ public class CommandLineInterface {
 		System.out.println(key+"\t"+value);
 		return value;
 	}
-	
+
 	public static void reportSystemParams() {
-		 /* Total number of processors or cores available to the JVM */
+		/* Total number of processors or cores available to the JVM */
 		LOGGER.info("Available processors (cores): " + 
-		  Runtime.getRuntime().availableProcessors());
+				Runtime.getRuntime().availableProcessors());
 
-		  /* Total amount of free memory available to the JVM */
+		/* Total amount of free memory available to the JVM */
 		LOGGER.info("Free memory (m bytes): " + 
-		  Runtime.getRuntime().freeMemory()/1048576);
+				Runtime.getRuntime().freeMemory()/1048576);
 
-		  /* This will return Long.MAX_VALUE if there is no preset limit */
-		  long maxMemory = Runtime.getRuntime().maxMemory()/1048576;
-		  /* Maximum amount of memory the JVM will attempt to use */
-		  LOGGER.info("Maximum memory (m bytes): " + 
-		  (maxMemory == Long.MAX_VALUE ? "no limit" : maxMemory));
+		/* This will return Long.MAX_VALUE if there is no preset limit */
+		long maxMemory = Runtime.getRuntime().maxMemory()/1048576;
+		/* Maximum amount of memory the JVM will attempt to use */
+		LOGGER.info("Maximum memory (m bytes): " + 
+				(maxMemory == Long.MAX_VALUE ? "no limit" : maxMemory));
 
-		  /* Total memory currently in use by the JVM */
-		  LOGGER.info("Total memory (m bytes): " + 
-		  Runtime.getRuntime().totalMemory()/1048576);
+		/* Total memory currently in use by the JVM */
+		LOGGER.info("Total memory (m bytes): " + 
+				Runtime.getRuntime().totalMemory()/1048576);
 
-		  /* Get a list of all filesystem roots on this system */
-		  File[] roots = File.listRoots();
+		/* Get a list of all filesystem roots on this system */
+		File[] roots = File.listRoots();
 
-		  /* For each filesystem root, print some info */
-		  for (File root : roots) {
-			  LOGGER.info("File system root: " + root.getAbsolutePath());
-			  LOGGER.info("Total space (bytes): " + root.getTotalSpace());
-			  LOGGER.info("Free space (bytes): " + root.getFreeSpace());
-			  LOGGER.info("Usable space (bytes): " + root.getUsableSpace());
-		  }
+		/* For each filesystem root, print some info */
+		for (File root : roots) {
+			LOGGER.info("File system root: " + root.getAbsolutePath());
+			LOGGER.info("Total space (bytes): " + root.getTotalSpace());
+			LOGGER.info("Free space (bytes): " + root.getFreeSpace());
+			LOGGER.info("Usable space (bytes): " + root.getUsableSpace());
+		}
 	}
 
 }

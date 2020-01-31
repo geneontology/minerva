@@ -32,6 +32,7 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDFS;
+import org.apache.log4j.Logger;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
@@ -60,6 +61,7 @@ import fr.inria.lille.shexjava.validation.Typing;
  *
  */
 public class ShexValidator {
+	private static final Logger LOGGER = Logger.getLogger(ShexValidator.class);
 	public ShexSchema schema;
 	public Map<String, String> GoQueryMap;
 	public OWLReasoner tbox_reasoner;

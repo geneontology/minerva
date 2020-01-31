@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.jena.rdf.model.Model;
+import org.apache.log4j.Logger;
 import org.geneontology.minerva.json.InferenceProvider;
 import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.geneontology.minerva.util.JenaOwlTool;
@@ -21,7 +22,7 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 public class MapInferenceProvider implements InferenceProvider {
-
+	private static final Logger LOGGER = Logger.getLogger(InferenceProvider.class);
 	private final boolean isConsistent;
 	private final Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes;
 	private final Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects;
@@ -52,7 +53,7 @@ public class MapInferenceProvider implements InferenceProvider {
 				}
 				inferredTypes.put(individual, inferred);
 				//adding the rest of the types
-				//TODO consider filtering down to root types - depending on uses cases
+				//TODO consider filtering down to root types - depending on use cases
 				Set<OWLClass> all_inferred = new HashSet<>();
 				Set<OWLClass> all_flattened = r.getTypes(individual, false).getFlattened();
 				for (OWLClass cls : all_flattened) {
@@ -70,7 +71,6 @@ public class MapInferenceProvider implements InferenceProvider {
 			Violation i_v = new Violation("id of inconsistent node");
 			reasoner_validation.addViolation(i_v);
 		}
-
 		//shex
 		ShexValidationReport shex_validation = null;	
 		if(shex.isActive()) {
