@@ -113,6 +113,7 @@ public class ModelSearchHandler {
 	//&pmid=PMID:19911006
 	//&state=development&state=review {development, production, closed, review, delete} or operator
 	//&count
+	//127.0.0.1:6800/search/?contributor=http://orcid.org/0000-0002-1706-4196
 	public ModelSearchResult search(
 			Set<String> gene_product_ids, Set<String> goterms, Set<String>pmids, 
 			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, String date_search,
@@ -199,7 +200,9 @@ public class ModelSearchHandler {
 					allowed_contributors+=",";
 				}
 			}
-			contributor_search_constraint = "FILTER (?contributor IN ("+allowed_contributors+")) . \n";
+			contributor_search_constraint = 
+					" ?id <http://purl.org/dc/elements/1.1/contributor> ?test_contributor . \n"  
+					+ " FILTER (?test_contributor IN ("+allowed_contributors+")) . \n";
 		}
 		String group_search_constraint = "";
 		if(group_search!=null&&group_search.size()>0) {
@@ -212,7 +215,8 @@ public class ModelSearchHandler {
 					allowed_group+=",";
 				}
 			}
-			contributor_search_constraint = "FILTER (?group IN ("+allowed_group+")) . \n";
+			contributor_search_constraint = " ?id <http://purl.org/pav/providedBy> ?test_group . \n"
+					+ "FILTER (?test_group IN ("+allowed_group+")) . \n";
 		}
 		String date_constraint = "";
 		if(date_search!=null&&date_search.length()==10) {
