@@ -4,14 +4,17 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class RetrieveGolrOntologyClass extends AbstractRetrieveGolr {
 
-	static int PAGINATION_CHUNK_SIZE = 100;
-	
+	static int PAGINATION_CHUNK_SIZE = 1000;
+
 	private final List<String> relevantFields;
-	
+
 	public RetrieveGolrOntologyClass(String server, int retryCount) {
 		super(server, retryCount);
 		relevantFields = GolrOntologyClassDocument.getRelevantFields();
@@ -27,6 +30,34 @@ public class RetrieveGolrOntologyClass extends AbstractRetrieveGolr {
 		return relevantFields;
 	}
 
+
+	public Map<String, List<GolrOntologyClassDocument>> getGolrOntologyCls(Set<String> curies) throws IOException {
+		List<String[]> tagvalues = new ArrayList<String[]>();
+		String [] tagvalue = new String[2*curies.size()];
+		int i = 0;
+		for(String curie : curies) {
+			int p1 = i; int p2 = i+1;
+			tagvalue[p1] = "annotation_class";
+			tagvalue[p2] = curie;
+			tagvalues.add(tagvalue);
+			i = i+2;
+		}
+		final List<GolrOntologyClassDocument> documents = getGolrOntologyCls(tagvalues);
+		//remap 
+		Map<String, List<GolrOntologyClassDocument>> curie_response = new HashMap<String, List<GolrOntologyClassDocument>>();
+		for(GolrOntologyClassDocument ontdoc : documents) {
+			String id = ontdoc.annotation_class;
+			List<GolrOntologyClassDocument> docs = curie_response.get(id);
+			if(docs==null) {
+				docs = new ArrayList<GolrOntologyClassDocument>();
+			}
+			docs.add(ontdoc);
+			curie_response.put(id, docs);
+		}
+		
+		return curie_response;
+	}
+
 	public List<GolrOntologyClassDocument> getGolrOntologyCls(String id) throws IOException {
 		List<String[]> tagvalues = new ArrayList<String[]>();
 		String [] tagvalue = new String[2];
@@ -36,7 +67,7 @@ public class RetrieveGolrOntologyClass extends AbstractRetrieveGolr {
 		final List<GolrOntologyClassDocument> documents = getGolrOntologyCls(tagvalues);
 		return documents;
 	}
-	
+
 	public List<GolrOntologyClassDocument> getGolrOntologyCls(List<String []> tagvalues) throws IOException {
 		final URI uri = createGolrRequest(tagvalues, "ontology_class", 0, PAGINATION_CHUNK_SIZE);
 		final String jsonString = getJsonStringFromUri(uri);
@@ -61,13 +92,13 @@ public class RetrieveGolrOntologyClass extends AbstractRetrieveGolr {
 		}
 		return documents;
 	}
-	
+
 	private static class GolrOntologyClassResponse extends GolrEnvelope<GolrOntologyClassDocument> {
 		// empty
 	}
-	
+
 	public static class GolrOntologyClassDocument {
-		
+
 		public String document_category;
 		public String annotation_class;
 		public String annotation_class_label;
@@ -86,8 +117,8 @@ public class RetrieveGolrOntologyClass extends AbstractRetrieveGolr {
 		public List<String> regulates_closure;
 		public String only_in_taxon;
 		public List<String> only_in_taxon_closure;
-		
-		
+
+
 		static List<String> getRelevantFields() {
 			// explicit list of fields, avoid "*" retrieval of unused fields
 			return Arrays.asList("document_category",
@@ -109,8 +140,9 @@ public class RetrieveGolrOntologyClass extends AbstractRetrieveGolr {
 					"only_in_taxon_closure");
 		}
 	}
-	
+
 	private GolrResponse<GolrOntologyClassDocument> parseGolrResponse(String jsonString) throws IOException {
 		return parseGolrResponse(jsonString, GolrOntologyClassResponse.class).response;
 	}
+
 }

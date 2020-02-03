@@ -2,6 +2,8 @@ package org.geneontology.minerva.lookup;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -73,6 +75,12 @@ public class CachingExternalLookupService implements ExternalLookupService {
 	@Override
 	public String toString() {
 		return "Caching("+service.toString()+")";
+	}
+
+	@Override
+	public Map<IRI, List<LookupEntry>> lookupBatch(Set<IRI> to_look_up) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 	

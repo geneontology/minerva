@@ -1,8 +1,10 @@
 package org.geneontology.minerva.server.inferences;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 
@@ -141,8 +143,11 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		OWLOntology temp_ont = asserted_ont.getOWLOntologyManager().createOntology();
 		temp_ont.getOWLOntologyManager().addAxioms(temp_ont, asserted_ont.getAxioms());
 		Set<OWLNamedIndividual> individuals = temp_ont.getIndividualsInSignature();
+		Set<IRI> to_look_up = new HashSet<IRI>();
+		Map<OWLNamedIndividual, Set<IRI>> individual_types = new HashMap<OWLNamedIndividual, Set<IRI>>();
 		for (OWLNamedIndividual individual : individuals) {		
 			Collection<OWLClassExpression> asserted_types = EntitySearcher.getTypes(individual, asserted_ont);
+			Set<IRI> ind_types = new HashSet<IRI>();
 			for(OWLClassExpression cls : asserted_types) {
 				if(cls.isAnonymous()) {
 					continue;
@@ -151,14 +156,25 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 				if(class_iri.toString().contains("ECO")) {
 					continue; //this only deals with genes, chemicals, proteins, and complexes.  
 				}
-				List<LookupEntry> lookup = externalLookupService.lookup(class_iri);
+				to_look_up.add(class_iri);			
+				ind_types.add(class_iri);
+			}
+			individual_types.put(individual, ind_types);
+		}		 
+		//look up all at once
+		Map<IRI, List<LookupEntry>> iri_lookup = externalLookupService.lookupBatch(to_look_up);
+		//add the identified root types on to the individuals in the model
+		for(OWLNamedIndividual i : individual_types.keySet()) {
+			for(IRI asserted_type : individual_types.get(i)) {
+				List<LookupEntry> lookup = iri_lookup.get(asserted_type);
 				if(lookup!=null&&!lookup.isEmpty()&&lookup.get(0).direct_parent_iri!=null) {
 					OWLClass parent_class = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(lookup.get(0).direct_parent_iri));	
-					OWLClassAssertionAxiom add_root = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClassAssertionAxiom(parent_class, individual);
+					OWLClassAssertionAxiom add_root = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClassAssertionAxiom(parent_class, i);
 					temp_ont.getOWLOntologyManager().addAxiom(temp_ont, add_root);
 				}
 			}
-		}		
+		}
+		
 		return temp_ont;
 	}
 	

@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.bbop.golr.java.RetrieveGolrBioentities;
@@ -13,6 +15,7 @@ import org.bbop.golr.java.RetrieveGolrOntologyClass;
 import org.bbop.golr.java.RetrieveGolrBioentities.GolrBioentityDocument;
 import org.bbop.golr.java.RetrieveGolrOntologyClass.GolrOntologyClassDocument;
 import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.semanticweb.owlapi.model.IRI;
 
 public class GolrExternalLookupService implements ExternalLookupService {
@@ -62,6 +65,40 @@ public class GolrExternalLookupService implements ExternalLookupService {
 		this.ontologyClient = ontologyClient;
 		this.golrUrl = golrUrl;
 		this.curieHandler = curieHandler;
+	}
+	
+	@Override
+	public Map<IRI, List<LookupEntry>> lookupBatch(Set<IRI> to_look_up){
+		Map<IRI, List<LookupEntry>> iri_lookups = new HashMap<IRI, List<LookupEntry>>();
+		//slow - replace with batch
+//		for(IRI iri : to_look_up) {
+//			List<LookupEntry> lookup = lookup(iri);
+//			iri_lookups.put(iri, lookup);
+//		}
+		
+		Set<String> curies = new HashSet<String>();
+		Map<String, IRI> curie_iri = new HashMap<String, IRI>();
+		for(IRI iri : to_look_up) {
+			String curie = curieHandler.getCuri(iri);
+			curies.add(curie);
+			curie_iri.put(curie,  iri);
+		}
+		
+		try {
+			Map<String, List<GolrOntologyClassDocument>> ontologyEntities = ontologyClient.getGolrOntologyCls(curies);
+			for(String id : ontologyEntities.keySet()) {
+				List<LookupEntry> result = new ArrayList<LookupEntry>();
+				for(GolrOntologyClassDocument doc : ontologyEntities.get(id)) {
+					result.add(new LookupEntry(curie_iri.get(id), doc.annotation_class_label, "ontology_class", doc.only_in_taxon, doc.isa_closure));
+				}
+				iri_lookups.put(curie_iri.get(id), result);
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		 
+		return iri_lookups;
 	}
 	
 	@Override
