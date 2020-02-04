@@ -70,21 +70,13 @@ public class GolrExternalLookupService implements ExternalLookupService {
 	@Override
 	public Map<IRI, List<LookupEntry>> lookupBatch(Set<IRI> to_look_up){
 		Map<IRI, List<LookupEntry>> iri_lookups = new HashMap<IRI, List<LookupEntry>>();
-		//slow - replace with batch
-//		for(IRI iri : to_look_up) {
-//			List<LookupEntry> lookup = lookup(iri);
-//			iri_lookups.put(iri, lookup);
-//		}
-		
+	
 		Set<String> curies = new HashSet<String>();
 		Map<String, IRI> curie_iri = new HashMap<String, IRI>();
 		for(IRI iri : to_look_up) {
 			String curie = curieHandler.getCuri(iri);
 			curies.add(curie);
 			curie_iri.put(curie,  iri);
-			if(iri.toString().contains("WBGene00006923")) {
-				System.out.println("wormy ");
-			}
 		}
 		
 		try {
