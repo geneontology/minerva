@@ -82,6 +82,9 @@ public class GolrExternalLookupService implements ExternalLookupService {
 			String curie = curieHandler.getCuri(iri);
 			curies.add(curie);
 			curie_iri.put(curie,  iri);
+			if(iri.toString().contains("WBGene00006923")) {
+				System.out.println("wormy ");
+			}
 		}
 		
 		try {
@@ -93,9 +96,15 @@ public class GolrExternalLookupService implements ExternalLookupService {
 				}
 				iri_lookups.put(curie_iri.get(id), result);
 			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch(IOException exception) {
+			if (LOG.isDebugEnabled()) {
+				LOG.debug("Error during retrieval for id: "+curies+" GOLR-URL: "+golrUrl, exception);
+			}
+			return null;
+		}
+		catch (Throwable exception) {
+			LOG.warn("Unexpected problem during Golr lookup for id: "+curies, exception);
+			throw exception;
 		}
 		 
 		return iri_lookups;

@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.http.client.methods.HttpPost;
+
 public class RetrieveGolrOntologyClass extends AbstractRetrieveGolr {
 
 	static int PAGINATION_CHUNK_SIZE = 1000;
@@ -33,15 +35,14 @@ public class RetrieveGolrOntologyClass extends AbstractRetrieveGolr {
 
 	public Map<String, List<GolrOntologyClassDocument>> getGolrOntologyCls(Set<String> curies) throws IOException {
 		List<String[]> tagvalues = new ArrayList<String[]>();
-		String [] tagvalue = new String[2*curies.size()];
+		String [] tagvalue = new String[1+curies.size()];
 		int i = 0;
-		for(String curie : curies) {
-			int p1 = i; int p2 = i+1;
-			tagvalue[p1] = "annotation_class";
-			tagvalue[p2] = curie;
-			tagvalues.add(tagvalue);
-			i = i+2;
+		tagvalue[i] = "annotation_class";
+		for(String curie : curies) {	
+			i++;
+			tagvalue[i] = curie;
 		}
+		tagvalues.add(tagvalue);
 		final List<GolrOntologyClassDocument> documents = getGolrOntologyCls(tagvalues);
 		//remap 
 		Map<String, List<GolrOntologyClassDocument>> curie_response = new HashMap<String, List<GolrOntologyClassDocument>>();
@@ -69,8 +70,12 @@ public class RetrieveGolrOntologyClass extends AbstractRetrieveGolr {
 	}
 
 	public List<GolrOntologyClassDocument> getGolrOntologyCls(List<String []> tagvalues) throws IOException {
-		final URI uri = createGolrRequest(tagvalues, "ontology_class", 0, PAGINATION_CHUNK_SIZE);
-		final String jsonString = getJsonStringFromUri(uri);
+//		final URI uri = createGolrRequest(tagvalues, "ontology_class", 0, PAGINATION_CHUNK_SIZE);
+//		final String jsonString = getJsonStringFromUri(uri);
+		
+		final HttpPost post = createGolrPostRequest(tagvalues, "ontology_class", 0, PAGINATION_CHUNK_SIZE);
+		final String jsonString = getJsonStringFromPost(post);
+		
 		final GolrResponse<GolrOntologyClassDocument> response = parseGolrResponse(jsonString);
 		final List<GolrOntologyClassDocument> documents = new ArrayList<GolrOntologyClassDocument>(response.numFound);
 		documents.addAll(Arrays.<GolrOntologyClassDocument>asList(response.docs));
