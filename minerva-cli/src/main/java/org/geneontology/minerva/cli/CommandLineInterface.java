@@ -250,7 +250,8 @@ public class CommandLineInterface {
 						+ "validation and report an error.  Otherwise it will continue to test all the models.");
 				validate_options.addOption("m", "shapemap", true, "Specify a shapemap file.  Otherwise will download from go_shapes repo.");
 				validate_options.addOption("s", "shexpath", true, "Specify a shex schema file.  Otherwise will download from go_shapes repo.");
-
+				validate_options.addOption("g", "golr", true, "Specify a URL for a golr server.  Defaults to http://noctua-golr.berkeleybop.org/ id not set.  Typical local configuration might be http://127.0.0.1:8080/solr/");
+				
 				cmd = parser.parse(validate_options, args, false);
 				String input = cmd.getOptionValue("input");			
 				String basicOutputFile = cmd.getOptionValue("report-file");
@@ -283,7 +284,11 @@ public class CommandLineInterface {
 				if(cmd.hasOption("shex")) {
 					checkShex = true;
 				}
-				validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex);
+				String golr_server = null;
+				if(cmd.hasOption("golr")) {
+					golr_server = cmd.getOptionValue("golr");
+				}				
+				validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, golr_server);
 			}else if(cmd.hasOption("update-gene-product-types")) {
 				Options options = new Options();
 				options.addOption(update_gps);
@@ -563,7 +568,7 @@ public class CommandLineInterface {
 	 */
 	public static void validateGoCams(String input, String basicOutputFile, String explanationOutputFile, 
 			String ontologyIRI, String catalog, String modelIdPrefix, String modelIdcurie, 
-			String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex) throws Exception {
+			String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex, String golr_server) throws Exception {
 		Logger LOG = Logger.getLogger(BlazegraphMolecularModelManager.class);
 		LOG.setLevel(Level.ERROR);
 		LOGGER.setLevel(Level.INFO);
@@ -658,8 +663,10 @@ public class CommandLineInterface {
 			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
 			System.err.println("-m .No shape map file provided, using: "+goshapemapFileUrl);
 		}
-		//TODO parameterize golr_url
 		String golr_url = "http://noctua-golr.berkeleybop.org/";
+		if(golr_server!=null) {
+			golr_url = golr_server;
+		}
 		ExternalLookupService externalLookupService = new GolrExternalLookupService(golr_url, curieHandler, false);
 		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getTbox_reasoner(), externalLookupService);
 		if(checkShex) {
@@ -690,9 +697,7 @@ public class CommandLineInterface {
 					boolean isConformant = true;
 					LOGGER.info("processing "+filename+"\t"+modelIRI);
 					ModelContainer mc = m3.getModel(modelIRI);	
-					LOGGER.info("building inference provider "+filename+"\t"+modelIRI);
 					InferenceProvider ip = ipc.create(mc);
-					LOGGER.info("writing results, isConsistent = "+ip.isConsistent());
 					isConsistent = ip.isConsistent();
 					if(!isConsistent&&explanationOutputFile!=null) {
 						FileWriter explanations = new FileWriter(explanationOutputFile, true);
