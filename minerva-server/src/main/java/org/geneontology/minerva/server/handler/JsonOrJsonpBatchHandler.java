@@ -99,6 +99,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			return error(response, "The batch contains no requests: null value for request array", null);
 		}
 		try {
+			logger.info("returning m3batch server 102");
 			return m3Batch(response, requests, uid, providerGroups, useReasoner, isPrivileged);
 		} catch (InsufficientPermissionsException e) {
 			return error(response, e.getMessage(), null);
@@ -122,7 +123,9 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			return error(response, "The batch contains no requests: null value for request", null);
 		}
 		try {
+			logger.info("server getting requests");
 			M3Request[] requests = MolecularModelJsonRenderer.parseFromJson(requestString, requestType);
+			logger.info("server preparing response 128 ");
 			return m3Batch(response, requests, uid, providerGroups, useReasoner, isPrivileged);
 		} catch (Exception e) {
 			return error(response, "Could not successfully handle batch request.", e);
@@ -202,26 +205,35 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		boolean isConsistent = true;
 		boolean isConformant = true;
 		if (inferenceProviderCreator != null && useReasoner) {
+			logger.info("server building inference provider");
 			inferenceProvider = inferenceProviderCreator.create(values.model);
+			logger.info("server done building inference provider");
 			isConsistent = inferenceProvider.isConsistent();
 			response.setReasoned(true);
 			values.renderBulk = true; // to ensure that all individuals are in the response
+			logger.info("assembling validation results");
 			org.geneontology.minerva.validation.ValidationResultSet validations = inferenceProvider.getValidation_results();
+			logger.info("done assembling validation results");
 			isConformant = validations.allConformant();	
 		}
 
 		// create response.data
 		response.data = new ResponseData();
+		logger.info("server setting up json renderer");
 		final MolecularModelJsonRenderer renderer = createModelRenderer(values.model, externalLookupService, inferenceProvider, curieHandler);
+		logger.info("server done setting up json renderer");
 		if (values.renderBulk) {
 			// render complete model
+			logger.info("server render bulk");
 			JsonModel jsonModel = renderer.renderModel();
+			logger.info("server render bulk ini response data");
 			initResponseData(jsonModel, response.data);
 			response.signal = M3BatchResponse.SIGNAL_REBUILD;
 		}
 		else {
 			response.signal = M3BatchResponse.SIGNAL_MERGE;
 			// render individuals
+			logger.info("server render individuals");
 			if (values.relevantIndividuals.isEmpty() == false) {
 				Pair<JsonOwlIndividual[],JsonOwlFact[]> pair = renderer.renderIndividuals(values.relevantIndividuals);
 				response.data.individuals = pair.getLeft();
@@ -231,7 +243,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			response.data.annotations = MolecularModelJsonRenderer.renderModelAnnotations(values.model.getAboxOntology(), curieHandler);
 			response.data.modelId = curieHandler.getCuri(values.model.getModelId());
 		}
-		
+		logger.info("server adding other information");
 		// add other infos to data
 		if (!isConsistent) {
 			response.data.inconsistentFlag =  Boolean.TRUE;
@@ -245,6 +257,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		if( response.message == null ){
 			response.message = "success";
 		}
+		logger.info("server sending response 260 \n"+response);
 		return response;
 	}
 

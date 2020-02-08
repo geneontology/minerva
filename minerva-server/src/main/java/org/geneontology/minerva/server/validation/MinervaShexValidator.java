@@ -36,7 +36,7 @@ public class MinervaShexValidator extends ShexValidator {
 	 * @throws Exception
 	 */
 	public MinervaShexValidator(String shexpath, String goshapemappath, CurieHandler curieHandler, OWLReasoner tbox_reasoner, ExternalLookupService externalLookupService) throws Exception {
-		super(shexpath, goshapemappath, tbox_reasoner);
+		super(shexpath, goshapemappath, tbox_reasoner, curieHandler);
 		this.externalLookupService = externalLookupService;
 	}
 
@@ -46,7 +46,7 @@ public class MinervaShexValidator extends ShexValidator {
 	 * @throws Exception
 	 */
 	public MinervaShexValidator(File shex_schema_file, File shex_map_file, CurieHandler curieHandler, OWLReasoner tbox_reasoner, ExternalLookupService externalLookupService) throws Exception {
-		super(shex_schema_file, shex_map_file, tbox_reasoner);
+		super(shex_schema_file, shex_map_file, tbox_reasoner, curieHandler);
 		this.externalLookupService = externalLookupService;
 	}
 	

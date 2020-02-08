@@ -72,21 +72,26 @@ public class MapInferenceProvider implements InferenceProvider {
 			reasoner_validation.addViolation(i_v);
 		}
 		//shex
-		ShexValidationReport shex_validation = null;	
+		ShexValidationReport shex_validation = null;
 		if(shex.isActive()) {
+			LOGGER.info("Setting up shex validation");
 			//generate an RDF model
 			Model model = JenaOwlTool.getJenaModel(ont);
 			//add superclasses to types used in model 
 			model = shex.enrichSuperClasses(model);	
 			try {
 				boolean stream_output_for_debug = false;
+				LOGGER.info("Running shex validation");
 				shex_validation = shex.runShapeMapValidation(model, stream_output_for_debug);
+				LOGGER.info("Done with shex validation");
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}	
 		}
+		LOGGER.info("Building validation result set ");
 		ValidationResultSet all_validations = new ValidationResultSet(reasoner_validation, shex_validation);
+		LOGGER.info("Done building validation result set");
 		return new MapInferenceProvider(isConsistent, inferredTypes, inferredTypesWithIndirects, all_validations);
 	}
 
