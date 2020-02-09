@@ -74,7 +74,6 @@ public class MapInferenceProvider implements InferenceProvider {
 		//shex
 		ShexValidationReport shex_validation = null;
 		if(shex.isActive()) {
-			LOGGER.info("Setting up shex validation");
 			//generate an RDF model
 			Model model = JenaOwlTool.getJenaModel(ont);
 			//add superclasses to types used in model 
@@ -89,9 +88,7 @@ public class MapInferenceProvider implements InferenceProvider {
 				e.printStackTrace();
 			}	
 		}
-		LOGGER.info("Building validation result set ");
 		ValidationResultSet all_validations = new ValidationResultSet(reasoner_validation, shex_validation);
-		LOGGER.info("Done building validation result set");
 		return new MapInferenceProvider(isConsistent, inferredTypes, inferredTypesWithIndirects, all_validations);
 	}
 

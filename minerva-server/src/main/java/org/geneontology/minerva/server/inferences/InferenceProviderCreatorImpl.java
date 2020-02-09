@@ -111,19 +111,13 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 					//add root types for gene products.  
 					//TODO investigate performance impact
 					//tradefoff these queries versus loading all possible genes into tbox 
-					LOG.info("Adding root types");
 					temp_ont = addRootTypesToCopy(ont, shex.externalLookupService);
 					//do reasoning and validation on the enhanced model
-					LOG.info("Building reasoned model");
 					reasoner = rf.createReasoner(temp_ont);
-					LOG.info("Making inference and validation provider");
 					provider = MapInferenceProvider.create(reasoner, temp_ont, shex);
-					LOG.info("Done making inference provider");
 				}
 				finally {
-					LOG.info("releasing lock");
 					concurrentLock.release();
-					LOG.info("released");
 				}
 			}
 			return provider;
@@ -131,15 +125,12 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		finally {
 			if (reasoner != null) {
 				reasoner.dispose();
-				LOG.info("reasoner disposed");
 			}
 			if (module != null) {
 				m.removeOntology(module);
-				LOG.info("removed ontology module");
 			}
 			if (temp_ont != null) {
 				m.removeOntology(temp_ont);
-				LOG.info("removed temp model");
 			}
 		}
 

@@ -50,20 +50,5 @@ public class MinervaShexValidator extends ShexValidator {
 		this.externalLookupService = externalLookupService;
 	}
 	
-	@Override
-	public String getPreferredId(String node, Resource focus_node_resource) {
-		if(curieHandler!=null) {
-			node = curieHandler.getCuri(IRI.create(focus_node_resource.getURI()));
-		}
-		return node;
-	}
-	
-	@Override
-	public String getPreferredId(String node, IRI iri) {
-		if(curieHandler!=null) {
-			node = curieHandler.getCuri(iri);
-		}
-		return node;
-	}
 
 }
