@@ -32,6 +32,8 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDFS;
+import org.apache.log4j.Logger;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
@@ -60,25 +62,39 @@ import fr.inria.lille.shexjava.validation.Typing;
  *
  */
 public class ShexValidator {
+	private static final Logger LOGGER = Logger.getLogger(ShexValidator.class);
 	public ShexSchema schema;
 	public Map<String, String> GoQueryMap;
 	public OWLReasoner tbox_reasoner;
 	public static final String endpoint = "http://rdf.geneontology.org/blazegraph/sparql";
+	public Map<Label, Map<String, Set<String>>> shape_expected_property_ranges;
+	public CurieHandler curieHandler;
+	public RDF rdfFactory;
 
 	/**
 	 * @throws Exception 
 	 * 
 	 */
-	public ShexValidator(String shexpath, String goshapemappath, OWLReasoner tbox_reasoner_) throws Exception {
-		schema = GenParser.parseSchema(new File(shexpath).toPath());
-		GoQueryMap = makeGoQueryMap(goshapemappath);
-		tbox_reasoner = tbox_reasoner_;
+	public ShexValidator(String shexpath, String goshapemappath, OWLReasoner tbox_reasoner_, CurieHandler curieHandler_) throws Exception {
+		new ShexValidator(new File(shexpath), new File(goshapemappath), tbox_reasoner_, curieHandler_);
 	}
 
-	public ShexValidator(File shex_schema_file, File shex_map_file, OWLReasoner tbox_reasoner_) throws Exception {
+	public ShexValidator(File shex_schema_file, File shex_map_file, OWLReasoner tbox_reasoner_, CurieHandler curieHandler_) throws Exception {
 		schema = GenParser.parseSchema(shex_schema_file.toPath());
 		GoQueryMap = makeGoQueryMap(shex_map_file.getAbsolutePath());
 		tbox_reasoner = tbox_reasoner_;
+		shape_expected_property_ranges = new HashMap<Label, Map<String, Set<String>>>();
+		curieHandler = curieHandler_;
+		rdfFactory = new SimpleRDF();
+		for(String shapelabel : GoQueryMap.keySet()) {
+			if(shapelabel.equals("http://purl.obolibrary.org/obo/go/shapes/AnnotatedEdge")) {
+				continue;
+			}
+			Label shape_label = new Label(rdfFactory.createIRI(shapelabel));
+			ShapeExpr rule = schema.getRules().get(shape_label);
+			Map<String, Set<String>> expected_property_ranges = getPropertyRangeMap(rule, null);
+			shape_expected_property_ranges.put(shape_label, expected_property_ranges);
+		}
 	}
 
 	public static Map<String, String> makeGoQueryMap(String shapemap_file) throws IOException{ 
@@ -104,16 +120,15 @@ public class ShexValidator {
 		}
 		return shapelabel_sparql;
 	}
-	
+
 	public ShexValidationReport runShapeMapValidation(Model test_model, boolean stream_output) throws Exception {
-		String model_title = getModelTitle(test_model);
 		ShexValidationReport r = new ShexValidationReport(null, test_model);	
 		RDF rdfFactory = new SimpleRDF();
 		JenaRDF jr = new JenaRDF();
 		//this shex implementation likes to use the commons JenaRDF interface, nothing exciting here
 		JenaGraph shexy_graph = jr.asGraph(test_model);
 		//recursive only checks the focus node against the chosen shape.  
-		RecursiveValidation shex_recursive_validator = new RecursiveValidation(schema, shexy_graph);
+		RecursiveValidation shex_model_validator = new RecursiveValidation(schema, shexy_graph);
 		//for each shape in the query map (e.g. MF, BP, CC, etc.)
 		boolean all_good = true;
 		for(String shapelabel : GoQueryMap.keySet()) {
@@ -122,15 +137,26 @@ public class ShexValidator {
 			if(shapelabel.equals("http://purl.obolibrary.org/obo/go/shapes/AnnotatedEdge")) {
 				continue;
 			}
-			
+
 			Label shape_label = new Label(rdfFactory.createIRI(shapelabel));
 			//get the nodes in this model that SHOULD match the shape
 			Set<Resource> focus_nodes = getFocusNodesBySparql(test_model, GoQueryMap.get(shapelabel));
+
 			for(Resource focus_node_resource : focus_nodes) {
 				if(focus_node_resource==null) {
 					System.out.println("null focus node for shape "+shape_label);
 					continue;
 				}
+
+				//check for use of properties not defined for this shape (okay if OPEN, not if CLOSED)
+				Set<ShexViolation> extra_prop_violations = checkForExtraProperties(focus_node_resource, test_model, shape_label, shex_model_validator);
+				if(extra_prop_violations != null && !extra_prop_violations.isEmpty()) {
+					for(Violation v : extra_prop_violations) {
+						r.addViolation(v);
+					}				
+					all_good = false;
+				}
+
 				RDFTerm focus_node = null;
 				String focus_node_id = "";
 				if(focus_node_resource.isURIResource()) {
@@ -142,13 +168,13 @@ public class ShexValidator {
 				}
 				//deal with curies for output
 				String node = focus_node_id;
-				node = getPreferredId(node, focus_node_resource);
-//				if(curieHandler!=null) {
-//					node = curieHandler.getCuri(IRI.create(focus_node_resource.getURI()));
-//				}
+				node = getCurie(focus_node_id);
+				//				if(curieHandler!=null) {
+				//					node = curieHandler.getCuri(IRI.create(focus_node_resource.getURI()));
+				//				}
 				//check the node against the intended shape
-				shex_recursive_validator.validate(focus_node, shape_label);
-				Typing typing = shex_recursive_validator.getTyping();
+				shex_model_validator.validate(focus_node, shape_label);
+				Typing typing = shex_model_validator.getTyping();
 				//capture the result
 				Status status = typing.getStatus(focus_node, shape_label);
 				if(status.equals(Status.CONFORMANT)) {
@@ -164,23 +190,18 @@ public class ShexValidator {
 					//implementing a start on a generic violation report structure here
 					ShexViolation violation = new ShexViolation(node);				 					
 					ShexExplanation explanation = new ShexExplanation();
-					explanation.setShape(shapelabel);				
+					String shape_curie = getCurie(shapelabel);
+					explanation.setShape(shape_curie);				
 					Set<ShexConstraint> unmet_constraints = getUnmetConstraints(focus_node_resource, shapelabel, test_model);				
 					for(ShexConstraint constraint : unmet_constraints) {
 						explanation.addConstraint(constraint);
 						violation.addExplanation(explanation);
 					}	
-					r.addViolation(violation);
-					String error = r.getAsText(); 
-					if(stream_output) {
-						System.out.println("Invalid model:"+model_title+"\n\t"+error);
-					}				
+					r.addViolation(violation);			
 				}else if(status.equals(Status.NOTCOMPUTED)) {
 					//if any of these are not computed, there is a problem
 					String error = focus_node_id+" was not tested against "+shapelabel;
-					if(stream_output) {
-						System.out.println("Invalid model:"+model_title+"\n\t"+error);
-					}
+					LOGGER.info(error);
 				}
 			}
 		}
@@ -203,6 +224,66 @@ public class ShexValidator {
 		}
 		qe.close();
 		return nodes;
+	}
+
+	/**
+	 * Check each focus node for the use of any properties that don't appear in the shape
+	 * @param focus_nodes
+	 * @param model
+	 * @param shape_label
+	 * @return
+	 */
+	public Set<ShexViolation> checkForExtraProperties(Resource node_r, Model model, Label shape_label, RecursiveValidation shex_model_validator){
+		Set<ShexViolation> violations = new HashSet<ShexViolation>();
+		Set<String> allowed_properties = this.shape_expected_property_ranges.get(shape_label).keySet();
+		Set<String> actual_properties = new HashSet<String>();
+		Map<String, String> prop_value = new HashMap<String, String>(); //don't really care if there are multiple values, one will do. 
+		String sparql = "select distinct ?prop ?value where{ <"+node_r.getURI()+"> ?prop ?value }";		
+		QueryExecution qe = QueryExecutionFactory.create(sparql, model);
+		ResultSet results = qe.execSelect();
+		while (results.hasNext()) {
+			QuerySolution qs = results.next();
+			Resource prop = qs.getResource("prop");
+			RDFNode value = qs.get("value");
+			String v = "value";
+			if(value.isResource()) {
+				v = value.asResource().getURI();
+			}else if(value.isLiteral()) {
+				v = value.asLiteral().getString();
+			}
+			actual_properties.add(prop.getURI());
+			prop_value.put(prop.getURI(), v);
+		}
+		qe.close();
+		actual_properties.removeAll(allowed_properties);
+		if(!actual_properties.isEmpty()) {
+			ShexViolation extra = new ShexViolation(getCurie(node_r.getURI()));
+			Set<ShexExplanation> explanations = new HashSet<ShexExplanation>();
+			for(String prop : actual_properties) {
+				String value = prop_value.get(prop);
+				ShexExplanation extra_explain = new ShexExplanation();
+				extra_explain.setShape(getCurie(shape_label.stringValue()));
+				String object = value;
+				Set<String> intended_range_shapes = new HashSet<String>();
+				//For this CLOSED test, no shape fits in intended.  Any use of the property here would be incorrect.
+				intended_range_shapes.add("owl:Nothing");
+				Set<String> node_types = getNodeTypes(model, node_r.getURI());
+				Set<String> object_types = getNodeTypes(model, value);
+				//TODO consider here.  extra info but not really meaningful - anything in the range would be wrong. 
+				Set<String> matched_range_shapes = getAllMatchedShapes(value, shex_model_validator);
+				String report_prop = getCurie(prop);
+				ShexConstraint c = new ShexConstraint(object, report_prop, intended_range_shapes, node_types, object_types);
+				c.setMatched_range_shapes(matched_range_shapes);
+				Set<ShexConstraint> cs = new HashSet<ShexConstraint>();
+				cs.add(c);
+				extra_explain.setConstraints(cs);
+				explanations.add(extra_explain);
+			}
+			extra.setExplanations(explanations);			
+			violations.add(extra);
+		}
+		return violations;
+
 	}
 
 	public Model enrichSuperClasses(Model model) {
@@ -276,7 +357,7 @@ public class ShexValidator {
 	public Set<String> getNodeTypes(Model model, String node_uri) {
 		String getOntTerms = 
 				"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
-			+ "PREFIX owl: <http://www.w3.org/2002/07/owl#> "
+						+ "PREFIX owl: <http://www.w3.org/2002/07/owl#> "
 						+ "SELECT DISTINCT ?type " + 
 						"        WHERE { " + 
 						"<"+node_uri+"> rdf:type ?type . " + 
@@ -289,32 +370,31 @@ public class ShexValidator {
 			while (results.hasNext()) {
 				QuerySolution qs = results.next();
 				Resource type = qs.getResource("type");
-				types.add(type.getURI());
+				types.add(getCurie(type.getURI()));
 				OWLClass t = tbox_reasoner.getRootOntology().getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(type.getURI()));
 				for(OWLClass p : tbox_reasoner.getSuperClasses(t, false).getFlattened()) {
-					types.add(p.getIRI().toString());
+					String type_curie = getCurie(p.getIRI().toString());
+					types.add(type_curie);
 				}
 			}
 			qe.close();
 		} catch(QueryParseException e){
 			e.printStackTrace();
 		}
-		
+
 		return types;
 	}
-	
+
 	private Set<ShexConstraint> getUnmetConstraints(Resource focus_node, String shape_id, Model model) {
 		Set<String> node_types = getNodeTypes(model, focus_node.getURI());		
 		Set<ShexConstraint> unmet_constraints = new HashSet<ShexConstraint>();
 		RDF rdfFactory = new SimpleRDF();
 		Label shape_label = new Label(rdfFactory.createIRI(shape_id));
-		ShapeExpr rule = schema.getRules().get(shape_label);
-		//get a map from properties to expected shapes of the asserted objects of the property
-		Map<String, Set<String>> expected_property_ranges = getPropertyRangeMap(rule, null);
+		Map<String, Set<String>> expected_property_ranges = shape_expected_property_ranges.get(shape_label);
 		//get a map from properties to actual shapes of the asserted objects
 		JenaRDF jr = new JenaRDF();
 		JenaGraph shexy_graph = jr.asGraph(model); 
-		RecursiveValidation shex_recursive_validator = new RecursiveValidation(schema, shexy_graph);
+		RecursiveValidation shex_model_validator = new RecursiveValidation(schema, shexy_graph);
 
 		//get the focus node in the rdf model
 		//check for assertions with properties in the target shape
@@ -333,43 +413,53 @@ public class ShexValidator {
 				RDFTerm range_obj = rdfFactory.createIRI(obj.asResource().getURI());
 				//does it hit any allowable shapes?
 				boolean good = false;
-				for(String target_shape_uri : expected_property_ranges.get(prop_uri)) {
-					Label target_shape_label = new Label(rdfFactory.createIRI(target_shape_uri));
-					shex_recursive_validator.validate(range_obj, target_shape_label);
-					//could use refine to get all of the actual shapes - but would want to do this
-					//once per validation...
-					//RefineValidation shex_refine_validator = new RefineValidation(schema, shexy_graph);
-					Typing shape_test = shex_recursive_validator.getTyping();
-					Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(range_obj, target_shape_label);
-					Status r = shape_test.getStatusMap().get(p);
-					if(r.equals(Status.CONFORMANT)) {
+				//TODO many property ranges are MISSING from previous step
+				//e.g. any OR will not show up here.  
+				Set<String> expected_ranges = expected_property_ranges.get(prop_uri);
+				for(String target_shape_uri : expected_ranges) {
+					if(target_shape_uri.equals(".")) {
+						//anything is fine 
 						good = true;
 						break;
+					}else if(target_shape_uri.trim().equals("<http://www.w3.org/2001/XMLSchema#string>")) {
+						//ignore syntax type checking for now
+						good = true;
+						break;
+					}
+					Label target_shape_label = null;
+					try {
+						
+						target_shape_label = new Label(rdfFactory.createIRI(target_shape_uri));
+
+						shex_model_validator.validate(range_obj, target_shape_label);
+						//could use refine to get all of the actual shapes - but would want to do this
+						//once per validation...
+						//RefineValidation shex_refine_validator = new RefineValidation(schema, shexy_graph);
+						Typing shape_test = shex_model_validator.getTyping();
+						Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(range_obj, target_shape_label);
+						Status r = shape_test.getStatusMap().get(p);
+						if(r.equals(Status.CONFORMANT)) {
+							good = true;
+							break;
+						}
+					}catch(Exception e) {
+						System.out.println(e+"\nbroken target shape uri:"+target_shape_uri);
 					}
 				}
 				if(!good) {					
 					String object = obj.toString();
 					Set<String> object_types = getNodeTypes(model, object);
 					String property = prop.toString();
-					object = getPreferredId(object, IRI.create(object));
-					property = getPreferredId(property, IRI.create(property));
-//					if(curieHandler!=null) {
-//						object = curieHandler.getCuri(IRI.create(object));
-//						property = curieHandler.getCuri(IRI.create(property));
-//					}
-					ShexConstraint constraint = new ShexConstraint(object, property, expected_property_ranges.get(prop_uri), node_types, object_types);
+					object = getCurie(object);
+					property = getCurie(property);
+					Set<String> expected = new HashSet<String>();
+					for(String e : expected_property_ranges.get(prop_uri)) {
+						String curie_e = getCurie(e);
+						expected.add(curie_e);
+					}					
+					ShexConstraint constraint = new ShexConstraint(object, property, expected, node_types, object_types);
 					//return all shapes that are matched by this node for explanation
-					Set<Label> all_shapes_in_schema = getAllShapesInSchema();
-					Set<String> obj_matched_shapes = new HashSet<String>();
-					for(Label target_shape_label : all_shapes_in_schema) {
-						shex_recursive_validator.validate(range_obj, target_shape_label);
-						Typing shape_test = shex_recursive_validator.getTyping();
-						Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(range_obj, target_shape_label);
-						Status r = shape_test.getStatusMap().get(p);
-						if(r.equals(Status.CONFORMANT)) {
-							obj_matched_shapes.add(target_shape_label.stringValue());
-						}
-					}
+					Set<String> obj_matched_shapes = getAllMatchedShapes(range_obj, shex_model_validator);
 					constraint.setMatched_range_shapes(obj_matched_shapes);
 					unmet_constraints.add(constraint);
 				}
@@ -377,69 +467,90 @@ public class ShexValidator {
 		}
 		return unmet_constraints;
 	}
+
+	public Set<String> getAllMatchedShapes(RDFTerm node, RecursiveValidation shex_model_validator){
+		Set<Label> all_shapes_in_schema = getAllShapesInSchema();
+		Set<String> obj_matched_shapes = new HashSet<String>();
+		for(Label target_shape_label : all_shapes_in_schema) {
+			shex_model_validator.validate(node, target_shape_label);
+			Typing shape_test = shex_model_validator.getTyping();
+			Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(node, target_shape_label);
+			Status r = shape_test.getStatusMap().get(p);
+			if(r.equals(Status.CONFORMANT)) {
+				obj_matched_shapes.add(getCurie(target_shape_label.stringValue()));
+			}
+		}
+		return obj_matched_shapes;
+	}
 	
+	public Set<String> getAllMatchedShapes(String node_uri, RecursiveValidation shex_model_validator){
+		RDFTerm range_obj = rdfFactory.createIRI(node_uri);
+		return getAllMatchedShapes(range_obj, shex_model_validator);
+	}
 	
+
 	private Set<Label> getAllShapesInSchema() {		
 		return schema.getRules().keySet();
 	}
 
-	/**
-	 * If implementation has something like a curie handler and preference, override these methods
-	 * @param node
-	 * @param iri
-	 * @return
-	 */
-	public String getPreferredId(String node, IRI iri) {
-		return node;
-	}
 
-	public String getPreferredId(String node, Resource resource) {
-		return node;
+	public String getCurie(String uri) {
+		String curie = uri;
+		if(curieHandler!=null) {
+			curie = curieHandler.getCuri(IRI.create(uri));
+		}
+		return curie;
 	}
 	
-	public static Map<String, Set<String>> getPropertyRangeMap(ShapeExpr expr, Map<String, Set<String>> prop_range){
+
+	public Map<String, Set<String>> getPropertyRangeMap(ShapeExpr expr, Map<String, Set<String>> prop_range){
 		if(prop_range==null) {
 			prop_range = new HashMap<String, Set<String>>();
 		}
-
+		String explanation = "";
 		if(expr instanceof ShapeAnd) {
+			explanation += "And\n";
 			ShapeAnd andshape = (ShapeAnd)expr;
 			for(ShapeExpr subexp : andshape.getSubExpressions()) {
+				//boolean is_closed = subexp.closed;
 				prop_range = getPropertyRangeMap(subexp, prop_range);
+				explanation += subexp+" ";
 			}
 		}
 		else if (expr instanceof ShapeOr) {
-			//			explanation += "Or\n";
-			//			ShapeOr orshape = (ShapeOr)expr;
-			//			for(ShapeExpr subexp : orshape.getSubExpressions()) {
-			//				explanation += explainShape(subexp, explanation);
-			//			}
+			explanation += "Or\n";
+			ShapeOr orshape = (ShapeOr)expr;
+			for(ShapeExpr subexp : orshape.getSubExpressions()) {
+				explanation += subexp;
+				//explainShape(subexp, explanation);
+			}
 		}else if(expr instanceof ShapeExprRef) {
+			ShapeExprRef ref = (ShapeExprRef) expr; 
+			ShapeExpr ref_expr = ref.getShapeDefinition();
+			prop_range = getPropertyRangeMap(ref_expr, prop_range);
 			//not in the rdf model - this is a match of this expr on a shape
 			//e.g. <http://purl.obolibrary.org/obo/go/shapes/GoCamEntity>
-			//explanation += "\t\tis a: "+((ShapeExprRef) expr).getLabel()+"\n";			
+			explanation += "\t\tis a: "+((ShapeExprRef) expr).getLabel()+"\n";			
 		}else if(expr instanceof Shape) {
 			Shape shape = (Shape)expr;
 			TripleExpr texp = shape.getTripleExpression();
 			prop_range = getPropertyRangeMap(texp, prop_range);
 		}else if (expr instanceof NodeConstraint) {
-			//NodeConstraint nc = (NodeConstraint)expr;
-			//explanation += "\t\tnode constraint "+nc.toPrettyString();
+			NodeConstraint nc = (NodeConstraint)expr;
+			explanation += "\t\tnode constraint "+nc.toPrettyString();
 		}
 		else {
-			//explanation+=" Not sure what is: "+expr;
+			explanation+=" Not sure what is: "+expr;
 		}
-
 		return prop_range;
 	}
 
 
 
-	public static Map<String, Set<String>> getPropertyRangeMap(TripleExpr texp, Map<String, Set<String>> prop_range) {
+	public Map<String, Set<String>> getPropertyRangeMap(TripleExpr texp, Map<String, Set<String>> prop_range) {
 		if(prop_range==null) {
 			prop_range = new HashMap<String, Set<String>>();
 		}
-
 		if(texp instanceof TripleConstraint) {
 			TripleConstraint tcon = (TripleConstraint)texp;
 			TCProperty tprop = tcon.getProperty();
@@ -470,7 +581,7 @@ public class ShexValidator {
 		return prop_range;
 	}
 
-	private static Set<String> getShapeExprRefs(ShapeExpr expr, Set<String> shape_refs) {
+	private Set<String> getShapeExprRefs(ShapeExpr expr, Set<String> shape_refs) {
 		if(shape_refs==null) {
 			shape_refs = new HashSet<String>();
 		}
@@ -478,6 +589,7 @@ public class ShexValidator {
 			shape_refs.add(((ShapeExprRef) expr).getLabel().stringValue());
 		}else if(expr instanceof ShapeAnd) {
 			ShapeAnd andshape = (ShapeAnd)expr;
+			System.out.println("currently ignoring And shape in range: "+expr);
 			//			for(ShapeExpr subexp : andshape.getSubExpressions()) {
 			//				shape_refs = getShapeExprRefs(subexp, shape_refs);
 			//			}
@@ -486,16 +598,26 @@ public class ShexValidator {
 			for(ShapeExpr subexp : orshape.getSubExpressions()) {
 				shape_refs = getShapeExprRefs(subexp, shape_refs);
 			}
+		}else if (expr instanceof NodeConstraint){
+			String reference_string = ((NodeConstraint) expr).toPrettyString();
+			reference_string = reference_string.replace("<", "");
+			reference_string = reference_string.replace(">", "");
+			reference_string = reference_string.replace("[", "");
+			reference_string = reference_string.replace("]", "");
+			reference_string = reference_string.trim();
+			shape_refs.add(reference_string);
 		}else {
 			System.out.println("currently ignoring "+expr);
 		}
 		return shape_refs;
 	}
-	
+
 	public static String getModelTitle(Model model) {
 		String model_title = null;
 		String q = "select ?cam ?title where {"
-				+ "?cam <http://purl.org/dc/elements/1.1/title> ?title }";
+				+ "GRAPH ?cam {  "
+				+ "?cam <http://purl.org/dc/elements/1.1/title> ?title"
+				+ "}}";
 		//	+ "?cam <"+DC.description.getURI()+"> ?title }";
 		QueryExecution qe = QueryExecutionFactory.create(q, model);
 		ResultSet results = qe.execSelect();

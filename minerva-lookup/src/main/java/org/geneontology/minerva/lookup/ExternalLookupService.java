@@ -1,6 +1,8 @@
 package org.geneontology.minerva.lookup;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.semanticweb.owlapi.model.IRI;
 
@@ -67,5 +69,9 @@ public interface ExternalLookupService {
 	 * @return entry
 	 */
 	public LookupEntry lookup(IRI id, String taxon);
+
+	public Map<IRI, List<LookupEntry>> lookupBatch(Set<IRI> to_look_up);
+
+	
 	
 }

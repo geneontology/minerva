@@ -231,7 +231,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			response.data.annotations = MolecularModelJsonRenderer.renderModelAnnotations(values.model.getAboxOntology(), curieHandler);
 			response.data.modelId = curieHandler.getCuri(values.model.getModelId());
 		}
-		
 		// add other infos to data
 		if (!isConsistent) {
 			response.data.inconsistentFlag =  Boolean.TRUE;

@@ -77,4 +77,5 @@ public class ShexValidationReport extends ModelValidationReport{
 		}
 		return report;
 	}
+
 }

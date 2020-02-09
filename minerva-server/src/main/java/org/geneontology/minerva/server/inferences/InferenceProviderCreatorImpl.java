@@ -1,8 +1,10 @@
 package org.geneontology.minerva.server.inferences;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Semaphore;
 
@@ -30,9 +32,9 @@ import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
 import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
 
 public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
-	
+
 	private final static Logger LOG = Logger.getLogger(InferenceProviderCreatorImpl.class);
-	
+
 	private final OWLReasonerFactory rf;
 	private final Semaphore concurrentLock;
 	private final boolean useSLME;
@@ -55,8 +57,8 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		root_types.add("http://purl.obolibrary.org/obo/UBERON_0001062"); //anatomical entity
 	}
 	 */
-	
-	
+
+
 	InferenceProviderCreatorImpl(OWLReasonerFactory rf, int maxConcurrent, boolean useSLME, String name, MinervaShexValidator shex) {
 		super();
 		this.rf = rf;
@@ -76,15 +78,15 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		}
 		return new InferenceProviderCreatorImpl(new ElkReasonerFactory(), 1, useSLME, name, shex);
 	}
-	
-//	public static InferenceProviderCreator createHermiT(MinervaShexValidator shex) {
-//		int maxConcurrent = Runtime.getRuntime().availableProcessors();
-//		return createHermiT(maxConcurrent, shex);
-//	}
-	
-//	public static InferenceProviderCreator createHermiT(int maxConcurrent, MinervaShexValidator shex) {
-//		return new InferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(), maxConcurrent, true, "Hermit-SLME", shex);
-//	}
+
+	//	public static InferenceProviderCreator createHermiT(MinervaShexValidator shex) {
+	//		int maxConcurrent = Runtime.getRuntime().availableProcessors();
+	//		return createHermiT(maxConcurrent, shex);
+	//	}
+
+	//	public static InferenceProviderCreator createHermiT(int maxConcurrent, MinervaShexValidator shex) {
+	//		return new InferenceProviderCreatorImpl(new org.semanticweb.HermiT.ReasonerFactory(), maxConcurrent, true, "Hermit-SLME", shex);
+	//	}
 
 	@Override
 	public InferenceProvider create(ModelContainer model) throws OWLOntologyCreationException, InterruptedException {
@@ -108,7 +110,7 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 					}
 					//add root types for gene products.  
 					//TODO investigate performance impact
-					//tradefoff these queries versus loading all possible genes into tbox
+					//tradefoff these queries versus loading all possible genes into tbox 
 					temp_ont = addRootTypesToCopy(ont, shex.externalLookupService);
 					//do reasoning and validation on the enhanced model
 					reasoner = rf.createReasoner(temp_ont);
@@ -131,7 +133,7 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 				m.removeOntology(temp_ont);
 			}
 		}
-		
+
 	}
 
 	public static OWLOntology addRootTypesToCopy(OWLOntology asserted_ont, ExternalLookupService externalLookupService) throws OWLOntologyCreationException {
@@ -141,27 +143,49 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		OWLOntology temp_ont = asserted_ont.getOWLOntologyManager().createOntology();
 		temp_ont.getOWLOntologyManager().addAxioms(temp_ont, asserted_ont.getAxioms());
 		Set<OWLNamedIndividual> individuals = temp_ont.getIndividualsInSignature();
+		Set<IRI> to_look_up = new HashSet<IRI>();
+		Map<OWLNamedIndividual, Set<IRI>> individual_types = new HashMap<OWLNamedIndividual, Set<IRI>>();
 		for (OWLNamedIndividual individual : individuals) {		
 			Collection<OWLClassExpression> asserted_types = EntitySearcher.getTypes(individual, asserted_ont);
+			Set<IRI> ind_types = new HashSet<IRI>();
 			for(OWLClassExpression cls : asserted_types) {
 				if(cls.isAnonymous()) {
 					continue;
 				}
-				List<LookupEntry> lookup = externalLookupService.lookup(cls.asOWLClass().getIRI());
-				if(lookup!=null&&!lookup.isEmpty()&&lookup.get(0).direct_parent_iri!=null) {
-					OWLClass parent_class = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(lookup.get(0).direct_parent_iri));	
-					OWLClassAssertionAxiom add_root = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClassAssertionAxiom(parent_class, individual);
-					temp_ont.getOWLOntologyManager().addAxiom(temp_ont, add_root);
+				IRI class_iri = cls.asOWLClass().getIRI();
+				if(class_iri.toString().contains("ECO")) {
+					continue; //this only deals with genes, chemicals, proteins, and complexes.  
+				}
+				to_look_up.add(class_iri);			
+				ind_types.add(class_iri);
+			}
+			individual_types.put(individual, ind_types);
+		}		 
+		//look up all at once
+		Map<IRI, List<LookupEntry>> iri_lookup = externalLookupService.lookupBatch(to_look_up);
+		if(iri_lookup!=null) {
+			//add the identified root types on to the individuals in the model
+			for(OWLNamedIndividual i : individual_types.keySet()) {
+				for(IRI asserted_type : individual_types.get(i)) {
+					if(asserted_type==null) {
+						continue;
+					}
+					List<LookupEntry> lookup = iri_lookup.get(asserted_type);
+					if(lookup!=null&&!lookup.isEmpty()&&lookup.get(0).direct_parent_iri!=null) {
+						OWLClass parent_class = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(lookup.get(0).direct_parent_iri));	
+						OWLClassAssertionAxiom add_root = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClassAssertionAxiom(parent_class, i);
+						temp_ont.getOWLOntologyManager().addAxiom(temp_ont, add_root);
+					}
 				}
 			}
-		}		
+		}
 		return temp_ont;
 	}
-	
+
 	@Override
 	public String toString() {
 		return "InferenceProviderCreator: " + name;
 	}
 
-	
+
 }
