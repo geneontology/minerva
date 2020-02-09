@@ -131,23 +131,58 @@ public class ShexValidator {
 		RecursiveValidation shex_model_validator = new RecursiveValidation(schema, shexy_graph);
 		//for each shape in the query map (e.g. MF, BP, CC, etc.)
 		boolean all_good = true;
+		Map<Resource, Set<String>> node_shapes = new HashMap<Resource, Set<String>>();
 		for(String shapelabel : GoQueryMap.keySet()) {
 			//not quite the same pattern as the other shapes
 			//TODO needs more work 
 			if(shapelabel.equals("http://purl.obolibrary.org/obo/go/shapes/AnnotatedEdge")) {
 				continue;
 			}
-
-			Label shape_label = new Label(rdfFactory.createIRI(shapelabel));
 			//get the nodes in this model that SHOULD match the shape
 			Set<Resource> focus_nodes = getFocusNodesBySparql(test_model, GoQueryMap.get(shapelabel));
+			//shape_nodes.put(shapelabel, focus_nodes);
 
-			for(Resource focus_node_resource : focus_nodes) {
+			for(Resource focus_node : focus_nodes) {
+				Set<String> shapes = node_shapes.get(focus_node);
+				if(shapes==null) {
+					shapes = new HashSet<String>();
+				}
+				shapes.add(shapelabel);
+				node_shapes.put(focus_node, shapes);
+			}
+		}
+		//prune down evaluation to only consider most specific of matched shapes for a given resource
+		//TODO - do this once up front.. massively redundant waste in here right now.  
+		Map<Resource, Set<String>> node_s_shapes = new HashMap<Resource, Set<String>>();
+		for(Resource node : node_shapes.keySet()) {
+			Set<String> shapes = node_shapes.get(node);
+			Set<String> shapes_to_remove = new HashSet<String>();
+			for(String shape1 : shapes) {
+				Set<Resource> shape1_nodes = getFocusNodesBySparql(test_model, GoQueryMap.get(shape1));
+				for(String shape2 : shapes) {
+					if(shape1.equals(shape2)) {
+						continue;
+					}
+					Set<Resource> shape2_nodes = getFocusNodesBySparql(test_model, GoQueryMap.get(shape2));
+					//if shape1 contains all of shape2 - e.g. mf would contain all transporter activity
+					if(shape1_nodes.containsAll(shape2_nodes)) {
+						//then remove shape1 from this resource (as shape2 is more specific). 
+						shapes_to_remove.add(shape1);
+					}
+				}
+			}
+			shapes.removeAll(shapes_to_remove);
+			node_s_shapes.put(node, shapes);
+		}
+		
+		for(Resource focus_node_resource : node_s_shapes.keySet()) {
+			Set<String> shape_nodes = node_s_shapes.get(focus_node_resource);
+			for(String shapelabel : shape_nodes) {
+				Label shape_label = new Label(rdfFactory.createIRI(shapelabel));
 				if(focus_node_resource==null) {
 					System.out.println("null focus node for shape "+shape_label);
 					continue;
 				}
-
 				//check for use of properties not defined for this shape (okay if OPEN, not if CLOSED)
 				Set<ShexViolation> extra_prop_violations = checkForExtraProperties(focus_node_resource, test_model, shape_label, shex_model_validator);
 				if(extra_prop_violations != null && !extra_prop_violations.isEmpty()) {
@@ -428,7 +463,7 @@ public class ShexValidator {
 					}
 					Label target_shape_label = null;
 					try {
-						
+
 						target_shape_label = new Label(rdfFactory.createIRI(target_shape_uri));
 
 						shex_model_validator.validate(range_obj, target_shape_label);
@@ -482,12 +517,12 @@ public class ShexValidator {
 		}
 		return obj_matched_shapes;
 	}
-	
+
 	public Set<String> getAllMatchedShapes(String node_uri, RecursiveValidation shex_model_validator){
 		RDFTerm range_obj = rdfFactory.createIRI(node_uri);
 		return getAllMatchedShapes(range_obj, shex_model_validator);
 	}
-	
+
 
 	private Set<Label> getAllShapesInSchema() {		
 		return schema.getRules().keySet();
@@ -501,7 +536,7 @@ public class ShexValidator {
 		}
 		return curie;
 	}
-	
+
 
 	public Map<String, Set<String>> getPropertyRangeMap(ShapeExpr expr, Map<String, Set<String>> prop_range){
 		if(prop_range==null) {
