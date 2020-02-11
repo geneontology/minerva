@@ -91,8 +91,6 @@ public class CommandLineInterface {
 	private static final Logger LOGGER = Logger.getLogger(CommandLineInterface.class);
 
 	public static void main(String[] args) throws Exception {
-		ShexSchema schema = GenParser.parseSchema(new File("/Users/benjamingood/GitHub/GO_Shapes/shapes/go-cam-shapes.shex").toPath());
-		
 		
 		reportSystemParams();
 		Options main_options = new Options();
