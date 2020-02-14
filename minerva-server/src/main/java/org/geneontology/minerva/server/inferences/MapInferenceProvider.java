@@ -80,7 +80,7 @@ public class MapInferenceProvider implements InferenceProvider {
 			model = shex.enrichSuperClasses(model);	
 			try {
 				boolean stream_output_for_debug = false;
-				LOGGER.info("Running shex validation");
+				LOGGER.info("Running shex validation - model size:"+model.size());
 				shex_validation = shex.runShapeMapValidation(model, stream_output_for_debug);
 				LOGGER.info("Done with shex validation");
 			} catch (Exception e) {

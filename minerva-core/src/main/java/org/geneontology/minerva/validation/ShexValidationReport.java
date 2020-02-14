@@ -70,8 +70,14 @@ public class ShexValidationReport extends ModelValidationReport{
 		for(Violation violation : getViolations()) {			
 			ShexViolation sv = (ShexViolation) violation;
 			for(ShexExplanation e : sv.getExplanations()) {
-				for(ShexConstraint c : e.getConstraints()) {
-					report+=prefix+"\t"+violation.getNode()+"\t"+c.getNode_types()+"\t"+c.getProperty()+"\t"+c.getIntended_range_shapes()+"\t"+c.getObject()+"\t"+c.getObject_types()+"\t"+c.getMatched_range_shapes()+"\n";
+				String error = e.getErrorMessage();
+				if(error!=null) {
+					report+=prefix+"\t"+violation.getNode()+"\t"+error+"\t\t\t\t\t\n";
+
+				}else {
+					for(ShexConstraint c : e.getConstraints()) {
+						report+=prefix+"\t"+violation.getNode()+"\t"+c.getNode_types()+"\t"+c.getProperty()+"\t"+c.getIntended_range_shapes()+"\t"+c.getObject()+"\t"+c.getObject_types()+"\t"+c.getMatched_range_shapes()+"\n";
+					}
 				}
 			}  
 		}

@@ -754,7 +754,7 @@ public class CommandLineInterface {
 		});
 		LOGGER.info("done with validation");
 		m3.dispose();
-
+		System.exit(0);
 	}
 
 
