@@ -302,6 +302,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	}
 
 	public WorkingMemory createInferredModel(OWLOntology abox, IRI modelId) {
+		LOG.info("creating inferred model: "+modelId);
 		Set<Statement> statements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(abox)).asJava();
 		Set<Triple> triples = statements.stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
 		try {
@@ -327,6 +328,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	}
 
 	public WorkingMemory createCanonicalInferredModel(IRI modelId) {
+		LOG.info("creating canonical inferred model: "+modelId);
 		//swap out any non-canonical types
 		OWLOntology source_abox = getModelAbox(modelId);
 		OWLOntologyManager aman = OWLManager.createOWLOntologyManager();

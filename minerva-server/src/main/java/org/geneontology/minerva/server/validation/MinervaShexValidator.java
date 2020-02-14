@@ -18,7 +18,6 @@ import org.semanticweb.owlapi.reasoner.OWLReasoner;
  */
 public class MinervaShexValidator extends ShexValidator {
 
-	public CurieHandler curieHandler;
 	public final ExternalLookupService externalLookupService;
 	boolean active = true;
 	

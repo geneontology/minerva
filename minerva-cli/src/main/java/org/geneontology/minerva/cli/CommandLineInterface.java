@@ -91,7 +91,7 @@ public class CommandLineInterface {
 	private static final Logger LOGGER = Logger.getLogger(CommandLineInterface.class);
 
 	public static void main(String[] args) throws Exception {
-		
+
 		reportSystemParams();
 		Options main_options = new Options();
 		OptionGroup methods = new OptionGroup();
@@ -249,7 +249,7 @@ public class CommandLineInterface {
 				validate_options.addOption("m", "shapemap", true, "Specify a shapemap file.  Otherwise will download from go_shapes repo.");
 				validate_options.addOption("s", "shexpath", true, "Specify a shex schema file.  Otherwise will download from go_shapes repo.");
 				validate_options.addOption("g", "golr", true, "Specify a URL for a golr server.  Defaults to http://noctua-golr.berkeleybop.org/ id not set.  Typical local configuration might be http://127.0.0.1:8080/solr/");
-				
+
 				cmd = parser.parse(validate_options, args, false);
 				String input = cmd.getOptionValue("input");			
 				String basicOutputFile = cmd.getOptionValue("report-file");
@@ -666,6 +666,7 @@ public class CommandLineInterface {
 			golr_url = golr_server;
 		}
 		ExternalLookupService externalLookupService = new GolrExternalLookupService(golr_url, curieHandler, false);
+		LOGGER.info("making shex validator: "+shexpath+" "+shapemappath+" "+curieHandler+" ");
 		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getTbox_reasoner(), externalLookupService);
 		if(checkShex) {
 			if(checkShex) {
@@ -678,72 +679,81 @@ public class CommandLineInterface {
 		InferenceProviderCreator ipc = StartUpTool.createInferenceProviderCreator(reasonerOpt, m3, shex);
 		LOGGER.info("Validating models: "+reasonerOpt);
 
-		FileWriter basic_output = new FileWriter(basicOutputFile);
+		if(basicOutputFile!=null) {
+			FileWriter basic_shex_output = new FileWriter(basicOutputFile, false);
+			basic_shex_output.write("filename\tmodel_id\tOWL_consistent\tshex_valid\tvalidation_time\n");
+			basic_shex_output.close();
+		}
 		if(explanationOutputFile!=null) {
 			FileWriter explanations = new FileWriter(explanationOutputFile, false);
 			explanations.write("Explanations of invalid models.\n");
-			explanations.write("filename\tmodel_iri\tnode\tNode_types\tproperty\tIntended_range_shapes\tobject\tObject_types\n");
+			explanations.write("filename\tmodel_iri\tnode\tNode_types\tproperty\tIntended_range_shapes\tobject\tObject_types\tObject_shapes\n");
 			explanations.close();
-		}
-		try {
-			basic_output.write("filename\tmodel_id\tOWL_consistent\tshex_valid\n");
-			final boolean shex_output = checkShex;			
-			m3.getAvailableModelIds().stream().forEach(modelIRI -> {
-				try {
-					String filename = modelid_filename.get(modelIRI.toString());
-					boolean isConsistent = true;
-					boolean isConformant = true;
+		}	
+		final boolean shex_output = checkShex;			
+		//Note that parallelStream does not see to help with this.  Starts out great then locks up.  Not sure exactly why just yet - though there is a web service call to GOLR which seems suspicious.
+		m3.getAvailableModelIds().stream().forEach(modelIRI -> {
+			try {
+				long start = System.currentTimeMillis();
+				String filename = modelid_filename.get(modelIRI.toString());
+				boolean isConsistent = true;
+				boolean isConformant = true;
+				if(filename !=null) {
 					LOGGER.info("processing "+filename+"\t"+modelIRI);
-					ModelContainer mc = m3.getModel(modelIRI);	
-					InferenceProvider ip = ipc.create(mc);
-					isConsistent = ip.isConsistent();
-					if(!isConsistent&&explanationOutputFile!=null) {
-						FileWriter explanations = new FileWriter(explanationOutputFile, true);
-						explanations.write(filename+"\t"+modelIRI+"\n\tOWL fail explanation: "+ip.getValidation_results().getOwlvalidation().getAsText()+"\n");
+				}else {
+					LOGGER.info("processing \t"+modelIRI);
+				}
+				ModelContainer mc = m3.getModel(modelIRI);	
+				InferenceProvider ip = ipc.create(mc);
+				isConsistent = ip.isConsistent();
+				if(!isConsistent&&explanationOutputFile!=null) {
+					FileWriter explanations = new FileWriter(explanationOutputFile, true);
+					explanations.write(filename+"\t"+modelIRI+"\n\tOWL fail explanation: "+ip.getValidation_results().getOwlvalidation().getAsText()+"\n");
+					explanations.close();
+				}
+				if(travisMode&&!isConsistent) {
+					if(!shouldFail) {
+						LOGGER.error(filename+"\t"+modelIRI+"\tOWL:is inconsistent, quitting");							
+						System.exit(-1);
+					}
+				}
+				FileWriter  basic= new FileWriter(basicOutputFile, true);
+				if(shex_output) {
+					ValidationResultSet validations = ip.getValidation_results();
+					isConformant = validations.allConformant();	
+					long done = System.currentTimeMillis();
+					long seconds = (done-start)/1000;
+					if(!isConformant&&explanationOutputFile!=null) {
+						FileWriter explanations = new FileWriter(explanationOutputFile, true);						
+						explanations.write(ip.getValidation_results().getShexvalidation().getAsTab(filename+"\t"+modelIRI));
 						explanations.close();
 					}
-					if(travisMode&&!isConsistent) {
-						if(!shouldFail) {
-							LOGGER.error(filename+"\t"+modelIRI+"\tOWL:is inconsistent, quitting");							
+					if(travisMode) {
+						if(!isConformant&&!shouldFail) {
+							LOGGER.error(filename+"\t"+modelIRI+"\tshex is nonconformant, quitting, explanation:\n"+ip.getValidation_results().getShexvalidation().getAsText());
+							System.exit(-1);
+						}else if(isConformant&&shouldFail) {
+							LOGGER.error(filename+"\t"+modelIRI+"\tshex validates, but it should not be, quitting");
 							System.exit(-1);
 						}
-					}
-					if(shex_output) {
-						ValidationResultSet validations = ip.getValidation_results();
-						isConformant = validations.allConformant();	
-						if(!isConformant&&explanationOutputFile!=null) {
-							FileWriter explanations = new FileWriter(explanationOutputFile, true);						
-							explanations.write(ip.getValidation_results().getShexvalidation().getAsTab(filename+"\t"+modelIRI));
-							explanations.close();
-						}
-						if(travisMode) {
-							if(!isConformant&&!shouldFail) {
-								LOGGER.error(filename+"\t"+modelIRI+"\tshex is nonconformant, quitting, explanation:\n"+ip.getValidation_results().getShexvalidation().getAsText());
-								System.exit(-1);
-							}else if(isConformant&&shouldFail) {
-								LOGGER.error(filename+"\t"+modelIRI+"\tshex validates, but it should not be, quitting");
-								System.exit(-1);
-							}
-						}			
-						LOGGER.info(filename+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:"+isConformant);
-						basic_output.write(filename+"\t"+modelIRI+"\t"+isConsistent+"\t"+isConformant+"\n");
-					}else {
-						LOGGER.info(filename+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:not checked");
-						basic_output.write(filename+"\t"+modelIRI+"\t"+isConsistent+"\tnot checked\n");						
-					}
-				} catch (InconsistentOntologyException e) {
-					LOGGER.error("Inconsistent model: " + modelIRI);
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} 
-			});
-			LOGGER.info("done with validation");
-			m3.dispose();
-			basic_output.close();
-		}finally{
-			basic_output.close();
-		}
+					}			
+					LOGGER.info(filename+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:"+isConformant);
+
+					basic.write(filename+"\t"+modelIRI+"\t"+isConsistent+"\t"+isConformant+"\t"+seconds+"\n");
+				}else {
+					LOGGER.info(filename+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:not checked");
+					basic.write(filename+"\t"+modelIRI+"\t"+isConsistent+"\tnot checked\n");						
+				}
+				basic.close();
+			} catch (InconsistentOntologyException e) {
+				LOGGER.error("Inconsistent model: " + modelIRI);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} 
+		});
+		LOGGER.info("done with validation");
+		m3.dispose();
 
 	}
 
