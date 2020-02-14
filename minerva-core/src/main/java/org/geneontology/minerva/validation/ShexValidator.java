@@ -191,7 +191,6 @@ public class ShexValidator {
 
 		for(Resource focus_node_resource : node_s_shapes.keySet()) {
 			Set<String> shape_nodes = node_s_shapes.get(focus_node_resource);
-			LOGGER.info("validating "+focus_node_resource+" "+shape_nodes);
 
 			for(String shapelabel : shape_nodes) {
 				Label shape_label = new Label(rdfFactory.createIRI(shapelabel));
