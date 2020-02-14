@@ -77,10 +77,14 @@ public class ShexValidator {
 	 * 
 	 */
 	public ShexValidator(String shexpath, String goshapemappath, OWLReasoner tbox_reasoner_, CurieHandler curieHandler_) throws Exception {
-		new ShexValidator(new File(shexpath), new File(goshapemappath), tbox_reasoner_, curieHandler_);
+		init(new File(shexpath), new File(goshapemappath), tbox_reasoner_, curieHandler_);
 	}
 
 	public ShexValidator(File shex_schema_file, File shex_map_file, OWLReasoner tbox_reasoner_, CurieHandler curieHandler_) throws Exception {
+		init(shex_schema_file, shex_map_file, tbox_reasoner_, curieHandler_);
+	}
+
+	public void init(File shex_schema_file, File shex_map_file, OWLReasoner tbox_reasoner_, CurieHandler curieHandler_) throws Exception {
 		schema = GenParser.parseSchema(shex_schema_file.toPath());
 		GoQueryMap = makeGoQueryMap(shex_map_file.getAbsolutePath());
 		tbox_reasoner = tbox_reasoner_;
@@ -96,8 +100,9 @@ public class ShexValidator {
 			Map<String, Set<String>> expected_property_ranges = getPropertyRangeMap(rule, null);
 			shape_expected_property_ranges.put(shape_label, expected_property_ranges);
 		}
+		LOGGER.info("shex validator ready");
 	}
-
+	
 	public static Map<String, String> makeGoQueryMap(String shapemap_file) throws IOException{ 
 		Map<String, String> shapelabel_sparql = new HashMap<String, String>();
 		BufferedReader reader = new BufferedReader(new FileReader(shapemap_file));
@@ -178,6 +183,9 @@ public class ShexValidator {
 
 		for(Resource focus_node_resource : node_s_shapes.keySet()) {
 			Set<String> shape_nodes = node_s_shapes.get(focus_node_resource);
+			if(focus_node_resource.toString().equals("http://model.geneontology.org/R-HSA-1660499/R-HSA-1675810")){
+				LOGGER.info(focus_node_resource+" "+shape_nodes);
+			}
 			for(String shapelabel : shape_nodes) {
 				Label shape_label = new Label(rdfFactory.createIRI(shapelabel));
 				if(focus_node_resource==null) {
