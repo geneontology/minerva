@@ -16,8 +16,9 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
 					<excludes>
-						<!-- exclude due to use of external servers, which may not be available -->
+						<!-- may want to exclude due to use of external servers, which may not be available 
 						<exclude>**/GolrExternalLookupServiceTest.java</exclude>
+						But..  if they aren't available we should know about it-->
 					</excludes>
 				</configuration>
 			</plugin>
