@@ -22,7 +22,9 @@ public class ModelValidationReport {
 	@SerializedName("rule-file")
 	final String rulefile;
 	Set<Violation> violations;
-	
+	@SerializedName("error-message")
+	String error_message;
+
 	/**
 	 * 
 	 */
@@ -67,4 +69,18 @@ public class ModelValidationReport {
 		return rulefile;
 	}
 	
+	public String getError_message() {
+		return error_message;
+	}
+
+	public void setError_message(String error_message) {
+		this.error_message = error_message;
+	}
+	
+	public void addViolations(Set<ShexViolation> violations) {
+		if(this.violations==null) {
+			this.violations = new HashSet<Violation>();
+		}
+		this.violations.addAll(violations);
+	}
 }

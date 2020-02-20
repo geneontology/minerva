@@ -142,7 +142,7 @@ public abstract class AbstractRetrieveGolr {
 	}
 
 
-
+	//TODO add retry for failed request
 	protected String getJsonStringFromPost(HttpPost post) throws IOException {
 		
 		CloseableHttpClient httpClient = HttpClients.createDefault();

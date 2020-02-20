@@ -89,9 +89,9 @@ public class GolrExternalLookupService implements ExternalLookupService {
 				iri_lookups.put(curie_iri.get(id), result);
 			}
 		} catch(IOException exception) {
-			if (LOG.isDebugEnabled()) {
+			//if (LOG.isDebugEnabled()) {
 				LOG.debug("Error during retrieval for id: "+curies+" GOLR-URL: "+golrUrl, exception);
-			}
+			//}
 			return null;
 		}
 		catch (Throwable exception) {

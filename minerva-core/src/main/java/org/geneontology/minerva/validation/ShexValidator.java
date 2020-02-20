@@ -62,6 +62,8 @@ import fr.inria.lille.shexjava.schema.abstrsynt.TripleExprRef;
 import fr.inria.lille.shexjava.schema.parsing.GenParser;
 import fr.inria.lille.shexjava.util.Pair;
 import fr.inria.lille.shexjava.validation.RecursiveValidation;
+import fr.inria.lille.shexjava.validation.RecursiveValidationWithMemorization;
+import fr.inria.lille.shexjava.validation.RefineValidation;
 import fr.inria.lille.shexjava.validation.Status;
 import fr.inria.lille.shexjava.validation.Typing;
 
@@ -78,6 +80,7 @@ public class ShexValidator {
 	public Map<Label, Map<String, Set<String>>> shape_expected_property_ranges;
 	public CurieHandler curieHandler;
 	public RDF rdfFactory;
+	public final int timeout_mill = 30000;
 
 	/**
 	 * @throws Exception 
@@ -134,17 +137,198 @@ public class ShexValidator {
 		return shapelabel_sparql;
 	}
 
-	public ShexValidationReport runShapeMapValidation(Model test_model, boolean stream_output) throws Exception {		
+	public ShexValidationReport runShapeMapValidation(Model test_model) {
 		ShexValidationReport r = new ShexValidationReport(null, test_model);	
+		JenaRDF jr = new JenaRDF();
+		//this shex implementation likes to use the commons JenaRDF interface, nothing exciting here
+		JenaGraph shexy_graph = jr.asGraph(test_model);
+		boolean all_good = true;
+		try {
+			Typing all_typed = runRefineWithTimeout(shexy_graph);			
+			if(all_typed!=null) {
+				//filter to most specific tests
+				Map<Resource, Set<String>> node_s_shapes = getShapesToTestForEachResource(test_model);
+				for(Resource node : node_s_shapes.keySet()) {
+					Set<String> shapes = node_s_shapes.get(node);
+					for(String shapelabel : shapes) {
+						Label shape_label = new Label(rdfFactory.createIRI(shapelabel));
+						RDFTerm focus_node = null;
+						if(node.isURIResource()) {
+							focus_node = rdfFactory.createIRI(node.getURI());
+						}else {
+							focus_node = rdfFactory.createBlankNode(node.getId().getLabelString());
+						}
+						if(!all_typed.isConformant(focus_node, shape_label)) {
+							//something didn't match expectations
+							all_good = false;
+							//try to explain the mismatch
+							Violation violation = getViolationForMismatch(shape_label, node, all_typed, test_model);
+							r.addViolation(violation);
+						}
+						//run our local CLOSE check 
+						//TODO remove if we implement closed directly
+						Set<ShexViolation> extra_violations = checkForExtraProperties(node, test_model, shape_label, all_typed);
+						if(extra_violations!=null&&!extra_violations.isEmpty()) {
+							r.addViolations(extra_violations);
+						}
+					}
+				}
+			}else {
+				//validation failed
+				all_good = false;
+				r.setError_message("validation (with Refine algorithm) failed or timed out for this model");
+			}
+		}finally {
+			try {
+				//make sure to free up resources here.  
+				shexy_graph.close();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		r.conformant = all_good;
+		return r;
+	}
 
-		RDF rdfFactory = new SimpleRDF();
+	private Violation getViolationForMismatch(Label shape_label, Resource focus_node, Typing typing, Model test_model) {
+		Status status = typing.getStatus(rdfFactory.createIRI(focus_node.getURI()), shape_label);
+		if(status.equals(Status.NONCONFORMANT)) {
+			//implementing a start on a generic violation report structure here
+			ShexViolation violation = new ShexViolation(getCurie(focus_node.toString()));				 					
+			ShexExplanation explanation = new ShexExplanation();
+			String shape_curie = getCurie(shape_label.stringValue());
+			explanation.setShape(shape_curie);				
+			Set<ShexConstraint> unmet_constraints = getUnmetConstraints(focus_node, shape_label, test_model, typing);				
+			if(unmet_constraints!=null) {
+				for(ShexConstraint constraint : unmet_constraints) {
+					explanation.addConstraint(constraint);
+					violation.addExplanation(explanation);
+				}	
+			}else {
+				explanation.setErrorMessage("explanation computation timed out");
+				violation.addExplanation(explanation);
+			}
+			return violation;			
+		}else if(status.equals(Status.NOTCOMPUTED)) {
+			//if any of these are not computed, there is a problem
+			String error = focus_node+" was not tested against "+shape_label;
+			LOGGER.error(error);
+		}else if(status.equals(Status.CONFORMANT)) {
+			LOGGER.error("node is valid, should not be here trying to make a violation");
+		}
+		return null;
+	}
+
+	public Violation getTimeoutViolation(String node, String shapelabel) {
+		ShexViolation violation = new ShexViolation(node);				 					
+		ShexExplanation explanation = new ShexExplanation();
+		String shape_curie = getCurie(shapelabel);
+		explanation.setShape(shape_curie);				
+		explanation.setErrorMessage("validation timed out");
+		violation.addExplanation(explanation);
+		return violation;	
+	}
+
+
+	public ShexValidationReport runShapeMapValidationWithRecursiveSingleNodeValidation(Model test_model, boolean stream_output) throws Exception {		
+		ShexValidationReport r = new ShexValidationReport(null, test_model);	
 		JenaRDF jr = new JenaRDF();
 		//this shex implementation likes to use the commons JenaRDF interface, nothing exciting here
 		JenaGraph shexy_graph = jr.asGraph(test_model);
 		//recursive only checks the focus node against the chosen shape.  
-		RecursiveValidation shex_model_validator = new RecursiveValidation(schema, shexy_graph);
+		RecursiveValidationWithMemorization shex_model_validator = new RecursiveValidationWithMemorization(schema, shexy_graph);
 		//for each shape in the query map (e.g. MF, BP, CC, etc.)
+
 		boolean all_good = true;
+		Map<Resource, Set<String>> node_s_shapes = getShapesToTestForEachResource(test_model);
+
+		for(Resource focus_node_resource : node_s_shapes.keySet()) {
+			Set<String> shape_nodes = node_s_shapes.get(focus_node_resource);
+
+			for(String shapelabel : shape_nodes) {
+				Label shape_label = new Label(rdfFactory.createIRI(shapelabel));
+				if(focus_node_resource==null) {
+					System.out.println("null focus node for shape "+shape_label);
+					continue;
+				}
+				//check for use of properties not defined for this shape (okay if OPEN, not if CLOSED)
+				Typing typing = validateNodeWithTimeout(shex_model_validator, focus_node_resource, shape_label);
+				
+				if(typing!=null) {
+					Set<ShexViolation> extra_prop_violations = checkForExtraProperties(focus_node_resource, test_model, shape_label, typing);
+					if(extra_prop_violations != null && !extra_prop_violations.isEmpty()) {
+						for(Violation v : extra_prop_violations) {
+							r.addViolation(v);
+						}				
+						all_good = false;
+					}
+					//run the validation on the node if possible..
+					RDFTerm focus_node = null;
+					String focus_node_id = "";
+					if(focus_node_resource.isURIResource()) {
+						focus_node = rdfFactory.createIRI(focus_node_resource.getURI());
+						focus_node_id = focus_node_resource.getURI();
+					}else {
+						focus_node = rdfFactory.createBlankNode(focus_node_resource.getId().getLabelString());
+						focus_node_id = focus_node_resource.getId().getLabelString();
+					}
+					//deal with curies for output
+					String node = focus_node_id;
+					node = getCurie(focus_node_id);
+					Status status = typing.getStatus(focus_node, shape_label);
+					if(status.equals(Status.CONFORMANT)) {
+						Set<String> shape_ids = r.node_matched_shapes.get(node);
+						if(shape_ids==null) {
+							shape_ids = new HashSet<String>();
+						}
+						shape_ids.add(shapelabel);				
+						r.node_matched_shapes.put(node, shape_ids);
+					}else if(status.equals(Status.NONCONFORMANT)) {
+						all_good = false;
+						//implementing a start on a generic violation report structure here
+						ShexViolation violation = new ShexViolation(node);				 					
+						ShexExplanation explanation = new ShexExplanation();
+						String shape_curie = getCurie(shapelabel);
+						explanation.setShape(shape_curie);				
+						Set<ShexConstraint> unmet_constraints = getUnmetConstraints(focus_node_resource, shape_label, test_model, typing);				
+						if(unmet_constraints!=null) {
+							for(ShexConstraint constraint : unmet_constraints) {
+								explanation.addConstraint(constraint);
+								violation.addExplanation(explanation);
+							}	
+						}else {
+							explanation.setErrorMessage("explanation computation timed out");
+							violation.addExplanation(explanation);
+						}
+						r.addViolation(violation);			
+					}else if(status.equals(Status.NOTCOMPUTED)) {
+						//if any of these are not computed, there is a problem
+						String error = focus_node_id+" was not tested against "+shapelabel;
+						LOGGER.error(error);
+					}
+				}else {
+					LOGGER.info("shex validation failed for node "+focus_node_resource.getURI());
+					all_good = false;
+					ShexViolation violation = new ShexViolation(focus_node_resource.getURI());				 					
+					ShexExplanation explanation = new ShexExplanation();
+					explanation.setErrorMessage("Validating this node was canceled because it took more then "+timeout_mill+" milliseconds");
+					String shape_curie = getCurie(shapelabel);
+					explanation.setShape(shape_curie);				
+					violation.addExplanation(explanation);
+					r.addViolation(violation);	
+				}
+			}
+		}
+		if(all_good) {
+			r.conformant = true;
+		}else {
+			r.conformant = false;
+		}
+		return r;
+	}
+
+	private Map<Resource, Set<String>> getShapesToTestForEachResource(Model test_model) {
 		Map<Resource, Set<String>> node_shapes = new HashMap<Resource, Set<String>>();
 		for(String shapelabel : GoQueryMap.keySet()) {
 			//not quite the same pattern as the other shapes
@@ -164,9 +348,9 @@ public class ShexValidator {
 				shapes.add(shapelabel);
 				node_shapes.put(focus_node, shapes);
 			}
-		}
-		//prune down evaluation to only consider most specific of matched shapes for a given resource
-		//TODO - do this once up front.. massively redundant waste in here right now.  
+		}	
+		//prune to only test the most specific shapes
+		//TODO - do it once up front
 		Map<Resource, Set<String>> node_s_shapes = new HashMap<Resource, Set<String>>();
 		for(Resource node : node_shapes.keySet()) {
 			Set<String> shapes = node_shapes.get(node);
@@ -188,94 +372,41 @@ public class ShexValidator {
 			shapes.removeAll(shapes_to_remove);
 			node_s_shapes.put(node, shapes);
 		}
-
-		for(Resource focus_node_resource : node_s_shapes.keySet()) {
-			Set<String> shape_nodes = node_s_shapes.get(focus_node_resource);
-
-			for(String shapelabel : shape_nodes) {
-				Label shape_label = new Label(rdfFactory.createIRI(shapelabel));
-				if(focus_node_resource==null) {
-					System.out.println("null focus node for shape "+shape_label);
-					continue;
-				}
-				//check for use of properties not defined for this shape (okay if OPEN, not if CLOSED)
-				Set<ShexViolation> extra_prop_violations = checkForExtraProperties(focus_node_resource, test_model, shape_label, shex_model_validator);
-				if(extra_prop_violations != null && !extra_prop_violations.isEmpty()) {
-					for(Violation v : extra_prop_violations) {
-						r.addViolation(v);
-					}				
-					all_good = false;
-				}
-				//run the validation on the node if possible..
-				RDFTerm focus_node = null;
-				String focus_node_id = "";
-				if(focus_node_resource.isURIResource()) {
-					focus_node = rdfFactory.createIRI(focus_node_resource.getURI());
-					focus_node_id = focus_node_resource.getURI();
-				}else {
-					focus_node = rdfFactory.createBlankNode(focus_node_resource.getId().getLabelString());
-					focus_node_id = focus_node_resource.getId().getLabelString();
-				}
-				//deal with curies for output
-				String node = focus_node_id;
-				node = getCurie(focus_node_id);
-				int timeout = 10;
-				Typing typing = validateNodeWithTimeout(shex_model_validator, focus_node_resource, shape_label, timeout);
-				if(typing!=null) {
-					Status status = typing.getStatus(focus_node, shape_label);
-					if(status.equals(Status.CONFORMANT)) {
-						Set<String> shape_ids = r.node_matched_shapes.get(node);
-						if(shape_ids==null) {
-							shape_ids = new HashSet<String>();
-						}
-						shape_ids.add(shapelabel);				
-						r.node_matched_shapes.put(node, shape_ids);
-					}else if(status.equals(Status.NONCONFORMANT)) {
-						all_good = false;
-						//implementing a start on a generic violation report structure here
-						ShexViolation violation = new ShexViolation(node);				 					
-						ShexExplanation explanation = new ShexExplanation();
-						String shape_curie = getCurie(shapelabel);
-						explanation.setShape(shape_curie);				
-						Set<ShexConstraint> unmet_constraints = getUnmetConstraints(focus_node_resource, shapelabel, test_model, timeout);				
-						if(unmet_constraints!=null) {
-							for(ShexConstraint constraint : unmet_constraints) {
-								explanation.addConstraint(constraint);
-								violation.addExplanation(explanation);
-							}	
-						}else {
-							explanation.setErrorMessage("explanation computation timed out");
-							violation.addExplanation(explanation);
-						}
-						r.addViolation(violation);			
-					}else if(status.equals(Status.NOTCOMPUTED)) {
-						//if any of these are not computed, there is a problem
-						String error = focus_node_id+" was not tested against "+shapelabel;
-						LOGGER.error(error);
-					}
-				}else {
-					LOGGER.info("typing failed");
-					all_good = false;
-					ShexViolation violation = new ShexViolation(node);				 					
-					ShexExplanation explanation = new ShexExplanation();
-					explanation.setErrorMessage("Validating this node was canceled because it took more then "+timeout+" seconds");
-					String shape_curie = getCurie(shapelabel);
-					explanation.setShape(shape_curie);				
-					violation.addExplanation(explanation);
-					r.addViolation(violation);	
-				}
-			}
-		}
-		if(all_good) {
-			r.conformant = true;
-		}else {
-			r.conformant = false;
-		}
-		return r;
+		return node_s_shapes;
 	}
 
+	private Typing runRefineWithTimeout(JenaGraph shexy_graph) {		
+		final ExecutorService service = Executors.newSingleThreadExecutor();
+		try {
+			final Future<Typing> f = service.submit(() -> {
+				RefineValidation refine = new RefineValidation(schema, shexy_graph);
+				refine.validate();
+				Typing all = refine.getTyping();
+				return all;
+			});
+			Typing typing = f.get(timeout_mill, TimeUnit.MILLISECONDS);
+			return typing;
 
-	public Typing validateNodeWithTimeout(RecursiveValidation shex_model_validator, Resource focus_node_resource, Label shape_label, int timeout) {
+		} catch (final TimeoutException e) {
+			LOGGER.error("shex refine all validation took to long  ");
+			service.shutdownNow();
+			return null;		
+		} catch (InterruptedException e) {
+			LOGGER.error("And we have Refine an interrupted exception: ");
+			e.printStackTrace();
+			service.shutdownNow();
+			return null;
+		} catch (ExecutionException e) {
+			LOGGER.error("And we have a Refine execution exception: ");
+			e.printStackTrace();
+			service.shutdownNow();
+			return null;
+		}  finally {
+			service.shutdown();			
+		}
+	}
+
+	public Typing validateNodeWithTimeout(RecursiveValidationWithMemorization shex_model_validator, Resource focus_node_resource, Label shape_label) {
 		RDFTerm focus_node = null;
 		String focus_node_id = "";
 		if(focus_node_resource.isURIResource()) {
@@ -293,30 +424,35 @@ public class ShexValidator {
 		final ExecutorService service = Executors.newSingleThreadExecutor();
 		final RDFTerm test_node = focus_node;
 		try {
-			final Future<?> f = service.submit(() -> {
-				shex_model_validator.validate(test_node, shape_label);						
+			final Future<Typing> f = service.submit(() -> {
+				boolean is_valid = shex_model_validator.validate(test_node, shape_label);
+				if(is_valid) {
+					return shex_model_validator.getTyping();
+				}else {
+					return null;
+				}
+
 			});
-			if(null==f.get(timeout, TimeUnit.SECONDS)) {
-				//capture the result
-				Typing typing = shex_model_validator.getTyping();
-				return typing;
-			}
+			Typing typing = f.get(timeout_mill, TimeUnit.MILLISECONDS);
+			return typing;
 
 		} catch (final TimeoutException e) {
 			LOGGER.error("shex validation took to long for "+focus_node_resource);
+			service.shutdownNow();
 			return null;		
 		} catch (InterruptedException e) {
-			LOGGER.error("And we have an interrupted exception:");
+			LOGGER.error("And we have an interrupted exception: "+test_node+" "+shape_label);
 			e.printStackTrace();
+			service.shutdownNow();
 			return null;
 		} catch (ExecutionException e) {
-			LOGGER.error("And we have an execution exception:");
+			LOGGER.error("And we have an execution exception: "+test_node+" "+shape_label);
 			e.printStackTrace();
+			service.shutdownNow();
 			return null;
 		}  finally {
 			service.shutdown();			
 		}
-		return null;
 	}
 
 	public static Set<Resource> getFocusNodesBySparql(Model model, String sparql){
@@ -339,7 +475,7 @@ public class ShexValidator {
 	 * @param shape_label
 	 * @return
 	 */
-	public Set<ShexViolation> checkForExtraProperties(Resource node_r, Model model, Label shape_label, RecursiveValidation shex_model_validator){
+	public Set<ShexViolation> checkForExtraProperties(Resource node_r, Model model, Label shape_label, Typing typing){
 		Set<ShexViolation> violations = new HashSet<ShexViolation>();
 		Set<String> allowed_properties = this.shape_expected_property_ranges.get(shape_label).keySet();
 		Set<String> actual_properties = new HashSet<String>();
@@ -379,7 +515,8 @@ public class ShexValidator {
 				Set<String> matched_range_shapes = null;
 				if(value_is_uri) {
 					object_types = getNodeTypes(model, value);
-					matched_range_shapes  = getAllMatchedShapes(value, shex_model_validator);
+					RDFTerm node = rdfFactory.createIRI(value);
+					matched_range_shapes  = getAllMatchedShapes(node, typing);
 				}				
 				String report_prop = getCurie(prop);
 				ShexConstraint c = new ShexConstraint(value, report_prop, intended_range_shapes, node_types, object_types);
@@ -499,128 +636,113 @@ public class ShexValidator {
 		return types;
 	}
 
-	private Set<ShexConstraint> getUnmetConstraints(Resource focus_node, String shape_id, Model model, int timeout) {
-		final ExecutorService service = Executors.newSingleThreadExecutor();
-		try {
-			Set<ShexConstraint> unmet_constraints = new HashSet<ShexConstraint>();
-			final Future<?> f = service.submit(() -> {
-				Set<String> node_types = getNodeTypes(model, focus_node.getURI());		
-				
-				RDF rdfFactory = new SimpleRDF();
-				Label shape_label = new Label(rdfFactory.createIRI(shape_id));
-				Map<String, Set<String>> expected_property_ranges = shape_expected_property_ranges.get(shape_label);
-				//get a map from properties to actual shapes of the asserted objects
-				JenaRDF jr = new JenaRDF();
-				JenaGraph shexy_graph = jr.asGraph(model); 
-				RecursiveValidation shex_model_validator = new RecursiveValidation(schema, shexy_graph);
+	private Set<ShexConstraint> getUnmetConstraints(Resource focus_node, Label shape_label, Model model, Typing typing) {
+		Set<ShexConstraint> unmet_constraints = new HashSet<ShexConstraint>();
+		Set<String> node_types = getNodeTypes(model, focus_node.getURI());		
+		Map<String, Set<String>> expected_property_ranges = shape_expected_property_ranges.get(shape_label);
+		//get a map from properties to actual shapes of the asserted objects
+//		JenaRDF jr = new JenaRDF();
+//		JenaGraph shexy_graph = jr.asGraph(model); 
+//		RecursiveValidationWithMemorization shex_model_validator = new RecursiveValidationWithMemorization(schema, shexy_graph);
 
-				//get the focus node in the rdf model
-				//check for assertions with properties in the target shape
-				for(String prop_uri : expected_property_ranges.keySet()) {
-					Property prop = model.getProperty(prop_uri);
-					//checking on objects of this property for the problem node.
-					for (StmtIterator i = focus_node.listProperties(prop); i.hasNext(); ) {
-						RDFNode obj = i.nextStatement().getObject();
-						//check the computed shapes for this individual
-						if(!obj.isResource()) {
-							continue;
-							//no checks on literal values at this time
-						}else if(prop_uri.equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")&&obj.asResource().getURI().equals("http://www.w3.org/2002/07/owl#NamedIndividual")) {
-							continue; //ignore type owl individual
+		//get the focus node in the rdf model
+		//check for assertions with properties in the target shape
+		for(String prop_uri : expected_property_ranges.keySet()) {
+			Property prop = model.getProperty(prop_uri);
+			//checking on objects of this property for the problem node.
+			for (StmtIterator i = focus_node.listProperties(prop); i.hasNext(); ) {
+				RDFNode obj = i.nextStatement().getObject();
+				//check the computed shapes for this individual
+				if(!obj.isResource()) {
+					continue;
+					//no checks on literal values at this time
+				}else if(prop_uri.equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")&&obj.asResource().getURI().equals("http://www.w3.org/2002/07/owl#NamedIndividual")) {
+					continue; //ignore type owl individual
+				}
+				RDFTerm range_obj = rdfFactory.createIRI(obj.asResource().getURI());
+				//does it hit any allowable shapes?
+				boolean good = false;
+				//TODO many property ranges are MISSING from previous step
+				//e.g. any OR will not show up here.  
+				Set<String> expected_ranges = expected_property_ranges.get(prop_uri);
+				for(String target_shape_uri : expected_ranges) {
+					if(target_shape_uri.equals(".")) {
+						//anything is fine 
+						good = true;
+						break;
+					}else if(target_shape_uri.trim().equals("<http://www.w3.org/2001/XMLSchema#string>")) {
+						//ignore syntax type checking for now
+						good = true;
+						break;
+					}
+					Label target_shape_label = new Label(rdfFactory.createIRI(target_shape_uri));
+			//		Typing typing = validateNodeWithTimeout(shex_model_validator, obj.asResource(), shape_label);
+					if(typing!=null) {
+						//capture the result
+						//Typing shape_test = shex_model_validator.getTyping();
+						Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(range_obj, target_shape_label);
+			//			Status r = shape_test.getStatusMap().get(p);
+						Status r = typing.getStatus(range_obj, target_shape_label);
+						if(r!=null&&r.equals(Status.CONFORMANT)) {
+							good = true;
+							break;
 						}
-						RDFTerm range_obj = rdfFactory.createIRI(obj.asResource().getURI());
-						//does it hit any allowable shapes?
-						boolean good = false;
-						//TODO many property ranges are MISSING from previous step
-						//e.g. any OR will not show up here.  
-						Set<String> expected_ranges = expected_property_ranges.get(prop_uri);
-						for(String target_shape_uri : expected_ranges) {
-							if(target_shape_uri.equals(".")) {
-								//anything is fine 
-								good = true;
-								break;
-							}else if(target_shape_uri.trim().equals("<http://www.w3.org/2001/XMLSchema#string>")) {
-								//ignore syntax type checking for now
-								good = true;
-								break;
-							}
-							Label target_shape_label = null;
-							try {
-
-								target_shape_label = new Label(rdfFactory.createIRI(target_shape_uri));
-
-								shex_model_validator.validate(range_obj, target_shape_label);
-								//could use refine to get all of the actual shapes - but would want to do this
-								//once per validation...
-								//RefineValidation shex_refine_validator = new RefineValidation(schema, shexy_graph);
-								Typing shape_test = shex_model_validator.getTyping();
-								Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(range_obj, target_shape_label);
-								Status r = shape_test.getStatusMap().get(p);
-								if(r.equals(Status.CONFORMANT)) {
-									good = true;
-									break;
-								}
-							}catch(Exception e) {
-								System.out.println(e+"\nbroken target shape uri:"+target_shape_uri);
-							}
-						}
-						if(!good) {					
-							if(obj.isURIResource()) {
-								String object = obj.toString();
-								Set<String> object_types = getNodeTypes(model, obj.toString());
-
-								String property = prop.toString();
-								object = getCurie(object);
-								property = getCurie(property);
-								Set<String> expected = new HashSet<String>();
-								for(String e : expected_property_ranges.get(prop_uri)) {
-									String curie_e = getCurie(e);
-									expected.add(curie_e);
-								}					
-								ShexConstraint constraint = new ShexConstraint(object, property, expected, node_types, object_types);
-								//return all shapes that are matched by this node for explanation
-								Set<String> obj_matched_shapes = getAllMatchedShapes(range_obj, shex_model_validator);
-								constraint.setMatched_range_shapes(obj_matched_shapes);
-								unmet_constraints.add(constraint);
-							}else {
-								ShexConstraint constraint = new ShexConstraint(obj.toString(), getCurie(prop.toString()), null, node_types, null);
-								//return all shapes that are matched by this node for explanation
-								Set<String> obj_matched_shapes = getAllMatchedShapes(range_obj, shex_model_validator);
-								constraint.setMatched_range_shapes(obj_matched_shapes);
-								unmet_constraints.add(constraint);
-							}
-						}
+					}else {
+						good = false;
 					}
 				}
-			});
-			if(null==f.get(timeout, TimeUnit.SECONDS)) {
-				//capture the result
-				return unmet_constraints;
-			}
-		} catch (final TimeoutException e) {
-			LOGGER.error("shex explanation took to long for "+focus_node);
-			return null;		
-		} catch (InterruptedException e) {
-			LOGGER.error("And we have an interrupted exception:");
-			e.printStackTrace();
-			return null;
-		} catch (ExecutionException e) {
-			LOGGER.error("And we have an execution exception:");
-			e.printStackTrace();
-			return null;
-		}  finally {
-			service.shutdown();		}
+				if(!good) {					
+					if(obj.isURIResource()) {
+						String object = obj.toString();
+						Set<String> object_types = getNodeTypes(model, obj.toString());
 
-		return null;
+						String property = prop.toString();
+						object = getCurie(object);
+						property = getCurie(property);
+						Set<String> expected = new HashSet<String>();
+						for(String e : expected_property_ranges.get(prop_uri)) {
+							String curie_e = getCurie(e);
+							expected.add(curie_e);
+						}					
+						ShexConstraint constraint = new ShexConstraint(object, property, expected, node_types, object_types);
+						//return all shapes that are matched by this node for explanation
+						Set<String> obj_matched_shapes = getAllMatchedShapes(range_obj, typing);
+						constraint.setMatched_range_shapes(obj_matched_shapes);
+						unmet_constraints.add(constraint);
+					}else {
+						ShexConstraint constraint = new ShexConstraint(obj.toString(), getCurie(prop.toString()), null, node_types, null);
+						//return all shapes that are matched by this node for explanation
+						Set<String> obj_matched_shapes = getAllMatchedShapes(range_obj, typing);
+						constraint.setMatched_range_shapes(obj_matched_shapes);
+						unmet_constraints.add(constraint);
+					}
+				}
+			}
+		}
+
+		return unmet_constraints;
 	}
 
-	public Set<String> getAllMatchedShapes(RDFTerm node, RecursiveValidation shex_model_validator){
+	public Set<String> getAllMatchedShapes(RDFTerm value, Typing typing){
 		Set<Label> all_shapes_in_schema = getAllShapesInSchema();
 		Set<String> obj_matched_shapes = new HashSet<String>();
 		for(Label target_shape_label : all_shapes_in_schema) {
-			shex_model_validator.validate(node, target_shape_label);
+			Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(value, target_shape_label);
+			Status r = typing.getStatusMap().get(p);
+			if(r.equals(Status.CONFORMANT)) {
+				obj_matched_shapes.add(getCurie(target_shape_label.stringValue()));
+			}
+		}
+		return obj_matched_shapes;
+	}
+	
+	public Set<String> getAllMatchedShapes(RDFTerm value, RecursiveValidationWithMemorization shex_model_validator){
+		Set<Label> all_shapes_in_schema = getAllShapesInSchema();
+		Set<String> obj_matched_shapes = new HashSet<String>();
+		for(Label target_shape_label : all_shapes_in_schema) {
+			shex_model_validator.validate(value, target_shape_label);
 			Typing shape_test = shex_model_validator.getTyping();
-			Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(node, target_shape_label);
+			Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(value, target_shape_label);
 			Status r = shape_test.getStatusMap().get(p);
 			if(r.equals(Status.CONFORMANT)) {
 				obj_matched_shapes.add(getCurie(target_shape_label.stringValue()));
@@ -629,7 +751,7 @@ public class ShexValidator {
 		return obj_matched_shapes;
 	}
 
-	public Set<String> getAllMatchedShapes(String node_uri, RecursiveValidation shex_model_validator){
+	public Set<String> getAllMatchedShapes(String node_uri, RecursiveValidationWithMemorization shex_model_validator){
 		RDFTerm range_obj = rdfFactory.createIRI(node_uri);
 		return getAllMatchedShapes(range_obj, shex_model_validator);
 	}

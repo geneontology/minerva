@@ -67,6 +67,9 @@ public class ShexValidationReport extends ModelValidationReport{
 			return "conformant\n";
 		}
 		String report = "";
+		if(getViolations()==null) {
+			return "noncomformant (no explanation)\n";
+		}
 		for(Violation violation : getViolations()) {			
 			ShexViolation sv = (ShexViolation) violation;
 			for(ShexExplanation e : sv.getExplanations()) {
