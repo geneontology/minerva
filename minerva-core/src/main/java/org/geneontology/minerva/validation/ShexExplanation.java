@@ -13,6 +13,7 @@ import java.util.Set;
 public class ShexExplanation {
 	String shape;
 	Set<ShexConstraint> constraints;
+	String errorMessage;
 	/**
 	 * 
 	 */
@@ -33,5 +34,11 @@ public class ShexExplanation {
 	}
 	public void addConstraint(ShexConstraint constraint) {
 		this.constraints.add(constraint);
+	}
+	public String getErrorMessage() {
+		return errorMessage;
+	}
+	public void setErrorMessage(String error) {
+		this.errorMessage = error;		
 	}
 }

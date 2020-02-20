@@ -178,6 +178,8 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 					}
 				}
 			}
+		}else {
+			LOG.error("external lookup at failed for batch: "+to_look_up);
 		}
 		return temp_ont;
 	}

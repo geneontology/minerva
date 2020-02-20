@@ -681,7 +681,7 @@ public class CommandLineInterface {
 
 		if(basicOutputFile!=null) {
 			FileWriter basic_shex_output = new FileWriter(basicOutputFile, false);
-			basic_shex_output.write("filename\tmodel_id\tOWL_consistent\tshex_valid\tvalidation_time\n");
+			basic_shex_output.write("filename\tmodel_id\tOWL_consistent\tshex_valid\tvalidation_time_milliseconds\taxioms\n");
 			basic_shex_output.close();
 		}
 		if(explanationOutputFile!=null) {
@@ -691,7 +691,7 @@ public class CommandLineInterface {
 			explanations.close();
 		}	
 		final boolean shex_output = checkShex;			
-		//Note that parallelStream does not see to help with this.  Starts out great then locks up.  Not sure exactly why just yet - though there is a web service call to GOLR which seems suspicious.
+		//Note that parallelStream does not seem to help with this.  Starts out great then locks up.  Not sure exactly why just yet - though there is a web service call to GOLR which seems suspicious.
 		m3.getAvailableModelIds().stream().forEach(modelIRI -> {
 			try {
 				long start = System.currentTimeMillis();
@@ -704,6 +704,8 @@ public class CommandLineInterface {
 					LOGGER.info("processing \t"+modelIRI);
 				}
 				ModelContainer mc = m3.getModel(modelIRI);	
+				int axioms = mc.getAboxOntology().getAxiomCount();
+				//this is where everything actually happens
 				InferenceProvider ip = ipc.create(mc);
 				isConsistent = ip.isConsistent();
 				if(!isConsistent&&explanationOutputFile!=null) {
@@ -722,7 +724,7 @@ public class CommandLineInterface {
 					ValidationResultSet validations = ip.getValidation_results();
 					isConformant = validations.allConformant();	
 					long done = System.currentTimeMillis();
-					long seconds = (done-start)/1000;
+					long milliseconds = (done-start);
 					if(!isConformant&&explanationOutputFile!=null) {
 						FileWriter explanations = new FileWriter(explanationOutputFile, true);						
 						explanations.write(ip.getValidation_results().getShexvalidation().getAsTab(filename+"\t"+modelIRI));
@@ -739,7 +741,7 @@ public class CommandLineInterface {
 					}			
 					LOGGER.info(filename+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:"+isConformant);
 
-					basic.write(filename+"\t"+modelIRI+"\t"+isConsistent+"\t"+isConformant+"\t"+seconds+"\n");
+					basic.write(filename+"\t"+modelIRI+"\t"+isConsistent+"\t"+isConformant+"\t"+milliseconds+"\t"+axioms+"\n");
 				}else {
 					LOGGER.info(filename+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:not checked");
 					basic.write(filename+"\t"+modelIRI+"\t"+isConsistent+"\tnot checked\n");						
@@ -754,7 +756,7 @@ public class CommandLineInterface {
 		});
 		LOGGER.info("done with validation");
 		m3.dispose();
-
+		//System.exit(0);
 	}
 
 
