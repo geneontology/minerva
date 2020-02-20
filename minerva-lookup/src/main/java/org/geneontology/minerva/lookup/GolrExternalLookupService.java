@@ -28,9 +28,7 @@ public class GolrExternalLookupService implements ExternalLookupService {
 	private final String golrUrl;
 
 	private final CurieHandler curieHandler;
-	
-	private Map<String, List<GolrOntologyClassDocument>> cache_lookups;
-	
+		
 	public GolrExternalLookupService(String golrUrl, CurieHandler curieHandler) {
 		this(golrUrl, curieHandler, false);
 	}
@@ -56,7 +54,6 @@ public class GolrExternalLookupService implements ExternalLookupService {
 			
 		}, curieHandler);
 		LOG.info("Creating Golr lookup service for minerva: "+golrUrl);
-		cache_lookups = new HashMap<String, List<GolrOntologyClassDocument>>();
 	}
 	
 	protected GolrExternalLookupService(String golrUrl, RetrieveGolrBioentities bioentityClient,
@@ -120,11 +117,7 @@ public class GolrExternalLookupService implements ExternalLookupService {
 			}
 			else 
 				if (ontologyClient != null){
-				List<GolrOntologyClassDocument> ontologyEntities = cache_lookups.get(curie);
-				if(ontologyEntities==null) {
-					ontologyEntities = ontologyClient.getGolrOntologyCls(curie);
-					cache_lookups.put(curie, ontologyEntities);
-				}
+				List<GolrOntologyClassDocument> ontologyEntities = ontologyClient.getGolrOntologyCls(curie);
 				if (ontologyEntities != null && !ontologyEntities.isEmpty()) {
 					result = new ArrayList<ExternalLookupService.LookupEntry>(ontologyEntities.size());
 					for(GolrOntologyClassDocument doc : ontologyEntities) {
