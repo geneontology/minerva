@@ -5,7 +5,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Level;
@@ -149,6 +152,43 @@ public class GolrExternalLookupServiceTest {
 		assertEquals(count, requests.size());
 	}
 
+	@Test
+	public void testCachedGolrBatchLookup() throws Exception {
+		final List<URI> requests = new ArrayList<URI>();
+		GolrExternalLookupService golr = new GolrExternalLookupService(golrUrl, 
+				new RetrieveGolrBioentities(golrUrl, 2){
+
+			@Override
+			protected void logRequest(URI uri) {
+				requests.add(uri);
+			}
+
+		}, new RetrieveGolrOntologyClass(golrUrl, 2){
+			@Override
+			protected void logRequest(URI uri) {
+				requests.add(uri);
+			}
+		}, handler);
+		ExternalLookupService s = new CachingExternalLookupService(golr, 1000, 24l, TimeUnit.HOURS);
+		Set<IRI> ids = new HashSet<IRI>();
+		ids.add(handler.getIRI("SGD:S000004529"));
+		ids.add(handler.getIRI("CHEBI:33695"));
+		ids.add(handler.getIRI("ComplexPortal:CPX-900"));
+		ids.add(handler.getIRI("UniProtKB:P32241-1"));
+		Map<IRI, List<LookupEntry>> lookups = s.lookupBatch(ids);
+		assertEquals(4, lookups.size());
+		assertEquals("TEM1 Scer", lookups.get(handler.getIRI("SGD:S000004529")).get(0).label);
+		int count = requests.size();
+
+		Map<IRI, List<LookupEntry>> lookups2 = s.lookupBatch(ids);
+		assertEquals(4, lookups2.size());
+		assertEquals("TEM1 Scer", lookups2.get(handler.getIRI("SGD:S000004529")).get(0).label);
+
+		// there should be no new request to Golr, that's what the cache is for!
+		assertEquals(count, requests.size());
+	}
+	
+	
 	public void printListTermLabels(ExternalLookupService s, List<String> terms) throws UnknownIdentifierException {
 		for(String id : terms) {
 			if(id.contains("CHEBI")||id.contains("PR")||id.contains("BFO")) {
