@@ -262,13 +262,12 @@ public class StartUpTool {
 		}			
 		// wrap the Golr service with a cache
 		if (conf.golrUrl != null) {
-			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler, conf.useGolrUrlLogging);
-			//caching service not working with batch request.  
-			//LOGGER.info("Setting up Golr cache with size: "+conf.golrCacheSize+" duration: "+
-			//		conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
-			//		" use url logging: "+conf.useGolrUrlLogging);
-			//
-			//conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
+			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler, conf.useGolrUrlLogging); 
+			LOGGER.info("Setting up Golr cache with size: "+conf.golrCacheSize+" duration: "+
+					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
+					" use url logging: "+conf.useGolrUrlLogging);
+			
+			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
 		}
 		if (conf.monarchUrl != null) {
 			conf.lookupService = new MonarchExternalLookupService(conf.monarchUrl, conf.curieHandler, conf.useGolrUrlLogging);
