@@ -31,7 +31,6 @@ import fr.inria.lille.shexjava.schema.parsing.ShExJSerializer;
  *
  */
 public class Util {
-
 	/**
 	 * 
 	 */
@@ -49,6 +48,9 @@ public class Util {
 		shexctoshexj(schema_file, schema_destination);
 	}
 
+
+	
+	
 	public static void shexctoshexj(String shexc_schema_file, String shexj_schema_file) throws Exception {
 		ShexSchema schema = GenParser.parseSchema(new File(shexc_schema_file).toPath());
 		ShExJSerializer.ToJson(schema, new File(shexj_schema_file).toPath());
@@ -123,7 +125,6 @@ public class Util {
 
 		}
 	}
-
 
 
 	public static void printSchemaComments(ShexSchema schema) {

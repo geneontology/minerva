@@ -175,13 +175,15 @@ public class GolrExternalLookupServiceTest {
 		ids.add(handler.getIRI("CHEBI:33695"));
 		ids.add(handler.getIRI("ComplexPortal:CPX-900"));
 		ids.add(handler.getIRI("UniProtKB:P32241-1"));
+		ids.add(handler.getIRI("GO:0003700"));
+
 		Map<IRI, List<LookupEntry>> lookups = s.lookupBatch(ids);
-		assertEquals(4, lookups.size());
+		assertEquals(5, lookups.size());
 		assertEquals("TEM1 Scer", lookups.get(handler.getIRI("SGD:S000004529")).get(0).label);
 		int count = requests.size();
 
 		Map<IRI, List<LookupEntry>> lookups2 = s.lookupBatch(ids);
-		assertEquals(4, lookups2.size());
+		assertEquals(5, lookups2.size());
 		assertEquals("TEM1 Scer", lookups2.get(handler.getIRI("SGD:S000004529")).get(0).label);
 
 		// there should be no new request to Golr, that's what the cache is for!
