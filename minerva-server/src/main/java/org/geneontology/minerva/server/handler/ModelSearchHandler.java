@@ -106,6 +106,10 @@ public class ModelSearchHandler {
 	//TODO make junit tests out of these. 
 	//examples 
 	//http://127.0.0.1:6800/search/?
+	//?gp=http://identifiers.org/uniprot/P15822-3
+	//?goterm=http://purl.obolibrary.org/obo/GO_0003677
+	//
+	//
 	//?gp=http://identifiers.org/mgi/MGI:1328355
 	//&gp=http://identifiers.org/mgi/MGI:87986
 	//&goterm=http://purl.obolibrary.org/obo/GO_0030968
