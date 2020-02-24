@@ -42,6 +42,7 @@ import org.geneontology.minerva.lookup.MonarchExternalLookupService;
 import org.geneontology.minerva.server.GsonMessageBodyHandler;
 import org.geneontology.minerva.server.LoggingApplicationEventListener;
 import org.geneontology.minerva.server.RequireJsonpFilter;
+import org.geneontology.minerva.server.handler.ModelSearchHandler.ModelSearchResult;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.geneontology.minerva.server.validation.ValidationTest;
@@ -63,6 +64,8 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+
+import com.google.gson.Gson;
 
 /**
  * @author benjamingood
@@ -166,20 +169,159 @@ public class ModelSearchHandlerTest {
 	 * @throws IOException 
 	 */
 	@Test
-	public final void testSearchGet() throws URISyntaxException, IOException {
+	public final void testSearchGetByGene() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
 		builder.addParameter("gp", "http://identifiers.org/uniprot/P15822-3");
-		//?gp=http://identifiers.org/uniprot/P15822-3
-		//?goterm=http://purl.obolibrary.org/obo/GO_0003677
 		URI searchuri = builder.build();
-		String result = getJsonStringFromUri(searchuri);
-		
-		System.out.println("Search URI "+searchuri);
-		System.out.println("Search result "+result);
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by gene URI "+searchuri);
+		LOGGER.info("Search by gene result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()>0);
 	}
 
+	@Test
+	public final void testSearchGetByGO() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("goterm", "http://purl.obolibrary.org/obo/GO_0003677");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by GO term URI "+searchuri);
+		LOGGER.info("Search by GO term result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()>0);
+	}
 
+	@Test
+	public final void testSearchGetByTitle() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("title", "*test*");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by title text URI "+searchuri);
+		LOGGER.info("Search by title text result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()>0);
+	}	
+	
+	@Test
+	public final void testSearchGetByPMID() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("pmid", "PMID:1457892");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by PMID URI "+searchuri);
+		LOGGER.info("Search by PMID result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()>0);
+	}
+	
+	//&state=development&state=review {development, production, closed, review, delete} or operator	
+	@Test
+	public final void testSearchGetByState() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("state", "development");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by state URI "+searchuri);
+		LOGGER.info("Search by state result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()>0);
+	}
+	
+	@Test
+	public final void testSearchGetByContributors() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("contributor", "http://orcid.org/0000-0002-1706-4196");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by contributor URI "+searchuri);
+		LOGGER.info("Search by contributor "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()>0);
+	}
+	
+	@Test
+	public final void testSearchGetByGroups() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("group", "http://www.igs.umaryland.edu");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by group URI "+searchuri);
+		LOGGER.info("Search by group "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()>0);
+	}
+	
+	@Test
+	public final void testSearchGetByDate() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("date", "2018-08-20");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by date URI "+searchuri);
+		LOGGER.info("Search by date "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()>0);
+	}
+	
+	@Test
+	public final void testSearchGetByDateAndOffset() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("date", "2018-08-20");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result1 = g.fromJson(json_result, ModelSearchResult.class);
+		int n1 = result1.getN();
+		builder.addParameter("offset", "1");
+		searchuri = builder.build();
+		json_result = getJsonStringFromUri(searchuri);
+		ModelSearchResult result2 = g.fromJson(json_result, ModelSearchResult.class);
+		int n2 = result2.getN();
+		assertTrue(n1>n2);
+	}
+	
+	@Test
+	public final void testSearchGetByDateAndCount() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("date", "2018-08-20");
+		builder.addParameter("count", "");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		assertTrue(result.getN()>0);
+		LOGGER.info("N models found by count query: "+result.getN());
+		assertTrue(result.getModels()==null);
+	}
+	
 	private static String makeBlazegraphJournal(String input_folder) throws IOException, OWLOntologyCreationException, RepositoryException, RDFParseException, RDFHandlerException {
 		String inputDB = tmp.newFile().getAbsolutePath();
 		File i = new File(input_folder);
