@@ -8,19 +8,25 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.eclipse.jetty.server.HttpConfiguration;
@@ -183,6 +189,23 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 
+	@Test
+	public final void testSearchPostByGene() throws URISyntaxException, IOException {
+		HttpPost post = new HttpPost(server.getURI()+"search");
+		List<BasicNameValuePair> urlParameters = new ArrayList<>();
+		urlParameters.add(new BasicNameValuePair("gp", "http://identifiers.org/wormbase/WBGene00001865"));		
+		urlParameters.add(new BasicNameValuePair("gp", "http://identifiers.org/wormbase/WBGene00017304"));	
+		urlParameters.add(new BasicNameValuePair("gp", "http://identifiers.org/wormbase/WBGene00003418"));
+		post.setEntity(new UrlEncodedFormEntity(urlParameters));
+		LOGGER.info("post "+post.toString());
+		String json_result = getJsonStringFromPost(post);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by gene POST result "+json_result);
+		LOGGER.info("POST N models found: "+result.getN());
+		assertTrue(result.getN()>0);
+	}
+	
 	@Test
 	public final void testSearchGetByGO() throws URISyntaxException, IOException {
 		//make the request
@@ -368,6 +391,16 @@ public class ModelSearchHandlerTest {
 		// get string response from stream
 		String json = IOUtils.toString(response);
 		
+		return json;
+	}
+
+
+private	static String getJsonStringFromPost(HttpPost post) throws IOException {
+		
+		CloseableHttpClient httpClient = HttpClients.createDefault();
+		CloseableHttpResponse response = httpClient.execute(post);
+		String json = EntityUtils.toString(response.getEntity());
+	
 		return json;
 	}
 	

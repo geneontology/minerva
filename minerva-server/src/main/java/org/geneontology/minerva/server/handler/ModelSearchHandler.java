@@ -459,8 +459,22 @@ public class ModelSearchHandler {
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-	public String searchPostForm(@FormParam("query") String queryText) {
-		return "post not yet implemented";
+	public ModelSearchResult searchPostForm(
+			@FormParam("gp") Set<String> gene_product_class_uris, 
+			@FormParam("goterm") Set<String> goterms,
+			@FormParam("pmid") Set<String> pmids,
+			@FormParam("title") String title,
+			@FormParam("state") Set<String> state,
+			@FormParam("contributor") Set<String> contributor,
+			@FormParam("group") Set<String> group,
+			@FormParam("date") String date,
+			@FormParam("offset") int offset,
+			@FormParam("limit") int limit,
+			@FormParam("count") String count) {
+		ModelSearchResult result = new ModelSearchResult();
+		result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit, count);
+		return result;
 	}
+	
 
 }
