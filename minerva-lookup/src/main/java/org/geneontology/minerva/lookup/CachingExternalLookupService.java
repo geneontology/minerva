@@ -82,15 +82,7 @@ public class CachingExternalLookupService implements ExternalLookupService {
 	@Override
 	public Map<IRI, List<LookupEntry>> lookupBatch(Set<IRI> to_look_up) {
 		try {
-			Map<IRI, List<LookupEntry>> id_lookups = new HashMap<IRI, List<LookupEntry>>();
-			for(IRI id : to_look_up) {
-				 List<ExternalLookupService.LookupEntry> lookups = cache.get(id);
-				 if(lookups!=null) {
-					 id_lookups.put(id, lookups);
-				 }else {
-					 return null; //no partial results for now.  
-				 }
-			}
+			Map<IRI, List<LookupEntry>> id_lookups = cache.getAll(to_look_up);
 			return id_lookups;
 		} catch (ExecutionException e) {
 			return null;

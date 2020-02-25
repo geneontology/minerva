@@ -61,6 +61,38 @@ public class ModelSearchHandler {
 		private String message;
 		private String error;
 		private String sparql;
+		public Integer getN() {
+			return n;
+		}
+		public void setN(Integer n) {
+			this.n = n;
+		}
+		public LinkedHashSet<ModelMeta> getModels() {
+			return models;
+		}
+		public void setModels(LinkedHashSet<ModelMeta> models) {
+			this.models = models;
+		}
+		public String getMessage() {
+			return message;
+		}
+		public void setMessage(String message) {
+			this.message = message;
+		}
+		public String getError() {
+			return error;
+		}
+		public void setError(String error) {
+			this.error = error;
+		}
+		public String getSparql() {
+			return sparql;
+		}
+		public void setSparql(String sparql) {
+			this.sparql = sparql;
+		}
+		
+		
 	}
 
 	public class ModelMeta{
@@ -81,6 +113,64 @@ public class ModelSearchHandler {
 			this.groups = groups;
 			query_match = new HashMap<String, Set<String>>();
 		}
+
+		public String getId() {
+			return id;
+		}
+
+		public void setId(String id) {
+			this.id = id;
+		}
+
+		public String getDate() {
+			return date;
+		}
+
+		public void setDate(String date) {
+			this.date = date;
+		}
+
+		public String getTitle() {
+			return title;
+		}
+
+		public void setTitle(String title) {
+			this.title = title;
+		}
+
+		public String getState() {
+			return state;
+		}
+
+		public void setState(String state) {
+			this.state = state;
+		}
+
+		public Set<String> getContributors() {
+			return contributors;
+		}
+
+		public void setContributors(Set<String> contributors) {
+			this.contributors = contributors;
+		}
+
+		public Set<String> getGroups() {
+			return groups;
+		}
+
+		public void setGroups(Set<String> groups) {
+			this.groups = groups;
+		}
+
+		public HashMap<String, Set<String>> getQuery_match() {
+			return query_match;
+		}
+
+		public void setQuery_match(HashMap<String, Set<String>> query_match) {
+			this.query_match = query_match;
+		}
+		
+		
 	}
 
 
@@ -106,6 +196,10 @@ public class ModelSearchHandler {
 	//TODO make junit tests out of these. 
 	//examples 
 	//http://127.0.0.1:6800/search/?
+	//?gp=http://identifiers.org/uniprot/P15822-3
+	//?goterm=http://purl.obolibrary.org/obo/GO_0003677
+	//
+	//
 	//?gp=http://identifiers.org/mgi/MGI:1328355
 	//&gp=http://identifiers.org/mgi/MGI:87986
 	//&goterm=http://purl.obolibrary.org/obo/GO_0030968
@@ -361,54 +455,12 @@ public class ModelSearchHandler {
 		return r;
 	}
 
-	public ModelSearchResult getAll(int offset, int limit) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
-		ModelSearchResult r = new ModelSearchResult();
-		LinkedHashSet<ModelMeta> models = new LinkedHashSet<ModelMeta>();
-		String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/GetAllModels.rq"), StandardCharsets.UTF_8);
-		TupleQueryResult result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 100);
-		int n_models = 0;
-		while(result.hasNext()) {
-			BindingSet bs = result.next();
-			//model meta
-			String id = bs.getBinding("id").getValue().stringValue();
-			String date = bs.getBinding("date").getValue().stringValue();
-			String title = bs.getBinding("title").getValue().stringValue();
-			String state = bs.getBinding("state").getValue().stringValue();
-			String contribs = bs.getBinding("contributors").getValue().stringValue();
-			String groups_ = bs.getBinding("groups").getValue().stringValue();
-			Set<String> contributors = new HashSet<String>();
-			if(contributors!=null) {
-				for(String c : contribs.split(";")) {
-					contributors.add(c);
-				}
-			}
-			Set<String> groups = new HashSet<String>();
-			if(groups_!=null) {
-				for(String c : groups_.split(";")) {
-					groups.add(c);
-				}
-			}
-			ModelMeta mm = new ModelMeta(id, date, title, state, contributors, groups);
-			models.add(mm);
-			n_models++;
-		}
-		System.out.println("n models "+n_models);
-		r.n = n_models;
-		r.models = models;
-		result.close();
-		//test
-		//http://127.0.0.1:6800/modelsearch/?query=bla
-		return r;
-	}
-
-
 
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public String searchPostForm(@FormParam("query") String queryText) {
-		// return m3.executeSPARQLQuery(queryText, timeout);
-		return "post pong";
+		return "post not yet implemented";
 	}
 
 }

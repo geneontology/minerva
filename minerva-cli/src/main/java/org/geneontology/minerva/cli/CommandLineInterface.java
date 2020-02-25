@@ -567,7 +567,7 @@ public class CommandLineInterface {
 	public static void validateGoCams(String input, String basicOutputFile, String explanationOutputFile, 
 			String ontologyIRI, String catalog, String modelIdPrefix, String modelIdcurie, 
 			String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex, String golr_server) throws Exception {
-		Logger LOG = Logger.getLogger(BlazegraphMolecularModelManager.class);
+		Logger LOG = Logger.getLogger(CommandLineInterface.class);
 		LOG.setLevel(Level.ERROR);
 		LOGGER.setLevel(Level.INFO);
 		String inputDB = "blazegraph.jnl";
