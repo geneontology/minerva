@@ -78,7 +78,7 @@ import com.google.gson.Gson;
  *
  */
 public class ModelSearchHandlerTest {
-	private static final Logger LOGGER = Logger.getLogger(ValidationTest.class);
+	private static final Logger LOGGER = Logger.getLogger(ModelSearchHandlerTest.class);
 	static Server server;
 	static final String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
 	static final String catalog = "src/test/resources/ontology/catalog-for-validation.xml";

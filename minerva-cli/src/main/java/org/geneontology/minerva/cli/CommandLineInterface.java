@@ -90,7 +90,7 @@ import owltools.io.ParserWrapper;
 public class CommandLineInterface {
 	private static final Logger LOGGER = Logger.getLogger(CommandLineInterface.class);
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) {
 
 		reportSystemParams();
 		Options main_options = new Options();
@@ -308,6 +308,10 @@ public class CommandLineInterface {
 			}
 		}catch( ParseException exp ) {
 			System.out.println( "Unexpected exception:" + exp.getMessage() );
+		} catch (Exception e) {
+			e.printStackTrace();
+			//explicitly exiting to inform travis of failure.  
+			System.exit(-1);
 		}
 	}
 
