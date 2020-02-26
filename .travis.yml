@@ -8,4 +8,4 @@ jdk:
 # Warning: travis fails, when log output >4M
 script:
   - mvn clean test
-
+  - java -jar minerva-cli/bin/minerva-cli.jar --import-owl-models -f minerva-server/src/test/resources/models/should_pass/ -j tmp_blazegraph.jnl
