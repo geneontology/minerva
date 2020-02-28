@@ -30,6 +30,7 @@ import org.semanticweb.owlapi.model.OWLObjectProperty;
 		private final String started_at;
 		
 		public class Status {
+			public String startup_date = started_at;
 			// data configuration
 			public String ontology;
 			public String catalog;
@@ -58,7 +59,6 @@ import org.semanticweb.owlapi.model.OWLObjectProperty;
 			public String shexFileUrl;
 			public String goshapemapFileUrl;
 			public Map<IRI, Set<OWLAnnotation>> ont_annos = ont_annosa;
-			public String startup_date = started_at;
 			
 			public Status(MinervaStartUpConfig conf) {
 				this.ontology = conf.ontology;
