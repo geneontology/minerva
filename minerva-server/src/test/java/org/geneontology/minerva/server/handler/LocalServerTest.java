@@ -76,7 +76,7 @@ public class LocalServerTest {
 		conf.importantRelations = null;
 		conf.port = 6800;
 		conf.contextString = "/";
-		server = StartUpTool.startUp(models, conf);
+		server = StartUpTool.startUp(models, conf, null);
 		urlPrefix = "http://localhost:"+conf.port+conf.contextString;
 	}
 	
