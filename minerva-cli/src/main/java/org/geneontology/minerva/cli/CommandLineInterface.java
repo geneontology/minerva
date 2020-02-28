@@ -294,7 +294,11 @@ public class CommandLineInterface {
 				String golr_server = null;
 				if(cmd.hasOption("golr")) {
 					golr_server = cmd.getOptionValue("golr");
-				}				
+				}		
+				if(golr_server==null) {
+					System.err.println("Need to specify a golr server - should be a local instance for any large batch run. e.g. -golr http://127.0.0.1:8080/solr/");
+					System.exit(-1);
+				}
 				validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, golr_server, gorules_json_output_file);
 			}else if(cmd.hasOption("update-gene-product-types")) {
 				Options options = new Options();
@@ -680,9 +684,13 @@ public class CommandLineInterface {
 			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
 			System.err.println("-m .No shape map file provided, using: "+goshapemapFileUrl);
 		}
-		String golr_url = "http://noctua-golr.berkeleybop.org/";
+		//don't want to hammer the public golr server..
+		//String golr_url = "http://noctua-golr.berkeleybop.org/";
+		String golr_url = null;
 		if(golr_server!=null) {
 			golr_url = golr_server;
+		}else {
+			System.err.println("Need to specify a golr server - should be a local instance for any large batch run. e.g. -golr http://127.0.0.1:8080/solr/");
 		}
 		ExternalLookupService externalLookupService = new GolrExternalLookupService(golr_url, curieHandler, false);
 		LOGGER.info("making shex validator: "+shexpath+" "+shapemappath+" "+curieHandler+" ");
