@@ -13,9 +13,11 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -52,6 +54,8 @@ import org.geneontology.minerva.validation.Enricher;
 import org.geneontology.minerva.validation.ShexValidationReport;
 import org.geneontology.minerva.validation.ShexValidator;
 import org.geneontology.minerva.validation.ValidationResultSet;
+import org.geneontology.minerva.validation.pipeline.BatchPipelineValidationReport;
+import org.geneontology.minerva.validation.pipeline.ErrorMessage;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.UpdateExecutionException;
@@ -236,6 +240,7 @@ public class CommandLineInterface {
 				validate_options.addOption("owl", "owl", false, "If present, will execute shex validation");
 				validate_options.addOption("r", "report-file", true, "Main output file for the validation");
 				validate_options.addOption("e", "explanation-output-file", true, "Explanations for failed validations");
+				validate_options.addOption("j", "pipeline-output-file", true, "JSON file for use in GO Rules report");
 				validate_options.addOption("p", "model-id-prefix", true, "prefix for GO-CAM model ids");
 				validate_options.addOption("cu", "model-id-curie", true, "prefix for GO-CAM curies");
 				validate_options.addOption("ont", "ontology", true, "IRI of tbox ontology - usually default go-lego.owl");
@@ -256,6 +261,10 @@ public class CommandLineInterface {
 				String shexpath = cmd.getOptionValue("s");
 				String shapemappath = cmd.getOptionValue("shapemap");
 
+				String gorules_json_output_file = null;
+				if(cmd.hasOption("pipeline-output-file")) {
+					gorules_json_output_file = cmd.getOptionValue("pipeline-output-file");
+				}
 				String explanationOutputFile = cmd.getOptionValue("explanation-output-file");
 				String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
 				if(cmd.hasOption("ontology")) {
@@ -286,7 +295,7 @@ public class CommandLineInterface {
 				if(cmd.hasOption("golr")) {
 					golr_server = cmd.getOptionValue("golr");
 				}				
-				validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, golr_server);
+				validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, golr_server, gorules_json_output_file);
 			}else if(cmd.hasOption("update-gene-product-types")) {
 				Options options = new Options();
 				options.addOption(update_gps);
@@ -570,7 +579,8 @@ public class CommandLineInterface {
 	 */
 	public static void validateGoCams(String input, String basicOutputFile, String explanationOutputFile, 
 			String ontologyIRI, String catalog, String modelIdPrefix, String modelIdcurie, 
-			String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex, String golr_server) throws Exception {
+			String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex, String golr_server, 
+			String gorules_json_output_file) throws Exception {
 		Logger LOG = Logger.getLogger(CommandLineInterface.class);
 		LOG.setLevel(Level.ERROR);
 		LOGGER.setLevel(Level.INFO);
@@ -594,6 +604,7 @@ public class CommandLineInterface {
 		}else {
 			LOGGER.info("no journal found, trying as directory: "+input);
 			File i = new File(input);
+			int n = 0;
 			if(i.exists()) {
 				//remove anything that existed earlier
 				File bgdb = new File(inputDB);
@@ -605,11 +616,15 @@ public class CommandLineInterface {
 				CurieHandler curieHandler = new MappedCurieHandler();
 				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null);
 				if(i.isDirectory()) {
+					Set<String> model_iris = new HashSet<String>();
 					FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
 						if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
 							LOGGER.info("Loading " + file);
 							try {
 								String modeluri = m3.importModelToDatabase(file, true);
+								if(!model_iris.add(modeluri)) {
+									LOGGER.error("Multiple models with same IRI: "+modeluri+" file: "+file+" file: "+modelid_filename.get(modeluri));
+								}
 								modelid_filename.put(modeluri, file.getName());
 							} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
 									| RDFHandlerException | IOException e) {
@@ -694,6 +709,16 @@ public class CommandLineInterface {
 			explanations.write("filename\tmodel_iri\tnode\tNode_types\tproperty\tIntended_range_shapes\tobject\tObject_types\tObject_shapes\n");
 			explanations.close();
 		}	
+		BatchPipelineValidationReport pipe_report = null;
+		Set<ErrorMessage> owl_errors = new HashSet<ErrorMessage>();
+		Set<ErrorMessage> shex_errors = new HashSet<ErrorMessage>();
+		//todo get taxon from somewhere
+		String taxon = "taxon unknown";
+		if(gorules_json_output_file!=null) { 
+			pipe_report = new BatchPipelineValidationReport();
+			pipe_report.setNumber_of_models(m3.getAvailableModelIds().size());
+			pipe_report.setTaxon(taxon);
+		}
 		final boolean shex_output = checkShex;			
 		//Note that parallelStream does not seem to help with this.  Starts out great then locks up.  Not sure exactly why just yet - though there is a web service call to GOLR which seems suspicious.
 		m3.getAvailableModelIds().stream().forEach(modelIRI -> {
@@ -712,6 +737,16 @@ public class CommandLineInterface {
 				//this is where everything actually happens
 				InferenceProvider ip = ipc.create(mc);
 				isConsistent = ip.isConsistent();
+				//for rules report in pipeline
+				if(!ip.isConsistent()&&gorules_json_output_file!=null) {
+					String level = "ERROR";
+					String model_id = curieHandler.getCuri(modelIRI);
+					String message = BatchPipelineValidationReport.getOwlMessage();
+					int rule = BatchPipelineValidationReport.getOwlRule();
+					ErrorMessage owl = new ErrorMessage(level, model_id, taxon, message, rule);
+					owl_errors.add(owl);
+				}
+				
 				if(!isConsistent&&explanationOutputFile!=null) {
 					FileWriter explanations = new FileWriter(explanationOutputFile, true);
 					explanations.write(filename+"\t"+modelIRI+"\n\tOWL fail explanation: "+ip.getValidation_results().getOwlvalidation().getAsText()+"\n");
@@ -729,6 +764,16 @@ public class CommandLineInterface {
 					isConformant = validations.allConformant();	
 					long done = System.currentTimeMillis();
 					long milliseconds = (done-start);
+					
+					if(!isConformant&&gorules_json_output_file!=null) {
+						String level = "WARNING";
+						String model_id = curieHandler.getCuri(modelIRI);
+						String message = BatchPipelineValidationReport.getShexMessage();
+						int rule = BatchPipelineValidationReport.getShexRule();
+						ErrorMessage shex_message = new ErrorMessage(level, model_id, taxon, message, rule);
+						shex_errors.add(shex_message);
+					}
+					
 					if(!isConformant&&explanationOutputFile!=null) {
 						FileWriter explanations = new FileWriter(explanationOutputFile, true);						
 						explanations.write(ip.getValidation_results().getShexvalidation().getAsTab(filename+"\t"+modelIRI));
@@ -758,9 +803,18 @@ public class CommandLineInterface {
 				e.printStackTrace();
 			} 
 		});
-		LOGGER.info("done with validation");
+		if(gorules_json_output_file!=null) { 
+			pipe_report.getMessages().put(BatchPipelineValidationReport.getShexRuleString(), shex_errors);
+			pipe_report.getMessages().put(BatchPipelineValidationReport.getOwlRuleString(), owl_errors);		
+			GsonBuilder builder = new GsonBuilder();		 
+			Gson gson = builder.setPrettyPrinting().create();
+			String json = gson.toJson(pipe_report);
+			FileWriter pipe_json = new FileWriter(gorules_json_output_file, false);
+			pipe_json.write(json);
+			pipe_json.close();
+		}
 		m3.dispose();
-		//System.exit(0);
+		LOGGER.info("done with validation");
 	}
 
 
