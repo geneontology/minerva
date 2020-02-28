@@ -619,6 +619,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 						} else {
 							throw new OWLOntologyCreationException("Detected anonymous ontology; must have IRI");
 						}
+					}else {
+						System.err.println("skipping "+file.getName());
 					}
 				} catch (Exception e) {
 					connection.rollback();
