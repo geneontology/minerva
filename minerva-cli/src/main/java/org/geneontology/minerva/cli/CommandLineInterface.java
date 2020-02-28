@@ -604,6 +604,7 @@ public class CommandLineInterface {
 		}else {
 			LOGGER.info("no journal found, trying as directory: "+input);
 			File i = new File(input);
+			int n = 0;
 			if(i.exists()) {
 				//remove anything that existed earlier
 				File bgdb = new File(inputDB);
@@ -615,11 +616,15 @@ public class CommandLineInterface {
 				CurieHandler curieHandler = new MappedCurieHandler();
 				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null);
 				if(i.isDirectory()) {
+					Set<String> model_iris = new HashSet<String>();
 					FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
 						if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
 							LOGGER.info("Loading " + file);
 							try {
 								String modeluri = m3.importModelToDatabase(file, true);
+								if(!model_iris.add(modeluri)) {
+									LOGGER.error("Multiple models with same IRI: "+modeluri+" file: "+file+" file: "+modelid_filename.get(modeluri));
+								}
 								modelid_filename.put(modeluri, file.getName());
 							} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
 									| RDFHandlerException | IOException e) {
