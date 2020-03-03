@@ -136,7 +136,7 @@ public class CommandLineInterface {
 				.hasArg(false)
 				.build();
 		methods.addOption(version);
-		Option validate = Option.builder("v")
+		Option validate = Option.builder()
 				.longOpt("validate-go-cams")
 				.desc("Check a collection of go-cam files or a journal for valid semantics (owl) and structure (shex)")
 				.hasArg(false)
@@ -316,11 +316,16 @@ public class CommandLineInterface {
 					TypeUpdater updater = new TypeUpdater(neo_file, catalog);
 					updater.runBatchUpdate(input_dir, output_dir);
 				}catch( ParseException exp ) {
-					System.out.println( "Unexpected exception:" + exp.getMessage() );
+					System.out.println( "Unexpected exception for update-gene-product-types:" + exp.getMessage() );
+					System.exit(-1);
 				}
 			}
 		}catch( ParseException exp ) {
-			System.out.println( "Unexpected exception:" + exp.getMessage() );
+			System.out.println( "Parameter parse exception.  Note that the first parameter must be one of: "
+					+ "[--validate-go-cams, --dump-owl-models, --import-owl-models, --sparql-update, --owl-lego-to-json, --lego-to-gpad-sparql, --version, --update-gene-product-types]"
+					+ "\nSubsequent parameters are specific to each top level command. "
+					+ "\nError message: " + exp.getMessage() );
+			System.exit(-1);
 		} catch (Exception e) {
 			e.printStackTrace();
 			//explicitly exiting to inform travis of failure.  
