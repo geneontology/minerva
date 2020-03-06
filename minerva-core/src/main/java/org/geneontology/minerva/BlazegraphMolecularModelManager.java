@@ -601,7 +601,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			try {
 				connection.begin();
 				try {
-					final boolean delete;
+					final boolean delete; 
 					if (skipMarkedDelete) {
 						delete = scanForIsDelete(file);
 					} else {
@@ -613,7 +613,11 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 							URI graph = ontIRIOpt.get();
 							connection.clear(graph);
 							//FIXME Turtle format is hard-coded here
-							connection.add(file, "", RDFFormat.TURTLE, graph);
+							if(file.getName().endsWith(".ttl")) {
+								connection.add(file, "", RDFFormat.TURTLE, graph);
+							}else if(file.getName().endsWith(".owl")) {
+								connection.add(file, "", RDFFormat.RDFXML, graph);
+							}
 							connection.commit();
 							modeliri = graph.toString();
 						} else {
@@ -650,7 +654,10 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		InputStream inputStream = new FileInputStream(file);
 		try {
 			//FIXME Turtle format is hard-coded here
-			RDFParser parser = Rio.createParser(RDFFormat.TURTLE);
+			RDFParser parser = Rio.createParser(RDFFormat.RDFXML);
+			if(file.getName().endsWith(".ttl")) {
+				parser = Rio.createParser(RDFFormat.TURTLE);
+			}
 			parser.setRDFHandler(handler);
 			parser.parse(inputStream, "");
 			// If an ontology IRI triple is found, it will be thrown out

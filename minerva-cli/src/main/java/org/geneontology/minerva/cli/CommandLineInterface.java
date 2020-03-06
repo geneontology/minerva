@@ -391,9 +391,12 @@ public class CommandLineInterface {
 		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null);
 		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
 			LOGGER.info("Loading " + file);
-			if(file.getName().endsWith("ttl")||file.getName().endsWith("owl")) {
+			if(file.getName().endsWith("ttl")) {
 				m3.importModelToDatabase(file, true);
-			}else {
+			} else if (file.getName().endsWith("owl")) {
+				m3.importModelToDatabase(file, false);
+			}
+			else {
 				LOGGER.info("Ignored for not ending with .ttl or .owl " + file);
 			}
 		}
