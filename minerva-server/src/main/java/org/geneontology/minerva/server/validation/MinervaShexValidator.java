@@ -6,6 +6,7 @@ package org.geneontology.minerva.server.validation;
 import java.io.File;
 
 import org.apache.jena.rdf.model.Resource;
+import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.validation.ShexValidator;
@@ -34,8 +35,8 @@ public class MinervaShexValidator extends ShexValidator {
 	 * @param goshapemappath
 	 * @throws Exception
 	 */
-	public MinervaShexValidator(String shexpath, String goshapemappath, CurieHandler curieHandler, OWLReasoner tbox_reasoner, ExternalLookupService externalLookupService) throws Exception {
-		super(shexpath, goshapemappath, tbox_reasoner, curieHandler);
+	public MinervaShexValidator(String shexpath, String goshapemappath, CurieHandler curieHandler, BlazegraphOntologyManager go_lego, ExternalLookupService externalLookupService) throws Exception {
+		super(shexpath, goshapemappath, go_lego, curieHandler);
 		this.externalLookupService = externalLookupService;
 	}
 
@@ -44,8 +45,8 @@ public class MinervaShexValidator extends ShexValidator {
 	 * @param shex_map_file
 	 * @throws Exception
 	 */
-	public MinervaShexValidator(File shex_schema_file, File shex_map_file, CurieHandler curieHandler, OWLReasoner tbox_reasoner, ExternalLookupService externalLookupService) throws Exception {
-		super(shex_schema_file, shex_map_file, tbox_reasoner, curieHandler);
+	public MinervaShexValidator(File shex_schema_file, File shex_map_file, CurieHandler curieHandler, BlazegraphOntologyManager go_lego, ExternalLookupService externalLookupService) throws Exception {
+		super(shex_schema_file, shex_map_file, go_lego, curieHandler);
 		this.externalLookupService = externalLookupService;
 	}
 	

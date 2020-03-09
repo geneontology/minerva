@@ -40,6 +40,7 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDFS;
 import org.apache.log4j.Logger;
+import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -75,7 +76,8 @@ public class ShexValidator {
 	private static final Logger LOGGER = Logger.getLogger(ShexValidator.class);
 	public ShexSchema schema;
 	public Map<String, String> GoQueryMap;
-	public OWLReasoner tbox_reasoner;
+	//	public OWLReasoner tbox_reasoner;
+	private BlazegraphOntologyManager go_lego_repo;
 	public static final String endpoint = "http://rdf.geneontology.org/blazegraph/sparql";
 	public Map<Label, Map<String, Set<String>>> shape_expected_property_ranges;
 	public CurieHandler curieHandler;
@@ -86,18 +88,19 @@ public class ShexValidator {
 	 * @throws Exception 
 	 * 
 	 */
-	public ShexValidator(String shexpath, String goshapemappath, OWLReasoner tbox_reasoner_, CurieHandler curieHandler_) throws Exception {
-		init(new File(shexpath), new File(goshapemappath), tbox_reasoner_, curieHandler_);
+	public ShexValidator(String shexpath, String goshapemappath, BlazegraphOntologyManager go_lego, CurieHandler curieHandler_) throws Exception {
+		init(new File(shexpath), new File(goshapemappath), go_lego, curieHandler_);
 	}
 
-	public ShexValidator(File shex_schema_file, File shex_map_file, OWLReasoner tbox_reasoner_, CurieHandler curieHandler_) throws Exception {
-		init(shex_schema_file, shex_map_file, tbox_reasoner_, curieHandler_);
+	public ShexValidator(File shex_schema_file, File shex_map_file, BlazegraphOntologyManager go_lego, CurieHandler curieHandler_) throws Exception {
+		init(shex_schema_file, shex_map_file, go_lego, curieHandler_);
 	}
 
-	public void init(File shex_schema_file, File shex_map_file, OWLReasoner tbox_reasoner_, CurieHandler curieHandler_) throws Exception {
+	public void init(File shex_schema_file, File shex_map_file, BlazegraphOntologyManager go_lego, CurieHandler curieHandler_) throws Exception {
 		schema = GenParser.parseSchema(shex_schema_file.toPath());
 		GoQueryMap = makeGoQueryMap(shex_map_file.getAbsolutePath());
-		tbox_reasoner = tbox_reasoner_;
+		//tbox_reasoner = tbox_reasoner_;
+		setGo_lego_repo(go_lego);
 		shape_expected_property_ranges = new HashMap<Label, Map<String, Set<String>>>();
 		curieHandler = curieHandler_;
 		rdfFactory = new SimpleRDF();
@@ -138,13 +141,16 @@ public class ShexValidator {
 	}
 
 	public ShexValidationReport runShapeMapValidation(Model test_model) {
+		boolean explain = true;
 		ShexValidationReport r = new ShexValidationReport(null, test_model);	
 		JenaRDF jr = new JenaRDF();
 		//this shex implementation likes to use the commons JenaRDF interface, nothing exciting here
 		JenaGraph shexy_graph = jr.asGraph(test_model);
 		boolean all_good = true;
 		try {
+			LOGGER.info("Starting REFINE shex validation");
 			Typing all_typed = runRefineWithTimeout(shexy_graph);			
+			LOGGER.info("Finished REFINE shex validation");
 			if(all_typed!=null) {
 				//filter to most specific tests
 				Map<Resource, Set<String>> node_s_shapes = getShapesToTestForEachResource(test_model);
@@ -162,14 +168,34 @@ public class ShexValidator {
 							//something didn't match expectations
 							all_good = false;
 							//try to explain the mismatch
-							Violation violation = getViolationForMismatch(shape_label, node, all_typed, test_model);
-							r.addViolation(violation);
+							if(explain) {
+								Violation violation;
+								try {
+									LOGGER.info("Started explanations ");
+									violation = getViolationForMismatch(shape_label, node, all_typed, test_model);
+									LOGGER.info("Finished explanations ");
+									r.addViolation(violation);
+								} catch (IOException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}			
+							}
 						}
 						//run our local CLOSE check 
 						//TODO remove if we implement closed directly
-						Set<ShexViolation> extra_violations = checkForExtraProperties(node, test_model, shape_label, all_typed);
-						if(extra_violations!=null&&!extra_violations.isEmpty()) {
-							r.addViolations(extra_violations);
+						if(explain) {
+							Set<ShexViolation> extra_violations;
+							try {
+								LOGGER.info("Started CLOSED hack ");
+								extra_violations = checkForExtraProperties(node, test_model, shape_label, all_typed);
+								LOGGER.info("Finished CLOSED hack ");
+								if(extra_violations!=null&&!extra_violations.isEmpty()) {
+									r.addViolations(extra_violations);
+								}
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
 						}
 					}
 				}
@@ -191,7 +217,7 @@ public class ShexValidator {
 		return r;
 	}
 
-	private Violation getViolationForMismatch(Label shape_label, Resource focus_node, Typing typing, Model test_model) {
+	private Violation getViolationForMismatch(Label shape_label, Resource focus_node, Typing typing, Model test_model) throws IOException {
 		Status status = typing.getStatus(rdfFactory.createIRI(focus_node.getURI()), shape_label);
 		if(status.equals(Status.NONCONFORMANT)) {
 			//implementing a start on a generic violation report structure here
@@ -254,7 +280,7 @@ public class ShexValidator {
 				}
 				//check for use of properties not defined for this shape (okay if OPEN, not if CLOSED)
 				Typing typing = validateNodeWithTimeout(shex_model_validator, focus_node_resource, shape_label);
-				
+
 				if(typing!=null) {
 					Set<ShexViolation> extra_prop_violations = checkForExtraProperties(focus_node_resource, test_model, shape_label, typing);
 					if(extra_prop_violations != null && !extra_prop_violations.isEmpty()) {
@@ -474,8 +500,9 @@ public class ShexValidator {
 	 * @param model
 	 * @param shape_label
 	 * @return
+	 * @throws IOException 
 	 */
-	public Set<ShexViolation> checkForExtraProperties(Resource node_r, Model model, Label shape_label, Typing typing){
+	public Set<ShexViolation> checkForExtraProperties(Resource node_r, Model model, Label shape_label, Typing typing) throws IOException{
 		Set<ShexViolation> violations = new HashSet<ShexViolation>();
 		Set<String> allowed_properties = this.shape_expected_property_ranges.get(shape_label).keySet();
 		Set<String> actual_properties = new HashSet<String>();
@@ -533,7 +560,7 @@ public class ShexValidator {
 
 	}
 
-	public Model enrichSuperClasses(Model model) {
+	public Model enrichSuperClasses(Model model) throws IOException {
 		LOGGER.info("model size before reasoner expansion: "+model.size());
 		String getOntTerms = 
 				"PREFIX owl: <http://www.w3.org/2002/07/owl#> "
@@ -560,50 +587,63 @@ public class ShexValidator {
 		} catch(QueryParseException e){
 			e.printStackTrace();
 		}
-		if(tbox_reasoner!=null) {
+		if(getGo_lego_repo()!=null) {
+			Map<String, Set<String>> term_parents = getGo_lego_repo().getSuperClassMap(term_set);
 			for(String term : term_set) {
-				OWLClass c = 
-						tbox_reasoner.
-						getRootOntology().
-						getOWLOntologyManager().
-						getOWLDataFactory().getOWLClass(IRI.create(term));
 				Resource child = model.createResource(term);
-				Set<OWLClass> supers = tbox_reasoner.getSuperClasses(c, false).getFlattened();
-				for(OWLClass parent_class : supers) {
-					Resource parent = model.createResource(parent_class.getIRI().toString());
+				for(String parent_class : term_parents.get(term)) {
+					Resource parent = model.createResource(parent_class);
 					model.add(model.createStatement(child, org.apache.jena.vocabulary.RDFS.subClassOf, child));
 					model.add(model.createStatement(child, org.apache.jena.vocabulary.RDFS.subClassOf, parent));
 					model.add(model.createStatement(child, org.apache.jena.vocabulary.RDF.type, org.apache.jena.vocabulary.OWL.Class));
 				}
 			}
-		}else {
-			String superQuery = ""
-					+ "PREFIX owl: <http://www.w3.org/2002/07/owl#> "
-					+ "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> "
-					+ "CONSTRUCT { " + 
-					"        ?term rdfs:subClassOf ?superclass ." + 
-					"        ?term a owl:Class ." + 
-					"        }" + 
-					"        WHERE {" + 
-					"        VALUES ?term { "+terms+" } " + 
-					"        ?term rdfs:subClassOf* ?superclass ." + 
-					"        FILTER(isIRI(?superclass)) ." + 
-					"        }";
-
-			Query query = QueryFactory.create(superQuery); 
-			try ( 
-					QueryExecution qexec = QueryExecutionFactory.sparqlService(endpoint, query) ) {
-				qexec.execConstruct(model);
-				qexec.close();
-			} catch(QueryParseException e){
-				e.printStackTrace();
-			}
 		}
+		//		if(tbox_reasoner!=null) {
+		//			for(String term : term_set) {
+		//				OWLClass c = 
+		//						tbox_reasoner.
+		//						getRootOntology().
+		//						getOWLOntologyManager().
+		//						getOWLDataFactory().getOWLClass(IRI.create(term));
+		//				Resource child = model.createResource(term);
+		//				Set<OWLClass> supers = tbox_reasoner.getSuperClasses(c, false).getFlattened();
+		//				for(OWLClass parent_class : supers) {
+		//					Resource parent = model.createResource(parent_class.getIRI().toString());
+		//					model.add(model.createStatement(child, org.apache.jena.vocabulary.RDFS.subClassOf, child));
+		//					model.add(model.createStatement(child, org.apache.jena.vocabulary.RDFS.subClassOf, parent));
+		//					model.add(model.createStatement(child, org.apache.jena.vocabulary.RDF.type, org.apache.jena.vocabulary.OWL.Class));
+		//				}
+		//			}
+		//		}
+		//		else {
+		//			String superQuery = ""
+		//					+ "PREFIX owl: <http://www.w3.org/2002/07/owl#> "
+		//					+ "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> "
+		//					+ "CONSTRUCT { " + 
+		//					"        ?term rdfs:subClassOf ?superclass ." + 
+		//					"        ?term a owl:Class ." + 
+		//					"        }" + 
+		//					"        WHERE {" + 
+		//					"        VALUES ?term { "+terms+" } " + 
+		//					"        ?term rdfs:subClassOf* ?superclass ." + 
+		//					"        FILTER(isIRI(?superclass)) ." + 
+		//					"        }";
+		//
+		//			Query query = QueryFactory.create(superQuery); 
+		//			try ( 
+		//					QueryExecution qexec = QueryExecutionFactory.sparqlService(endpoint, query) ) {
+		//				qexec.execConstruct(model);
+		//				qexec.close();
+		//			} catch(QueryParseException e){
+		//				e.printStackTrace();
+		//			}
+		//		}
 		LOGGER.info("model size after reasoner expansion: "+model.size());
 		return model;
 	}
 
-	public Set<String> getNodeTypes(Model model, String node_uri) {
+	public Set<String> getNodeTypes(Model model, String node_uri) throws IOException {
 
 		String getOntTerms = 
 				"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
@@ -621,11 +661,18 @@ public class ShexValidator {
 				QuerySolution qs = results.next();
 				Resource type = qs.getResource("type");
 				types.add(getCurie(type.getURI()));
-				OWLClass t = tbox_reasoner.getRootOntology().getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(type.getURI()));
-				for(OWLClass p : tbox_reasoner.getSuperClasses(t, false).getFlattened()) {
-					String type_curie = getCurie(p.getIRI().toString());
-					types.add(type_curie);
-				}
+				//				OWLClass t = tbox_reasoner.getRootOntology().getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(type.getURI()));
+				//				for(OWLClass p : tbox_reasoner.getSuperClasses(t, false).getFlattened()) {
+				//					String type_curie = getCurie(p.getIRI().toString());
+				//					types.add(type_curie);
+				//				}
+				//this slows it down a lot...  
+				//Set<String> supers = getGo_lego_repo().getSuperClasses(type.getURI());
+				//for(String s : supers) {
+				//	String type_curie = getCurie(s);
+				//	types.add(type_curie);
+				//}
+
 			}
 			qe.close();
 		} catch(QueryParseException e){
@@ -636,14 +683,14 @@ public class ShexValidator {
 		return types;
 	}
 
-	private Set<ShexConstraint> getUnmetConstraints(Resource focus_node, Label shape_label, Model model, Typing typing) {
+	private Set<ShexConstraint> getUnmetConstraints(Resource focus_node, Label shape_label, Model model, Typing typing) throws IOException {
 		Set<ShexConstraint> unmet_constraints = new HashSet<ShexConstraint>();
 		Set<String> node_types = getNodeTypes(model, focus_node.getURI());		
 		Map<String, Set<String>> expected_property_ranges = shape_expected_property_ranges.get(shape_label);
 		//get a map from properties to actual shapes of the asserted objects
-//		JenaRDF jr = new JenaRDF();
-//		JenaGraph shexy_graph = jr.asGraph(model); 
-//		RecursiveValidationWithMemorization shex_model_validator = new RecursiveValidationWithMemorization(schema, shexy_graph);
+		//		JenaRDF jr = new JenaRDF();
+		//		JenaGraph shexy_graph = jr.asGraph(model); 
+		//		RecursiveValidationWithMemorization shex_model_validator = new RecursiveValidationWithMemorization(schema, shexy_graph);
 
 		//get the focus node in the rdf model
 		//check for assertions with properties in the target shape
@@ -676,12 +723,12 @@ public class ShexValidator {
 						break;
 					}
 					Label target_shape_label = new Label(rdfFactory.createIRI(target_shape_uri));
-			//		Typing typing = validateNodeWithTimeout(shex_model_validator, obj.asResource(), shape_label);
+					//		Typing typing = validateNodeWithTimeout(shex_model_validator, obj.asResource(), shape_label);
 					if(typing!=null) {
 						//capture the result
 						//Typing shape_test = shex_model_validator.getTyping();
 						Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(range_obj, target_shape_label);
-			//			Status r = shape_test.getStatusMap().get(p);
+						//			Status r = shape_test.getStatusMap().get(p);
 						Status r = typing.getStatus(range_obj, target_shape_label);
 						if(r!=null&&r.equals(Status.CONFORMANT)) {
 							good = true;
@@ -735,7 +782,7 @@ public class ShexValidator {
 		}
 		return obj_matched_shapes;
 	}
-	
+
 	public Set<String> getAllMatchedShapes(RDFTerm value, RecursiveValidationWithMemorization shex_model_validator){
 		Set<Label> all_shapes_in_schema = getAllShapesInSchema();
 		Set<String> obj_matched_shapes = new HashSet<String>();
@@ -900,5 +947,13 @@ public class ShexValidator {
 		}
 		qe.close();
 		return model_title;
+	}
+
+	public BlazegraphOntologyManager getGo_lego_repo() {
+		return go_lego_repo;
+	}
+
+	public void setGo_lego_repo(BlazegraphOntologyManager go_lego_repo) {
+		this.go_lego_repo = go_lego_repo;
 	}
 }

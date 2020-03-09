@@ -50,6 +50,8 @@ import fr.inria.lille.shexjava.schema.parsing.GenParser;
 public class ValidationTest {
 	private static final Logger LOGGER = Logger.getLogger(ValidationTest.class);
 	static final String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
+	//TODO need to rig up a way to get the journal from somewhere else for travis testing.  
+	static final String ontology_journal_file = "/Users/benjamingood/blazegraph/blazegraph.jnl";
 	static final String catalog = "src/test/resources/ontology/catalog-for-validation.xml";
 	static final String modelIdcurie = "http://model.geneontology.org/";
 	static final String modelIdPrefix = "gomodel";
@@ -145,7 +147,7 @@ public class ValidationTest {
 
 	public static void validateGoCams(String input, boolean should_fail, boolean check_shex, String golr_server) throws Exception {
 		String blazegraph_journal = makeBlazegraphJournal(input);
-		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, blazegraph_journal, null);
+		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, blazegraph_journal, null, ontology_journal_file);
 		URL shex_schema_url = new URL(shexFileUrl);
 		File shex_schema_file = new File("src/test/resources/validate.shex"); //for some reason the temporary_model file won't parse..
 		org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);			
@@ -153,7 +155,7 @@ public class ValidationTest {
 		URL shex_map_url = new URL(goshapemapFileUrl);
 		File shex_map_file = new File("src/test/resources/validate.shapemap");
 		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
-		MinervaShexValidator shex = new MinervaShexValidator(shex_schema_file, shex_map_file, curieHandler, m3.getTbox_reasoner(), externalLookupService);
+		MinervaShexValidator shex = new MinervaShexValidator(shex_schema_file, shex_map_file, curieHandler, m3.getGolego_repo(), externalLookupService);
 		if(check_shex) {
 			if(check_shex) {
 				shex.setActive(true);
@@ -209,7 +211,7 @@ public class ValidationTest {
 			}
 			//load everything into a bg journal
 			OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
-			BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null);
+			BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, ontology_journal_file);
 			if(i.isDirectory()) {
 				FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
 					if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {

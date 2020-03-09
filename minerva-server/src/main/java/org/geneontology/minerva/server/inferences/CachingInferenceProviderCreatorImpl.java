@@ -1,5 +1,6 @@
 package org.geneontology.minerva.server.inferences;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,7 +52,7 @@ public class CachingInferenceProviderCreatorImpl extends InferenceProviderCreato
 	}
 
 	@Override
-	public InferenceProvider create(final ModelContainer model) throws OWLOntologyCreationException, InterruptedException {
+	public InferenceProvider create(final ModelContainer model) throws OWLOntologyCreationException, InterruptedException, IOException {
 		synchronized (model.getAboxOntology()) {
 			InferenceProvider inferenceProvider = inferenceCache.get(model);
 			if (inferenceProvider == null) {

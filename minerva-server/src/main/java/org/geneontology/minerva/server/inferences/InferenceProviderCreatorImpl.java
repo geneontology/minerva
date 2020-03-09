@@ -1,5 +1,6 @@
 package org.geneontology.minerva.server.inferences;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,6 +20,7 @@ import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLClassExpression;
+import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLEntity;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -27,6 +29,8 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 import org.semanticweb.owlapi.search.EntitySearcher;
+
+import com.sun.org.apache.xml.internal.utils.URI;
 
 import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
 import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
@@ -89,7 +93,7 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 	//	}
 
 	@Override
-	public InferenceProvider create(ModelContainer model) throws OWLOntologyCreationException, InterruptedException {
+	public InferenceProvider create(ModelContainer model) throws OWLOntologyCreationException, InterruptedException, IOException {
 		OWLOntology ont = model.getAboxOntology();
 		final OWLOntologyManager m = ont.getOWLOntologyManager();
 		OWLOntology module = null;
@@ -111,7 +115,8 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 					//add root types for gene products.  
 					//TODO investigate performance impact
 					//tradefoff these queries versus loading all possible genes into tbox 
-					temp_ont = addRootTypesToCopy(ont, shex.externalLookupService);
+					//temp_ont = addRootTypesToCopy(ont, shex.externalLookupService);
+					temp_ont = addAllInferredTypesToCopyLocalOntoBlazegraph(ont);
 					//do reasoning and validation on the enhanced model
 					reasoner = rf.createReasoner(temp_ont);
 					provider = MapInferenceProvider.create(reasoner, temp_ont, shex);
@@ -136,7 +141,46 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 
 	}
 
-	public static OWLOntology addRootTypesToCopy(OWLOntology asserted_ont, ExternalLookupService externalLookupService) throws OWLOntologyCreationException {
+
+	public OWLOntology addAllInferredTypesToCopyLocalOntoBlazegraph(OWLOntology asserted_ont) throws OWLOntologyCreationException, IOException {
+		OWLOntology temp_ont = asserted_ont.getOWLOntologyManager().createOntology();
+		temp_ont.getOWLOntologyManager().addAxioms(temp_ont, asserted_ont.getAxioms());		
+		OWLDataFactory df = temp_ont.getOWLOntologyManager().getOWLDataFactory();
+		Set<OWLNamedIndividual> individuals = temp_ont.getIndividualsInSignature();
+		Map<String, Set<String>> sub_supers = new HashMap<String, Set<String>>();
+		Set<String> uris = new HashSet<String>();
+		for (OWLNamedIndividual individual : individuals) {		
+			Collection<OWLClassExpression> asserted_types = EntitySearcher.getTypes(individual, asserted_ont);
+			for(OWLClassExpression cls : asserted_types) {
+				if(cls.isAnonymous()) {
+					continue;
+				}
+				IRI class_iri = cls.asOWLClass().getIRI();
+				uris.add(class_iri.toString());
+			}
+		}
+		sub_supers = shex.getGo_lego_repo().getSuperClassMap(uris);
+		Set<OWLClassAssertionAxiom> new_parents = new HashSet<OWLClassAssertionAxiom>();
+		for(String sub : sub_supers.keySet()){
+			Set<String> supers = sub_supers.get(sub);			
+			if(supers!=null) {
+				for(String s : supers) {
+					OWLClass parent_class = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(s));	
+					//Noting that this is a little different - we are adding all types, not just the roots here.  Not sure why that would be a problem, but.. 
+					OWLClassAssertionAxiom add_parent = df.getOWLClassAssertionAxiom(parent_class, df.getOWLNamedIndividual(IRI.create(sub)));
+					new_parents.add(add_parent);
+				}
+			}
+		}
+		if(!new_parents.isEmpty()) {
+			temp_ont.getOWLOntologyManager().addAxioms(temp_ont, new_parents);
+		}
+				
+		return temp_ont;
+	}
+
+
+	public static OWLOntology addRootTypesToCopyViaGolr(OWLOntology asserted_ont, ExternalLookupService externalLookupService) throws OWLOntologyCreationException {
 		if(externalLookupService==null) {
 			return asserted_ont; //should probably throw some kind of exception here..
 		}
@@ -163,6 +207,7 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		}		 
 		//look up all at once
 		Map<IRI, List<LookupEntry>> iri_lookup = externalLookupService.lookupBatch(to_look_up);
+
 		if(iri_lookup!=null) {
 			//add the identified root types on to the individuals in the model
 			for(OWLNamedIndividual i : individual_types.keySet()) {

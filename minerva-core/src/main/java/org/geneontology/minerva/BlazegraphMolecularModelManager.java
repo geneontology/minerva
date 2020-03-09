@@ -96,12 +96,12 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @param tbox
 	 * @param modelIdPrefix
 	 * @param pathToJournal Path to Blazegraph journal file to use.
-	 * Only one instance of Blazegraph can use this file at a time.
+	 * Only one instance of Blazegraph can use this file at a time. 
 	 * @throws OWLOntologyCreationException
 	 */
-	public BlazegraphMolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder)
+	public BlazegraphMolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder, String pathToOntologyJournal)
 			throws OWLOntologyCreationException {
-		super(tbox);
+		super(tbox, pathToOntologyJournal);
 		this.modelIdPrefix = modelIdPrefix;
 		this.curieHandler = curieHandler;
 		this.pathToOWLStore = pathToJournal;
@@ -206,7 +206,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			createImports(abox, tbox.getOntologyID(), metadata);
 
 			// generate model
-			model = new ModelContainer(modelId, tbox, abox, tbox_reasoner);
+			model = new ModelContainer(modelId, tbox, abox);
 		} catch (OWLOntologyCreationException exception) {
 			if (abox != null) {
 				m.removeOntology(abox);
@@ -521,7 +521,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			unlinkModel(modelId);
 		}
 		try {
-			BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
+			BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection(); 
 			try {
 				RepositoryResult<Resource> graphs = connection.getContextIDs();
 				if (!Iterations.asSet(graphs).contains(new URIImpl(modelId.toString()))) {
@@ -530,7 +530,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				graphs.close();
 				RepositoryResult<Statement> statements =
 						connection.getStatements(null, null, null, false, new URIImpl(modelId.toString()));
-				OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), false);
+				boolean minimal = true;
+				OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), minimal);
 				statements.close();
 				abox = postLoadFileFilter(abox);
 				ModelContainer model = addModel(modelId, abox);

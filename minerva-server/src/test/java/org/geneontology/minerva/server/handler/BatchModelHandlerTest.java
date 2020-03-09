@@ -46,7 +46,7 @@ public class BatchModelHandlerTest {
 	private static UndoAwareMolecularModelManager models = null;
 	private static Set<OWLObjectProperty> importantRelations = null;
 	private final static DateGenerator dateGenerator = new DateGenerator();
-
+	static final String ontology_journal_file = null;
 	static final String uid = "test-user";
 	static final Set<String> providedBy = Collections.singleton("test-provider"); 
 	static final String intention = "test-intention";
@@ -71,7 +71,7 @@ public class BatchModelHandlerTest {
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false, null);
-		models = new UndoAwareMolecularModelManager(graph.getSourceOntology(), curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
+		models = new UndoAwareMolecularModelManager(graph.getSourceOntology(), curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null, ontology_journal_file);
 		lookupService = createTestProteins(curieHandler);
 		handler = new JsonOrJsonpBatchHandler(models, "development", ipc, importantRelations, lookupService) {
 

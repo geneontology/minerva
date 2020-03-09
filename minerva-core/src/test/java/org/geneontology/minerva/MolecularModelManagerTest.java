@@ -23,7 +23,8 @@ import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 
 public class MolecularModelManagerTest {
-
+	static final String go_lego_journal_file = null;
+	
 	// JUnit way of creating a temporary test folder
 	// will be deleted after the test has run, by JUnit.
 	@Rule
@@ -35,7 +36,7 @@ public class MolecularModelManagerTest {
 	}
 	
 	private MolecularModelManager<Void> createM3(OWLOntology tbox, File journal) throws OWLOntologyCreationException, IOException {
-		return new MolecularModelManager<Void>(tbox, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), null);
+		return new MolecularModelManager<Void>(tbox, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), null, go_lego_journal_file);
 	}
 
 	@Test

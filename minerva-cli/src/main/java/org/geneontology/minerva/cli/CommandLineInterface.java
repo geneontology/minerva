@@ -33,6 +33,7 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
+import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -112,6 +113,12 @@ public class CommandLineInterface {
 				.hasArg(false)
 				.build();
 		methods.addOption(import_owl);
+		Option import_tbox_ontologies = Option.builder()
+				.longOpt("import-tbox-ontologies")
+				.desc("import OWL tbox ontologies into journal")
+				.hasArg(false)
+				.build();
+		methods.addOption(import_tbox_ontologies);
 		Option sparql = Option.builder()
 				.longOpt("sparql-update")
 				.desc("update the blazegraph journal with the given sparql statement")
@@ -154,7 +161,16 @@ public class CommandLineInterface {
 		CommandLineParser parser = new DefaultParser();
 		try {
 			CommandLine cmd = parser.parse( main_options, args, true);
-
+			if(cmd.hasOption("import-tbox-ontologies")) {
+				Options import_tbox_options = new Options();
+				import_tbox_options.addOption(import_tbox_ontologies);
+				import_tbox_options.addOption("j", "journal", true, "Sets the Blazegraph journal file for the database");
+				import_tbox_options.addOption("f", "file", true, "Sets the input file containing the ontology to load");
+				cmd = parser.parse( import_tbox_options, args, false);
+				String journalFilePath = cmd.getOptionValue("j"); //--journal
+				String inputFile = cmd.getOptionValue("f"); //--folder
+				importOWLOntologyIntoJournal(journalFilePath, inputFile);
+			}
 			if(cmd.hasOption("dump-owl-models")) {
 				Options dump_options = new Options();
 				dump_options.addOption(dump);
@@ -254,7 +270,9 @@ public class CommandLineInterface {
 				validate_options.addOption("m", "shapemap", true, "Specify a shapemap file.  Otherwise will download from go_shapes repo.");
 				validate_options.addOption("s", "shexpath", true, "Specify a shex schema file.  Otherwise will download from go_shapes repo.");
 				validate_options.addOption("g", "golr", true, "Specify a URL for a golr server.  Defaults to http://noctua-golr.berkeleybop.org/ id not set.  Typical local configuration might be http://127.0.0.1:8080/solr/");
+				validate_options.addOption("ontojournal", "ontojournal", true, "Specify a blazegraph journal file containing the merged, pre-reasoned tbox aka go-lego.owl");
 
+				
 				cmd = parser.parse(validate_options, args, false);
 				String input = cmd.getOptionValue("input");			
 				String basicOutputFile = cmd.getOptionValue("report-file");
@@ -299,7 +317,15 @@ public class CommandLineInterface {
 					System.err.println("Need to specify a golr server - should be a local instance for any large batch run. e.g. -golr http://127.0.0.1:8080/solr/");
 					System.exit(-1);
 				}
-				validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, golr_server, gorules_json_output_file);
+				String go_lego_journal_file = null;
+				if(cmd.hasOption("ontojournal")) {
+					go_lego_journal_file = cmd.getOptionValue("ontojournal");
+				}
+				if(go_lego_journal_file==null) {
+					System.err.println("Missing -- ontojournal .  Need to specify blazegraph journal file containing the merged go-lego tbox (neo, GO-plus, etc..)");
+					System.exit(-1);
+				}
+				validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, golr_server, gorules_json_output_file, go_lego_journal_file);
 			}else if(cmd.hasOption("update-gene-product-types")) {
 				Options options = new Options();
 				options.addOption(update_gps);
@@ -360,7 +386,7 @@ public class CommandLineInterface {
 
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 		CurieHandler curieHandler = new MappedCurieHandler();
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, outputFolder);
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, outputFolder, null);
 		m3.dumpAllStoredModels();
 		m3.dispose();
 	}
@@ -388,7 +414,7 @@ public class CommandLineInterface {
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 		String modelIdPrefix = "http://model.geneontology.org/"; // this will not be used for anything
 		CurieHandler curieHandler = new MappedCurieHandler();
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null);
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null, null);
 		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
 			LOGGER.info("Loading " + file);
 			if(file.getName().endsWith("ttl")) {
@@ -403,6 +429,31 @@ public class CommandLineInterface {
 		m3.dispose();
 	}
 
+	/**
+	 * Load the go-cam files in the input folder into the journal
+	 * cli import-owl-models
+	 * @param journalFilePath
+	 * @param inputFolder
+	 * @throws Exception
+	 */
+	public static void importOWLOntologyIntoJournal(String journalFilePath, String inputFile) throws Exception {
+		// minimal inputs
+		if (journalFilePath == null) {
+			System.err.println("No journal file was configured.");
+			System.exit(-1);
+			return;
+		}
+		if (inputFile == null) {
+			System.err.println("No input file was configured.");
+			System.exit(-1);
+			return;
+		}
+
+		BlazegraphOntologyManager man = new BlazegraphOntologyManager(journalFilePath);
+		String iri_for_ontology_graph = "http://geneontology.org/go-lego-graph";
+		man.loadRepositoryFromOWLFile(new File(inputFile), iri_for_ontology_graph);
+	}
+	
 	/**
 	 * Updates the journal with the provided update sparql statement.
 	 * cli parameter --sparql-update
@@ -552,11 +603,12 @@ public class CommandLineInterface {
 		OWLOntology ontology = ontman.loadOntology(IRI.create(ontologyIRI));
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(ontology, curieHandler, modelIdPrefix, inputDB, null);
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(ontology, curieHandler, modelIdPrefix, inputDB, null, null);
 		final String immutableModelIdPrefix = modelIdPrefix;
 		final String immutableGpadOutputFolder = gpadOutputFolder;
 		m3.getAvailableModelIds().stream().parallel().forEach(modelIRI -> {
 			try {
+				//TODO investigate whether changing to a neo-lite model has an impact on this - may need to make use of ontology journal
 				String gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createInferredModel(modelIRI));
 				String fileName = StringUtils.replaceOnce(modelIRI.toString(), immutableModelIdPrefix, "") + ".gpad";
 				Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(immutableGpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
@@ -592,7 +644,7 @@ public class CommandLineInterface {
 	public static void validateGoCams(String input, String basicOutputFile, String explanationOutputFile, 
 			String ontologyIRI, String catalog, String modelIdPrefix, String modelIdcurie, 
 			String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex, String golr_server, 
-			String gorules_json_output_file) throws Exception {
+			String gorules_json_output_file, String go_lego_journal_file) throws Exception {
 		Logger LOG = Logger.getLogger(CommandLineInterface.class);
 		LOG.setLevel(Level.ERROR);
 		LOGGER.setLevel(Level.INFO);
@@ -626,7 +678,8 @@ public class CommandLineInterface {
 				//load everything into a bg journal
 				OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 				CurieHandler curieHandler = new MappedCurieHandler();
-				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null);
+				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);				
+				
 				if(i.isDirectory()) {
 					Set<String> model_iris = new HashSet<String>();
 					FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
@@ -638,6 +691,9 @@ public class CommandLineInterface {
 									LOGGER.error("Multiple models with same IRI: "+modeluri+" file: "+file+" file: "+modelid_filename.get(modeluri));
 								}
 								modelid_filename.put(modeluri, file.getName());
+								//is it okay?
+								ModelContainer mc = m3.getModel(IRI.create(modeluri));
+								mc.getModelId();
 							} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
 									| RDFHandlerException | IOException e) {
 								// TODO Auto-generated catch block
@@ -674,9 +730,8 @@ public class CommandLineInterface {
 		LOGGER.info("building model manager and structural reasoner");
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null);
-		String reasonerOpt = "arachne"; 
-		LOGGER.info("tbox reasoner for shex "+m3.getTbox_reasoner().getReasonerName());		
+		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
+		String reasonerOpt = "arachne"; 	
 		if(shexpath==null) {
 			//fall back on downloading from shapes repo
 			URL shex_schema_url = new URL(shexFileUrl);
@@ -702,7 +757,7 @@ public class CommandLineInterface {
 		}
 		ExternalLookupService externalLookupService = new GolrExternalLookupService(golr_url, curieHandler, false);
 		LOGGER.info("making shex validator: "+shexpath+" "+shapemappath+" "+curieHandler+" ");
-		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getTbox_reasoner(), externalLookupService);
+		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getGolego_repo(), externalLookupService);  
 		if(checkShex) {
 			if(checkShex) {
 				shex.setActive(true);

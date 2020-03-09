@@ -1,5 +1,6 @@
 package org.geneontology.minerva.server.inferences;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,7 +38,7 @@ public class MapInferenceProvider implements InferenceProvider {
 		this.validation_results = validation_reports;
 	}
 	
-	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, MinervaShexValidator shex) throws OWLOntologyCreationException {
+	public static InferenceProvider create(OWLReasoner r, OWLOntology ont, MinervaShexValidator shex) throws OWLOntologyCreationException, IOException {
 		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypes = new HashMap<>();
 		Map<OWLNamedIndividual, Set<OWLClass>> inferredTypesWithIndirects = new HashMap<>();
 		boolean isConsistent = r.isConsistent();

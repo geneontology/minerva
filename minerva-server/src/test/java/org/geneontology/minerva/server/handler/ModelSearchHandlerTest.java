@@ -87,6 +87,7 @@ public class ModelSearchHandlerTest {
 	static final String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 	static final String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
 	static final String golr_url = "http://noctua-golr.berkeleybop.org/"; 
+	static final String go_lego_journal_file = null;
 	static ExternalLookupService externalLookupService;
 	static OWLOntology tbox_ontology;
 	static CurieHandler curieHandler;	
@@ -109,7 +110,7 @@ public class ModelSearchHandlerTest {
 		//leave tbox empty for now
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		tbox_ontology = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
-		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null);
+		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
 		
 		
 		LOGGER.info("Setup Jetty config.");
@@ -356,7 +357,7 @@ public class ModelSearchHandlerTest {
 			}
 			//load everything into a bg journal
 			OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
-			BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null);
+			BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
 			if(i.isDirectory()) {
 				FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
 					if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {

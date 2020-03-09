@@ -264,7 +264,7 @@ public class StartUpTool {
 		//reasoner set in next phase after ontologies loaded
 		conf.shex = new MinervaShexValidator(shex_schema_file, shex_map_file, conf.curieHandler, null, conf.lookupService);
 			
-		Server server = startUp(conf);
+		Server server = startUp(conf); 
 		try {
 			server.join();
 		}
@@ -363,11 +363,13 @@ public class StartUpTool {
 
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
+		String pathToOntologyJournal = "path to go lego journal ";
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph.getSourceOntology(),
-				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder);
+				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder, pathToOntologyJournal );
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
-		conf.shex.tbox_reasoner = models.getTbox_reasoner();
+	//	conf.shex.tbox_reasoner = models.getTbox_reasoner();
+		conf.shex.setGo_lego_repo(models.getGolego_repo());
 		conf.shex.curieHandler = conf.curieHandler;
 		// start server
 		Server server = startUp(models, conf, ont_annos);
