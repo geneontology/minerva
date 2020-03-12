@@ -17,15 +17,18 @@ import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLEntity;
+import org.semanticweb.owlapi.model.OWLIndividual;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 import org.semanticweb.owlapi.search.EntitySearcher;
@@ -44,23 +47,6 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 	private final boolean useSLME;
 	private final String name;
 	private final MinervaShexValidator shex;
-
-	/**
-	 * May want to introduce root type / category based logic.  Leaving the list here for consideration.
-	private static final Set<String> root_types;
-	static {
-		root_types =  new HashSet<String>();
-		root_types.add("http://purl.obolibrary.org/obo/GO_0008150"); //BP
-		root_types.add("http://purl.obolibrary.org/obo/GO_0003674"); //MF
-		root_types.add("http://purl.obolibrary.org/obo/GO_0005575"); //CC
-		root_types.add("http://purl.obolibrary.org/obo/GO_0032991"); //Complex
-		root_types.add("http://purl.obolibrary.org/obo/CHEBI_36080"); //protein
-		root_types.add("http://purl.obolibrary.org/obo/CHEBI_33695"); //information biomacromolecule
-		root_types.add("http://purl.obolibrary.org/obo/CHEBI_50906");  //chemical role
-		root_types.add("http://purl.obolibrary.org/obo/CHEBI_24431"); //chemical entity
-		root_types.add("http://purl.obolibrary.org/obo/UBERON_0001062"); //anatomical entity
-	}
-	 */
 
 
 	InferenceProviderCreatorImpl(OWLReasonerFactory rf, int maxConcurrent, boolean useSLME, String name, MinervaShexValidator shex) {
@@ -146,9 +132,12 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		OWLOntology temp_ont = asserted_ont.getOWLOntologyManager().createOntology();
 		temp_ont.getOWLOntologyManager().addAxioms(temp_ont, asserted_ont.getAxioms());		
 		OWLDataFactory df = temp_ont.getOWLOntologyManager().getOWLDataFactory();
+		OWLClass protein = df.getOWLClass(IRI.create("http://purl.obolibrary.org/obo/CHEBI_36080"));
+		OWLClass informationbla = df.getOWLClass(IRI.create("http://purl.obolibrary.org/obo/CHEBI_33695"));
 		Set<OWLNamedIndividual> individuals = temp_ont.getIndividualsInSignature();
 		Map<String, Set<String>> sub_supers = new HashMap<String, Set<String>>();
 		Set<String> uris = new HashSet<String>();
+		Map<OWLNamedIndividual, Collection<OWLClassExpression>> individual_asserted_types = new HashMap<OWLNamedIndividual, Collection<OWLClassExpression>>();
 		for (OWLNamedIndividual individual : individuals) {		
 			Collection<OWLClassExpression> asserted_types = EntitySearcher.getTypes(individual, asserted_ont);
 			for(OWLClassExpression cls : asserted_types) {
@@ -158,24 +147,46 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 				IRI class_iri = cls.asOWLClass().getIRI();
 				uris.add(class_iri.toString());
 			}
+			individual_asserted_types.put(individual, asserted_types);
 		}
 		sub_supers = shex.getGo_lego_repo().getSuperClassMap(uris);
-		Set<OWLClassAssertionAxiom> new_parents = new HashSet<OWLClassAssertionAxiom>();
-		for(String sub : sub_supers.keySet()){
-			Set<String> supers = sub_supers.get(sub);			
-			if(supers!=null) {
-				for(String s : supers) {
-					OWLClass parent_class = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(s));	
-					//Noting that this is a little different - we are adding all types, not just the roots here.  Not sure why that would be a problem, but.. 
-					OWLClassAssertionAxiom add_parent = df.getOWLClassAssertionAxiom(parent_class, df.getOWLNamedIndividual(IRI.create(sub)));
-					new_parents.add(add_parent);
+		Set<OWLAxiom> new_parent_types = new HashSet<OWLAxiom>();
+		//for all individuals
+		for(OWLNamedIndividual i : individual_asserted_types.keySet()) {
+			//for all asserted types
+			for(OWLClassExpression asserted : individual_asserted_types.get(i)) {
+				//add types for all their parents
+				if(asserted.isAnonymous()) {
+					continue;
+				}
+				OWLClass sub = asserted.asOWLClass();
+				Set<String> supers = sub_supers.get(sub.getIRI().toString());			
+				if(supers!=null) {
+					for(String s : supers) {
+						OWLClass parent_class = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(s));							 
+						if(!parent_class.isBuiltIn()&&(!parent_class.isAnonymous())) {
+							OWLClassAssertionAxiom add_parent_type = df.getOWLClassAssertionAxiom(parent_class, i);
+							new_parent_types.add(add_parent_type);
+						}
+						//add everything into the tbox - (for use later in shex validator)
+						OWLSubClassOfAxiom subSuper = df.getOWLSubClassOfAxiom(sub, parent_class);
+						new_parent_types.add(subSuper);
+						//make sure the parent is a subclass of itself.. needed for shex to find it. 
+						OWLSubClassOfAxiom superSuper = df.getOWLSubClassOfAxiom(parent_class, parent_class);
+						new_parent_types.add(superSuper);
+						//TODO hack around missing piece in neo
+						if(parent_class.equals(protein)) {
+							OWLClassAssertionAxiom add_parent_type = df.getOWLClassAssertionAxiom(informationbla, i);
+							new_parent_types.add(add_parent_type);							
+						}
+					}
 				}
 			}
 		}
-		if(!new_parents.isEmpty()) {
-			temp_ont.getOWLOntologyManager().addAxioms(temp_ont, new_parents);
+		if(!new_parent_types.isEmpty()) {
+			temp_ont.getOWLOntologyManager().addAxioms(temp_ont, new_parent_types);
 		}
-				
+
 		return temp_ont;
 	}
 

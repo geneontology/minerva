@@ -262,7 +262,7 @@ public class StartUpTool {
 		File shex_map_file = new File("./target/go-cam-shapes.shapeMap");
 		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
 		//reasoner set in next phase after ontologies loaded
-		conf.shex = new MinervaShexValidator(shex_schema_file, shex_map_file, conf.curieHandler, null, conf.lookupService);
+		conf.shex = new MinervaShexValidator(shex_schema_file, shex_map_file, conf.curieHandler, null);
 			
 		Server server = startUp(conf); 
 		try {

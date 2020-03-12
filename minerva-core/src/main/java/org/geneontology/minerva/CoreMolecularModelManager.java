@@ -67,6 +67,7 @@ import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
 import org.semanticweb.owlapi.model.OWLOntologyLoaderConfiguration;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
+import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
 import org.semanticweb.owlapi.model.RemoveAxiom;
 import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
 import org.semanticweb.owlapi.model.SetOntologyID;
@@ -210,7 +211,13 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		initializeTboxLabelIndex();
 		initializeTboxShorthandIndex();
 		initializeDoNotAnnotateSubset();
-		//this.tbox_reasoner = initializeTboxReasoner(tbox);
+		//this is to deal with a bug in NEO
+		//TODO get rid of it when bug is fixed. 
+		OWLDataFactory df = tbox.getOWLOntologyManager().getOWLDataFactory();
+		OWLClass protein = df.getOWLClass(IRI.create("http://purl.obolibrary.org/obo/CHEBI_36080"));
+		OWLClass informationbla = df.getOWLClass(IRI.create("http://purl.obolibrary.org/obo/CHEBI_33695"));
+		OWLSubClassOfAxiom bla = df.getOWLSubClassOfAxiom(protein, informationbla);
+		tbox.getOWLOntologyManager().addAxiom(tbox, bla);
 		this.go_lego_repo = new BlazegraphOntologyManager(go_lego_repo_file);
 		init();
 	}

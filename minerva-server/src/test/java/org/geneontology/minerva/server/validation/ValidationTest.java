@@ -57,8 +57,6 @@ public class ValidationTest {
 	static final String modelIdPrefix = "gomodel";
 	static final String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 	static final String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
-	static final String golr_url = "http://noctua-golr.berkeleybop.org/"; 
-	static ExternalLookupService externalLookupService;
 	static OWLOntology tbox_ontology;
 	static CurieHandler curieHandler;
 
@@ -101,8 +99,6 @@ public class ValidationTest {
 		LOGGER.info("building model manager and structural reasoner");
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-
-		externalLookupService = new GolrExternalLookupService(golr_url, curieHandler, false);
 	}
 
 	@AfterClass
@@ -155,7 +151,7 @@ public class ValidationTest {
 		URL shex_map_url = new URL(goshapemapFileUrl);
 		File shex_map_file = new File("src/test/resources/validate.shapemap");
 		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
-		MinervaShexValidator shex = new MinervaShexValidator(shex_schema_file, shex_map_file, curieHandler, m3.getGolego_repo(), externalLookupService);
+		MinervaShexValidator shex = new MinervaShexValidator(shex_schema_file, shex_map_file, curieHandler, m3.getGolego_repo());
 		if(check_shex) {
 			if(check_shex) {
 				shex.setActive(true);

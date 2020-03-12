@@ -1,5 +1,7 @@
 package org.geneontology.minerva.server.inferences;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,10 +18,13 @@ import org.geneontology.minerva.validation.OWLValidationReport;
 import org.geneontology.minerva.validation.ShexValidationReport;
 import org.geneontology.minerva.validation.ValidationResultSet;
 import org.geneontology.minerva.validation.Violation;
+import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
+import org.semanticweb.owlapi.io.FileDocumentTarget;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 
 public class MapInferenceProvider implements InferenceProvider {
@@ -76,11 +81,26 @@ public class MapInferenceProvider implements InferenceProvider {
 		ShexValidationReport shex_validation = null;
 		if(shex.isActive()) {
 			//generate an RDF model
+			FileDocumentTarget outf = new FileDocumentTarget(new File("/Users/benjamingood/test/tmp/ont_after_type_before_expand.ttl"));
+			ont.getOWLOntologyManager().setOntologyFormat(ont, new TurtleDocumentFormat());	
+			try {
+				ont.getOWLOntologyManager().saveOntology(ont,outf);
+			} catch (OWLOntologyStorageException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			
 			Model model = JenaOwlTool.getJenaModel(ont);
 			//add superclasses to types used in model 
-			model = shex.enrichSuperClasses(model);	
+			//should already be done.
+			//model = shex.enrichSuperClasses(model);	
+			
+			//FileOutputStream o = new FileOutputStream(new File("/Users/benjamingood/test/tmp/ont_after_type_after_expand.ttl"));
+			//model.write(o, "TURTLE");
+	 		//o.close();
+			
 			try {
-				LOGGER.info("Running shex validation - model size:"+model.size());
+				LOGGER.info("Running shex validation - model (enriched with superclass hierarchy) size:"+model.size());
 				shex_validation = shex.runShapeMapValidation(model);
 				LOGGER.info("Done with shex validation");
 			} catch (Exception e) {

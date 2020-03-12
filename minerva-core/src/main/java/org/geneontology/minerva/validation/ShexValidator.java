@@ -148,9 +148,7 @@ public class ShexValidator {
 		JenaGraph shexy_graph = jr.asGraph(test_model);
 		boolean all_good = true;
 		try {
-			LOGGER.info("Starting REFINE shex validation");
 			Typing all_typed = runRefineWithTimeout(shexy_graph);			
-			LOGGER.info("Finished REFINE shex validation");
 			if(all_typed!=null) {
 				//filter to most specific tests
 				Map<Resource, Set<String>> node_s_shapes = getShapesToTestForEachResource(test_model);
@@ -171,9 +169,7 @@ public class ShexValidator {
 							if(explain) {
 								Violation violation;
 								try {
-									LOGGER.info("Started explanations ");
 									violation = getViolationForMismatch(shape_label, node, all_typed, test_model);
-									LOGGER.info("Finished explanations ");
 									r.addViolation(violation);
 								} catch (IOException e) {
 									// TODO Auto-generated catch block
@@ -186,9 +182,7 @@ public class ShexValidator {
 						if(explain) {
 							Set<ShexViolation> extra_violations;
 							try {
-								LOGGER.info("Started CLOSED hack ");
 								extra_violations = checkForExtraProperties(node, test_model, shape_label, all_typed);
-								LOGGER.info("Finished CLOSED hack ");
 								if(extra_violations!=null&&!extra_violations.isEmpty()) {
 									r.addViolations(extra_violations);
 								}
@@ -639,7 +633,7 @@ public class ShexValidator {
 		//				e.printStackTrace();
 		//			}
 		//		}
-		LOGGER.info("model size after reasoner expansion: "+model.size());
+		//LOGGER.info("model size after reasoner expansion: "+model.size());
 		return model;
 	}
 
@@ -667,6 +661,7 @@ public class ShexValidator {
 				//					types.add(type_curie);
 				//				}
 				//this slows it down a lot...  
+				//should not be needed 
 				//Set<String> supers = getGo_lego_repo().getSuperClasses(type.getURI());
 				//for(String s : supers) {
 				//	String type_curie = getCurie(s);
@@ -727,7 +722,7 @@ public class ShexValidator {
 					if(typing!=null) {
 						//capture the result
 						//Typing shape_test = shex_model_validator.getTyping();
-						Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(range_obj, target_shape_label);
+						//Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(range_obj, target_shape_label);
 						//			Status r = shape_test.getStatusMap().get(p);
 						Status r = typing.getStatus(range_obj, target_shape_label);
 						if(r!=null&&r.equals(Status.CONFORMANT)) {

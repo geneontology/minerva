@@ -19,7 +19,6 @@ import org.semanticweb.owlapi.reasoner.OWLReasoner;
  */
 public class MinervaShexValidator extends ShexValidator {
 
-	public final ExternalLookupService externalLookupService;
 	boolean active = true;
 	
 	public boolean isActive() {
@@ -35,19 +34,16 @@ public class MinervaShexValidator extends ShexValidator {
 	 * @param goshapemappath
 	 * @throws Exception
 	 */
-	public MinervaShexValidator(String shexpath, String goshapemappath, CurieHandler curieHandler, BlazegraphOntologyManager go_lego, ExternalLookupService externalLookupService) throws Exception {
+	public MinervaShexValidator(String shexpath, String goshapemappath, CurieHandler curieHandler, BlazegraphOntologyManager go_lego) throws Exception {
 		super(shexpath, goshapemappath, go_lego, curieHandler);
-		this.externalLookupService = externalLookupService;
 	}
-
 	/**
 	 * @param shex_schema_file
 	 * @param shex_map_file
 	 * @throws Exception
 	 */
-	public MinervaShexValidator(File shex_schema_file, File shex_map_file, CurieHandler curieHandler, BlazegraphOntologyManager go_lego, ExternalLookupService externalLookupService) throws Exception {
+	public MinervaShexValidator(File shex_schema_file, File shex_map_file, CurieHandler curieHandler, BlazegraphOntologyManager go_lego) throws Exception {
 		super(shex_schema_file, shex_map_file, go_lego, curieHandler);
-		this.externalLookupService = externalLookupService;
 	}
 	
 

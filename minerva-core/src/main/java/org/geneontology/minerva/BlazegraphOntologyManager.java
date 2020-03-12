@@ -39,7 +39,23 @@ import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 public class BlazegraphOntologyManager {
 	private static Logger LOG = Logger.getLogger(BlazegraphOntologyManager.class);
 	private final BigdataSailRepository go_lego_repo;
-
+	//
+	private static final Set<String> root_types;
+	static {
+		root_types =  new HashSet<String>();
+		root_types.add("http://purl.obolibrary.org/obo/GO_0008150"); //BP
+		root_types.add("http://purl.obolibrary.org/obo/GO_0003674"); //MF
+		root_types.add("http://purl.obolibrary.org/obo/GO_0005575"); //CC
+		root_types.add("http://purl.obolibrary.org/obo/GO_0032991"); //Complex
+		root_types.add("http://purl.obolibrary.org/obo/CHEBI_36080"); //protein
+		root_types.add("http://purl.obolibrary.org/obo/CHEBI_33695"); //information biomacromolecule
+		root_types.add("http://purl.obolibrary.org/obo/CHEBI_50906");  //chemical role
+		root_types.add("http://purl.obolibrary.org/obo/CHEBI_24431"); //chemical entity
+		root_types.add("http://purl.obolibrary.org/obo/UBERON_0001062"); //anatomical entity
+		root_types.add("http://purl.obolibrary.org/obo/CARO_0000000"); // root root anatomical entity
+		root_types.add("http://purl.obolibrary.org/obo/ECO_0000000"); //evidence root.  
+	}
+	 
 	public BigdataSailRepository getGo_lego_repo() {
 		return go_lego_repo;
 	}
@@ -91,7 +107,7 @@ public class BlazegraphOntologyManager {
 		}		
 	}
 
-	public Set<String> getSuperClasses(String uri) throws IOException {
+	public Set<String> getAllSuperClasses(String uri) throws IOException {
 		Set<String> supers = new HashSet<String>();
 		try {
 			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
@@ -127,22 +143,27 @@ public class BlazegraphOntologyManager {
 		return supers;
 	}
 	
-	public Map<String, Set<String>> getSuperClassMap(Set<String> uris) throws IOException {
+	public Map<String, Set<String>> getSuperCategoryMap(Set<String> uris) throws IOException {
 		Map<String, Set<String>> sub_supers = new HashMap<String, Set<String>>();
 		try {
 			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
 			try {
-				String v = "VALUES ?sub {";
+				String q = "VALUES ?sub {";
 				for(String uri : uris) {
-					v+="<"+uri+"> ";
+					q+="<"+uri+"> ";
 				}
-				v+="} . " ;
+				q+="} . " ;
 				
+				String categories = "VALUES ?super {";
+				for(String c : root_types) {
+					categories += "<"+c+"> ";
+				}
+				categories +="} . ";
 				String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
 						"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
 						+ "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
 						"SELECT ?sub ?super " +
-						"WHERE { " + v
+						"WHERE { " + q + categories 
 						+ "?sub rdfs:subClassOf* ?super . " +
 						"} ";
 				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
@@ -177,4 +198,53 @@ public class BlazegraphOntologyManager {
 		return sub_supers;
 	}
 
+	public Map<String, Set<String>> getSuperClassMap(Set<String> uris) throws IOException {
+		Map<String, Set<String>> sub_supers = new HashMap<String, Set<String>>();
+		try {
+			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+			try {
+				String q = "VALUES ?sub {";
+				for(String uri : uris) {
+					q+="<"+uri+"> ";
+				}
+				q+="} . " ;
+				String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
+						"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
+						+ "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+						"SELECT ?sub ?super " +
+						"WHERE { " + q 
+						+ "?sub rdfs:subClassOf* ?super . " +
+						"} ";
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
+				TupleQueryResult result = tupleQuery.evaluate();
+				while (result.hasNext()) {
+					BindingSet binding = result.next();
+					Value parent = binding.getValue("super");
+					Value child = binding.getValue("sub");
+					//System.out.println(child +" "+parent);
+					//ignore anonymous super classes
+					if ( parent instanceof URI && child instanceof URI) {
+						String superclass = binding.getValue("super").stringValue();
+						String subclass = binding.getValue("sub").stringValue();
+						Set<String> supers = sub_supers.get(subclass);
+						if(supers==null) {
+							supers = new HashSet<String>();
+						}
+						supers.add(superclass);		
+						sub_supers.put(subclass, supers);
+					}				
+				}
+			} catch (MalformedQueryException e) {
+				throw new IOException(e);
+			} catch (QueryEvaluationException e) {
+				throw new IOException(e);
+			} finally {
+				connection.close();
+			}
+		} catch (RepositoryException e) {
+			throw new IOException(e);
+		}
+		return sub_supers;
+	}
+	
 }

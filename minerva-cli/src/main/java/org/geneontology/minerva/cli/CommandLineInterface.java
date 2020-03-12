@@ -309,14 +309,6 @@ public class CommandLineInterface {
 				if(cmd.hasOption("shex")) {
 					checkShex = true;
 				}
-				String golr_server = null;
-				if(cmd.hasOption("golr")) {
-					golr_server = cmd.getOptionValue("golr");
-				}		
-				if(golr_server==null) {
-					System.err.println("Need to specify a golr server - should be a local instance for any large batch run. e.g. -golr http://127.0.0.1:8080/solr/");
-					System.exit(-1);
-				}
 				String go_lego_journal_file = null;
 				if(cmd.hasOption("ontojournal")) {
 					go_lego_journal_file = cmd.getOptionValue("ontojournal");
@@ -325,7 +317,7 @@ public class CommandLineInterface {
 					System.err.println("Missing -- ontojournal .  Need to specify blazegraph journal file containing the merged go-lego tbox (neo, GO-plus, etc..)");
 					System.exit(-1);
 				}
-				validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, golr_server, gorules_json_output_file, go_lego_journal_file);
+				validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, gorules_json_output_file, go_lego_journal_file);
 			}else if(cmd.hasOption("update-gene-product-types")) {
 				Options options = new Options();
 				options.addOption(update_gps);
@@ -643,7 +635,7 @@ public class CommandLineInterface {
 	 */
 	public static void validateGoCams(String input, String basicOutputFile, String explanationOutputFile, 
 			String ontologyIRI, String catalog, String modelIdPrefix, String modelIdcurie, 
-			String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex, String golr_server, 
+			String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex,  
 			String gorules_json_output_file, String go_lego_journal_file) throws Exception {
 		Logger LOG = Logger.getLogger(CommandLineInterface.class);
 		LOG.setLevel(Level.ERROR);
@@ -681,10 +673,10 @@ public class CommandLineInterface {
 				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);				
 				
 				if(i.isDirectory()) {
+					LOGGER.info("Loading models from " + i.getAbsolutePath());
 					Set<String> model_iris = new HashSet<String>();
 					FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
 						if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
-							LOGGER.info("Loading " + file);
 							try {
 								String modeluri = m3.importModelToDatabase(file, true);
 								if(!model_iris.add(modeluri)) {
@@ -727,7 +719,7 @@ public class CommandLineInterface {
 		LOGGER.info("tbox ontologies loaded: "+tbox_ontology.getAxiomCount());
 		tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
 		LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
-		LOGGER.info("building model manager and structural reasoner");
+		LOGGER.info("building model manager");
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
@@ -747,17 +739,8 @@ public class CommandLineInterface {
 			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
 			System.err.println("-m .No shape map file provided, using: "+goshapemapFileUrl);
 		}
-		//don't want to hammer the public golr server..
-		//String golr_url = "http://noctua-golr.berkeleybop.org/";
-		String golr_url = null;
-		if(golr_server!=null) {
-			golr_url = golr_server;
-		}else {
-			System.err.println("Need to specify a golr server - should be a local instance for any large batch run. e.g. -golr http://127.0.0.1:8080/solr/");
-		}
-		ExternalLookupService externalLookupService = new GolrExternalLookupService(golr_url, curieHandler, false);
 		LOGGER.info("making shex validator: "+shexpath+" "+shapemappath+" "+curieHandler+" ");
-		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getGolego_repo(), externalLookupService);  
+		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getGolego_repo());  
 		if(checkShex) {
 			if(checkShex) {
 				shex.setActive(true);
@@ -768,7 +751,7 @@ public class CommandLineInterface {
 		LOGGER.info("Building OWL inference provider: "+reasonerOpt);
 		InferenceProviderCreator ipc = StartUpTool.createInferenceProviderCreator(reasonerOpt, m3, shex);
 		LOGGER.info("Validating models: "+reasonerOpt);
-
+ 
 		if(basicOutputFile!=null) {
 			FileWriter basic_shex_output = new FileWriter(basicOutputFile, false);
 			basic_shex_output.write("filename\tmodel_id\tOWL_consistent\tshex_valid\tvalidation_time_milliseconds\taxioms\n");
@@ -791,7 +774,7 @@ public class CommandLineInterface {
 			pipe_report.setTaxon(taxon);
 		}
 		final boolean shex_output = checkShex;			
-		//Note that parallelStream does not seem to help with this.  Starts out great then locks up.  Not sure exactly why just yet - though there is a web service call to GOLR which seems suspicious.
+		//Note that parallelStream does not seem to help with this.  
 		m3.getAvailableModelIds().stream().forEach(modelIRI -> {
 			try {
 				long start = System.currentTimeMillis();

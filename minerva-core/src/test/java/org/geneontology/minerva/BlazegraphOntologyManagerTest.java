@@ -43,7 +43,7 @@ public class BlazegraphOntologyManagerTest {
 		String onto_repo = "/Users/benjamingood/blazegraph/blazegraph-lego.jnl";
 		BlazegraphOntologyManager m = new BlazegraphOntologyManager(onto_repo);
 		String uri = "http://purl.obolibrary.org/obo/ECO_0000314";
-		Set<String> supers = m.getSuperClasses(uri);
+		Set<String> supers = m.getAllSuperClasses(uri);
 		System.out.println(supers);
 		assertTrue(supers.contains("http://purl.obolibrary.org/obo/ECO_0000002"));
 	}

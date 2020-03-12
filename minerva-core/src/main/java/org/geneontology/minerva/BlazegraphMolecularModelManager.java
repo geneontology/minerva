@@ -50,6 +50,7 @@ import org.semanticweb.owlapi.model.AddImport;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
+import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLDocumentFormat;
 import org.semanticweb.owlapi.model.OWLImportsDeclaration;
@@ -62,6 +63,7 @@ import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
+import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
 import org.semanticweb.owlapi.rio.RioMemoryTripleSource;
 import org.semanticweb.owlapi.rio.RioRenderer;
 
@@ -101,6 +103,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 */
 	public BlazegraphMolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder, String pathToOntologyJournal)
 			throws OWLOntologyCreationException {
+		
 		super(tbox, pathToOntologyJournal);
 		this.modelIdPrefix = modelIdPrefix;
 		this.curieHandler = curieHandler;
@@ -513,7 +516,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 
 	@Override
 	protected void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException {
-		LOG.info("Load model: " + modelId + " from database");
 		if (modelMap.containsKey(modelId)) {
 			if (!isOverride) {
 				throw new OWLOntologyCreationException("Model already exists: " + modelId);
