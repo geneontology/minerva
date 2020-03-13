@@ -805,6 +805,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		super.dispose();
 		try {
 			repo.shutDown();
+			getGolego_repo().dispose();
 		} catch (RepositoryException e) {
 			LOG.error("Failed to shutdown Blazegraph sail.", e);
 		}

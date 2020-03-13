@@ -288,4 +288,11 @@ public class BlazegraphOntologyManager {
 		return sub_supers;
 	}
 	
+	public void dispose() {
+		try {
+			go_lego_repo.shutDown();
+		} catch (RepositoryException e) {
+			LOG.error("Failed to shutdown Lego Blazegraph sail.", e);
+		}
+	}
 }
