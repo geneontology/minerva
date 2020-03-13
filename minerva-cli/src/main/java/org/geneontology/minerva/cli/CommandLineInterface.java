@@ -1,6 +1,7 @@
 package org.geneontology.minerva.cli;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -57,12 +58,15 @@ import org.geneontology.minerva.validation.ShexValidator;
 import org.geneontology.minerva.validation.ValidationResultSet;
 import org.geneontology.minerva.validation.pipeline.BatchPipelineValidationReport;
 import org.geneontology.minerva.validation.pipeline.ErrorMessage;
+import org.geneontology.whelk.owlapi.WhelkOWLReasoner;
+import org.geneontology.whelk.owlapi.WhelkOWLReasonerFactory;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -70,13 +74,16 @@ import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyAlreadyExistsException;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 import org.semanticweb.owlapi.reasoner.structural.StructuralReasonerFactory;
+import org.semanticweb.owlapi.util.InferredOntologyGenerator;
 
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailRepository;
@@ -107,6 +114,13 @@ public class CommandLineInterface {
 				.hasArg(false)
 				.build();
 		methods.addOption(dump);
+		
+		Option merge_ontologies = Option.builder()
+		.longOpt("merge-ontologies")
+		.desc("Merge owl ontologies")
+		.hasArg(false)
+		.build();
+		methods.addOption(merge_ontologies);	
 		Option import_owl = Option.builder()
 				.longOpt("import-owl-models")
 				.desc("import OWL GO-CAM models into journal")
@@ -166,11 +180,24 @@ public class CommandLineInterface {
 				import_tbox_options.addOption(import_tbox_ontologies);
 				import_tbox_options.addOption("j", "journal", true, "Sets the Blazegraph journal file for the database");
 				import_tbox_options.addOption("f", "file", true, "Sets the input file containing the ontology to load");
+				import_tbox_options.addOption("r", "reset", false, "If present, will clear out the journal, otherwise adds to it");
 				cmd = parser.parse( import_tbox_options, args, false);
 				String journalFilePath = cmd.getOptionValue("j"); //--journal
 				String inputFile = cmd.getOptionValue("f"); //--folder
-				importOWLOntologyIntoJournal(journalFilePath, inputFile);
+				importOWLOntologyIntoJournal(journalFilePath, inputFile, cmd.hasOption("r"));
 			}
+			// --merge-ontologies -i /Users/benjamingood/gocam_ontology/go_lego_today/ -o /Users/benjamingood/gocam_ontology/merged_go_lego_today.owl -u http://purl.obolibrary.org/obo/go/extensions/go-lego.owl -r
+			if(cmd.hasOption("merge-ontologies")) {
+				Options merge_options = new Options();
+				merge_options.addOption(merge_ontologies);
+				merge_options.addOption("i", "input", true, "The input folder containing ontologies to merge");
+				merge_options.addOption("o", "output", true, "The file to write the ontology to");
+				merge_options.addOption("u", "iri", true, "The base iri for the merged ontology");
+				merge_options.addOption("r", "reason", false, "Add inferences to the merged ontology");
+				cmd = parser.parse(merge_options, args, false);
+				buildMergedOwlOntology(cmd.getOptionValue("i"), cmd.getOptionValue("o"), cmd.getOptionValue("u"), cmd.hasOption("r"));
+			}
+			
 			if(cmd.hasOption("dump-owl-models")) {
 				Options dump_options = new Options();
 				dump_options.addOption(dump);
@@ -422,13 +449,72 @@ public class CommandLineInterface {
 	}
 
 	/**
+	 * 
+	 * @param journalFilePath
+	 * @param inputFolder
+	 * @throws Exception
+	 */
+	public static void buildMergedOwlOntology(String inputFolder, String outputfile, String base_iri, boolean addInferences) throws Exception {
+		// minimal inputs
+		if (outputfile == null) {
+			System.err.println("No output file was configured.");
+			System.exit(-1);
+			return;
+		}
+		if (inputFolder == null) {
+			System.err.println("No input folder was configured.");
+			System.exit(-1);
+			return;
+		}
+		if (base_iri == null) {
+			System.err.println("No base iri was configured.");
+			System.exit(-1);
+			return;
+		}
+		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
+		OWLDataFactory df = ontman.getOWLDataFactory();
+		OWLOntology merged = ontman.createOntology(IRI.create(base_iri));
+		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
+			LOGGER.info("Loading " + file);
+			if(file.getName().endsWith("ttl")||file.getName().endsWith("owl")) {
+				try {
+					OWLOntology ont = ontman.loadOntologyFromOntologyDocument(file);
+					ontman.addAxioms(merged, ont.getAxioms());
+				}catch(OWLOntologyAlreadyExistsException e) {
+					LOGGER.error("error loading already loaded ontology: "+file);
+				}
+			} else {
+				LOGGER.info("Ignored for not ending with .ttl or .owl " + file);
+			}
+		}
+		if(addInferences) { 
+			LOGGER.info("Running reasoner");
+			//OWLReasonerFactory reasonerFactory = new WhelkOWLReasonerFactory(); 
+			//WhelkOWLReasoner reasoner = (WhelkOWLReasoner)reasonerFactory.createReasoner(merged);
+			OWLReasonerFactory reasonerFactory = new StructuralReasonerFactory();
+			OWLReasoner reasoner = reasonerFactory.createReasoner(merged);
+			InferredOntologyGenerator gen = new InferredOntologyGenerator(reasoner);
+	        gen.fillOntology(df, merged);
+		}
+		try {
+            ontman.saveOntology(merged, new FileOutputStream(new File(outputfile)));
+        } catch (OWLOntologyStorageException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+	}
+	
+	/**
 	 * Load the go-cam files in the input folder into the journal
 	 * cli import-owl-models
 	 * @param journalFilePath
 	 * @param inputFolder
 	 * @throws Exception
 	 */
-	public static void importOWLOntologyIntoJournal(String journalFilePath, String inputFile) throws Exception {
+	public static void importOWLOntologyIntoJournal(String journalFilePath, String inputFile, boolean reset) throws Exception {
 		// minimal inputs
 		if (journalFilePath == null) {
 			System.err.println("No journal file was configured.");
@@ -443,7 +529,7 @@ public class CommandLineInterface {
 
 		BlazegraphOntologyManager man = new BlazegraphOntologyManager(journalFilePath);
 		String iri_for_ontology_graph = "http://geneontology.org/go-lego-graph";
-		man.loadRepositoryFromOWLFile(new File(inputFile), iri_for_ontology_graph);
+		man.loadRepositoryFromOWLFile(new File(inputFile), iri_for_ontology_graph, reset);
 	}
 	
 	/**

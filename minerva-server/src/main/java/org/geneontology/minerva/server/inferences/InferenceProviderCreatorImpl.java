@@ -132,8 +132,6 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		OWLOntology temp_ont = asserted_ont.getOWLOntologyManager().createOntology();
 		temp_ont.getOWLOntologyManager().addAxioms(temp_ont, asserted_ont.getAxioms());		
 		OWLDataFactory df = temp_ont.getOWLOntologyManager().getOWLDataFactory();
-		OWLClass protein = df.getOWLClass(IRI.create("http://purl.obolibrary.org/obo/CHEBI_36080"));
-		OWLClass informationbla = df.getOWLClass(IRI.create("http://purl.obolibrary.org/obo/CHEBI_33695"));
 		Set<OWLNamedIndividual> individuals = temp_ont.getIndividualsInSignature();
 		Map<String, Set<String>> sub_supers = new HashMap<String, Set<String>>();
 		Set<String> uris = new HashSet<String>();
@@ -143,13 +141,16 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 			for(OWLClassExpression cls : asserted_types) {
 				if(cls.isAnonymous()) {
 					continue;
-				}
+				}			
 				IRI class_iri = cls.asOWLClass().getIRI();
+				if(class_iri.toString().contains("ECO")) {
+					continue; //this only deals with genes, chemicals, proteins, and complexes.  
+				}
 				uris.add(class_iri.toString());
 			}
 			individual_asserted_types.put(individual, asserted_types);
 		}
-		sub_supers = shex.getGo_lego_repo().getSuperClassMap(uris);
+		sub_supers = shex.getGo_lego_repo().getNeoRoots(uris);
 		Set<OWLAxiom> new_parent_types = new HashSet<OWLAxiom>();
 		//for all individuals
 		for(OWLNamedIndividual i : individual_asserted_types.keySet()) {
@@ -169,16 +170,11 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 							new_parent_types.add(add_parent_type);
 						}
 						//add everything into the tbox - (for use later in shex validator)
-						OWLSubClassOfAxiom subSuper = df.getOWLSubClassOfAxiom(sub, parent_class);
-						new_parent_types.add(subSuper);
+						//OWLSubClassOfAxiom subSuper = df.getOWLSubClassOfAxiom(sub, parent_class);
+						//new_parent_types.add(subSuper);
 						//make sure the parent is a subclass of itself.. needed for shex to find it. 
-						OWLSubClassOfAxiom superSuper = df.getOWLSubClassOfAxiom(parent_class, parent_class);
-						new_parent_types.add(superSuper);
-						//TODO hack around missing piece in neo
-						if(parent_class.equals(protein)) {
-							OWLClassAssertionAxiom add_parent_type = df.getOWLClassAssertionAxiom(informationbla, i);
-							new_parent_types.add(add_parent_type);							
-						}
+						//OWLSubClassOfAxiom superSuper = df.getOWLSubClassOfAxiom(parent_class, parent_class);
+						//new_parent_types.add(superSuper);
 					}
 				}
 			}
@@ -189,8 +185,8 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 
 		return temp_ont;
 	}
-
-
+	
+	
 	public static OWLOntology addRootTypesToCopyViaGolr(OWLOntology asserted_ont, ExternalLookupService externalLookupService) throws OWLOntologyCreationException {
 		if(externalLookupService==null) {
 			return asserted_ont; //should probably throw some kind of exception here..

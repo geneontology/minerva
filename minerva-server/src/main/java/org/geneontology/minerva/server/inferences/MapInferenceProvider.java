@@ -91,13 +91,13 @@ public class MapInferenceProvider implements InferenceProvider {
 			}
 			
 			Model model = JenaOwlTool.getJenaModel(ont);
-			//add superclasses to types used in model 
-			//should already be done.
-			//model = shex.enrichSuperClasses(model);	
+			//add superclasses to types used in model - needed for shex to find everything
+			//model may now have additional inferred assertions from Arachne
+			model = shex.enrichSuperClasses(model);	
 			
-			//FileOutputStream o = new FileOutputStream(new File("/Users/benjamingood/test/tmp/ont_after_type_after_expand.ttl"));
-			//model.write(o, "TURTLE");
-	 		//o.close();
+			FileOutputStream o = new FileOutputStream(new File("/Users/benjamingood/test/tmp/ont_after_type_after_expand.ttl"));
+			model.write(o, "TURTLE");
+	 		o.close();
 			
 			try {
 				LOGGER.info("Running shex validation - model (enriched with superclass hierarchy) size:"+model.size());

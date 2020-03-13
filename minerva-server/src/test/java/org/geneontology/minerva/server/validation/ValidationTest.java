@@ -51,7 +51,7 @@ public class ValidationTest {
 	private static final Logger LOGGER = Logger.getLogger(ValidationTest.class);
 	static final String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
 	//TODO need to rig up a way to get the journal from somewhere else for travis testing.  
-	static final String ontology_journal_file = "/Users/benjamingood/blazegraph/blazegraph.jnl";
+	static final String ontology_journal_file = "/Users/benjamingood/blazegraph/blazegraph-lego.jnl";
 	static final String catalog = "src/test/resources/ontology/catalog-for-validation.xml";
 	static final String modelIdcurie = "http://model.geneontology.org/";
 	static final String modelIdPrefix = "gomodel";
@@ -110,13 +110,12 @@ public class ValidationTest {
 		String valid_model_folder = "src/test/resources/models/should_pass/";
 		boolean should_fail = false;
 		boolean check_shex = true;
-		String golr_server = "http://noctua-golr.berkeleybop.org/";
 		try {
 			validateGoCams(
 					valid_model_folder, 
 					should_fail, //modles should fail check
-					check_shex, //check shex (false just OWL)
-					golr_server);
+					check_shex //check shex (false just OWL)
+					);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -133,15 +132,15 @@ public class ValidationTest {
 			validateGoCams(
 					valid_model_folder, 
 					should_fail, //models should fail check
-					check_shex, //check shex (false just OWL)
-					golr_server);
+					check_shex //check shex (false just OWL)
+					);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}	
 	}
 
-	public static void validateGoCams(String input, boolean should_fail, boolean check_shex, String golr_server) throws Exception {
+	public static void validateGoCams(String input, boolean should_fail, boolean check_shex) throws Exception {
 		String blazegraph_journal = makeBlazegraphJournal(input);
 		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, blazegraph_journal, null, ontology_journal_file);
 		URL shex_schema_url = new URL(shexFileUrl);

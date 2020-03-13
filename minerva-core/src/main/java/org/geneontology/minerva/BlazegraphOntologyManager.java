@@ -82,14 +82,16 @@ public class BlazegraphOntologyManager {
 		}
 	}
 
-	public void loadRepositoryFromOWLFile(File file, String iri) throws OWLOntologyCreationException, RepositoryException, IOException, RDFParseException, RDFHandlerException {
+	public void loadRepositoryFromOWLFile(File file, String iri, boolean reset) throws OWLOntologyCreationException, RepositoryException, IOException, RDFParseException, RDFHandlerException {
 		synchronized(go_lego_repo) {
 			final BigdataSailRepositoryConnection connection = go_lego_repo.getUnisolatedConnection();
 			try {
 				connection.begin();
 				try {
 					URI graph = new URIImpl(iri);
-					connection.clear(graph);
+					if(reset) {
+						connection.clear(graph);
+					}
 					if(file.getName().endsWith(".ttl")) {
 						connection.add(file, "", RDFFormat.TURTLE, graph);
 					}else if(file.getName().endsWith(".owl")) {
@@ -198,6 +200,45 @@ public class BlazegraphOntologyManager {
 		return sub_supers;
 	}
 
+	/**
+	 * if(isa_closure.contains("CHEBI:36080")||isa_closure.contains("PR:000000001")) {
+					//protein
+					//direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_36080";
+					direct_parent_iri = "http://purl.obolibrary.org/obo/PR_000000001";
+				}else if(isa_closure.contains("CHEBI:33695")) {
+					//information biomacrolecule (gene, complex)
+					direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_33695";
+				}
+	 * @param uris
+	 * @return
+	 * @throws IOException
+	 */
+	
+	public Map<String, Set<String>> getNeoRoots(Set<String> uris) throws IOException {
+		Map<String, Set<String>> all = getSuperClassMap(uris);
+		Map<String, Set<String>> roots = new HashMap<String, Set<String>>();
+		//only do what the golr was doing and working
+		for(String term : all.keySet()) {
+			Set<String> isa_closure = all.get(term);
+			String direct_parent_iri = null;
+			if(isa_closure.contains("http://purl.obolibrary.org/obo/CHEBI_36080")||isa_closure.contains("http://purl.obolibrary.org/obo/PR_000000001")) {
+				//protein
+				//direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_36080";
+				direct_parent_iri = "http://purl.obolibrary.org/obo/PR_000000001";
+			}else if(isa_closure.contains("http://purl.obolibrary.org/obo/CHEBI_33695")) {
+				//information biomacrolecule (gene, complex)
+				direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_33695";
+			}
+			if(direct_parent_iri!=null) {
+				Set<String> r = new HashSet<String>();
+				r.add(direct_parent_iri);
+				roots.put(term, r);
+			}
+		}
+		return roots;
+	}
+	
+	
 	public Map<String, Set<String>> getSuperClassMap(Set<String> uris) throws IOException {
 		Map<String, Set<String>> sub_supers = new HashMap<String, Set<String>>();
 		try {

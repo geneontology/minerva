@@ -116,11 +116,11 @@ public abstract class CoreMolecularModelManager<METADATA> {
 
 	final OWLOntology tbox;
 	//	final OWLReasonerFactory rf;
-//	final OWLReasoner tbox_reasoner;
+	//	final OWLReasoner tbox_reasoner;
 	//replacing tbox_reasoner structural reasoner functionality with blazegraph queries over pre-inferred relations..
 	private final BlazegraphOntologyManager go_lego_repo;
 	private final IRI tboxIRI;
-	
+
 	final Map<IRI, ModelContainer> modelMap = new HashMap<IRI, ModelContainer>();
 	Set<IRI> additionalImports;
 
@@ -211,16 +211,10 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		initializeTboxLabelIndex();
 		initializeTboxShorthandIndex();
 		initializeDoNotAnnotateSubset();
-		//this is to deal with a bug in NEO
-		//TODO get rid of it when bug is fixed. 
-		OWLDataFactory df = tbox.getOWLOntologyManager().getOWLDataFactory();
-		OWLClass protein = df.getOWLClass(IRI.create("http://purl.obolibrary.org/obo/CHEBI_36080"));
-		OWLClass informationbla = df.getOWLClass(IRI.create("http://purl.obolibrary.org/obo/CHEBI_33695"));
-		OWLSubClassOfAxiom bla = df.getOWLSubClassOfAxiom(protein, informationbla);
-		tbox.getOWLOntologyManager().addAxiom(tbox, bla);
 		this.go_lego_repo = new BlazegraphOntologyManager(go_lego_repo_file);
 		init();
 	}
+
 
 	private OWLReasoner initializeTboxReasoner(OWLOntology tbox) {
 		OWLReasonerFactory reasonerFactory = new StructuralReasonerFactory();
@@ -1418,9 +1412,9 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return tbox;
 	}
 
-//	public OWLReasoner getTbox_reasoner() {
-//		return tbox_reasoner;
-//	}
+	//	public OWLReasoner getTbox_reasoner() {
+	//		return tbox_reasoner;
+	//	}
 	public BlazegraphOntologyManager getGolego_repo() {
 		return go_lego_repo;
 	}
