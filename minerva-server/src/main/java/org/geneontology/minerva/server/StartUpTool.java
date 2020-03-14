@@ -101,6 +101,7 @@ public class StartUpTool {
 		public String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 		public String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
 		public MinervaShexValidator shex;
+		public String pathToOntologyJournal;
 
 	}
 
@@ -208,9 +209,16 @@ public class StartUpTool {
 			else if (opts.nextEq("--sparql-endpoint-timeout")) {
 				conf.sparqlEndpointTimeout = Integer.parseInt(opts.nextOpt());
 			}
+			else if (opts.nextEq("--ontology-journal")) {
+				conf.pathToOntologyJournal = opts.nextOpt();
+			}
 			else {
 				break;
 			}
+		}
+		if (conf.pathToOntologyJournal == null) {
+			System.err.println("No blazegraph journal containing tbox ontology provided. exit.");
+			System.exit(-1);
 		}
 		if (conf.ontology == null) {
 			System.err.println("No ontology graph available");
@@ -221,8 +229,9 @@ public class StartUpTool {
 			System.exit(-1);
 		} 
 		if (conf.golrUrl == null) {
-			System.err.println("No GOLR service set.  This is required, please add e.g. --golr-labels http://noctua-golr.berkeleybop.org/ to start up parameters ");
-			System.exit(-1);
+			conf.golrUrl = "http://noctua-golr.berkeleybop.org/";
+			System.err.println("No GOLR service configured.  This is required, please add e.g. --golr-labels http://noctua-golr.berkeleybop.org/ to start up parameters ");
+			//System.exit(-1);
 		} 
 		conf.contextString = "/";
 		if (conf.contextPrefix != null) {
@@ -363,9 +372,8 @@ public class StartUpTool {
 
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
-		String pathToOntologyJournal = "path to go lego journal ";
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph.getSourceOntology(),
-				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder, pathToOntologyJournal );
+				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder, conf.pathToOntologyJournal );
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
 	//	conf.shex.tbox_reasoner = models.getTbox_reasoner();
