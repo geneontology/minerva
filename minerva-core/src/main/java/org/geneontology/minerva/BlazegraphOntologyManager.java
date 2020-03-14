@@ -200,20 +200,12 @@ public class BlazegraphOntologyManager {
 		return sub_supers;
 	}
 
-	/**
-	 * if(isa_closure.contains("CHEBI:36080")||isa_closure.contains("PR:000000001")) {
-					//protein
-					//direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_36080";
-					direct_parent_iri = "http://purl.obolibrary.org/obo/PR_000000001";
-				}else if(isa_closure.contains("CHEBI:33695")) {
-					//information biomacrolecule (gene, complex)
-					direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_33695";
-				}
-	 * @param uris
-	 * @return
-	 * @throws IOException
-	 */
-	
+/**
+ * This reproduces the results of the golr lookup service for gene product typing
+ * @param uris
+ * @return
+ * @throws IOException
+ */
 	public Map<String, Set<String>> getNeoRoots(Set<String> uris) throws IOException {
 		Map<String, Set<String>> all = getSuperClassMap(uris);
 		Map<String, Set<String>> roots = new HashMap<String, Set<String>>();

@@ -76,15 +76,18 @@ public class BlazegraphOntologyManagerTest {
 		assertTrue("uniprot/Q13253 not subclass of PR_000000001 protein", supers.contains("http://purl.obolibrary.org/obo/PR_000000001")); 
 		assertTrue("uniprot/Q13253 not subclass of CHEBI_36080 protein", supers.contains("http://purl.obolibrary.org/obo/CHEBI_36080")); 
 		assertTrue("uniprot/Q13253 not subclass of CHEBI_36695 information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
+		assertTrue("uniprot/Q13253 not subclass of CHEBI_24431 chemical entity", supers.contains("http://purl.obolibrary.org/obo/CHEBI_24431"));
 		//"gene"..
 		//zfin
 		uri = "http://identifiers.org/zfin/ZDB-GENE-010410-3";
 		supers = onto_repo.getAllSuperClasses(uri);
 		assertTrue("ZDB-GENE-010410-3 not subclass of CHEBI_36695 information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
+		assertTrue("ZDB-GENE-010410-3 not subclass of CHEBI_24431 chemical entity", supers.contains("http://purl.obolibrary.org/obo/CHEBI_24431"));
 		//wormbase
 		uri = "http://identifiers.org/wormbase/WBGene00000275";
 		supers = onto_repo.getAllSuperClasses(uri);
 		assertTrue("WBGene00000275 not subclass of CHEBI_36695 information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
+		assertTrue("WBGene00000275 not subclass of CHEBI_24431 chemical entity", supers.contains("http://purl.obolibrary.org/obo/CHEBI_24431"));
 		
 		
 	}
