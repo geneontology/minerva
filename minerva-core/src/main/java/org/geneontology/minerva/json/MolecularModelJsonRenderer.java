@@ -50,6 +50,7 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import jdk.internal.org.jline.utils.Log;
 import owltools.gaf.eco.EcoMapper;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.EcoMapperFactory.OntologyMapperPair;
@@ -110,17 +111,15 @@ public class MolecularModelJsonRenderer {
 	public JsonModel renderModel() {
 		JsonModel json = new JsonModel();
 		json.modelId = modelId;
-		
 		// per-Individual
+		//TODO this loop is the slowest part of the service response time.  
 		List<JsonOwlIndividual> iObjs = new ArrayList<JsonOwlIndividual>();
 		for (OWLNamedIndividual i : ont.getIndividualsInSignature()) {
 			iObjs.add(renderObject(i));
 		}
 		json.individuals = iObjs.toArray(new JsonOwlIndividual[iObjs.size()]);
-		
 		// per-Assertion
 		Set<OWLObjectProperty> usedProps = new HashSet<OWLObjectProperty>();
-		
 		List<JsonOwlFact> aObjs = new ArrayList<JsonOwlFact>();
 		for (OWLObjectPropertyAssertionAxiom opa : ont.getAxioms(AxiomType.OBJECT_PROPERTY_ASSERTION)) {
 			JsonOwlFact fact = renderObject(opa);
@@ -130,12 +129,10 @@ public class MolecularModelJsonRenderer {
 			}
 		}
 		json.facts = aObjs.toArray(new JsonOwlFact[aObjs.size()]);
-
 		JsonAnnotation[] anObjs = renderAnnotations(ont.getAnnotations(), curieHandler);
 		if (anObjs != null && anObjs.length > 0) {
 			json.annotations = anObjs;
 		}
-		
 		return json;
 		
 	}
@@ -190,13 +187,13 @@ public class MolecularModelJsonRenderer {
 	}
 	
 	/**
+	 //TODO this is slow, spped it up.  The slowest part of the service, including reasoning and validation.   
 	 * @param i
 	 * @return Map to be passed to Gson
 	 */
 	public JsonOwlIndividual renderObject(OWLNamedIndividual i) {
 		JsonOwlIndividual json = new JsonOwlIndividual();
 		json.id = curieHandler.getCuri(i);
-		
 		List<JsonOwlObject> typeObjs = new ArrayList<JsonOwlObject>();
 		Set<OWLClassExpression> assertedTypes = OwlHelper.getTypes(i, ont);
 		for (OWLClassExpression x : assertedTypes) {
@@ -220,6 +217,7 @@ public class MolecularModelJsonRenderer {
 			}
 			//testing approach to adding additional type information to response
 			List<JsonOwlObject> inferredTypeObjsWithAll = new ArrayList<JsonOwlObject>();
+			//TODO this is particularly slow as there can be a lot of inferred types
 			Set<OWLClass> inferredTypesWithAll = inferenceProvider.getAllTypes(i);
 			// optimization, do not render inferences, if they are equal to the asserted ones
 			if (assertedTypes.equals(inferredTypesWithAll) == false) {
@@ -235,7 +233,6 @@ public class MolecularModelJsonRenderer {
 			
 			
 		}
-		
 		final List<JsonAnnotation> anObjs = new ArrayList<JsonAnnotation>();
 		Set<OWLAnnotationAssertionAxiom> annotationAxioms = ont.getAnnotationAssertionAxioms(i.getIRI());
 		for (OWLAnnotationAssertionAxiom ax : annotationAxioms) {

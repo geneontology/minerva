@@ -215,7 +215,9 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		final MolecularModelJsonRenderer renderer = createModelRenderer(values.model, externalLookupService, inferenceProvider, curieHandler);
 		if (values.renderBulk) {
 			// render complete model
+			logger.info("model rendering is slowing things down...");
 			JsonModel jsonModel = renderer.renderModel();
+			logger.info("See... ");
 			initResponseData(jsonModel, response.data);
 			response.signal = M3BatchResponse.SIGNAL_REBUILD;
 		}
