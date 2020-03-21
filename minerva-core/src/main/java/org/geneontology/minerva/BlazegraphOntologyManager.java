@@ -441,4 +441,46 @@ public class BlazegraphOntologyManager {
 			LOG.error("Failed to shutdown Lego Blazegraph sail.", e);
 		}
 	}
+	public Set<String> getTaxaByGenes(Set<String> genes) throws IOException {
+		String expansion = "VALUES ?gene { "; 
+		for(String gene : genes) {
+			expansion += "<"+gene+"> \n";
+		}
+		expansion+= " } . \n";	
+		Set<String> taxa = new HashSet<String>();
+		try {
+			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+			try {
+				String query =
+						"select distinct ?taxon  \n" + 
+								"where { \n" + expansion + 
+								"  ?gene rdfs:subClassOf ?taxon_restriction .\n" + 
+								"  ?taxon_restriction owl:onProperty <http://purl.obolibrary.org/obo/RO_0002162> .\n" + 
+								"  ?taxon_restriction owl:someValuesFrom ?taxon \n" + 
+								"\n" + 
+								"}";
+
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
+				TupleQueryResult result = tupleQuery.evaluate();
+				while (result.hasNext()) {
+					BindingSet binding = result.next();
+					Value v = binding.getValue("taxon");
+					//ignore anonymous sub classes
+					if ( v instanceof URI ) {
+						String taxon = binding.getValue("taxon").stringValue();
+						taxa.add(taxon);		
+					}				
+				}
+			} catch (MalformedQueryException e) {
+				throw new IOException(e);
+			} catch (QueryEvaluationException e) {
+				throw new IOException(e);
+			} finally {
+				connection.close();
+			}
+		} catch (RepositoryException e) {
+			throw new IOException(e);
+		}
+		return taxa;
+	}
 }

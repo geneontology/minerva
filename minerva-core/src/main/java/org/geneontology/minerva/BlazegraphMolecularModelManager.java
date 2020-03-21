@@ -812,4 +812,61 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		}
 	}
 
+	public Map<String, Set<String>> buildTaxonModelMap() throws IOException {
+		Map<String, Set<String>> model_genes = buildModelGeneMap();
+		Map<String, Set<String>> taxon_models = new HashMap<String, Set<String>>();		
+		for(String model : model_genes.keySet()) {
+			Set<String> genes = model_genes.get(model);
+			Set<String> taxa = this.getGolego_repo().getTaxaByGenes(genes);
+			for(String taxon : taxa) {
+				Set<String> models = taxon_models.get(taxon);
+				if(models==null) {
+					models = new HashSet<String>();
+				}
+				models.add(model);
+				taxon_models.put(taxon, models);
+			}
+		}
+		return taxon_models;
+	}
+
+	public Map<String, Set<String>> buildModelGeneMap(){
+		Map<String, Set<String>> model_genes = new HashMap<String, Set<String>>();
+		TupleQueryResult result;
+		String sparql = "SELECT ?id (GROUP_CONCAT(DISTINCT ?type;separator=\";\") AS ?types)WHERE {\n" + 
+				"  GRAPH ?id {  \n" + 
+				"?i rdf:type ?type .\n" + 
+				"FILTER (?type != <http://www.w3.org/2002/07/owl#Axiom> \n" + 
+				"        && ?type != <http://www.w3.org/2002/07/owl#NamedIndividual> \n" + 
+				"        && ?type != <http://www.w3.org/2002/07/owl#Ontology> \n" + 
+				"        && ?type != <http://www.w3.org/2002/07/owl#Class> \n" + 
+				"        && ?type != <http://www.w3.org/2002/07/owl#ObjectProperty> \n" + 
+				"        && ?type != <http://www.w3.org/2000/01/rdf-schema#Datatype> \n" + 
+				"        && ?type != <http://www.w3.org/2002/07/owl#AnnotationProperty>) . \n" + 
+				"FILTER (!regex(str(?type), \"http://purl.obolibrary.org/obo/\" ) )    \n" + 
+				"    }\n" + 
+				"  } \n" + 
+				"  \n" + 
+				"GROUP BY ?id";
+		try {
+			result = (TupleQueryResult) executeSPARQLQuery(sparql, 10);
+			while(result.hasNext()) {
+				BindingSet bs = result.next();
+				String model = bs.getBinding("id").getValue().stringValue();
+				String genes = bs.getBinding("types").getValue().stringValue();
+				Set<String> g = new HashSet<String>();
+				if(genes!=null) {
+					String[] geness = genes.split(";");					
+					for(String gene : geness) {
+						g.add(gene);
+					}
+				}
+				model_genes.put(model, g);
+			}
+		} catch (MalformedQueryException | QueryEvaluationException | RepositoryException e) {
+			e.printStackTrace();
+		}
+		return model_genes;
+	}
+	
 }

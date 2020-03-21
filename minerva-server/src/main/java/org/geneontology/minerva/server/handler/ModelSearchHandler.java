@@ -48,12 +48,21 @@ public class ModelSearchHandler {
 
 	private final BlazegraphMolecularModelManager m3;
 	private final int timeout;
+	private final BlazegraphOntologyManager go_lego;
+	private Map<String, Set<String>> taxon_models;
 	/**
 	 * 
 	 */
-	public ModelSearchHandler(BlazegraphMolecularModelManager m3, int timeout) {
+	public ModelSearchHandler(BlazegraphMolecularModelManager<?> m3, int timeout) {
 		this.m3 = m3;
 		this.timeout = timeout;
+		this.go_lego  = m3.getGolego_repo();
+		try {
+			this.taxon_models = m3.buildTaxonModelMap();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	public class ModelSearchResult {
@@ -178,6 +187,7 @@ public class ModelSearchHandler {
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public ModelSearchResult searchGet(
+			@QueryParam("taxon") Set<String> taxa, 
 			@QueryParam("gp") Set<String> gene_product_class_uris, 
 			@QueryParam("goterm") Set<String> goterms,
 			@QueryParam("pmid") Set<String> pmids,
@@ -191,7 +201,7 @@ public class ModelSearchHandler {
 			@QueryParam("count") String count
 			){
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit, count);
 		return result;
 	}
 	//TODO make junit tests out of these. 
@@ -209,7 +219,7 @@ public class ModelSearchHandler {
 	//&state=development&state=review {development, production, closed, review, delete} or operator
 	//&count
 	//127.0.0.1:6800/search/?contributor=http://orcid.org/0000-0002-1706-4196
-	public ModelSearchResult search(
+	public ModelSearchResult search(Set<String> taxa, 
 			Set<String> gene_product_ids, Set<String> goterms, Set<String>pmids, 
 			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, String date_search,
 			int offset, int limit, String count) {
@@ -277,7 +287,6 @@ public class ModelSearchHandler {
 		}
 		boolean expand = true;
 		if(expand) {
-			BlazegraphOntologyManager go_lego = m3.getGolego_repo();
 			for(String go_type_uri : go_type_uris) {
 				n++;
 				ind_return.put("?ind"+n, go_type_uri);
@@ -312,6 +321,40 @@ public class ModelSearchHandler {
 				pmid_constraints = pmid_constraints+"?ind"+n+" <http://purl.org/dc/elements/1.1/source> ?pmid FILTER (?pmid=\""+pmid+"\"^^xsd:string) .\n";  		
 			}
 		}
+		String taxa_constraint = "";
+		if(taxa!=null) {
+			String model_filter =  " VALUES ?id { \n"; 
+			for(String taxon : taxa) {
+				if(!taxon.startsWith("http://purl.obolibrary.org/obo/NCBITaxon_")) {
+					taxon = "http://purl.obolibrary.org/obo/NCBITaxon_"+taxon;
+				}
+				Set<String> models = taxon_models.get(taxon);
+				if(models!=null) {
+					for(String model : models) {
+						model_filter+="<"+model+"> \n";
+					}
+				}
+			}
+			model_filter += "} . \n";
+			taxa_constraint = model_filter;
+		}
+		//this pattern is not going to work - query gets too big and is rather inefficient anyway		
+		//		if(taxa!=null) {
+		//			String expansion = "VALUES ?gene { "; 
+		//			for(String taxon : taxa) {
+		//				try {
+		//					 for(String gene : go_lego.getGenesByTaxid(taxon)) {
+		//						 expansion += "<"+gene+"> \n";
+		//					 }
+		//				} catch (IOException e) {
+		//					// TODO Auto-generated catch block
+		//					e.printStackTrace();
+		//				}
+		//			}
+		//			expansion+= " } . \n";
+		//			taxa_constraint = "?gene_individual rdf:type ?gene . "+expansion;
+		//		}
+
 		String title_search_constraint = "";
 		if(title_search!=null) {
 			title_search_constraint = "?title <http://www.bigdata.com/rdf/search#search> \""+title_search+"\" .\n";
@@ -398,6 +441,7 @@ public class ModelSearchHandler {
 		sparql = sparql.replaceAll("<date_constraint>", date_constraint);
 		sparql = sparql.replaceAll("<limit_constraint>", limit_constraint);
 		sparql = sparql.replaceAll("<offset_constraint>", offset_constraint);
+		sparql = sparql.replaceAll("<taxa_constraint>", taxa_constraint);
 		r.sparql = sparql;
 
 		TupleQueryResult result;
@@ -507,6 +551,7 @@ public class ModelSearchHandler {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public ModelSearchResult searchPostForm(
+			@FormParam("taxon") Set<String> taxa, 
 			@FormParam("gp") Set<String> gene_product_class_uris, 
 			@FormParam("goterm") Set<String> goterms,
 			@FormParam("pmid") Set<String> pmids,
@@ -519,7 +564,7 @@ public class ModelSearchHandler {
 			@FormParam("limit") int limit,
 			@FormParam("count") String count) {
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit, count);
 		return result;
 	}
 

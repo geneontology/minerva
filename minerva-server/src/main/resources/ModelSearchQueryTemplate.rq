@@ -28,6 +28,7 @@ WHERE {
       <date_constraint>
       <pmid_constraints>
       <title_constraint>
+      <taxa_constraint>
     }
   } 
   <group_by_constraint>

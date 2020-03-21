@@ -217,7 +217,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 
-	@Test
+//	@Test
 	public final void testSearchGetByGOclosure() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -231,7 +231,53 @@ public class ModelSearchHandlerTest {
 		LOGGER.info("N models found: "+result.getN());
 		assertTrue("No models found for nucleic acid binding - hould find some from children", result.getN()>0);
 	}
+
+//	@Test
+	public final void testSearchGetByWormAnatomy() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("goterm", "http://purl.obolibrary.org/obo/WBbt_0006748"); //vulva
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by GO term URI "+searchuri);
+		LOGGER.info("Search by GO term result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue("", result.getN()>0);
+	}
+
+//	@Test
+	public final void testSearchGetByWormAnatomyClosure() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("goterm", "http://purl.obolibrary.org/obo/WBbt_0008422"); //sex organ parent of vulva
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by GO term URI "+searchuri);
+		LOGGER.info("Search by GO term result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue("", result.getN()>0);
+	}	
 	
+	//
+	
+	@Test
+	public final void testSearchGetByTaxon() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("taxon", "6239");//worm 6239 14 models //9606 2 zebrafish 7955 2 
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by taxon "+searchuri);
+		LOGGER.info("Search by taxon result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue("No models found for taxon ", result.getN()>0);
+	}
 	
 //	@Test
 	public final void testSearchGetByTitle() throws URISyntaxException, IOException {
@@ -358,7 +404,7 @@ public class ModelSearchHandlerTest {
 	}
 	
 	private static String makeBlazegraphJournal(String input_folder) throws IOException, OWLOntologyCreationException, RepositoryException, RDFParseException, RDFHandlerException {
-		String inputDB = "/Users/benjamingood/blazegraph/blazegraph.jnl";//tmp.newFile().getAbsolutePath();
+		String inputDB = tmp.newFile().getAbsolutePath(); //"/Users/benjamingood/blazegraph/blazegraph.jnl";
 		File i = new File(input_folder);
 		if(i.exists()) {
 			//remove anything that existed earlier
