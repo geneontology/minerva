@@ -38,7 +38,7 @@
 
 ###  http://model.geneontology.org/5e28fcb400000016/5e28fcb400000017
 <http://model.geneontology.org/5e28fcb400000016/5e28fcb400000017> rdf:type owl:NamedIndividual ,
-                                                                           <http://purl.obolibrary.org/obo/GO_0060090> ;
+                                                                           <http://purl.obolibrary.org/obo/GO_0035615> ;
                                                                   <http://purl.obolibrary.org/obo/BFO_0000050> <http://model.geneontology.org/5e28fcb400000016/5e28fcb400000019> ;
                                                                   <http://purl.obolibrary.org/obo/RO_0002333> <http://model.geneontology.org/5e28fcb400000016/5e28fcb400000018> ;
                                                                   <http://geneontology.org/lego/hint/layout/x> "75"^^xsd:string ;

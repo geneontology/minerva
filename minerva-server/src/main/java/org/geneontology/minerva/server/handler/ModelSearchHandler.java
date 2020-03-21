@@ -26,6 +26,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.io.IOUtils;
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
+import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.openrdf.query.Binding;
@@ -91,8 +92,8 @@ public class ModelSearchHandler {
 		public void setSparql(String sparql) {
 			this.sparql = sparql;
 		}
-		
-		
+
+
 	}
 
 	public class ModelMeta{
@@ -169,8 +170,8 @@ public class ModelSearchHandler {
 		public void setQuery_match(HashMap<String, Set<String>> query_match) {
 			this.query_match = query_match;
 		}
-		
-		
+
+
 	}
 
 
@@ -213,23 +214,41 @@ public class ModelSearchHandler {
 			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, String date_search,
 			int offset, int limit, String count) {
 		ModelSearchResult r = new ModelSearchResult();
-		Set<String> type_ids = new HashSet<String>();
+		Set<String> go_type_ids = new HashSet<String>();
+		Set<String> gene_type_ids = new HashSet<String>();
 		if(gene_product_ids!=null) {
-			type_ids.addAll(gene_product_ids);
+			gene_type_ids.addAll(gene_product_ids);
 		}
 		if(goterms!=null) {
-			type_ids.addAll(goterms);
+			go_type_ids.addAll(goterms);
 		}
 		CurieHandler curie_handler = m3.getCuriHandler();
-		Set<String> type_uris = new HashSet<String>();
-		for(String curi : type_ids) {
+		Set<String> go_type_uris = new HashSet<String>();
+		Set<String> gene_type_uris = new HashSet<String>();
+		for(String curi : go_type_ids) {
 			if(curi.startsWith("http")) {
-				type_uris.add(curi);
+				go_type_uris.add(curi);
 			}else {
 				try {
 					IRI iri = curie_handler.getIRI(curi);
 					if(iri!=null) {
-						type_uris.add(iri.toString());
+						go_type_uris.add(iri.toString());
+					}
+				} catch (UnknownIdentifierException e) {
+					r.error += e.getMessage()+" \n ";
+					e.printStackTrace();
+					return r;
+				}
+			}
+		}
+		for(String curi : gene_type_ids) {
+			if(curi.startsWith("http")) {
+				gene_type_uris.add(curi);
+			}else {
+				try {
+					IRI iri = curie_handler.getIRI(curi);
+					if(iri!=null) {
+						gene_type_uris.add(iri.toString());
 					}
 				} catch (UnknownIdentifierException e) {
 					r.error += e.getMessage()+" \n ";
@@ -250,11 +269,39 @@ public class ModelSearchHandler {
 		String ind_return_list = ""; //<ind_return_list>
 		String types = ""; //<types>
 		int n = 0;
-		for(String type_uri : type_uris) {
+		for(String type_uri : gene_type_uris) {
 			n++;
 			ind_return.put("?ind"+n, type_uri);
 			ind_return_list = ind_return_list+" ?ind"+n;
 			types = types+"?ind"+n+" rdf:type <"+type_uri+"> . \n";
+		}
+		boolean expand = true;
+		if(expand) {
+			BlazegraphOntologyManager go_lego = m3.getGolego_repo();
+			for(String go_type_uri : go_type_uris) {
+				n++;
+				ind_return.put("?ind"+n, go_type_uri);
+				ind_return_list = ind_return_list+" ?ind"+n;
+				String expansion = "VALUES ?term"+n+" { ";
+				try {
+					Set<String> subclasses = go_lego.getAllSubClasses(go_type_uri);
+					for(String sub : subclasses) {
+						expansion+="<"+sub+"> \n";
+					}
+					expansion+= "} . \n";
+					types = types+" "+expansion+" ?ind"+n+" rdf:type ?term"+n+" . \n";
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}else {
+			for(String go_type_uri : go_type_uris) {
+				n++;
+				ind_return.put("?ind"+n, go_type_uri);
+				ind_return_list = ind_return_list+" ?ind"+n;
+				types = types+"?ind"+n+" rdf:type <"+go_type_uri+"> . \n";
+			}
 		}
 		String pmid_constraints = ""; //<pmid_constraints>
 		if(pmids!=null) {
@@ -296,7 +343,7 @@ public class ModelSearchHandler {
 			}
 			contributor_search_constraint = 
 					" ?id <http://purl.org/dc/elements/1.1/contributor> ?test_contributor . \n"  
-					+ " FILTER (?test_contributor IN ("+allowed_contributors+")) . \n";
+							+ " FILTER (?test_contributor IN ("+allowed_contributors+")) . \n";
 		}
 		String group_search_constraint = "";
 		if(group_search!=null&&group_search.size()>0) {
@@ -475,6 +522,6 @@ public class ModelSearchHandler {
 		result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit, count);
 		return result;
 	}
-	
+
 
 }

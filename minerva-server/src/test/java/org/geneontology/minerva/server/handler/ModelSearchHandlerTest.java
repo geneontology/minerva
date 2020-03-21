@@ -81,14 +81,9 @@ public class ModelSearchHandlerTest {
 	private static final Logger LOGGER = Logger.getLogger(ModelSearchHandlerTest.class);
 	static Server server;
 	static final String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
-	static final String catalog = "src/test/resources/ontology/catalog-for-validation.xml";
 	static final String modelIdcurie = "http://model.geneontology.org/";
 	static final String modelIdPrefix = "gomodel";
-	static final String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
-	static final String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
-	static final String golr_url = "http://noctua-golr.berkeleybop.org/"; 
-	static final String go_lego_journal_file = null;
-	static ExternalLookupService externalLookupService;
+	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
 	static OWLOntology tbox_ontology;
 	static CurieHandler curieHandler;	
 	
@@ -175,7 +170,7 @@ public class ModelSearchHandlerTest {
 	 * @throws URISyntaxException 
 	 * @throws IOException 
 	 */
-	@Test
+//	@Test
 	public final void testSearchGetByGene() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -190,7 +185,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 
-	@Test
+//	@Test
 	public final void testSearchPostByGene() throws URISyntaxException, IOException {
 		HttpPost post = new HttpPost(server.getURI()+"search");
 		List<BasicNameValuePair> urlParameters = new ArrayList<>();
@@ -207,7 +202,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 	
-	@Test
+//	@Test
 	public final void testSearchGetByGO() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -223,6 +218,22 @@ public class ModelSearchHandlerTest {
 	}
 
 	@Test
+	public final void testSearchGetByGOclosure() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("goterm", "http://purl.obolibrary.org/obo/GO_0140312"); //cargo adaptor activity - should get one model that uses child clathrin binding
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by GO term URI "+searchuri);
+		LOGGER.info("Search by GO term result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue("No models found for nucleic acid binding - hould find some from children", result.getN()>0);
+	}
+	
+	
+//	@Test
 	public final void testSearchGetByTitle() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -237,7 +248,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}	
 	
-	@Test
+//	@Test
 	public final void testSearchGetByPMID() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -253,7 +264,7 @@ public class ModelSearchHandlerTest {
 	}
 	
 	//&state=development&state=review {development, production, closed, review, delete} or operator	
-	@Test
+//	@Test
 	public final void testSearchGetByState() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -268,7 +279,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 	
-	@Test
+//	@Test
 	public final void testSearchGetByContributors() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -283,7 +294,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 	
-	@Test
+//	@Test
 	public final void testSearchGetByGroups() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -298,7 +309,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 	
-	@Test
+//	@Test
 	public final void testSearchGetByDate() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -313,7 +324,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 	
-	@Test
+//	@Test
 	public final void testSearchGetByDateAndOffset() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -331,7 +342,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(n1>n2);
 	}
 	
-	@Test
+//	@Test
 	public final void testSearchGetByDateAndCount() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -347,7 +358,7 @@ public class ModelSearchHandlerTest {
 	}
 	
 	private static String makeBlazegraphJournal(String input_folder) throws IOException, OWLOntologyCreationException, RepositoryException, RDFParseException, RDFHandlerException {
-		String inputDB = tmp.newFile().getAbsolutePath();
+		String inputDB = "/Users/benjamingood/blazegraph/blazegraph.jnl";//tmp.newFile().getAbsolutePath();
 		File i = new File(input_folder);
 		if(i.exists()) {
 			//remove anything that existed earlier
