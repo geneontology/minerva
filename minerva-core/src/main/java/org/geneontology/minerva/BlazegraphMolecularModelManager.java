@@ -100,9 +100,10 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @param pathToJournal Path to Blazegraph journal file to use.
 	 * Only one instance of Blazegraph can use this file at a time. 
 	 * @throws OWLOntologyCreationException
+	 * @throws IOException 
 	 */
 	public BlazegraphMolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder, String pathToOntologyJournal)
-			throws OWLOntologyCreationException {
+			throws OWLOntologyCreationException, IOException {
 		
 		super(tbox, pathToOntologyJournal);
 		this.modelIdPrefix = modelIdPrefix;

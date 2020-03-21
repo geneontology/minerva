@@ -4,12 +4,19 @@
 package org.geneontology.minerva;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.URI;
@@ -39,6 +46,8 @@ import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 public class BlazegraphOntologyManager {
 	private static Logger LOG = Logger.getLogger(BlazegraphOntologyManager.class);
 	private final BigdataSailRepository go_lego_repo;
+	//TODO replace with more stable real URL that gets updated when it exists..  
+	private final static String public_blazegraph_url = "http://skyhook.berkeleybop.org/issue-35-neo-test/products/blazegraph/blazegraph-go-lego.jnl.gz";
 	//
 	private static final Set<String> root_types;
 	static {
@@ -59,10 +68,42 @@ public class BlazegraphOntologyManager {
 	public BigdataSailRepository getGo_lego_repo() {
 		return go_lego_repo;
 	}
-	public BlazegraphOntologyManager(String go_lego_repo_file) {
-		go_lego_repo = initializeRepository(go_lego_repo_file);
+	public BlazegraphOntologyManager(String go_lego_repo_file) throws IOException {
+		if(new File(go_lego_repo_file).exists()) {			
+			go_lego_repo = initializeRepository(go_lego_repo_file);
+		}else {
+			LOG.info("No blazegraph tbox journal found at "+go_lego_repo_file+" . Downloading from "+public_blazegraph_url+" and putting there.");
+			URL blazegraph_url = new URL(public_blazegraph_url);
+			File go_lego_repo_local = new File(go_lego_repo_file);
+			if(public_blazegraph_url.endsWith(".gz")) {
+				go_lego_repo_local = new File(go_lego_repo_file+".gz");
+			}
+			org.apache.commons.io.FileUtils.copyURLToFile(blazegraph_url, go_lego_repo_local);
+			if(public_blazegraph_url.endsWith(".gz")) {
+				unGunzipFile(go_lego_repo_file+".gz", go_lego_repo_file);
+			}
+			go_lego_repo = initializeRepository(go_lego_repo_file);
+		}
 	}
 
+	public void unGunzipFile(String compressedFile, String decompressedFile) {		 
+        byte[] buffer = new byte[1024]; 
+        try { 
+            FileInputStream fileIn = new FileInputStream(compressedFile);
+            GZIPInputStream gZIPInputStream = new GZIPInputStream(fileIn); 
+            FileOutputStream fileOutputStream = new FileOutputStream(decompressedFile); 
+            int bytes_read; 
+            while ((bytes_read = gZIPInputStream.read(buffer)) > 0) { 
+                fileOutputStream.write(buffer, 0, bytes_read);
+            }
+            gZIPInputStream.close();
+            fileOutputStream.close(); 
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+	
+	
 	private BigdataSailRepository initializeRepository(String pathToJournal) {
 		try {
 			Properties properties = new Properties();
@@ -129,6 +170,41 @@ public class BlazegraphOntologyManager {
 					//ignore anonymous super classes
 					if ( v instanceof URI ) {
 						String superclass = binding.getValue("super").stringValue();
+						supers.add(superclass);		
+					}				
+				}
+			} catch (MalformedQueryException e) {
+				throw new IOException(e);
+			} catch (QueryEvaluationException e) {
+				throw new IOException(e);
+			} finally {
+				connection.close();
+			}
+		} catch (RepositoryException e) {
+			throw new IOException(e);
+		}
+		return supers;
+	}
+	public Set<String> getAllSubClasses(String uri) throws IOException {
+		Set<String> supers = new HashSet<String>();
+		try {
+			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+			try {
+				String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
+						"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
+						+ "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+						"SELECT ?sub " +
+						"WHERE { " +
+						"?sub rdfs:subClassOf* <"+uri+"> . " +
+						"} ";
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
+				TupleQueryResult result = tupleQuery.evaluate();
+				while (result.hasNext()) {
+					BindingSet binding = result.next();
+					Value v = binding.getValue("sub");
+					//ignore anonymous sub classes
+					if ( v instanceof URI ) {
+						String superclass = binding.getValue("sub").stringValue();
 						supers.add(superclass);		
 					}				
 				}
@@ -279,6 +355,84 @@ public class BlazegraphOntologyManager {
 		}
 		return sub_supers;
 	}
+	
+	
+	public Set<String> getGenesByTaxid(String ncbi_tax_id) throws IOException {
+		Set<String> genes = new HashSet<String>();
+		try {
+			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+			try {
+				String query =
+						"select ?gene   \n" + 
+						"where { \n" + 
+						"  ?gene rdfs:subClassOf ?taxon_restriction .\n" + 
+						"  ?taxon_restriction owl:onProperty <http://purl.obolibrary.org/obo/RO_0002162> .\n" + 
+						"  ?taxon_restriction owl:someValuesFrom <http://purl.obolibrary.org/obo/NCBITaxon_"+ncbi_tax_id+"> \n" + 
+						"}";
+
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
+				TupleQueryResult result = tupleQuery.evaluate();
+				while (result.hasNext()) {
+					BindingSet binding = result.next();
+					Value v = binding.getValue("gene");
+					//ignore anonymous sub classes
+					if ( v instanceof URI ) {
+						String gene = binding.getValue("gene").stringValue();
+						genes.add(gene);		
+					}				
+				}
+			} catch (MalformedQueryException e) {
+				throw new IOException(e);
+			} catch (QueryEvaluationException e) {
+				throw new IOException(e);
+			} finally {
+				connection.close();
+			}
+		} catch (RepositoryException e) {
+			throw new IOException(e);
+		}
+		return genes;
+	}
+	
+	public Set<String> getAllTaxaWithGenes() throws IOException {
+		Set<String> taxa = new HashSet<String>();
+		try {
+			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+			try {
+				String query =
+						"select distinct ?taxon  \n" + 
+								"where { \n" + 
+								"  ?gene rdfs:subClassOf ?taxon_restriction .\n" + 
+								"  ?taxon_restriction owl:onProperty <http://purl.obolibrary.org/obo/RO_0002162> .\n" + 
+								"  ?taxon_restriction owl:someValuesFrom ?taxon \n" + 
+								"\n" + 
+								"}";
+
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
+				TupleQueryResult result = tupleQuery.evaluate();
+				while (result.hasNext()) {
+					BindingSet binding = result.next();
+					Value v = binding.getValue("taxon");
+					//ignore anonymous sub classes
+					if ( v instanceof URI ) {
+						String taxon = binding.getValue("taxon").stringValue();
+						taxa.add(taxon);		
+					}				
+				}
+			} catch (MalformedQueryException e) {
+				throw new IOException(e);
+			} catch (QueryEvaluationException e) {
+				throw new IOException(e);
+			} finally {
+				connection.close();
+			}
+		} catch (RepositoryException e) {
+			throw new IOException(e);
+		}
+		return taxa;
+	}
+	
+	
 	
 	public void dispose() {
 		try {

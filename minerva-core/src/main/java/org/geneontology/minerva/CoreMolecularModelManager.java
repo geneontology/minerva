@@ -201,8 +201,9 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	/**
 	 * @param tbox
 	 * @throws OWLOntologyCreationException
+	 * @throws IOException 
 	 */
-	public CoreMolecularModelManager(OWLOntology tbox, String go_lego_repo_file) throws OWLOntologyCreationException {
+	public CoreMolecularModelManager(OWLOntology tbox, String go_lego_repo_file) throws OWLOntologyCreationException, IOException {
 		super();
 		this.tbox = tbox;
 		tboxIRI = getTboxIRI(tbox);
