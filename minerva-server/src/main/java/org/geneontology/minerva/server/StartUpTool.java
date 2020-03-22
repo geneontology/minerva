@@ -454,7 +454,8 @@ public class StartUpTool {
 		LocalTime t = LocalTime.now(); 
 		String startup = d.toString()+" "+t.toString();
 		StatusHandler statusHandler = new StatusHandler(conf, ont_annos, startup); 
-		resourceConfig = resourceConfig.registerInstances(batchHandler, sparqlHandler, searchHandler, statusHandler);
+		TaxonHandler taxonHandler = new TaxonHandler(models);
+		resourceConfig = resourceConfig.registerInstances(batchHandler, sparqlHandler, searchHandler, statusHandler, taxonHandler);
 
 		// setup jetty server port, buffers and context path
 		Server server = new Server();
