@@ -384,7 +384,7 @@ public class ModelSearchHandler {
 					allowed_group+=",";
 				}
 			}
-			contributor_search_constraint = " ?id <http://purl.org/pav/providedBy> ?test_group . \n"
+			group_search_constraint = " ?id <http://purl.org/pav/providedBy> ?test_group . \n"
 					+ "FILTER (?test_group IN ("+allowed_group+")) . \n";
 		}
 		String date_constraint = "";

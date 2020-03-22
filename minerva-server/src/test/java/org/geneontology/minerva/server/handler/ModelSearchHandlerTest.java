@@ -360,6 +360,7 @@ public class ModelSearchHandlerTest {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
 		builder.addParameter("contributor", "http://orcid.org/0000-0002-1706-4196");
+		
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
 		Gson g = new Gson();
@@ -367,6 +368,39 @@ public class ModelSearchHandlerTest {
 		LOGGER.info("Search by contributor URI "+searchuri);
 		LOGGER.info("Search by contributor "+json_result);
 		LOGGER.info("N models found: "+result.getN());
+		
+		builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("contributor", "http://orcid.org/0000-0003-1813-6857");		
+		searchuri = builder.build();
+		json_result = getJsonStringFromUri(searchuri);
+		g = new Gson();
+		result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by contributor URI "+searchuri);
+		LOGGER.info("Search by contributor "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		
+		builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("contributor", "http://orcid.org/0000-0002-8688-6599");		
+		searchuri = builder.build();
+		json_result = getJsonStringFromUri(searchuri);
+		g = new Gson();
+		result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by contributor URI "+searchuri);
+		LOGGER.info("Search by contributor "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		
+		builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("contributor", "http://orcid.org/0000-0002-1706-4196");
+		builder.addParameter("contributor", "http://orcid.org/0000-0003-1813-6857");	
+		builder.addParameter("contributor", "http://orcid.org/0000-0002-8688-6599");	
+		searchuri = builder.build();
+		json_result = getJsonStringFromUri(searchuri);
+		g = new Gson();
+		result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by multi contributor URI "+searchuri);
+		LOGGER.info("Search by multi contributor "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		
 		assertTrue(result.getN()>0);
 	}
 	
@@ -374,6 +408,7 @@ public class ModelSearchHandlerTest {
 	public final void testSearchGetByGroups() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("group", "http://geneontology.org"); //http://www.igs.umaryland.edu "http://www.wormbase.org"
 		builder.addParameter("group", "http://www.igs.umaryland.edu");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
