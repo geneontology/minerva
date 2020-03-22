@@ -57,12 +57,7 @@ public class ModelSearchHandler {
 		this.m3 = m3;
 		this.timeout = timeout;
 		this.go_lego  = m3.getGolego_repo();
-		try {
-			this.taxon_models = m3.buildTaxonModelMap();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		this.taxon_models = m3.getTaxon_models();
 	}
 
 	public class ModelSearchResult {

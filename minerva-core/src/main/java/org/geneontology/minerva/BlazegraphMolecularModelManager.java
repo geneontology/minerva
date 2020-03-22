@@ -94,6 +94,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	private final List<PreFileSaveHandler> preFileSaveHandlers = new ArrayList<PreFileSaveHandler>();
 	private final List<PostLoadOntologyFilter> postLoadOntologyFilters = new ArrayList<PostLoadOntologyFilter>();
 
+	private Map<String, Set<String>> taxon_models;
+	
 	/**
 	 * @param tbox
 	 * @param modelIdPrefix
@@ -111,6 +113,16 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		this.pathToOWLStore = pathToJournal;
 		this.pathToExportFolder = pathToExportFolder;
 		this.repo = initializeRepository(this.pathToOWLStore);
+		
+		taxon_models = buildTaxonModelMap();
+	}
+
+	public Map<String, Set<String>> getTaxon_models() {
+		return taxon_models;
+	}
+
+	public void setTaxon_models(Map<String, Set<String>> taxon_models) {
+		this.taxon_models = taxon_models;
 	}
 
 	/**
@@ -279,6 +291,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				}
 			}
 		}
+		this.updateModelTaxonMap(modelId.toString());
 	}
 
 	private void writeModelToDatabase(OWLOntology model, IRI modelId) throws RepositoryException, IOException {
@@ -833,7 +846,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	public Map<String, Set<String>> buildModelGeneMap(){
 		Map<String, Set<String>> model_genes = new HashMap<String, Set<String>>();
 		TupleQueryResult result;
-		String sparql = "SELECT ?id (GROUP_CONCAT(DISTINCT ?type;separator=\";\") AS ?types)WHERE {\n" + 
+		String sparql = "SELECT ?id (GROUP_CONCAT(DISTINCT ?type;separator=\";\") AS ?types) WHERE {\n" + 
 				"  GRAPH ?id {  \n" + 
 				"?i rdf:type ?type .\n" + 
 				"FILTER (?type != <http://www.w3.org/2002/07/owl#Axiom> \n" + 
@@ -849,7 +862,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				"  \n" + 
 				"GROUP BY ?id";
 		try {
-			result = (TupleQueryResult) executeSPARQLQuery(sparql, 10);
+			result = (TupleQueryResult) executeSPARQLQuery(sparql, 100);
 			while(result.hasNext()) {
 				BindingSet bs = result.next();
 				String model = bs.getBinding("id").getValue().stringValue();
@@ -867,6 +880,58 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			e.printStackTrace();
 		}
 		return model_genes;
+	}
+	
+	public void updateModelTaxonMap(String model_id) throws IOException {
+		Set<String> genes = getModelGenes(model_id);
+		if(genes.isEmpty()) {
+			return;
+		}
+		Set<String> taxa = this.getGolego_repo().getTaxaByGenes(genes);
+		for(String taxon : taxa) {
+			Set<String> models = taxon_models.get(taxon);
+			if(models==null) {
+				models = new HashSet<String>();
+			}
+			models.add(model_id);
+			taxon_models.put(taxon, models);
+		}
+		
+	}
+	
+	public Set<String> getModelGenes(String model_id){ 
+		Set<String> g = new HashSet<String>();
+		TupleQueryResult result;
+		String sparql = "SELECT ?type WHERE {\n" + 
+				"  GRAPH <"+model_id+"> {  \n" + 
+				" ?i rdf:type ?type .\n" + 
+				"FILTER (?type != <http://www.w3.org/2002/07/owl#Axiom> \n" + 
+				"        && ?type != <http://www.w3.org/2002/07/owl#NamedIndividual> \n" + 
+				"        && ?type != <http://www.w3.org/2002/07/owl#Ontology> \n" + 
+				"        && ?type != <http://www.w3.org/2002/07/owl#Class> \n" + 
+				"        && ?type != <http://www.w3.org/2002/07/owl#ObjectProperty> \n" + 
+				"        && ?type != <http://www.w3.org/2000/01/rdf-schema#Datatype> \n" + 
+				"        && ?type != <http://www.w3.org/2002/07/owl#AnnotationProperty>) . \n" + 
+		//this one cuts out all the reacto genes	
+		//	"FILTER (!regex(str(?type), \"http://purl.obolibrary.org/obo/\" ) )    \n" + 
+		//this will probably let a few past but the effect would only be a slight slow down when looking up taxa
+				"FILTER (!regex(str(?type), \"http://purl.obolibrary.org/obo/ECO_\" ) )  .   \n" + 
+				"FILTER (!regex(str(?type), \"http://purl.obolibrary.org/obo/GO_\" ) ) " +
+				"    }\n" + 
+				"  } \n" + 
+				"  \n";
+		try {
+			result = (TupleQueryResult) executeSPARQLQuery(sparql, 10);
+			
+			while(result.hasNext()) {
+				BindingSet bs = result.next();
+				String gene = bs.getBinding("type").getValue().stringValue();
+				g.add(gene);
+			}
+		} catch (MalformedQueryException | QueryEvaluationException | RepositoryException e) {
+			e.printStackTrace();
+		}
+		return g;
 	}
 	
 }
