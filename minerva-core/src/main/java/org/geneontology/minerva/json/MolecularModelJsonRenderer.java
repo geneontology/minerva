@@ -51,7 +51,6 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import jdk.internal.org.jline.utils.Log;
 import owltools.gaf.eco.EcoMapper;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.EcoMapperFactory.OntologyMapperPair;
