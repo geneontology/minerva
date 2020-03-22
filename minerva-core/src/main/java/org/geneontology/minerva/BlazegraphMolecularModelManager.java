@@ -83,7 +83,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	boolean isPrecomputePropertyClassCombinations = false;
 
 	final String pathToOWLStore;
-	final String pathToExportFolder;
+	final String pathToExportFolder; 
 	private final BigdataSailRepository repo;
 	private final CurieHandler curieHandler;
 
@@ -119,8 +119,9 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		this.pathToOWLStore = pathToJournal;
 		this.pathToExportFolder = pathToExportFolder;
 		this.repo = initializeRepository(this.pathToOWLStore);
-		taxon_models = buildTaxonModelMap();
-		
+		if(pathToOntologyJournal!=null) {
+			taxon_models = buildTaxonModelMap();
+		}
 	}
 
 	public Map<String, Set<String>> getTaxon_models() {

@@ -433,11 +433,11 @@ public class CommandLineInterface {
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 		String modelIdPrefix = "http://model.geneontology.org/"; // this will not be used for anything
 		CurieHandler curieHandler = new MappedCurieHandler();
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null, "/tmp/blazegraph.jnl");
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null, null);
 		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
 			LOGGER.info("Loading " + file);
 			if(file.getName().endsWith("ttl")) {
-				m3.importModelToDatabase(file, true);
+				m3.importModelToDatabase(file, true); 
 			} else if (file.getName().endsWith("owl")) {
 				m3.importModelToDatabase(file, false);
 			}

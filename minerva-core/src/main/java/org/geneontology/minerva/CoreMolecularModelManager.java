@@ -118,7 +118,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	//	final OWLReasonerFactory rf;
 	//	final OWLReasoner tbox_reasoner;
 	//replacing tbox_reasoner structural reasoner functionality with blazegraph queries over pre-inferred relations..
-	private final BlazegraphOntologyManager go_lego_repo;
+	private BlazegraphOntologyManager go_lego_repo;
 	private final IRI tboxIRI;
 
 	final Map<IRI, ModelContainer> modelMap = new HashMap<IRI, ModelContainer>();
@@ -212,7 +212,9 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		initializeTboxLabelIndex();
 		initializeTboxShorthandIndex();
 		initializeDoNotAnnotateSubset();
-		this.go_lego_repo = new BlazegraphOntologyManager(go_lego_repo_file);
+		if(go_lego_repo_file!=null) {
+			this.go_lego_repo = new BlazegraphOntologyManager(go_lego_repo_file);
+		}
 		init();
 	}
 
