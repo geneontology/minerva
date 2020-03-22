@@ -190,13 +190,15 @@ public class ModelSearchHandler {
 			@QueryParam("state") Set<String> state,
 			@QueryParam("contributor") Set<String> contributor,
 			@QueryParam("group") Set<String> group,
+			@QueryParam("exactdate") String exactdate,
 			@QueryParam("date") String date,
+			@QueryParam("dateend") String datend,
 			@QueryParam("offset") int offset,
 			@QueryParam("limit") int limit,
 			@QueryParam("count") String count
 			){
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(taxa, gene_product_class_uris, terms, pmids, title, state, contributor, group, date, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, terms, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count);
 		return result;
 	}
 
@@ -216,7 +218,8 @@ public class ModelSearchHandler {
 	//127.0.0.1:6800/search/?contributor=http://orcid.org/0000-0002-1706-4196
 	public ModelSearchResult search(Set<String> taxa, 
 			Set<String> gene_product_ids, Set<String> terms, Set<String>pmids, 
-			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, String date_search,
+			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, 
+			String exactdate, String date_search, String datend, 
 			int offset, int limit, String count) {
 		ModelSearchResult r = new ModelSearchResult();
 		Set<String> go_type_ids = new HashSet<String>();
@@ -337,23 +340,6 @@ public class ModelSearchHandler {
 			model_filter += "} . \n";
 			taxa_constraint = model_filter;
 		}
-		//this pattern is not going to work - query gets too big and is rather inefficient anyway		
-		//		if(taxa!=null) {
-		//			String expansion = "VALUES ?gene { "; 
-		//			for(String taxon : taxa) {
-		//				try {
-		//					 for(String gene : go_lego.getGenesByTaxid(taxon)) {
-		//						 expansion += "<"+gene+"> \n";
-		//					 }
-		//				} catch (IOException e) {
-		//					// TODO Auto-generated catch block
-		//					e.printStackTrace();
-		//				}
-		//			}
-		//			expansion+= " } . \n";
-		//			taxa_constraint = "?gene_individual rdf:type ?gene . "+expansion;
-		//		}
-
 		String title_search_constraint = "";
 		if(title_search!=null) {
 			title_search_constraint = "?title <http://www.bigdata.com/rdf/search#search> \""+title_search+"\" .\n";
@@ -402,9 +388,14 @@ public class ModelSearchHandler {
 					+ "FILTER (?test_group IN ("+allowed_group+")) . \n";
 		}
 		String date_constraint = "";
-		if(date_search!=null&&date_search.length()==10) {
+		if(exactdate!=null&&exactdate.length()==10) {
+			date_constraint = "FILTER (?date = '"+exactdate+"') \n";
+		}else if(date_search!=null&&date_search.length()==10) {
 			//e.g. 2019-06-26
 			date_constraint = "FILTER (?date > '"+date_search+"') \n";
+			if(datend!=null&&datend.length()==10) {
+				date_constraint = "FILTER (?date > '"+date_search+"' && ?date < '"+datend+"') \n";
+			}
 		}
 		String offset_constraint = "";
 		if(offset!=0) {
@@ -558,12 +549,14 @@ public class ModelSearchHandler {
 			@FormParam("state") Set<String> state,
 			@FormParam("contributor") Set<String> contributor,
 			@FormParam("group") Set<String> group,
+			@FormParam("exactdate") String exactdate,
 			@FormParam("date") String date,
+			@FormParam("dateend") String datend, 
 			@FormParam("offset") int offset,
 			@FormParam("limit") int limit,
 			@FormParam("count") String count) {
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(taxa, gene_product_class_uris, terms, pmids, title, state, contributor, group, date, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, terms, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count);
 		return result;
 	}
 

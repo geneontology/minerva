@@ -170,7 +170,7 @@ public class ModelSearchHandlerTest {
 	 * @throws URISyntaxException 
 	 * @throws IOException 
 	 */
-	@Test
+//	@Test
 	public final void testSearchGetByGene() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -185,7 +185,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 
-	@Test
+//	@Test
 	public final void testSearchPostByGene() throws URISyntaxException, IOException {
 		HttpPost post = new HttpPost(server.getURI()+"search");
 		List<BasicNameValuePair> urlParameters = new ArrayList<>();
@@ -202,7 +202,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 	
-	@Test
+//	@Test
 	public final void testSearchGetByGO() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -217,7 +217,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 
-	@Test
+//	@Test
 	public final void testSearchGetByGOclosure() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -232,7 +232,7 @@ public class ModelSearchHandlerTest {
 		assertTrue("No models found for nucleic acid binding - hould find some from children", result.getN()>0);
 	}
 
-	@Test
+//	@Test
 	public final void testSearchGetByWormAnatomy() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -247,7 +247,7 @@ public class ModelSearchHandlerTest {
 		assertTrue("", result.getN()>0);
 	}
 
-	@Test
+//	@Test
 	public final void testSearchGetByWormAnatomyClosure() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -264,7 +264,7 @@ public class ModelSearchHandlerTest {
 	
 	//
 	
-	@Test
+//	@Test
 	public final void testSearchGetByTaxon() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -279,7 +279,7 @@ public class ModelSearchHandlerTest {
 		assertTrue("No models found for taxon ", result.getN()>0);
 	}
 	
-	@Test
+//	@Test
 	public final void testSearchGetByTaxonCurie() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -294,7 +294,7 @@ public class ModelSearchHandlerTest {
 		assertTrue("No models found for taxon ", result.getN()>0);
 	}
 	
-	@Test
+//	@Test
 	public final void testSearchGetByTaxonURI() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -309,7 +309,7 @@ public class ModelSearchHandlerTest {
 		assertTrue("No models found for taxon ", result.getN()>0);
 	}
 	
-	@Test
+//	@Test
 	public final void testSearchGetByTitle() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -324,7 +324,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}	
 	
-	@Test
+//	@Test
 	public final void testSearchGetByPMID() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -340,7 +340,7 @@ public class ModelSearchHandlerTest {
 	}
 	
 	//&state=development&state=review {development, production, closed, review, delete} or operator	
-	@Test
+//	@Test
 	public final void testSearchGetByState() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -355,7 +355,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 	
-	@Test
+//	@Test
 	public final void testSearchGetByContributors() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -370,7 +370,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 	
-	@Test
+//	@Test
 	public final void testSearchGetByGroups() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -394,13 +394,44 @@ public class ModelSearchHandlerTest {
 		String json_result = getJsonStringFromUri(searchuri);
 		Gson g = new Gson();
 		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
-		LOGGER.info("Search by date URI "+searchuri);
-		LOGGER.info("Search by date "+json_result);
+		LOGGER.info("Search by start date URI "+searchuri);
+		LOGGER.info("Search by start date "+json_result);
 		LOGGER.info("N models found: "+result.getN());
 		assertTrue(result.getN()>0);
 	}
 	
 	@Test
+	public final void testSearchGetByDateRange() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("date", "2018-08-20");
+		builder.addParameter("dateend", "2019-12-02");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by date range URI "+searchuri);
+		LOGGER.info("Search by date range result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()>0);
+	}
+	
+	@Test
+	public final void testSearchGetByExactDate() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("exactdate", "2020-02-07");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by EXACT date URI "+searchuri);
+		LOGGER.info("Search by EXACT date "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()>0);
+	}
+	
+//	@Test
 	public final void testSearchGetByDateAndOffset() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -418,7 +449,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(n1>n2);
 	}
 	
-	@Test
+//	@Test
 	public final void testSearchGetByDateAndCount() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
