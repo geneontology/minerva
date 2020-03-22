@@ -209,7 +209,7 @@ public class StartUpTool {
 			else if (opts.nextEq("--sparql-endpoint-timeout")) {
 				conf.sparqlEndpointTimeout = Integer.parseInt(opts.nextOpt());
 			}
-			else if (opts.nextEq("--ontology-journal")) {
+			else if (opts.nextEq("--ontojournal")) {
 				conf.pathToOntologyJournal = opts.nextOpt();
 			}
 			else {
