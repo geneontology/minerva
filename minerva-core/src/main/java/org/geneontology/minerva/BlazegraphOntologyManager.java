@@ -32,6 +32,7 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
+import org.semanticweb.owlapi.model.OWLNamedObject;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 import com.bigdata.journal.Options;
@@ -482,5 +483,38 @@ public class BlazegraphOntologyManager {
 			throw new IOException(e);
 		}
 		return taxa;
+	}
+	
+	
+	public String getLabel(OWLNamedObject i) throws IOException {
+		String entity = i.getIRI().toString();
+		return getLabel(entity);
+	}
+	
+	public String getLabel(String entity) throws IOException {
+		String label = null;
+		
+		String query = "select ?label where { <"+entity+"> rdfs:label ?label } limit 1";		
+		try {
+			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+			try {
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
+				TupleQueryResult result = tupleQuery.evaluate();
+				if (result.hasNext()) {
+					BindingSet binding = result.next();
+					Value v = binding.getValue("label");
+					label = v.stringValue();			
+				}
+			} catch (MalformedQueryException e) {
+				throw new IOException(e);
+			} catch (QueryEvaluationException e) {
+				throw new IOException(e);
+			} finally {
+				connection.close();
+			}
+		} catch (RepositoryException e) {
+			throw new IOException(e);
+		}
+		return label;
 	}
 }

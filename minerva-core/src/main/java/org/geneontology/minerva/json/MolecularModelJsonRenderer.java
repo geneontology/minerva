@@ -15,6 +15,7 @@ import java.util.Set;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
+import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.MinervaOWLGraphWrapper;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
@@ -68,9 +69,11 @@ public class MolecularModelJsonRenderer {
 
 	private final String modelId;
 	private final OWLOntology ont;
-	private final MinervaOWLGraphWrapper graph;
+	//TODO get rid of this graph entity 
+	private MinervaOWLGraphWrapper graph;
 	private final CurieHandler curieHandler;
 	private final InferenceProvider inferenceProvider;
+	private BlazegraphOntologyManager go_lego_repo;
 	
 	public static final ThreadLocal<DateFormat> AnnotationTypeDateFormat = new ThreadLocal<DateFormat>(){
 
@@ -105,6 +108,16 @@ public class MolecularModelJsonRenderer {
 		this.curieHandler = curieHandler;
 	}
 	
+	public MolecularModelJsonRenderer(String modelId, OWLOntology ont, BlazegraphOntologyManager go_lego_repo,
+			InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+		super();
+		this.modelId = modelId;
+		this.ont = ont;
+		this.go_lego_repo = go_lego_repo;
+		this.inferenceProvider = inferenceProvider;
+		this.curieHandler = curieHandler;
+	}
+
 	/**
 	 * @return Map to be passed to Gson
 	 */
@@ -274,7 +287,19 @@ public class MolecularModelJsonRenderer {
 			fact = new JsonOwlFact();
 			fact.subject = curieHandler.getCuri(subject);
 			fact.property = curieHandler.getCuri(property);
-			fact.propertyLabel = graph.getLabel(property);
+			if(graph==null&&go_lego_repo!=null) {
+				try {
+					fact.propertyLabel = go_lego_repo.getLabel(property);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}else {
+				fact.propertyLabel = graph.getLabel(property);
+			}
+			if(fact.propertyLabel==null) {
+				fact.propertyLabel = curieHandler.getCuri(property);
+			}
 			fact.object = curieHandler.getCuri(object);
 			
 			JsonAnnotation[] anObjs = renderAnnotations(opa.getAnnotations(), curieHandler);
@@ -352,7 +377,18 @@ public class MolecularModelJsonRenderer {
 	}
 
 	protected String getLabel(OWLNamedObject i, String id) {
-		return graph.getLabel(i);
+		String label = null;
+		if(graph!=null) {
+			label = graph.getLabel(i);
+		}else if(go_lego_repo!=null) {
+			try {
+				label = go_lego_repo.getLabel(i);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return label;
 	}
 	
 

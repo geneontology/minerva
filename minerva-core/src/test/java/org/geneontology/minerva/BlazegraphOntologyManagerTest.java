@@ -38,6 +38,35 @@ public class BlazegraphOntologyManagerTest {
 	public static void tearDownAfterClass() throws Exception {
 	}
 
+	
+	/**
+	 * Test method for {@link org.geneontology.minerva.BlazegraphOntologyManager#getAllTaxaWithGenes()}.
+	 * @throws IOException 
+	 */
+	@Test	
+	public void testGetLabels() throws IOException {
+		String thing = "http://purl.obolibrary.org/obo/NCBITaxon_44689";
+		String label = onto_repo.getLabel(thing);
+		assertTrue(label!=null);
+		System.out.println(thing+"  "+label);
+		thing = "http://identifiers.org/zfin/ZDB-GENE-010410-3";
+		label = onto_repo.getLabel(thing);
+		assertTrue(label!=null);
+		System.out.println(thing+"  "+label);		
+		thing = "http://purl.obolibrary.org/obo/ECO_0000314";
+		label = onto_repo.getLabel(thing);
+		assertTrue(label!=null);
+		System.out.println(thing+"  "+label);
+		thing = "http://purl.obolibrary.org/obo/GO_0110165";
+		label = onto_repo.getLabel(thing);
+		assertTrue(label!=null);
+		System.out.println(thing+"  "+label);
+		thing = "http://purl.obolibrary.org/obo/GO_0060090";
+		label = onto_repo.getLabel(thing);
+		assertTrue(label!=null);
+		System.out.println(thing+"  "+label);
+	}
+	
 	/**
 	 * Test method for {@link org.geneontology.minerva.BlazegraphOntologyManager#getAllTaxaWithGenes()}.
 	 * @throws IOException 

@@ -3,6 +3,7 @@ package org.geneontology.minerva.server.handler;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.json.InferenceProvider;
@@ -105,4 +106,19 @@ public class OperationsTools {
 		return createModelRenderer(curieHandler.getCuri(model.getModelId()), model.getAboxOntology(),
 				externalLookupService, inferenceProvider, curieHandler);
 	}
+	
+	//BlazegraphOntologyManager
+	static MolecularModelJsonRenderer createModelRenderer(
+			final ModelContainer model, 
+			final BlazegraphOntologyManager go_lego_repo,
+			final InferenceProvider inferenceProvider,
+			final CurieHandler curieHandler) {
+		
+		MolecularModelJsonRenderer renderer = new MolecularModelJsonRenderer(curieHandler.getCuri(model.getModelId()), model.getAboxOntology(),
+				go_lego_repo, inferenceProvider, curieHandler);
+		
+		return renderer;
+	}
+	
+	
 }

@@ -228,11 +228,11 @@ public class StartUpTool {
 			System.err.println("No journal file available");
 			System.exit(-1);
 		} 
-		if (conf.golrUrl == null) {
-			conf.golrUrl = "http://noctua-golr.berkeleybop.org/";
-			System.err.println("No GOLR service configured.  This is required, please add e.g. --golr-labels http://noctua-golr.berkeleybop.org/ to start up parameters ");
-			//System.exit(-1);
-		} 
+//		if (conf.golrUrl == null) {
+//			conf.golrUrl = "http://noctua-golr.berkeleybop.org/";
+//			System.err.println("No GOLR service configured.  This is required, please add e.g. --golr-labels http://noctua-golr.berkeleybop.org/ to start up parameters ");
+//			//System.exit(-1);
+//		} 
 		conf.contextString = "/";
 		if (conf.contextPrefix != null) {
 			conf.contextString = "/"+conf.contextPrefix;
@@ -248,20 +248,21 @@ public class StartUpTool {
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(conf.modelIdcurie, conf.modelIdPrefix));
 		conf.curieHandler = new MappedCurieHandler(mappings, localMappings);
 		// wrap the Golr service with a cache
-		if (conf.golrUrl != null) {
-			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler, conf.useGolrUrlLogging);
-			LOGGER.info("Setting up Golr cache with size: "+conf.golrCacheSize+" duration: "+
-					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
-					" use url logging: "+conf.useGolrUrlLogging);
-			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
-		}
-		if (conf.monarchUrl != null) {
-			conf.lookupService = new MonarchExternalLookupService(conf.monarchUrl, conf.curieHandler, conf.useGolrUrlLogging);
-			LOGGER.info("Setting up Monarch Golr cache with size: "+conf.golrCacheSize+" duration: "+
-					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
-					" use url logging: "+conf.useGolrUrlLogging);
-			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
-		}
+//get rid of external look ups altogether.  
+//		if (conf.golrUrl != null) {
+//			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler, conf.useGolrUrlLogging);
+//			LOGGER.info("Setting up Golr cache with size: "+conf.golrCacheSize+" duration: "+
+//					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
+//					" use url logging: "+conf.useGolrUrlLogging);
+//			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
+//		}
+//		if (conf.monarchUrl != null) {
+//			conf.lookupService = new MonarchExternalLookupService(conf.monarchUrl, conf.curieHandler, conf.useGolrUrlLogging);
+//			LOGGER.info("Setting up Monarch Golr cache with size: "+conf.golrCacheSize+" duration: "+
+//					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
+//					" use url logging: "+conf.useGolrUrlLogging);
+//			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
+//		}
 		
 		//TODO maybe make these command line parameters
 		URL shex_schema_url = new URL(conf.shexFileUrl);
