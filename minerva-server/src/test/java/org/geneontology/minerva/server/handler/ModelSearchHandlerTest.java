@@ -99,12 +99,12 @@ public class ModelSearchHandlerTest {
 		// set curie handler
 		String modelIdPrefix = "http://model.geneontology.org/";
 		String modelIdcurie = "gomodel";
-		CurieHandler curieHandler = new MappedCurieHandler();
+		curieHandler = new MappedCurieHandler();
 		String valid_model_folder = "src/test/resources/models/should_pass/";
 		String inputDB = makeBlazegraphJournal(valid_model_folder);	
 		//leave tbox empty for now
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
-		tbox_ontology = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
+		tbox_ontology = ontman.createOntology(IRI.create("http://example.org/dummy"));
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
 		
 		
@@ -170,7 +170,7 @@ public class ModelSearchHandlerTest {
 	 * @throws URISyntaxException 
 	 * @throws IOException 
 	 */
-//	@Test
+	@Test
 	public final void testSearchGetByGene() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -185,7 +185,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 
-//	@Test
+	@Test
 	public final void testSearchPostByGene() throws URISyntaxException, IOException {
 		HttpPost post = new HttpPost(server.getURI()+"search");
 		List<BasicNameValuePair> urlParameters = new ArrayList<>();
@@ -202,11 +202,11 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 	
-//	@Test
+	@Test
 	public final void testSearchGetByGO() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
-		builder.addParameter("goterm", "http://purl.obolibrary.org/obo/GO_0003677");
+		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0003677");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
 		Gson g = new Gson();
@@ -217,11 +217,11 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 
-//	@Test
+	@Test
 	public final void testSearchGetByGOclosure() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
-		builder.addParameter("goterm", "http://purl.obolibrary.org/obo/GO_0140312"); //cargo adaptor activity - should get one model that uses child clathrin binding
+		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0140312"); //cargo adaptor activity - should get one model that uses child clathrin binding
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
 		Gson g = new Gson();
@@ -232,11 +232,11 @@ public class ModelSearchHandlerTest {
 		assertTrue("No models found for nucleic acid binding - hould find some from children", result.getN()>0);
 	}
 
-//	@Test
+	@Test
 	public final void testSearchGetByWormAnatomy() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
-		builder.addParameter("goterm", "http://purl.obolibrary.org/obo/WBbt_0006748"); //vulva
+		builder.addParameter("term", "http://purl.obolibrary.org/obo/WBbt_0006748"); //vulva
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
 		Gson g = new Gson();
@@ -247,11 +247,11 @@ public class ModelSearchHandlerTest {
 		assertTrue("", result.getN()>0);
 	}
 
-//	@Test
+	@Test
 	public final void testSearchGetByWormAnatomyClosure() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
-		builder.addParameter("goterm", "http://purl.obolibrary.org/obo/WBbt_0008422"); //sex organ parent of vulva
+		builder.addParameter("term", "http://purl.obolibrary.org/obo/WBbt_0008422"); //sex organ parent of vulva
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
 		Gson g = new Gson();
@@ -279,7 +279,37 @@ public class ModelSearchHandlerTest {
 		assertTrue("No models found for taxon ", result.getN()>0);
 	}
 	
-//	@Test
+	@Test
+	public final void testSearchGetByTaxonCurie() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("taxon", "NCBITaxon:9606");//worm 6239 14 models //9606 2 zebrafish 7955 2 
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by taxon "+searchuri);
+		LOGGER.info("Search by taxon result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue("No models found for taxon ", result.getN()>0);
+	}
+	
+	@Test
+	public final void testSearchGetByTaxonURI() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("taxon", "http://purl.obolibrary.org/obo/NCBITaxon_7955");//worm 6239 14 models //9606 2 zebrafish 7955 2 
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by taxon "+searchuri);
+		LOGGER.info("Search by taxon result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue("No models found for taxon ", result.getN()>0);
+	}
+	
+	@Test
 	public final void testSearchGetByTitle() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -294,7 +324,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}	
 	
-//	@Test
+	@Test
 	public final void testSearchGetByPMID() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -310,7 +340,7 @@ public class ModelSearchHandlerTest {
 	}
 	
 	//&state=development&state=review {development, production, closed, review, delete} or operator	
-//	@Test
+	@Test
 	public final void testSearchGetByState() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -325,7 +355,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 	
-//	@Test
+	@Test
 	public final void testSearchGetByContributors() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -340,7 +370,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 	
-//	@Test
+	@Test
 	public final void testSearchGetByGroups() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -355,7 +385,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 	
-//	@Test
+	@Test
 	public final void testSearchGetByDate() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -370,7 +400,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(result.getN()>0);
 	}
 	
-//	@Test
+	@Test
 	public final void testSearchGetByDateAndOffset() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
@@ -388,7 +418,7 @@ public class ModelSearchHandlerTest {
 		assertTrue(n1>n2);
 	}
 	
-//	@Test
+	@Test
 	public final void testSearchGetByDateAndCount() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");

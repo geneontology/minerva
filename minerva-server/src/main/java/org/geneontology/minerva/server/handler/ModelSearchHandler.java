@@ -45,8 +45,8 @@ import org.semanticweb.owlapi.model.IRI;
  */
 @Path("/search")
 public class ModelSearchHandler {
-
-	private final BlazegraphMolecularModelManager m3;
+ 
+	private final BlazegraphMolecularModelManager<?> m3;
 	private final int timeout;
 	private final BlazegraphOntologyManager go_lego;
 	private Map<String, Set<String>> taxon_models;
@@ -184,7 +184,7 @@ public class ModelSearchHandler {
 	public ModelSearchResult searchGet(
 			@QueryParam("taxon") Set<String> taxa, 
 			@QueryParam("gp") Set<String> gene_product_class_uris, 
-			@QueryParam("goterm") Set<String> goterms,
+			@QueryParam("term") Set<String> terms,
 			@QueryParam("pmid") Set<String> pmids,
 			@QueryParam("title") String title,
 			@QueryParam("state") Set<String> state,
@@ -196,26 +196,26 @@ public class ModelSearchHandler {
 			@QueryParam("count") String count
 			){
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(taxa, gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, terms, pmids, title, state, contributor, group, date, offset, limit, count);
 		return result;
 	}
-	//TODO make junit tests out of these. 
+
 	//examples 
 	//http://127.0.0.1:6800/search/?
 	//?gp=http://identifiers.org/uniprot/P15822-3
-	//?goterm=http://purl.obolibrary.org/obo/GO_0003677
+	//?term=http://purl.obolibrary.org/obo/GO_0003677
 	//
 	//
 	//?gp=http://identifiers.org/mgi/MGI:1328355
 	//&gp=http://identifiers.org/mgi/MGI:87986
-	//&goterm=http://purl.obolibrary.org/obo/GO_0030968
+	//&term=http://purl.obolibrary.org/obo/GO_0030968
 	//&title=mouse
 	//&pmid=PMID:19911006
 	//&state=development&state=review {development, production, closed, review, delete} or operator
 	//&count
 	//127.0.0.1:6800/search/?contributor=http://orcid.org/0000-0002-1706-4196
 	public ModelSearchResult search(Set<String> taxa, 
-			Set<String> gene_product_ids, Set<String> goterms, Set<String>pmids, 
+			Set<String> gene_product_ids, Set<String> terms, Set<String>pmids, 
 			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, String date_search,
 			int offset, int limit, String count) {
 		ModelSearchResult r = new ModelSearchResult();
@@ -224,8 +224,8 @@ public class ModelSearchHandler {
 		if(gene_product_ids!=null) {
 			gene_type_ids.addAll(gene_product_ids);
 		}
-		if(goterms!=null) {
-			go_type_ids.addAll(goterms);
+		if(terms!=null) {
+			go_type_ids.addAll(terms);
 		}
 		CurieHandler curie_handler = m3.getCuriHandler();
 		Set<String> go_type_uris = new HashSet<String>();
@@ -317,12 +317,16 @@ public class ModelSearchHandler {
 			}
 		}
 		String taxa_constraint = "";
-		if(taxa!=null) {
+		if(taxa!=null&&!taxa.isEmpty()) {
 			String model_filter =  " VALUES ?id { \n"; 
 			for(String taxon : taxa) {
-				if(!taxon.startsWith("http://purl.obolibrary.org/obo/NCBITaxon_")) {
-					taxon = "http://purl.obolibrary.org/obo/NCBITaxon_"+taxon;
+				if(taxon.startsWith("NCBITaxon:")) {
+					taxon = taxon.replace(":", "_");
+					taxon = "http://purl.obolibrary.org/obo/"+taxon;
 				}
+				else if(!taxon.startsWith("http://purl.obolibrary.org/obo/NCBITaxon_")) {
+					taxon = "http://purl.obolibrary.org/obo/NCBITaxon_"+taxon;
+				} 
 				Set<String> models = taxon_models.get(taxon);
 				if(models!=null) {
 					for(String model : models) {
@@ -548,7 +552,7 @@ public class ModelSearchHandler {
 	public ModelSearchResult searchPostForm(
 			@FormParam("taxon") Set<String> taxa, 
 			@FormParam("gp") Set<String> gene_product_class_uris, 
-			@FormParam("goterm") Set<String> goterms,
+			@FormParam("term") Set<String> terms,
 			@FormParam("pmid") Set<String> pmids,
 			@FormParam("title") String title,
 			@FormParam("state") Set<String> state,
@@ -559,7 +563,7 @@ public class ModelSearchHandler {
 			@FormParam("limit") int limit,
 			@FormParam("count") String count) {
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(taxa, gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, terms, pmids, title, state, contributor, group, date, offset, limit, count);
 		return result;
 	}
 
