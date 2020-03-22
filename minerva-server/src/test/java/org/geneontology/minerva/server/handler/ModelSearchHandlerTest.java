@@ -221,7 +221,7 @@ public class ModelSearchHandlerTest {
 	public final void testSearchGetByGOclosure() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
-		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0140312"); //cargo adaptor activity - should get one model that uses child clathrin binding
+		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0140312");//clathrin binding - should get one model that uses child clathrin activity GO_0035615
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
 		Gson g = new Gson();
@@ -229,7 +229,7 @@ public class ModelSearchHandlerTest {
 		LOGGER.info("Search by GO term URI "+searchuri);
 		LOGGER.info("Search by GO term result "+json_result);
 		LOGGER.info("N models found: "+result.getN());
-		assertTrue("No models found for nucleic acid binding - hould find some from children", result.getN()>0);
+		assertTrue(result.getN()+" models found should find some from children of GO_0140312", result.getN()>0);
 	}
 
 	@Test

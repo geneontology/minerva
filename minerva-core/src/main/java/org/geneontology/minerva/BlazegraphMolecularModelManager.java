@@ -105,16 +105,22 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @throws IOException 
 	 */
 	public BlazegraphMolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder, String pathToOntologyJournal)
-			throws OWLOntologyCreationException, IOException {
-		
+			throws OWLOntologyCreationException, IOException {		
 		super(tbox, pathToOntologyJournal);
+		if(curieHandler==null) {
+			LOG.error("curie handler required for blazegraph model manager startup ");
+			System.exit(-1);
+		}else if(curieHandler.getMappings()==null) {
+			LOG.error("curie handler WITH MAPPINGS required for blazegraph model manager startup ");
+			System.exit(-1);
+		}
 		this.modelIdPrefix = modelIdPrefix;
 		this.curieHandler = curieHandler;
 		this.pathToOWLStore = pathToJournal;
 		this.pathToExportFolder = pathToExportFolder;
 		this.repo = initializeRepository(this.pathToOWLStore);
-		
 		taxon_models = buildTaxonModelMap();
+		
 	}
 
 	public Map<String, Set<String>> getTaxon_models() {
@@ -527,6 +533,27 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
             connection.close();
         }
     }
+    
+    public QueryResult executeSPARQLQueryWithoutPrefixManipulation(String queryText, int timeout) throws MalformedQueryException, QueryEvaluationException, RepositoryException {
+        BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
+        try {
+            Query query = connection.prepareQuery(QueryLanguage.SPARQL, queryText.toString());
+            query.setMaxQueryTime(timeout);
+            if (query instanceof TupleQuery) {
+                TupleQuery tupleQuery = (TupleQuery) query;
+                return tupleQuery.evaluate();
+            } else if (query instanceof GraphQuery) {
+                GraphQuery graphQuery = (GraphQuery) query;
+                return graphQuery.evaluate();
+            } else if (query instanceof BooleanQuery) {
+                throw new UnsupportedOperationException("Unsupported query type."); //FIXME
+            } else {
+                throw new UnsupportedOperationException("Unsupported query type.");
+            }
+        } finally {
+            connection.close();
+        }
+    }
 
 	@Override
 	protected void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException {
@@ -862,7 +889,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				"  \n" + 
 				"GROUP BY ?id";
 		try {
-			result = (TupleQueryResult) executeSPARQLQuery(sparql, 100);
+			result = (TupleQueryResult) executeSPARQLQueryWithoutPrefixManipulation(sparql, 100);
 			while(result.hasNext()) {
 				BindingSet bs = result.next();
 				String model = bs.getBinding("id").getValue().stringValue();
@@ -921,7 +948,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				"  } \n" + 
 				"  \n";
 		try {
-			result = (TupleQueryResult) executeSPARQLQuery(sparql, 10);
+			result = (TupleQueryResult) executeSPARQLQueryWithoutPrefixManipulation(sparql, 10);
 			
 			while(result.hasNext()) {
 				BindingSet bs = result.next();
