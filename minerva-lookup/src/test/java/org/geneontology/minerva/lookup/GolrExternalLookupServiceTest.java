@@ -73,52 +73,52 @@ public class GolrExternalLookupServiceTest {
 
 	}
 
-	@Test
-	public void testLookupStringCls() throws Exception {
-		GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler);
-		List<LookupEntry> lookup = s.lookup(handler.getIRI("PO:0001040"));
-		assertEquals(1, lookup.size());
-		assertEquals("dry seed stage", lookup.get(0).label);
-	}
+//	@Test
+//	public void testLookupStringCls() throws Exception {
+//		GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler);
+//		List<LookupEntry> lookup = s.lookup(handler.getIRI("PO:0001040"));
+//		assertEquals(1, lookup.size());
+//		assertEquals("dry seed stage", lookup.get(0).label);
+//	}
 
-	@Test
-	public void testLookupStringCls2() throws Exception {
-		Logger.getLogger(GolrExternalLookupService.class).setLevel(Level.DEBUG);
-		GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler);
-		List<LookupEntry> lookup = s.lookup(handler.getIRI("UBERON:0010403"));
-		assertEquals(1, lookup.size());
-		assertEquals("brain marginal zone", lookup.get(0).label);
-	}
+//	@Test
+//	public void testLookupStringCls2() throws Exception {
+//		Logger.getLogger(GolrExternalLookupService.class).setLevel(Level.DEBUG);
+//		GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler);
+//		List<LookupEntry> lookup = s.lookup(handler.getIRI("UBERON:0010403"));
+//		assertEquals(1, lookup.size());
+//		assertEquals("brain marginal zone", lookup.get(0).label);
+//	}
 
-	@Test
-	public void testLookupGeneProductCls() throws Exception {
-		Logger.getLogger(GolrExternalLookupService.class).setLevel(Level.DEBUG);
-		GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler);
-		IRI gp_iri = handler.getIRI("UniProtKB:P32241-1");
-		List<LookupEntry> lookup = s.lookup(gp_iri);
-		assertEquals(1, lookup.size());
-		LookupEntry e = lookup.get(0);
-		assertEquals("VIPR1 Hsap", e.label);
-		assertEquals(32, e.isa_closure.size());
-		assertTrue(e.isa_closure.contains("PR:000000001"));
-		
-		gp_iri = handler.getIRI("SGD:S000005952");
-		lookup = s.lookup(gp_iri);
-		assertEquals(1, lookup.size());
-		e = lookup.get(0);
-		assertEquals("PHO85 Scer", e.label);
-		assertEquals(12, e.isa_closure.size());
-		assertTrue(e.isa_closure.contains("CHEBI:33695"));
-		
-		//example non-gene obo:ComplexPortal_CPX-900  http://purl.obolibrary.org/obo/ComplexPortal_CPX-900
-		gp_iri = handler.getIRI("ComplexPortal:CPX-900");
-		lookup = s.lookup(gp_iri);
-		assertEquals(1, lookup.size());
-		e = lookup.get(0);
-		assertEquals("saga _human Hsap", e.label);
-		assertEquals(12, e.isa_closure.size());
-		assertTrue(e.isa_closure.contains("CHEBI:33695"));
-	}
+//	@Test
+//	public void testLookupGeneProductCls() throws Exception {
+//		Logger.getLogger(GolrExternalLookupService.class).setLevel(Level.DEBUG);
+//		GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler);
+//		IRI gp_iri = handler.getIRI("UniProtKB:P32241-1");
+//		List<LookupEntry> lookup = s.lookup(gp_iri);
+//		assertEquals(1, lookup.size());
+//		LookupEntry e = lookup.get(0);
+//		assertEquals("VIPR1 Hsap", e.label);
+//		assertEquals(32, e.isa_closure.size());
+//		assertTrue(e.isa_closure.contains("PR:000000001"));
+//		
+//		gp_iri = handler.getIRI("SGD:S000005952");
+//		lookup = s.lookup(gp_iri);
+//		assertEquals(1, lookup.size());
+//		e = lookup.get(0);
+//		assertEquals("PHO85 Scer", e.label);
+//		assertEquals(12, e.isa_closure.size());
+//		assertTrue(e.isa_closure.contains("CHEBI:33695"));
+//		
+//		//example non-gene obo:ComplexPortal_CPX-900  http://purl.obolibrary.org/obo/ComplexPortal_CPX-900
+//		gp_iri = handler.getIRI("ComplexPortal:CPX-900");
+//		lookup = s.lookup(gp_iri);
+//		assertEquals(1, lookup.size());
+//		e = lookup.get(0);
+//		assertEquals("saga _human Hsap", e.label);
+//		assertEquals(12, e.isa_closure.size());
+//		assertTrue(e.isa_closure.contains("CHEBI:33695"));
+//	}
 
 	@Test
 	public void testCachedGolrLookup() throws Exception {
