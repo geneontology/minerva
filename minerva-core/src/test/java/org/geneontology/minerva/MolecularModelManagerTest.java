@@ -69,6 +69,7 @@ public class MolecularModelManagerTest {
 
 		Set<OWLNamedIndividual> individuals = mmm.getIndividuals(model.getModelId());
 		assertEquals(1, individuals.size());
+		mmm.dispose();
 	}
 
 	@Test
@@ -113,6 +114,7 @@ public class MolecularModelManagerTest {
 			assertTrue(iri.equals(i1.getIRI()) || iri.equals(i2.getIRI()));
 			assertFalse(iri.equals(i3.getIRI()));
 		}
+		mmm.dispose();
 	}
 	
 	@Test
@@ -163,6 +165,7 @@ public class MolecularModelManagerTest {
 			assertTrue(iri.equals(i1.getIRI()) || iri.equals(i2.getIRI()));
 			assertFalse(iri.equals(i3.getIRI()));
 		}
+		mmm.dispose();
 	}
 
 	@Test
@@ -189,6 +192,7 @@ public class MolecularModelManagerTest {
 
 		//List<Map<Object, Object>> gson = mmm.getIndividualObjects(modelId);
 		//assertEquals(1, individuals.size());
+		mmm.dispose();
 	}
 	
 	private void addPartOf(ModelContainer model, OWLNamedIndividual i1, OWLNamedIndividual i2, 
