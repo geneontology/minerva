@@ -80,29 +80,15 @@ public class MapInferenceProvider implements InferenceProvider {
 		//shex
 		ShexValidationReport shex_validation = null;
 		if(shex.isActive()) {
-			//generate an RDF model
-			FileDocumentTarget outf = new FileDocumentTarget(new File("/Users/benjamingood/test/tmp/ont_after_type_before_expand.ttl"));
-			ont.getOWLOntologyManager().setOntologyFormat(ont, new TurtleDocumentFormat());	
-			try {
-				ont.getOWLOntologyManager().saveOntology(ont,outf);
-			} catch (OWLOntologyStorageException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-			
+			//generate an RDF model			
 			Model model = JenaOwlTool.getJenaModel(ont);
 			//add superclasses to types used in model - needed for shex to find everything
 			//model may now have additional inferred assertions from Arachne
-			model = shex.enrichSuperClasses(model);	
-			
-			FileOutputStream o = new FileOutputStream(new File("/Users/benjamingood/test/tmp/ont_after_type_after_expand.ttl"));
-			model.write(o, "TURTLE");
-	 		o.close();
-			
+			model = shex.enrichSuperClasses(model);		
 			try {
 				LOGGER.info("Running shex validation - model (enriched with superclass hierarchy) size:"+model.size());
 				shex_validation = shex.runShapeMapValidation(model);
-				LOGGER.info("Done with shex validation");
+				LOGGER.info("Done with shex validation. model is conformant is: "+shex_validation.isConformant());
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

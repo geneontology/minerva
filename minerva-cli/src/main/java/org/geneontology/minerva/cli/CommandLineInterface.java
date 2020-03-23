@@ -186,7 +186,6 @@ public class CommandLineInterface {
 				String inputFile = cmd.getOptionValue("f"); //--folder
 				importOWLOntologyIntoJournal(journalFilePath, inputFile, cmd.hasOption("r"));
 			}
-			// --merge-ontologies -i /Users/benjamingood/gocam_ontology/go_lego_today/ -o /Users/benjamingood/gocam_ontology/merged_go_lego_today.owl -u http://purl.obolibrary.org/obo/go/extensions/go-lego.owl -r
 			if(cmd.hasOption("merge-ontologies")) {
 				Options merge_options = new Options();
 				merge_options.addOption(merge_ontologies);

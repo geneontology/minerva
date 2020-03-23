@@ -500,7 +500,7 @@ public class ModelSearchHandlerTest {
 	}
 	
 	private static String makeBlazegraphJournal(String input_folder) throws IOException, OWLOntologyCreationException, RepositoryException, RDFParseException, RDFHandlerException {
-		String inputDB = tmp.newFile().getAbsolutePath(); //"/Users/benjamingood/blazegraph/blazegraph.jnl";
+		String inputDB = tmp.newFile().getAbsolutePath(); 
 		File i = new File(input_folder);
 		if(i.exists()) {
 			//remove anything that existed earlier
