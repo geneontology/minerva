@@ -32,6 +32,7 @@ public class UndoAwareMolecularModelManagerTest  {
 	static MinervaOWLGraphWrapper g = null;
 	static CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	static UndoAwareMolecularModelManager m3 = null;
+	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
 	
 	@Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -39,7 +40,7 @@ public class UndoAwareMolecularModelManagerTest  {
 	@Test
 	public void testUndoRedo() throws Exception {
 		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
-		m3 = new UndoAwareMolecularModelManager(tbox, curieHandler, "http://testmodel.geneontology.org/", folder.newFile().getAbsolutePath(), null, null);
+		m3 = new UndoAwareMolecularModelManager(tbox, curieHandler, "http://testmodel.geneontology.org/", folder.newFile().getAbsolutePath(), null, go_lego_journal_file);
 		
 		String userId = "test-user-id";
 		ModelContainer model = m3.generateBlankModel(null);

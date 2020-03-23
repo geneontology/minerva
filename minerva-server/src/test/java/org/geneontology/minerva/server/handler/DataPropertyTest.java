@@ -31,10 +31,11 @@ public class DataPropertyTest {
 	public TemporaryFolder folder = new TemporaryFolder();
 	
 	private final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
+	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
 	
 	private UndoAwareMolecularModelManager createM3(OWLOntology tbox) throws OWLOntologyCreationException, IOException {
 		UndoAwareMolecularModelManager mmm = new UndoAwareMolecularModelManager(tbox, curieHandler,
-				"http://model.geneontology.org/", folder.newFile().getAbsolutePath(), null, null);
+				"http://model.geneontology.org/", folder.newFile().getAbsolutePath(), null, go_lego_journal_file);
 		return mmm;
 	}
 
@@ -54,6 +55,7 @@ public class DataPropertyTest {
 		Pair<List<JsonRelationInfo>,List<JsonRelationInfo>> pair = MolecularModelJsonRenderer.renderProperties(mmm, null, curieHandler);
 		List<JsonRelationInfo> dataProperties = pair.getRight();
 		assertEquals(1, dataProperties.size());
+		mmm.dispose();
 	}
 	
 	@Test
@@ -91,6 +93,7 @@ public class DataPropertyTest {
 			assertEquals("10", ann.value);
 			assertEquals("xsd:integer", ann.valueType);
 		}
+		m3.dispose();
 	}
 	
 	@Test
@@ -180,6 +183,7 @@ public class DataPropertyTest {
 			JsonOwlIndividual i = response2.data.individuals[0];
 			assertEquals(3, i.annotations.length);
 		}
+		m3.dispose();
 	}
 	
 	private M3BatchResponse exec(JsonOrJsonpBatchHandler handler, List<M3Request> requests) {
