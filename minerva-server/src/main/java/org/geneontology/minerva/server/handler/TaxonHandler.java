@@ -45,5 +45,9 @@ import org.semanticweb.owlapi.model.IRI;
 			}
 			return new Taxa(taxa);
 		}
+
+		public BlazegraphMolecularModelManager<?> getM3() {
+			return m3;
+		}
 		
 	}

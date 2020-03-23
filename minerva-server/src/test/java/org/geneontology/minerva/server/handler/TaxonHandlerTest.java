@@ -90,6 +90,7 @@ public class TaxonHandlerTest {
 	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
 	static OWLOntology tbox_ontology;
 	static CurieHandler curieHandler;	
+	static TaxonHandler taxonHandler;
 	
 	@ClassRule
 	public static TemporaryFolder tmp = new TemporaryFolder();
@@ -119,7 +120,7 @@ public class TaxonHandlerTest {
 		resourceConfig.register(GsonMessageBodyHandler.class);
 		resourceConfig.register(RequireJsonpFilter.class);
 
-		TaxonHandler taxonHandler = new TaxonHandler(models);
+		taxonHandler = new TaxonHandler(models);
 		resourceConfig = resourceConfig.registerInstances(taxonHandler);
 
 		// setup jetty server port, buffers and context path
@@ -152,6 +153,7 @@ public class TaxonHandlerTest {
 	 */
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
+		taxonHandler.getM3().dispose();
 		server.stop();
 	}
 

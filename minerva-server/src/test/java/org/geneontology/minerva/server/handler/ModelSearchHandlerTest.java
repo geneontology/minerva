@@ -86,6 +86,7 @@ public class ModelSearchHandlerTest {
 	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
 	static OWLOntology tbox_ontology;
 	static CurieHandler curieHandler;	
+	static UndoAwareMolecularModelManager models;
 	
 	@ClassRule
 	public static TemporaryFolder tmp = new TemporaryFolder();
@@ -105,7 +106,7 @@ public class ModelSearchHandlerTest {
 		//leave tbox empty for now
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		tbox_ontology = ontman.createOntology(IRI.create("http://example.org/dummy"));
-		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
+		models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
 		
 		
 		LOGGER.info("Setup Jetty config.");
@@ -148,6 +149,7 @@ public class ModelSearchHandlerTest {
 	 */
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
+		models.dispose();
 		server.stop();
 	}
 

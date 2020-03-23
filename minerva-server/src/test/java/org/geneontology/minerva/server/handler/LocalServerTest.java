@@ -50,13 +50,13 @@ public class LocalServerTest {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
+		models.dispose();
 		server.stop();
 		server.destroy();
 	}
 	
 	@After
 	public void after() {
-//		models.dispose();
 	}
 	
 	static void init(ParserWrapper pw) throws Exception {

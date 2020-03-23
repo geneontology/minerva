@@ -36,6 +36,7 @@ public class BlazegraphOntologyManagerTest {
 	 */
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
+		onto_repo.dispose();
 	}
 
 	
