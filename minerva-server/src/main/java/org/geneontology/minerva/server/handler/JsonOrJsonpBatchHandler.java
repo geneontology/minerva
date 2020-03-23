@@ -4,8 +4,11 @@ import com.google.common.reflect.TypeToken;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
+import org.geneontology.minerva.BlazegraphOntologyManager;
+import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.json.*;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
@@ -212,7 +215,9 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 
 		// create response.data
 		response.data = new ResponseData();
-		final MolecularModelJsonRenderer renderer = createModelRenderer(values.model, externalLookupService, inferenceProvider, curieHandler);
+		//final MolecularModelJsonRenderer renderer = createModelRenderer(values.model, externalLookupService, inferenceProvider, curieHandler);
+		//working towards zero use of external look up service.. which is both slow and confusing.  
+		final MolecularModelJsonRenderer renderer = createModelRenderer(values.model, m3.getGolego_repo(), inferenceProvider, curieHandler);
 		if (values.renderBulk) {
 			// render complete model
 			JsonModel jsonModel = renderer.renderModel();

@@ -35,6 +35,7 @@ public class ModelReasonerTest {
 	private static CurieHandler curieHandler = null;
 	private static JsonOrJsonpBatchHandler handler = null;
 	private static UndoAwareMolecularModelManager models = null;
+	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -50,7 +51,7 @@ public class ModelReasonerTest {
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		
-		models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
+		models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null, go_lego_journal_file);
 		InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false, null);
 		handler = new JsonOrJsonpBatchHandler(models, "development", ipc,
 				Collections.<OWLObjectProperty>emptySet(), (ExternalLookupService) null);

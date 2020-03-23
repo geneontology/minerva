@@ -101,6 +101,7 @@ public class StartUpTool {
 		public String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 		public String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
 		public MinervaShexValidator shex;
+		public String pathToOntologyJournal;
 
 	}
 
@@ -208,9 +209,16 @@ public class StartUpTool {
 			else if (opts.nextEq("--sparql-endpoint-timeout")) {
 				conf.sparqlEndpointTimeout = Integer.parseInt(opts.nextOpt());
 			}
+			else if (opts.nextEq("--ontojournal")) {
+				conf.pathToOntologyJournal = opts.nextOpt();
+			}
 			else {
 				break;
 			}
+		}
+		if (conf.pathToOntologyJournal == null) {
+			System.err.println("No blazegraph journal containing tbox ontology provided. exit.");
+			System.exit(-1);
 		}
 		if (conf.ontology == null) {
 			System.err.println("No ontology graph available");
@@ -220,10 +228,11 @@ public class StartUpTool {
 			System.err.println("No journal file available");
 			System.exit(-1);
 		} 
-		if (conf.golrUrl == null) {
-			System.err.println("No GOLR service set.  This is required, please add e.g. --golr-labels http://noctua-golr.berkeleybop.org/ to start up parameters ");
-			System.exit(-1);
-		} 
+//		if (conf.golrUrl == null) {
+//			conf.golrUrl = "http://noctua-golr.berkeleybop.org/";
+//			System.err.println("No GOLR service configured.  This is required, please add e.g. --golr-labels http://noctua-golr.berkeleybop.org/ to start up parameters ");
+//			//System.exit(-1);
+//		} 
 		conf.contextString = "/";
 		if (conf.contextPrefix != null) {
 			conf.contextString = "/"+conf.contextPrefix;
@@ -239,20 +248,21 @@ public class StartUpTool {
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(conf.modelIdcurie, conf.modelIdPrefix));
 		conf.curieHandler = new MappedCurieHandler(mappings, localMappings);
 		// wrap the Golr service with a cache
-		if (conf.golrUrl != null) {
-			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler, conf.useGolrUrlLogging);
-			LOGGER.info("Setting up Golr cache with size: "+conf.golrCacheSize+" duration: "+
-					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
-					" use url logging: "+conf.useGolrUrlLogging);
-			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
-		}
-		if (conf.monarchUrl != null) {
-			conf.lookupService = new MonarchExternalLookupService(conf.monarchUrl, conf.curieHandler, conf.useGolrUrlLogging);
-			LOGGER.info("Setting up Monarch Golr cache with size: "+conf.golrCacheSize+" duration: "+
-					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
-					" use url logging: "+conf.useGolrUrlLogging);
-			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
-		}
+//get rid of external look ups altogether.  
+//		if (conf.golrUrl != null) {
+//			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler, conf.useGolrUrlLogging);
+//			LOGGER.info("Setting up Golr cache with size: "+conf.golrCacheSize+" duration: "+
+//					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
+//					" use url logging: "+conf.useGolrUrlLogging);
+//			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
+//		}
+//		if (conf.monarchUrl != null) {
+//			conf.lookupService = new MonarchExternalLookupService(conf.monarchUrl, conf.curieHandler, conf.useGolrUrlLogging);
+//			LOGGER.info("Setting up Monarch Golr cache with size: "+conf.golrCacheSize+" duration: "+
+//					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
+//					" use url logging: "+conf.useGolrUrlLogging);
+//			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
+//		}
 		
 		//TODO maybe make these command line parameters
 		URL shex_schema_url = new URL(conf.shexFileUrl);
@@ -262,9 +272,9 @@ public class StartUpTool {
 		File shex_map_file = new File("./target/go-cam-shapes.shapeMap");
 		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
 		//reasoner set in next phase after ontologies loaded
-		conf.shex = new MinervaShexValidator(shex_schema_file, shex_map_file, conf.curieHandler, null, conf.lookupService);
+		conf.shex = new MinervaShexValidator(shex_schema_file, shex_map_file, conf.curieHandler, null);
 			
-		Server server = startUp(conf);
+		Server server = startUp(conf); 
 		try {
 			server.join();
 		}
@@ -364,10 +374,11 @@ public class StartUpTool {
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph.getSourceOntology(),
-				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder);
+				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder, conf.pathToOntologyJournal );
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
-		conf.shex.tbox_reasoner = models.getTbox_reasoner();
+	//	conf.shex.tbox_reasoner = models.getTbox_reasoner();
+		conf.shex.setGo_lego_repo(models.getGolego_repo());
 		conf.shex.curieHandler = conf.curieHandler;
 		// start server
 		Server server = startUp(models, conf, ont_annos);
@@ -444,7 +455,8 @@ public class StartUpTool {
 		LocalTime t = LocalTime.now(); 
 		String startup = d.toString()+" "+t.toString();
 		StatusHandler statusHandler = new StatusHandler(conf, ont_annos, startup); 
-		resourceConfig = resourceConfig.registerInstances(batchHandler, sparqlHandler, searchHandler, statusHandler);
+		TaxonHandler taxonHandler = new TaxonHandler(models);
+		resourceConfig = resourceConfig.registerInstances(batchHandler, sparqlHandler, searchHandler, statusHandler, taxonHandler);
 
 		// setup jetty server port, buffers and context path
 		Server server = new Server();

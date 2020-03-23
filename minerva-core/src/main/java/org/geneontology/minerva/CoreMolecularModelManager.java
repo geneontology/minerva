@@ -67,6 +67,7 @@ import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
 import org.semanticweb.owlapi.model.OWLOntologyLoaderConfiguration;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
+import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
 import org.semanticweb.owlapi.model.RemoveAxiom;
 import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
 import org.semanticweb.owlapi.model.SetOntologyID;
@@ -115,8 +116,11 @@ public abstract class CoreMolecularModelManager<METADATA> {
 
 	final OWLOntology tbox;
 	//	final OWLReasonerFactory rf;
-	final OWLReasoner tbox_reasoner;
+	//	final OWLReasoner tbox_reasoner;
+	//replacing tbox_reasoner structural reasoner functionality with blazegraph queries over pre-inferred relations..
+	private BlazegraphOntologyManager go_lego_repo;
 	private final IRI tboxIRI;
+
 	final Map<IRI, ModelContainer> modelMap = new HashMap<IRI, ModelContainer>();
 	Set<IRI> additionalImports;
 
@@ -197,9 +201,10 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	/**
 	 * @param tbox
 	 * @throws OWLOntologyCreationException
+	 * @throws IOException 
 	 */
-	public CoreMolecularModelManager(OWLOntology tbox) throws OWLOntologyCreationException {
-		super();		
+	public CoreMolecularModelManager(OWLOntology tbox, String go_lego_repo_file) throws OWLOntologyCreationException, IOException {
+		super();
 		this.tbox = tbox;
 		tboxIRI = getTboxIRI(tbox);
 		this.ruleEngine = initializeRuleEngine();
@@ -207,9 +212,12 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		initializeTboxLabelIndex();
 		initializeTboxShorthandIndex();
 		initializeDoNotAnnotateSubset();
-		this.tbox_reasoner = initializeTboxReasoner(tbox);
+		if(go_lego_repo_file!=null) {
+			this.go_lego_repo = new BlazegraphOntologyManager(go_lego_repo_file);
+		}
 		init();
 	}
+
 
 	private OWLReasoner initializeTboxReasoner(OWLOntology tbox) {
 		OWLReasonerFactory reasonerFactory = new StructuralReasonerFactory();
@@ -302,7 +310,6 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	}
 
 	public WorkingMemory createInferredModel(OWLOntology abox, IRI modelId) {
-		LOG.info("creating inferred model: "+modelId);
 		Set<Statement> statements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(abox)).asJava();
 		Set<Triple> triples = statements.stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
 		try {
@@ -328,7 +335,6 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	}
 
 	public WorkingMemory createCanonicalInferredModel(IRI modelId) {
-		LOG.info("creating canonical inferred model: "+modelId);
 		//swap out any non-canonical types
 		OWLOntology source_abox = getModelAbox(modelId);
 		OWLOntologyManager aman = OWLManager.createOWLOntologyManager();
@@ -952,7 +958,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	protected abstract void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException;
 
 	ModelContainer addModel(IRI modelId, OWLOntology abox) throws OWLOntologyCreationException {
-		ModelContainer m = new ModelContainer(modelId, tbox, abox, tbox_reasoner);
+		ModelContainer m = new ModelContainer(modelId, tbox, abox);
 		modelMap.put(modelId, m);
 		return m;
 	}
@@ -1409,8 +1415,10 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return tbox;
 	}
 
-	public OWLReasoner getTbox_reasoner() {
-		return tbox_reasoner;
+	//	public OWLReasoner getTbox_reasoner() {
+	//		return tbox_reasoner;
+	//	}
+	public BlazegraphOntologyManager getGolego_repo() {
+		return go_lego_repo;
 	}
-
 }

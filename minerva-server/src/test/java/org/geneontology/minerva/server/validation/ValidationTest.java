@@ -50,13 +50,12 @@ import fr.inria.lille.shexjava.schema.parsing.GenParser;
 public class ValidationTest {
 	private static final Logger LOGGER = Logger.getLogger(ValidationTest.class);
 	static final String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
+	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
 	static final String catalog = "src/test/resources/ontology/catalog-for-validation.xml";
 	static final String modelIdcurie = "http://model.geneontology.org/";
 	static final String modelIdPrefix = "gomodel";
 	static final String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 	static final String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
-	static final String golr_url = "http://noctua-golr.berkeleybop.org/"; 
-	static ExternalLookupService externalLookupService;
 	static OWLOntology tbox_ontology;
 	static CurieHandler curieHandler;
 
@@ -99,26 +98,23 @@ public class ValidationTest {
 		LOGGER.info("building model manager and structural reasoner");
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-
-		externalLookupService = new GolrExternalLookupService(golr_url, curieHandler, false);
 	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 	}
-	
+
 	@Test
 	public void testValid() {
 		String valid_model_folder = "src/test/resources/models/should_pass/";
 		boolean should_fail = false;
 		boolean check_shex = true;
-		String golr_server = "http://noctua-golr.berkeleybop.org/";
 		try {
 			validateGoCams(
 					valid_model_folder, 
-					should_fail, //modles should fail check
-					check_shex, //check shex (false just OWL)
-					golr_server);
+					should_fail, //models should fail check
+					check_shex //check shex (false just OWL)
+					);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -130,71 +126,74 @@ public class ValidationTest {
 		String valid_model_folder = "src/test/resources/models/should_fail/";
 		boolean should_fail = true;
 		boolean check_shex = true;
-		String golr_server = "http://noctua-golr.berkeleybop.org/";
 		try {
 			validateGoCams(
 					valid_model_folder, 
 					should_fail, //models should fail check
-					check_shex, //check shex (false just OWL)
-					golr_server);
+					check_shex //check shex (false just OWL)
+					);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}	
 	}
 
-	public static void validateGoCams(String input, boolean should_fail, boolean check_shex, String golr_server) throws Exception {
+	public static void validateGoCams(String input, boolean should_fail, boolean check_shex) throws Exception {
+
 		String blazegraph_journal = makeBlazegraphJournal(input);
-		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, blazegraph_journal, null);
-		URL shex_schema_url = new URL(shexFileUrl);
-		File shex_schema_file = new File("src/test/resources/validate.shex"); //for some reason the temporary_model file won't parse..
-		org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);			
+		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, blazegraph_journal, null, go_lego_journal_file);
+		try {
+			URL shex_schema_url = new URL(shexFileUrl);
+			File shex_schema_file = new File("src/test/resources/validate.shex"); //for some reason the temporary_model file won't parse..
+			org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);			
 
-		URL shex_map_url = new URL(goshapemapFileUrl);
-		File shex_map_file = new File("src/test/resources/validate.shapemap");
-		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
-		MinervaShexValidator shex = new MinervaShexValidator(shex_schema_file, shex_map_file, curieHandler, m3.getTbox_reasoner(), externalLookupService);
-		if(check_shex) {
+			URL shex_map_url = new URL(goshapemapFileUrl);
+			File shex_map_file = new File("src/test/resources/validate.shapemap");
+			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
+			MinervaShexValidator shex = new MinervaShexValidator(shex_schema_file, shex_map_file, curieHandler, m3.getGolego_repo());
 			if(check_shex) {
-				shex.setActive(true);
-			}else {
-				shex.setActive(false);
-			}
-		}
-		InferenceProviderCreator ipc = StartUpTool.createInferenceProviderCreator("arachne", m3, shex);
-		LOGGER.info("Validating models:");
-		m3.getAvailableModelIds().stream().forEach(modelIRI -> {
-			boolean isConsistent = true;
-			boolean isConformant = true;
-			LOGGER.info("processing \t"+modelIRI);
-
-			ModelContainer mc = m3.getModel(modelIRI);	
-			//this is where everything actually happens
-			InferenceProvider ip;
-			try {
-				ip = ipc.create(mc);
-				isConsistent = ip.isConsistent();
-				if(!should_fail) {
-					assertTrue(modelIRI+" is assessed to be (OWL) inconsistent but should not be.", isConsistent);
-				}else if(!check_shex) {
-					assertFalse(modelIRI+" is assessed to be (OWL) consistent but should not be.", isConsistent);
-				}
 				if(check_shex) {
-					ValidationResultSet validations = ip.getValidation_results();
-					isConformant = validations.allConformant();	
-					if(!should_fail) {
-						assertTrue(modelIRI+" does not conform to the shex schema and it should ", isConformant);
-					}else {
-						assertFalse(modelIRI+" conforms to the shex schema and it should not ", isConformant);
-					}
+					shex.setActive(true);
+				}else {
+					shex.setActive(false);
 				}
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			}
-		});
-		LOGGER.info("done with validation");
-		m3.dispose();
+			InferenceProviderCreator ipc = StartUpTool.createInferenceProviderCreator("arachne", m3, shex);
+			LOGGER.info("Validating models:");
+			m3.getAvailableModelIds().stream().forEach(modelIRI -> {
+				boolean isConsistent = true;
+				boolean isConformant = true;
+				LOGGER.info("processing \t"+modelIRI);
+
+				ModelContainer mc = m3.getModel(modelIRI);	
+				//this is where everything actually happens
+				InferenceProvider ip;
+				try {
+					ip = ipc.create(mc);
+					isConsistent = ip.isConsistent();
+					if(!should_fail) {
+						assertTrue(modelIRI+" is assessed to be (OWL) inconsistent but should not be.", isConsistent);
+					}else if(!check_shex) {
+						assertFalse(modelIRI+" is assessed to be (OWL) consistent but should not be.", isConsistent);
+					}
+					if(check_shex) {
+						ValidationResultSet validations = ip.getValidation_results();
+						isConformant = validations.allConformant();	
+						if(!should_fail) {
+							assertTrue(modelIRI+" does not conform to the shex schema and it should ", isConformant);
+						}else {
+							assertFalse(modelIRI+" conforms to the shex schema and it should not ", isConformant);
+						}
+					}
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			});
+			LOGGER.info("done with validation");
+		}finally {
+			m3.dispose();
+		}
 	}
 
 
@@ -209,7 +208,7 @@ public class ValidationTest {
 			}
 			//load everything into a bg journal
 			OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
-			BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null);
+			BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
 			if(i.isDirectory()) {
 				FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
 					if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {

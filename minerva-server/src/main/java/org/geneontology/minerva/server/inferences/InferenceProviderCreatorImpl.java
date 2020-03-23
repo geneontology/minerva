@@ -1,5 +1,6 @@
 package org.geneontology.minerva.server.inferences;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,17 +17,23 @@ import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLClassExpression;
+import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLEntity;
+import org.semanticweb.owlapi.model.OWLIndividual;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 import org.semanticweb.owlapi.search.EntitySearcher;
+
+import com.sun.org.apache.xml.internal.utils.URI;
 
 import uk.ac.manchester.cs.owlapi.modularity.ModuleType;
 import uk.ac.manchester.cs.owlapi.modularity.SyntacticLocalityModuleExtractor;
@@ -40,23 +47,6 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 	private final boolean useSLME;
 	private final String name;
 	private final MinervaShexValidator shex;
-
-	/**
-	 * May want to introduce root type / category based logic.  Leaving the list here for consideration.
-	private static final Set<String> root_types;
-	static {
-		root_types =  new HashSet<String>();
-		root_types.add("http://purl.obolibrary.org/obo/GO_0008150"); //BP
-		root_types.add("http://purl.obolibrary.org/obo/GO_0003674"); //MF
-		root_types.add("http://purl.obolibrary.org/obo/GO_0005575"); //CC
-		root_types.add("http://purl.obolibrary.org/obo/GO_0032991"); //Complex
-		root_types.add("http://purl.obolibrary.org/obo/CHEBI_36080"); //protein
-		root_types.add("http://purl.obolibrary.org/obo/CHEBI_33695"); //information biomacromolecule
-		root_types.add("http://purl.obolibrary.org/obo/CHEBI_50906");  //chemical role
-		root_types.add("http://purl.obolibrary.org/obo/CHEBI_24431"); //chemical entity
-		root_types.add("http://purl.obolibrary.org/obo/UBERON_0001062"); //anatomical entity
-	}
-	 */
 
 
 	InferenceProviderCreatorImpl(OWLReasonerFactory rf, int maxConcurrent, boolean useSLME, String name, MinervaShexValidator shex) {
@@ -89,7 +79,7 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 	//	}
 
 	@Override
-	public InferenceProvider create(ModelContainer model) throws OWLOntologyCreationException, InterruptedException {
+	public InferenceProvider create(ModelContainer model) throws OWLOntologyCreationException, InterruptedException, IOException {
 		OWLOntology ont = model.getAboxOntology();
 		final OWLOntologyManager m = ont.getOWLOntologyManager();
 		OWLOntology module = null;
@@ -111,7 +101,8 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 					//add root types for gene products.  
 					//TODO investigate performance impact
 					//tradefoff these queries versus loading all possible genes into tbox 
-					temp_ont = addRootTypesToCopy(ont, shex.externalLookupService);
+					//temp_ont = addRootTypesToCopy(ont, shex.externalLookupService);
+					temp_ont = addAllInferredTypesToCopyLocalOntoBlazegraph(ont);
 					//do reasoning and validation on the enhanced model
 					reasoner = rf.createReasoner(temp_ont);
 					provider = MapInferenceProvider.create(reasoner, temp_ont, shex);
@@ -136,7 +127,67 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 
 	}
 
-	public static OWLOntology addRootTypesToCopy(OWLOntology asserted_ont, ExternalLookupService externalLookupService) throws OWLOntologyCreationException {
+
+	public OWLOntology addAllInferredTypesToCopyLocalOntoBlazegraph(OWLOntology asserted_ont) throws OWLOntologyCreationException, IOException {
+		OWLOntology temp_ont = asserted_ont.getOWLOntologyManager().createOntology();
+		temp_ont.getOWLOntologyManager().addAxioms(temp_ont, asserted_ont.getAxioms());		
+		OWLDataFactory df = temp_ont.getOWLOntologyManager().getOWLDataFactory();
+		Set<OWLNamedIndividual> individuals = temp_ont.getIndividualsInSignature();
+		Map<String, Set<String>> sub_supers = new HashMap<String, Set<String>>();
+		Set<String> uris = new HashSet<String>();
+		Map<OWLNamedIndividual, Collection<OWLClassExpression>> individual_asserted_types = new HashMap<OWLNamedIndividual, Collection<OWLClassExpression>>();
+		for (OWLNamedIndividual individual : individuals) {		
+			Collection<OWLClassExpression> asserted_types = EntitySearcher.getTypes(individual, asserted_ont);
+			for(OWLClassExpression cls : asserted_types) {
+				if(cls.isAnonymous()) {
+					continue;
+				}			
+				IRI class_iri = cls.asOWLClass().getIRI();
+				if(class_iri.toString().contains("ECO")) {
+					continue; //this only deals with genes, chemicals, proteins, and complexes.  
+				}
+				uris.add(class_iri.toString());
+			}
+			individual_asserted_types.put(individual, asserted_types);
+		}
+		sub_supers = shex.getGo_lego_repo().getNeoRoots(uris);
+		Set<OWLAxiom> new_parent_types = new HashSet<OWLAxiom>();
+		//for all individuals
+		for(OWLNamedIndividual i : individual_asserted_types.keySet()) {
+			//for all asserted types
+			for(OWLClassExpression asserted : individual_asserted_types.get(i)) {
+				//add types for all their parents
+				if(asserted.isAnonymous()) {
+					continue;
+				}
+				OWLClass sub = asserted.asOWLClass();
+				Set<String> supers = sub_supers.get(sub.getIRI().toString());			
+				if(supers!=null) {
+					for(String s : supers) {
+						OWLClass parent_class = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(s));							 
+						if(!parent_class.isBuiltIn()&&(!parent_class.isAnonymous())) {
+							OWLClassAssertionAxiom add_parent_type = df.getOWLClassAssertionAxiom(parent_class, i);
+							new_parent_types.add(add_parent_type);
+						}
+						//add everything into the tbox - (for use later in shex validator)
+						//OWLSubClassOfAxiom subSuper = df.getOWLSubClassOfAxiom(sub, parent_class);
+						//new_parent_types.add(subSuper);
+						//make sure the parent is a subclass of itself.. needed for shex to find it. 
+						//OWLSubClassOfAxiom superSuper = df.getOWLSubClassOfAxiom(parent_class, parent_class);
+						//new_parent_types.add(superSuper);
+					}
+				}
+			}
+		}
+		if(!new_parent_types.isEmpty()) {
+			temp_ont.getOWLOntologyManager().addAxioms(temp_ont, new_parent_types);
+		}
+
+		return temp_ont;
+	}
+	
+	
+	public static OWLOntology addRootTypesToCopyViaGolr(OWLOntology asserted_ont, ExternalLookupService externalLookupService) throws OWLOntologyCreationException {
 		if(externalLookupService==null) {
 			return asserted_ont; //should probably throw some kind of exception here..
 		}
@@ -163,6 +214,7 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 		}		 
 		//look up all at once
 		Map<IRI, List<LookupEntry>> iri_lookup = externalLookupService.lookupBatch(to_look_up);
+
 		if(iri_lookup!=null) {
 			//add the identified root types on to the individuals in the model
 			for(OWLNamedIndividual i : individual_types.keySet()) {

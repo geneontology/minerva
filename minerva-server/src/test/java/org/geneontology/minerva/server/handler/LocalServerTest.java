@@ -40,7 +40,7 @@ public class LocalServerTest {
 	private static UndoAwareMolecularModelManager models = null;
 	private static Server server = null;
 	private static String urlPrefix;
-
+	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
 
 
 	@BeforeClass
@@ -50,13 +50,13 @@ public class LocalServerTest {
 	
 	@AfterClass
 	public static void afterClass() throws Exception {
+		models.dispose();
 		server.stop();
 		server.destroy();
 	}
 	
 	@After
 	public void after() {
-//		models.dispose();
 	}
 	
 	static void init(ParserWrapper pw) throws Exception {
@@ -66,7 +66,7 @@ public class LocalServerTest {
 		final String modelIdPrefix = "http://model.geneontology.org/";
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-		models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
+		models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null, go_lego_journal_file);
 		
 		MinervaStartUpConfig conf = new MinervaStartUpConfig();
 		conf.reasonerOpt = "elk";

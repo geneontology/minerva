@@ -23,7 +23,8 @@ import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 
 public class MolecularModelManagerTest {
-
+	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
+	
 	// JUnit way of creating a temporary test folder
 	// will be deleted after the test has run, by JUnit.
 	@Rule
@@ -35,7 +36,7 @@ public class MolecularModelManagerTest {
 	}
 	
 	private MolecularModelManager<Void> createM3(OWLOntology tbox, File journal) throws OWLOntologyCreationException, IOException {
-		return new MolecularModelManager<Void>(tbox, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), null);
+		return new MolecularModelManager<Void>(tbox, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), null, go_lego_journal_file);
 	}
 
 	@Test
@@ -68,6 +69,7 @@ public class MolecularModelManagerTest {
 
 		Set<OWLNamedIndividual> individuals = mmm.getIndividuals(model.getModelId());
 		assertEquals(1, individuals.size());
+		mmm.dispose();
 	}
 
 	@Test
@@ -112,6 +114,7 @@ public class MolecularModelManagerTest {
 			assertTrue(iri.equals(i1.getIRI()) || iri.equals(i2.getIRI()));
 			assertFalse(iri.equals(i3.getIRI()));
 		}
+		mmm.dispose();
 	}
 	
 	@Test
@@ -162,6 +165,7 @@ public class MolecularModelManagerTest {
 			assertTrue(iri.equals(i1.getIRI()) || iri.equals(i2.getIRI()));
 			assertFalse(iri.equals(i3.getIRI()));
 		}
+		mmm.dispose();
 	}
 
 	@Test
@@ -188,6 +192,7 @@ public class MolecularModelManagerTest {
 
 		//List<Map<Object, Object>> gson = mmm.getIndividualObjects(modelId);
 		//assertEquals(1, individuals.size());
+		mmm.dispose();
 	}
 	
 	private void addPartOf(ModelContainer model, OWLNamedIndividual i1, OWLNamedIndividual i2, 

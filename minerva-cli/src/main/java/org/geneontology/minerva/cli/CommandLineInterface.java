@@ -1,6 +1,7 @@
 package org.geneontology.minerva.cli;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -33,6 +34,7 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
+import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -56,12 +58,15 @@ import org.geneontology.minerva.validation.ShexValidator;
 import org.geneontology.minerva.validation.ValidationResultSet;
 import org.geneontology.minerva.validation.pipeline.BatchPipelineValidationReport;
 import org.geneontology.minerva.validation.pipeline.ErrorMessage;
+import org.geneontology.whelk.owlapi.WhelkOWLReasoner;
+import org.geneontology.whelk.owlapi.WhelkOWLReasonerFactory;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
+import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -69,13 +74,16 @@ import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyAlreadyExistsException;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 import org.semanticweb.owlapi.reasoner.structural.StructuralReasonerFactory;
+import org.semanticweb.owlapi.util.InferredOntologyGenerator;
 
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailRepository;
@@ -106,12 +114,25 @@ public class CommandLineInterface {
 				.hasArg(false)
 				.build();
 		methods.addOption(dump);
+		
+		Option merge_ontologies = Option.builder()
+		.longOpt("merge-ontologies")
+		.desc("Merge owl ontologies")
+		.hasArg(false)
+		.build();
+		methods.addOption(merge_ontologies);	
 		Option import_owl = Option.builder()
 				.longOpt("import-owl-models")
 				.desc("import OWL GO-CAM models into journal")
 				.hasArg(false)
 				.build();
 		methods.addOption(import_owl);
+		Option import_tbox_ontologies = Option.builder()
+				.longOpt("import-tbox-ontologies")
+				.desc("import OWL tbox ontologies into journal")
+				.hasArg(false)
+				.build();
+		methods.addOption(import_tbox_ontologies);
 		Option sparql = Option.builder()
 				.longOpt("sparql-update")
 				.desc("update the blazegraph journal with the given sparql statement")
@@ -154,7 +175,28 @@ public class CommandLineInterface {
 		CommandLineParser parser = new DefaultParser();
 		try {
 			CommandLine cmd = parser.parse( main_options, args, true);
-
+			if(cmd.hasOption("import-tbox-ontologies")) {
+				Options import_tbox_options = new Options();
+				import_tbox_options.addOption(import_tbox_ontologies);
+				import_tbox_options.addOption("j", "journal", true, "Sets the Blazegraph journal file for the database");
+				import_tbox_options.addOption("f", "file", true, "Sets the input file containing the ontology to load");
+				import_tbox_options.addOption("r", "reset", false, "If present, will clear out the journal, otherwise adds to it");
+				cmd = parser.parse( import_tbox_options, args, false);
+				String journalFilePath = cmd.getOptionValue("j"); //--journal
+				String inputFile = cmd.getOptionValue("f"); //--folder
+				importOWLOntologyIntoJournal(journalFilePath, inputFile, cmd.hasOption("r"));
+			}
+			if(cmd.hasOption("merge-ontologies")) {
+				Options merge_options = new Options();
+				merge_options.addOption(merge_ontologies);
+				merge_options.addOption("i", "input", true, "The input folder containing ontologies to merge");
+				merge_options.addOption("o", "output", true, "The file to write the ontology to");
+				merge_options.addOption("u", "iri", true, "The base iri for the merged ontology");
+				merge_options.addOption("r", "reason", false, "Add inferences to the merged ontology");
+				cmd = parser.parse(merge_options, args, false);
+				buildMergedOwlOntology(cmd.getOptionValue("i"), cmd.getOptionValue("o"), cmd.getOptionValue("u"), cmd.hasOption("r"));
+			}
+			
 			if(cmd.hasOption("dump-owl-models")) {
 				Options dump_options = new Options();
 				dump_options.addOption(dump);
@@ -254,7 +296,9 @@ public class CommandLineInterface {
 				validate_options.addOption("m", "shapemap", true, "Specify a shapemap file.  Otherwise will download from go_shapes repo.");
 				validate_options.addOption("s", "shexpath", true, "Specify a shex schema file.  Otherwise will download from go_shapes repo.");
 				validate_options.addOption("g", "golr", true, "Specify a URL for a golr server.  Defaults to http://noctua-golr.berkeleybop.org/ id not set.  Typical local configuration might be http://127.0.0.1:8080/solr/");
+				validate_options.addOption("ontojournal", "ontojournal", true, "Specify a blazegraph journal file containing the merged, pre-reasoned tbox aka go-lego.owl");
 
+				
 				cmd = parser.parse(validate_options, args, false);
 				String input = cmd.getOptionValue("input");			
 				String basicOutputFile = cmd.getOptionValue("report-file");
@@ -291,15 +335,15 @@ public class CommandLineInterface {
 				if(cmd.hasOption("shex")) {
 					checkShex = true;
 				}
-				String golr_server = null;
-				if(cmd.hasOption("golr")) {
-					golr_server = cmd.getOptionValue("golr");
-				}		
-				if(golr_server==null) {
-					System.err.println("Need to specify a golr server - should be a local instance for any large batch run. e.g. -golr http://127.0.0.1:8080/solr/");
+				String go_lego_journal_file = null;
+				if(cmd.hasOption("ontojournal")) {
+					go_lego_journal_file = cmd.getOptionValue("ontojournal");
+				}
+				if(go_lego_journal_file==null) {
+					System.err.println("Missing -- ontojournal .  Need to specify blazegraph journal file containing the merged go-lego tbox (neo, GO-plus, etc..)");
 					System.exit(-1);
 				}
-				validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, golr_server, gorules_json_output_file);
+				validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, gorules_json_output_file, go_lego_journal_file);
 			}else if(cmd.hasOption("update-gene-product-types")) {
 				Options options = new Options();
 				options.addOption(update_gps);
@@ -360,7 +404,7 @@ public class CommandLineInterface {
 
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 		CurieHandler curieHandler = new MappedCurieHandler();
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, outputFolder);
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, outputFolder, null);
 		m3.dumpAllStoredModels();
 		m3.dispose();
 	}
@@ -388,18 +432,105 @@ public class CommandLineInterface {
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 		String modelIdPrefix = "http://model.geneontology.org/"; // this will not be used for anything
 		CurieHandler curieHandler = new MappedCurieHandler();
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null);
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null, null);
 		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
 			LOGGER.info("Loading " + file);
-			if(file.getName().endsWith("ttl")||file.getName().endsWith("owl")) {
-				m3.importModelToDatabase(file, true);
-			}else {
+			if(file.getName().endsWith("ttl")) {
+				m3.importModelToDatabase(file, true); 
+			} else if (file.getName().endsWith("owl")) {
+				m3.importModelToDatabase(file, false);
+			}
+			else {
 				LOGGER.info("Ignored for not ending with .ttl or .owl " + file);
 			}
 		}
 		m3.dispose();
 	}
 
+	/**
+	 * 
+	 * @param journalFilePath
+	 * @param inputFolder
+	 * @throws Exception
+	 */
+	public static void buildMergedOwlOntology(String inputFolder, String outputfile, String base_iri, boolean addInferences) throws Exception {
+		// minimal inputs
+		if (outputfile == null) {
+			System.err.println("No output file was configured.");
+			System.exit(-1);
+			return;
+		}
+		if (inputFolder == null) {
+			System.err.println("No input folder was configured.");
+			System.exit(-1);
+			return;
+		}
+		if (base_iri == null) {
+			System.err.println("No base iri was configured.");
+			System.exit(-1);
+			return;
+		}
+		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
+		OWLDataFactory df = ontman.getOWLDataFactory();
+		OWLOntology merged = ontman.createOntology(IRI.create(base_iri));
+		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
+			LOGGER.info("Loading " + file);
+			if(file.getName().endsWith("ttl")||file.getName().endsWith("owl")) {
+				try {
+					OWLOntology ont = ontman.loadOntologyFromOntologyDocument(file);
+					ontman.addAxioms(merged, ont.getAxioms());
+				}catch(OWLOntologyAlreadyExistsException e) {
+					LOGGER.error("error loading already loaded ontology: "+file);
+				}
+			} else {
+				LOGGER.info("Ignored for not ending with .ttl or .owl " + file);
+			}
+		}
+		if(addInferences) { 
+			LOGGER.info("Running reasoner");
+			//OWLReasonerFactory reasonerFactory = new WhelkOWLReasonerFactory(); 
+			//WhelkOWLReasoner reasoner = (WhelkOWLReasoner)reasonerFactory.createReasoner(merged);
+			OWLReasonerFactory reasonerFactory = new StructuralReasonerFactory();
+			OWLReasoner reasoner = reasonerFactory.createReasoner(merged);
+			InferredOntologyGenerator gen = new InferredOntologyGenerator(reasoner);
+	        gen.fillOntology(df, merged);
+		}
+		try {
+            ontman.saveOntology(merged, new FileOutputStream(new File(outputfile)));
+        } catch (OWLOntologyStorageException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+	}
+	
+	/**
+	 * Load the go-cam files in the input folder into the journal
+	 * cli import-owl-models
+	 * @param journalFilePath
+	 * @param inputFolder
+	 * @throws Exception
+	 */
+	public static void importOWLOntologyIntoJournal(String journalFilePath, String inputFile, boolean reset) throws Exception {
+		// minimal inputs
+		if (journalFilePath == null) {
+			System.err.println("No journal file was configured.");
+			System.exit(-1);
+			return;
+		}
+		if (inputFile == null) {
+			System.err.println("No input file was configured.");
+			System.exit(-1);
+			return;
+		}
+
+		BlazegraphOntologyManager man = new BlazegraphOntologyManager(journalFilePath);
+		String iri_for_ontology_graph = "http://geneontology.org/go-lego-graph";
+		man.loadRepositoryFromOWLFile(new File(inputFile), iri_for_ontology_graph, reset);
+	}
+	
 	/**
 	 * Updates the journal with the provided update sparql statement.
 	 * cli parameter --sparql-update
@@ -549,11 +680,12 @@ public class CommandLineInterface {
 		OWLOntology ontology = ontman.loadOntology(IRI.create(ontologyIRI));
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(ontology, curieHandler, modelIdPrefix, inputDB, null);
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(ontology, curieHandler, modelIdPrefix, inputDB, null, null);
 		final String immutableModelIdPrefix = modelIdPrefix;
 		final String immutableGpadOutputFolder = gpadOutputFolder;
 		m3.getAvailableModelIds().stream().parallel().forEach(modelIRI -> {
 			try {
+				//TODO investigate whether changing to a neo-lite model has an impact on this - may need to make use of ontology journal
 				String gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createInferredModel(modelIRI));
 				String fileName = StringUtils.replaceOnce(modelIRI.toString(), immutableModelIdPrefix, "") + ".gpad";
 				Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(immutableGpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
@@ -588,8 +720,8 @@ public class CommandLineInterface {
 	 */
 	public static void validateGoCams(String input, String basicOutputFile, String explanationOutputFile, 
 			String ontologyIRI, String catalog, String modelIdPrefix, String modelIdcurie, 
-			String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex, String golr_server, 
-			String gorules_json_output_file) throws Exception {
+			String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex,  
+			String gorules_json_output_file, String go_lego_journal_file) throws Exception {
 		Logger LOG = Logger.getLogger(CommandLineInterface.class);
 		LOG.setLevel(Level.ERROR);
 		LOGGER.setLevel(Level.INFO);
@@ -623,18 +755,22 @@ public class CommandLineInterface {
 				//load everything into a bg journal
 				OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 				CurieHandler curieHandler = new MappedCurieHandler();
-				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null);
+				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);				
+				
 				if(i.isDirectory()) {
+					LOGGER.info("Loading models from " + i.getAbsolutePath());
 					Set<String> model_iris = new HashSet<String>();
 					FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
 						if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
-							LOGGER.info("Loading " + file);
 							try {
 								String modeluri = m3.importModelToDatabase(file, true);
 								if(!model_iris.add(modeluri)) {
 									LOGGER.error("Multiple models with same IRI: "+modeluri+" file: "+file+" file: "+modelid_filename.get(modeluri));
 								}
 								modelid_filename.put(modeluri, file.getName());
+								//is it okay?
+								ModelContainer mc = m3.getModel(IRI.create(modeluri));
+								mc.getModelId();
 							} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
 									| RDFHandlerException | IOException e) {
 								// TODO Auto-generated catch block
@@ -668,12 +804,11 @@ public class CommandLineInterface {
 		LOGGER.info("tbox ontologies loaded: "+tbox_ontology.getAxiomCount());
 		tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
 		LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
-		LOGGER.info("building model manager and structural reasoner");
+		LOGGER.info("building model manager");
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null);
-		String reasonerOpt = "arachne"; 
-		LOGGER.info("tbox reasoner for shex "+m3.getTbox_reasoner().getReasonerName());		
+		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
+		String reasonerOpt = "arachne"; 	
 		if(shexpath==null) {
 			//fall back on downloading from shapes repo
 			URL shex_schema_url = new URL(shexFileUrl);
@@ -689,17 +824,8 @@ public class CommandLineInterface {
 			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
 			System.err.println("-m .No shape map file provided, using: "+goshapemapFileUrl);
 		}
-		//don't want to hammer the public golr server..
-		//String golr_url = "http://noctua-golr.berkeleybop.org/";
-		String golr_url = null;
-		if(golr_server!=null) {
-			golr_url = golr_server;
-		}else {
-			System.err.println("Need to specify a golr server - should be a local instance for any large batch run. e.g. -golr http://127.0.0.1:8080/solr/");
-		}
-		ExternalLookupService externalLookupService = new GolrExternalLookupService(golr_url, curieHandler, false);
 		LOGGER.info("making shex validator: "+shexpath+" "+shapemappath+" "+curieHandler+" ");
-		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getTbox_reasoner(), externalLookupService);
+		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getGolego_repo());  
 		if(checkShex) {
 			if(checkShex) {
 				shex.setActive(true);
@@ -710,7 +836,7 @@ public class CommandLineInterface {
 		LOGGER.info("Building OWL inference provider: "+reasonerOpt);
 		InferenceProviderCreator ipc = StartUpTool.createInferenceProviderCreator(reasonerOpt, m3, shex);
 		LOGGER.info("Validating models: "+reasonerOpt);
-
+ 
 		if(basicOutputFile!=null) {
 			FileWriter basic_shex_output = new FileWriter(basicOutputFile, false);
 			basic_shex_output.write("filename\tmodel_id\tOWL_consistent\tshex_valid\tvalidation_time_milliseconds\taxioms\n");
@@ -733,7 +859,7 @@ public class CommandLineInterface {
 			pipe_report.setTaxon(taxon);
 		}
 		final boolean shex_output = checkShex;			
-		//Note that parallelStream does not seem to help with this.  Starts out great then locks up.  Not sure exactly why just yet - though there is a web service call to GOLR which seems suspicious.
+		//Note that parallelStream does not seem to help with this.  
 		m3.getAvailableModelIds().stream().forEach(modelIRI -> {
 			try {
 				long start = System.currentTimeMillis();

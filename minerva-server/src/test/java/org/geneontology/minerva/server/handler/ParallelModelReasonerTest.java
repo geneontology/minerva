@@ -37,6 +37,7 @@ public class ParallelModelReasonerTest {
 	private static JsonOrJsonpBatchHandler handler = null;
 	private static UndoAwareMolecularModelManager models = null;
 	private static CountingCachingInferenceProvider ipc;
+	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -52,7 +53,7 @@ public class ParallelModelReasonerTest {
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		
-		models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null);
+		models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null, go_lego_journal_file);
 		ipc = new CountingCachingInferenceProvider(false);
 		handler = new JsonOrJsonpBatchHandler(models, "development", ipc ,
 				Collections.<OWLObjectProperty>emptySet(), (ExternalLookupService) null);

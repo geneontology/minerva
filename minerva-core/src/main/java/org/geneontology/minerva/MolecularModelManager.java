@@ -36,7 +36,7 @@ import owltools.vocab.OBOUpperVocabulary;
  * @param <METADATA> 
  * @see CoreMolecularModelManager
  */
-public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelManager<METADATA> {
+public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelManager<METADATA> { 
 
 	public static class UnknownIdentifierException extends Exception {
 
@@ -65,9 +65,10 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 	 * @param curieHandler
 	 * @param modelIdPrefix 
 	 * @throws OWLOntologyCreationException
+	 * @throws IOException 
 	 */
-	public MolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder) throws OWLOntologyCreationException {
-		super(tbox, curieHandler, modelIdPrefix, pathToJournal, pathToExportFolder);
+	public MolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder, String pathToOntologyJournal) throws OWLOntologyCreationException, IOException {
+		super(tbox, curieHandler, modelIdPrefix, pathToJournal, pathToExportFolder, pathToOntologyJournal);
 	}
 
 	/**
@@ -89,7 +90,7 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 		OWLNamedIndividual i = createIndividual(model, cls, annotations , metadata);
 		return i;
 	}
-	
+	 
 	
 	/**
 	 * Shortcut for {@link CoreMolecularModelManager#createIndividual}.

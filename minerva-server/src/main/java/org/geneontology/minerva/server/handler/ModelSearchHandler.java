@@ -26,6 +26,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.io.IOUtils;
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
+import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.openrdf.query.Binding;
@@ -44,15 +45,19 @@ import org.semanticweb.owlapi.model.IRI;
  */
 @Path("/search")
 public class ModelSearchHandler {
-
-	private final BlazegraphMolecularModelManager m3;
+ 
+	private final BlazegraphMolecularModelManager<?> m3;
 	private final int timeout;
+	private final BlazegraphOntologyManager go_lego;
+	private Map<String, Set<String>> taxon_models;
 	/**
 	 * 
 	 */
-	public ModelSearchHandler(BlazegraphMolecularModelManager m3, int timeout) {
+	public ModelSearchHandler(BlazegraphMolecularModelManager<?> m3, int timeout) {
 		this.m3 = m3;
 		this.timeout = timeout;
+		this.go_lego  = m3.getGolego_repo();
+		this.taxon_models = m3.getTaxon_models();
 	}
 
 	public class ModelSearchResult {
@@ -91,8 +96,8 @@ public class ModelSearchHandler {
 		public void setSparql(String sparql) {
 			this.sparql = sparql;
 		}
-		
-		
+
+
 	}
 
 	public class ModelMeta{
@@ -169,67 +174,89 @@ public class ModelSearchHandler {
 		public void setQuery_match(HashMap<String, Set<String>> query_match) {
 			this.query_match = query_match;
 		}
-		
-		
+
+
 	}
 
 
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public ModelSearchResult searchGet(
+			@QueryParam("taxon") Set<String> taxa, 
 			@QueryParam("gp") Set<String> gene_product_class_uris, 
-			@QueryParam("goterm") Set<String> goterms,
+			@QueryParam("term") Set<String> terms,
 			@QueryParam("pmid") Set<String> pmids,
 			@QueryParam("title") String title,
 			@QueryParam("state") Set<String> state,
 			@QueryParam("contributor") Set<String> contributor,
 			@QueryParam("group") Set<String> group,
+			@QueryParam("exactdate") String exactdate,
 			@QueryParam("date") String date,
+			@QueryParam("dateend") String datend,
 			@QueryParam("offset") int offset,
 			@QueryParam("limit") int limit,
 			@QueryParam("count") String count
 			){
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, terms, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count);
 		return result;
 	}
-	//TODO make junit tests out of these. 
+
 	//examples 
 	//http://127.0.0.1:6800/search/?
 	//?gp=http://identifiers.org/uniprot/P15822-3
-	//?goterm=http://purl.obolibrary.org/obo/GO_0003677
+	//?term=http://purl.obolibrary.org/obo/GO_0003677
 	//
 	//
 	//?gp=http://identifiers.org/mgi/MGI:1328355
 	//&gp=http://identifiers.org/mgi/MGI:87986
-	//&goterm=http://purl.obolibrary.org/obo/GO_0030968
+	//&term=http://purl.obolibrary.org/obo/GO_0030968
 	//&title=mouse
 	//&pmid=PMID:19911006
 	//&state=development&state=review {development, production, closed, review, delete} or operator
 	//&count
 	//127.0.0.1:6800/search/?contributor=http://orcid.org/0000-0002-1706-4196
-	public ModelSearchResult search(
-			Set<String> gene_product_ids, Set<String> goterms, Set<String>pmids, 
-			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, String date_search,
+	public ModelSearchResult search(Set<String> taxa, 
+			Set<String> gene_product_ids, Set<String> terms, Set<String>pmids, 
+			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, 
+			String exactdate, String date_search, String datend, 
 			int offset, int limit, String count) {
 		ModelSearchResult r = new ModelSearchResult();
-		Set<String> type_ids = new HashSet<String>();
+		Set<String> go_type_ids = new HashSet<String>();
+		Set<String> gene_type_ids = new HashSet<String>();
 		if(gene_product_ids!=null) {
-			type_ids.addAll(gene_product_ids);
+			gene_type_ids.addAll(gene_product_ids);
 		}
-		if(goterms!=null) {
-			type_ids.addAll(goterms);
+		if(terms!=null) {
+			go_type_ids.addAll(terms);
 		}
 		CurieHandler curie_handler = m3.getCuriHandler();
-		Set<String> type_uris = new HashSet<String>();
-		for(String curi : type_ids) {
+		Set<String> go_type_uris = new HashSet<String>();
+		Set<String> gene_type_uris = new HashSet<String>();
+		for(String curi : go_type_ids) {
 			if(curi.startsWith("http")) {
-				type_uris.add(curi);
+				go_type_uris.add(curi);
 			}else {
 				try {
 					IRI iri = curie_handler.getIRI(curi);
 					if(iri!=null) {
-						type_uris.add(iri.toString());
+						go_type_uris.add(iri.toString());
+					}
+				} catch (UnknownIdentifierException e) {
+					r.error += e.getMessage()+" \n ";
+					e.printStackTrace();
+					return r;
+				}
+			}
+		}
+		for(String curi : gene_type_ids) {
+			if(curi.startsWith("http")) {
+				gene_type_uris.add(curi);
+			}else {
+				try {
+					IRI iri = curie_handler.getIRI(curi);
+					if(iri!=null) {
+						gene_type_uris.add(iri.toString());
 					}
 				} catch (UnknownIdentifierException e) {
 					r.error += e.getMessage()+" \n ";
@@ -250,11 +277,38 @@ public class ModelSearchHandler {
 		String ind_return_list = ""; //<ind_return_list>
 		String types = ""; //<types>
 		int n = 0;
-		for(String type_uri : type_uris) {
+		for(String type_uri : gene_type_uris) {
 			n++;
 			ind_return.put("?ind"+n, type_uri);
 			ind_return_list = ind_return_list+" ?ind"+n;
 			types = types+"?ind"+n+" rdf:type <"+type_uri+"> . \n";
+		}
+		boolean expand = true;
+		if(expand) {
+			for(String go_type_uri : go_type_uris) {
+				n++;
+				ind_return.put("?ind"+n, go_type_uri);
+				ind_return_list = ind_return_list+" ?ind"+n;
+				String expansion = "VALUES ?term"+n+" { ";
+				try {
+					Set<String> subclasses = go_lego.getAllSubClasses(go_type_uri);
+					for(String sub : subclasses) {
+						expansion+="<"+sub+"> \n";
+					}
+					expansion+= "} . \n";
+					types = types+" "+expansion+" ?ind"+n+" rdf:type ?term"+n+" . \n";
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}else {
+			for(String go_type_uri : go_type_uris) {
+				n++;
+				ind_return.put("?ind"+n, go_type_uri);
+				ind_return_list = ind_return_list+" ?ind"+n;
+				types = types+"?ind"+n+" rdf:type <"+go_type_uri+"> . \n";
+			}
 		}
 		String pmid_constraints = ""; //<pmid_constraints>
 		if(pmids!=null) {
@@ -264,6 +318,27 @@ public class ModelSearchHandler {
 				ind_return_list = ind_return_list+" ?ind"+n;
 				pmid_constraints = pmid_constraints+"?ind"+n+" <http://purl.org/dc/elements/1.1/source> ?pmid FILTER (?pmid=\""+pmid+"\"^^xsd:string) .\n";  		
 			}
+		}
+		String taxa_constraint = "";
+		if(taxa!=null&&!taxa.isEmpty()) {
+			String model_filter =  " VALUES ?id { \n"; 
+			for(String taxon : taxa) {
+				if(taxon.startsWith("NCBITaxon:")) {
+					taxon = taxon.replace(":", "_");
+					taxon = "http://purl.obolibrary.org/obo/"+taxon;
+				}
+				else if(!taxon.startsWith("http://purl.obolibrary.org/obo/NCBITaxon_")) {
+					taxon = "http://purl.obolibrary.org/obo/NCBITaxon_"+taxon;
+				} 
+				Set<String> models = taxon_models.get(taxon);
+				if(models!=null) {
+					for(String model : models) {
+						model_filter+="<"+model+"> \n";
+					}
+				}
+			}
+			model_filter += "} . \n";
+			taxa_constraint = model_filter;
 		}
 		String title_search_constraint = "";
 		if(title_search!=null) {
@@ -296,7 +371,7 @@ public class ModelSearchHandler {
 			}
 			contributor_search_constraint = 
 					" ?id <http://purl.org/dc/elements/1.1/contributor> ?test_contributor . \n"  
-					+ " FILTER (?test_contributor IN ("+allowed_contributors+")) . \n";
+							+ " FILTER (?test_contributor IN ("+allowed_contributors+")) . \n";
 		}
 		String group_search_constraint = "";
 		if(group_search!=null&&group_search.size()>0) {
@@ -309,13 +384,18 @@ public class ModelSearchHandler {
 					allowed_group+=",";
 				}
 			}
-			contributor_search_constraint = " ?id <http://purl.org/pav/providedBy> ?test_group . \n"
+			group_search_constraint = " ?id <http://purl.org/pav/providedBy> ?test_group . \n"
 					+ "FILTER (?test_group IN ("+allowed_group+")) . \n";
 		}
 		String date_constraint = "";
-		if(date_search!=null&&date_search.length()==10) {
+		if(exactdate!=null&&exactdate.length()==10) {
+			date_constraint = "FILTER (?date = '"+exactdate+"') \n";
+		}else if(date_search!=null&&date_search.length()==10) {
 			//e.g. 2019-06-26
 			date_constraint = "FILTER (?date > '"+date_search+"') \n";
+			if(datend!=null&&datend.length()==10) {
+				date_constraint = "FILTER (?date > '"+date_search+"' && ?date < '"+datend+"') \n";
+			}
 		}
 		String offset_constraint = "";
 		if(offset!=0) {
@@ -351,6 +431,7 @@ public class ModelSearchHandler {
 		sparql = sparql.replaceAll("<date_constraint>", date_constraint);
 		sparql = sparql.replaceAll("<limit_constraint>", limit_constraint);
 		sparql = sparql.replaceAll("<offset_constraint>", offset_constraint);
+		sparql = sparql.replaceAll("<taxa_constraint>", taxa_constraint);
 		r.sparql = sparql;
 
 		TupleQueryResult result;
@@ -460,21 +541,24 @@ public class ModelSearchHandler {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
 	public ModelSearchResult searchPostForm(
+			@FormParam("taxon") Set<String> taxa, 
 			@FormParam("gp") Set<String> gene_product_class_uris, 
-			@FormParam("goterm") Set<String> goterms,
+			@FormParam("term") Set<String> terms,
 			@FormParam("pmid") Set<String> pmids,
 			@FormParam("title") String title,
 			@FormParam("state") Set<String> state,
 			@FormParam("contributor") Set<String> contributor,
 			@FormParam("group") Set<String> group,
+			@FormParam("exactdate") String exactdate,
 			@FormParam("date") String date,
+			@FormParam("dateend") String datend, 
 			@FormParam("offset") int offset,
 			@FormParam("limit") int limit,
 			@FormParam("count") String count) {
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, terms, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count);
 		return result;
 	}
-	
+
 
 }
