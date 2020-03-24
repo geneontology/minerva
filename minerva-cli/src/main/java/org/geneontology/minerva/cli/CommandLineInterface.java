@@ -114,12 +114,12 @@ public class CommandLineInterface {
 				.hasArg(false)
 				.build();
 		methods.addOption(dump);
-		
+
 		Option merge_ontologies = Option.builder()
-		.longOpt("merge-ontologies")
-		.desc("Merge owl ontologies")
-		.hasArg(false)
-		.build();
+				.longOpt("merge-ontologies")
+				.desc("Merge owl ontologies")
+				.hasArg(false)
+				.build();
 		methods.addOption(merge_ontologies);	
 		Option import_owl = Option.builder()
 				.longOpt("import-owl-models")
@@ -196,7 +196,7 @@ public class CommandLineInterface {
 				cmd = parser.parse(merge_options, args, false);
 				buildMergedOwlOntology(cmd.getOptionValue("i"), cmd.getOptionValue("o"), cmd.getOptionValue("u"), cmd.hasOption("r"));
 			}
-			
+
 			if(cmd.hasOption("dump-owl-models")) {
 				Options dump_options = new Options();
 				dump_options.addOption(dump);
@@ -298,7 +298,7 @@ public class CommandLineInterface {
 				validate_options.addOption("g", "golr", true, "Specify a URL for a golr server.  Defaults to http://noctua-golr.berkeleybop.org/ id not set.  Typical local configuration might be http://127.0.0.1:8080/solr/");
 				validate_options.addOption("ontojournal", "ontojournal", true, "Specify a blazegraph journal file containing the merged, pre-reasoned tbox aka go-lego.owl");
 
-				
+
 				cmd = parser.parse(validate_options, args, false);
 				String input = cmd.getOptionValue("input");			
 				String basicOutputFile = cmd.getOptionValue("report-file");
@@ -435,13 +435,17 @@ public class CommandLineInterface {
 		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null, null);
 		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
 			LOGGER.info("Loading " + file);
-			if(file.getName().endsWith("ttl")) {
-				m3.importModelToDatabase(file, true); 
-			} else if (file.getName().endsWith("owl")) {
-				m3.importModelToDatabase(file, false);
-			}
-			else {
-				LOGGER.info("Ignored for not ending with .ttl or .owl " + file);
+			try {
+				if(file.getName().endsWith("ttl")) {
+					m3.importModelToDatabase(file, true); 
+				} else if (file.getName().endsWith("owl")) {
+					m3.importModelToDatabase(file, false);
+				}
+				else {
+					LOGGER.info("Ignored for not ending with .ttl or .owl " + file);
+				}
+			}catch(RDFParseException e) {
+				LOGGER.error("Failed to parse and load RDF go-cam file: "+file );
 			}
 		}
 		m3.dispose();
@@ -493,19 +497,19 @@ public class CommandLineInterface {
 			OWLReasonerFactory reasonerFactory = new StructuralReasonerFactory();
 			OWLReasoner reasoner = reasonerFactory.createReasoner(merged);
 			InferredOntologyGenerator gen = new InferredOntologyGenerator(reasoner);
-	        gen.fillOntology(df, merged);
+			gen.fillOntology(df, merged);
 		}
 		try {
-            ontman.saveOntology(merged, new FileOutputStream(new File(outputfile)));
-        } catch (OWLOntologyStorageException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+			ontman.saveOntology(merged, new FileOutputStream(new File(outputfile)));
+		} catch (OWLOntologyStorageException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
-	
+
 	/**
 	 * Load the go-cam files in the input folder into the journal
 	 * cli import-owl-models
@@ -530,7 +534,7 @@ public class CommandLineInterface {
 		String iri_for_ontology_graph = "http://geneontology.org/go-lego-graph";
 		man.loadRepositoryFromOWLFile(new File(inputFile), iri_for_ontology_graph, reset);
 	}
-	
+
 	/**
 	 * Updates the journal with the provided update sparql statement.
 	 * cli parameter --sparql-update
@@ -756,7 +760,7 @@ public class CommandLineInterface {
 				OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 				CurieHandler curieHandler = new MappedCurieHandler();
 				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);				
-				
+
 				if(i.isDirectory()) {
 					LOGGER.info("Loading models from " + i.getAbsolutePath());
 					Set<String> model_iris = new HashSet<String>();
@@ -836,7 +840,7 @@ public class CommandLineInterface {
 		LOGGER.info("Building OWL inference provider: "+reasonerOpt);
 		InferenceProviderCreator ipc = StartUpTool.createInferenceProviderCreator(reasonerOpt, m3, shex);
 		LOGGER.info("Validating models: "+reasonerOpt);
- 
+
 		if(basicOutputFile!=null) {
 			FileWriter basic_shex_output = new FileWriter(basicOutputFile, false);
 			basic_shex_output.write("filename\tmodel_id\tOWL_consistent\tshex_valid\tvalidation_time_milliseconds\taxioms\n");
@@ -885,7 +889,7 @@ public class CommandLineInterface {
 					ErrorMessage owl = new ErrorMessage(level, model_id, taxon, message, rule);
 					owl_errors.add(owl);
 				}
-				
+
 				if(!isConsistent&&explanationOutputFile!=null) {
 					FileWriter explanations = new FileWriter(explanationOutputFile, true);
 					explanations.write(filename+"\t"+modelIRI+"\n\tOWL fail explanation: "+ip.getValidation_results().getOwlvalidation().getAsText()+"\n");
@@ -903,7 +907,7 @@ public class CommandLineInterface {
 					isConformant = validations.allConformant();	
 					long done = System.currentTimeMillis();
 					long milliseconds = (done-start);
-					
+
 					if(!isConformant&&gorules_json_output_file!=null) {
 						String level = "WARNING";
 						String model_id = curieHandler.getCuri(modelIRI);
@@ -912,7 +916,7 @@ public class CommandLineInterface {
 						ErrorMessage shex_message = new ErrorMessage(level, model_id, taxon, message, rule);
 						shex_errors.add(shex_message);
 					}
-					
+
 					if(!isConformant&&explanationOutputFile!=null) {
 						FileWriter explanations = new FileWriter(explanationOutputFile, true);						
 						explanations.write(ip.getValidation_results().getShexvalidation().getAsTab(filename+"\t"+modelIRI));
