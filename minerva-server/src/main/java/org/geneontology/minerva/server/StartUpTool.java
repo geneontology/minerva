@@ -449,14 +449,14 @@ public class StartUpTool {
 
 		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
 		//		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
-		SPARQLHandler sparqlHandler = new SPARQLHandler(models, conf.sparqlEndpointTimeout);
+	//	SPARQLHandler sparqlHandler = new SPARQLHandler(models, conf.sparqlEndpointTimeout);
 		ModelSearchHandler searchHandler = new ModelSearchHandler(models, conf.sparqlEndpointTimeout);
 		LocalDate d = LocalDate.now();
 		LocalTime t = LocalTime.now(); 
 		String startup = d.toString()+" "+t.toString();
 		StatusHandler statusHandler = new StatusHandler(conf, ont_annos, startup); 
 		TaxonHandler taxonHandler = new TaxonHandler(models);
-		resourceConfig = resourceConfig.registerInstances(batchHandler, sparqlHandler, searchHandler, statusHandler, taxonHandler);
+		resourceConfig = resourceConfig.registerInstances(batchHandler, searchHandler, statusHandler, taxonHandler);
 
 		// setup jetty server port, buffers and context path
 		Server server = new Server();
