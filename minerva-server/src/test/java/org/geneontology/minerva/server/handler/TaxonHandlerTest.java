@@ -184,8 +184,8 @@ public class TaxonHandlerTest {
 		TaxonHandler.Taxa result = g.fromJson(json_result, TaxonHandler.Taxa.class);
 		assertTrue(result.taxa.size()>1);
 		LOGGER.info("N taxa: "+result.taxa.size());
-		for(String t : result.taxa) {
-			LOGGER.info(t);
+		for(TaxonHandler.Taxa.Taxon t : result.taxa) {
+			LOGGER.info(t.id+" "+t.label);
 		}
 	}
 	
