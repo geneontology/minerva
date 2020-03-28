@@ -185,6 +185,7 @@ public class ModelSearchHandler {
 			@QueryParam("taxon") Set<String> taxa, 
 			@QueryParam("gp") Set<String> gene_product_class_uris, 
 			@QueryParam("term") Set<String> terms,
+			@QueryParam("expand") String expand,
 			@QueryParam("pmid") Set<String> pmids,
 			@QueryParam("title") String title,
 			@QueryParam("state") Set<String> state,
@@ -198,7 +199,7 @@ public class ModelSearchHandler {
 			@QueryParam("count") String count
 			){
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(taxa, gene_product_class_uris, terms, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count);
 		return result;
 	}
 
@@ -217,7 +218,7 @@ public class ModelSearchHandler {
 	//&count
 	//127.0.0.1:6800/search/?contributor=http://orcid.org/0000-0002-1706-4196
 	public ModelSearchResult search(Set<String> taxa, 
-			Set<String> gene_product_ids, Set<String> terms, Set<String>pmids, 
+			Set<String> gene_product_ids, Set<String> terms, String expand, Set<String>pmids, 
 			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, 
 			String exactdate, String date_search, String datend, 
 			int offset, int limit, String count) {
@@ -283,8 +284,7 @@ public class ModelSearchHandler {
 			ind_return_list = ind_return_list+" ?ind"+n;
 			types = types+"?ind"+n+" rdf:type <"+type_uri+"> . \n";
 		}
-		boolean expand = true;
-		if(expand) {
+		if(expand!=null) {
 			for(String go_type_uri : go_type_uris) {
 				n++;
 				ind_return.put("?ind"+n, go_type_uri);
@@ -544,6 +544,7 @@ public class ModelSearchHandler {
 			@FormParam("taxon") Set<String> taxa, 
 			@FormParam("gp") Set<String> gene_product_class_uris, 
 			@FormParam("term") Set<String> terms,
+			@FormParam("expand") String expand, 
 			@FormParam("pmid") Set<String> pmids,
 			@FormParam("title") String title,
 			@FormParam("state") Set<String> state,
@@ -556,7 +557,7 @@ public class ModelSearchHandler {
 			@FormParam("limit") int limit,
 			@FormParam("count") String count) {
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(taxa, gene_product_class_uris, terms, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count);
 		return result;
 	}
 
