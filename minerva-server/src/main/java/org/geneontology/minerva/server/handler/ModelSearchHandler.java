@@ -196,10 +196,11 @@ public class ModelSearchHandler {
 			@QueryParam("dateend") String datend,
 			@QueryParam("offset") int offset,
 			@QueryParam("limit") int limit,
-			@QueryParam("count") String count
+			@QueryParam("count") String count,
+			@QueryParam("debug") String debug
 			){
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug);
 		return result;
 	}
 
@@ -221,7 +222,7 @@ public class ModelSearchHandler {
 			Set<String> gene_product_ids, Set<String> terms, String expand, Set<String>pmids, 
 			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, 
 			String exactdate, String date_search, String datend, 
-			int offset, int limit, String count) {
+			int offset, int limit, String count, String debug) {
 		ModelSearchResult r = new ModelSearchResult();
 		Set<String> go_type_ids = new HashSet<String>();
 		Set<String> gene_type_ids = new HashSet<String>();
@@ -432,8 +433,11 @@ public class ModelSearchHandler {
 		sparql = sparql.replaceAll("<limit_constraint>", limit_constraint);
 		sparql = sparql.replaceAll("<offset_constraint>", offset_constraint);
 		sparql = sparql.replaceAll("<taxa_constraint>", taxa_constraint);
-		r.sparql = sparql;
-
+		if(debug!=null) {
+			r.sparql = sparql;
+		}else {
+			r.sparql = "add 'debug' parameter to see sparql request";
+		}
 		TupleQueryResult result;
 		try {
 			result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 10);
@@ -555,9 +559,10 @@ public class ModelSearchHandler {
 			@FormParam("dateend") String datend, 
 			@FormParam("offset") int offset,
 			@FormParam("limit") int limit,
-			@FormParam("count") String count) {
+			@FormParam("count") String count,
+			@FormParam("debug") String debug) {
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug);
 		return result;
 	}
 
