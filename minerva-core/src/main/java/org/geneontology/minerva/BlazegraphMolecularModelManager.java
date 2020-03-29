@@ -896,7 +896,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				"  \n" + 
 				"GROUP BY ?id";
 		try {
-			result = (TupleQueryResult) executeSPARQLQueryWithoutPrefixManipulation(sparql, 100);
+			result = (TupleQueryResult) executeSPARQLQueryWithoutPrefixManipulation(sparql, 1000);
 			while(result.hasNext()) {
 				BindingSet bs = result.next();
 				String model = bs.getBinding("id").getValue().stringValue();

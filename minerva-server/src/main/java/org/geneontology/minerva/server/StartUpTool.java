@@ -450,7 +450,7 @@ public class StartUpTool {
 		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
 		//		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
 	//	SPARQLHandler sparqlHandler = new SPARQLHandler(models, conf.sparqlEndpointTimeout);
-		ModelSearchHandler searchHandler = new ModelSearchHandler(models, conf.sparqlEndpointTimeout);
+		ModelSearchHandler searchHandler = new ModelSearchHandler(models);
 		LocalDate d = LocalDate.now();
 		LocalTime t = LocalTime.now(); 
 		String startup = d.toString()+" "+t.toString();

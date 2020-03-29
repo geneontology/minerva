@@ -116,7 +116,7 @@ public class ModelSearchHandlerTest {
 		resourceConfig.register(GsonMessageBodyHandler.class);
 		resourceConfig.register(RequireJsonpFilter.class);
 
-		ModelSearchHandler searchHandler = new ModelSearchHandler(models, 10000);
+		ModelSearchHandler searchHandler = new ModelSearchHandler(models);
 		resourceConfig = resourceConfig.registerInstances(searchHandler);
 
 		// setup jetty server port, buffers and context path

@@ -47,15 +47,13 @@ import org.semanticweb.owlapi.model.IRI;
 public class ModelSearchHandler {
  
 	private final BlazegraphMolecularModelManager<?> m3;
-	private final int timeout;
 	private final BlazegraphOntologyManager go_lego;
 	private Map<String, Set<String>> taxon_models;
 	/**
 	 * 
 	 */
-	public ModelSearchHandler(BlazegraphMolecularModelManager<?> m3, int timeout) {
+	public ModelSearchHandler(BlazegraphMolecularModelManager<?> m3) {
 		this.m3 = m3;
-		this.timeout = timeout;
 		this.go_lego  = m3.getGolego_repo();
 		this.taxon_models = m3.getTaxon_models();
 	}
