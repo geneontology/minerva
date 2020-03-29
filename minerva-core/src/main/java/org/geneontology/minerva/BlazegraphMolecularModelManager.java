@@ -92,10 +92,10 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	OWLDocumentFormat ontologyFormat = new TurtleDocumentFormat();
 
 	private final List<PreFileSaveHandler> preFileSaveHandlers = new ArrayList<PreFileSaveHandler>();
-	private final List<PostLoadOntologyFilter> postLoadOntologyFilters = new ArrayList<PostLoadOntologyFilter>();
+	private final List<PostLoadOntologyFilter> postLoadOntologyFilters = new ArrayList<PostLoadOntologyFilter>(); 
 
 	private Map<String, Set<String>> taxon_models;
-	
+
 	/**
 	 * @param tbox
 	 * @param modelIdPrefix
@@ -155,7 +155,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			properties.setProperty(Options.FILE, pathToJournal);
 			BigdataSail sail = new BigdataSail(properties);
 			BigdataSailRepository repository = new BigdataSailRepository(sail);
-			
+
 			repository.initialize();
 			return repository;
 		} catch (RepositoryException e) {
@@ -298,7 +298,12 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				}
 			}
 		}
-		this.updateModelTaxonMap(modelId.toString());
+		Set<String> taxa = this.updateModelTaxonMap(modelId.toString());
+		if(taxa!=null) {
+			for(String taxon : taxa) {
+				this.getGolego_repo().addTaxonModelMetaData(ont, IRI.create(taxon));
+			}
+		}
 	}
 
 	private void writeModelToDatabase(OWLOntology model, IRI modelId) throws RepositoryException, IOException {
@@ -381,7 +386,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		if (ontologyFormat == null) {
 			ontologyFormat = this.ontologyFormat;
 		}
-		
+
 		return exportModel(model, ontologyFormat);
 	}
 
@@ -504,57 +509,57 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		return annotations;
 	}
 
-    public QueryResult executeSPARQLQuery(String queryText, int timeout) throws MalformedQueryException, QueryEvaluationException, RepositoryException {
-        BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
-        try {
-            List<QueryPrologLexer.Token> tokens = QueryPrologLexer.lex(queryText);
-            Set<String> declaredPrefixes = tokens.stream().filter(token -> token.getType().equals(QueryPrologLexer.TokenType.PREFIX)).map(token -> token.getStringValue()).collect(Collectors.toSet());
-            StringBuffer queryWithDefaultPrefixes = new StringBuffer();
-            for (Entry<String, String> entry : getCuriHandler().getMappings().entrySet()) {
-                if (!declaredPrefixes.contains(entry.getKey())) {
-                    queryWithDefaultPrefixes.append("PREFIX " + entry.getKey() + ": <" + entry.getValue() + ">");
-                    queryWithDefaultPrefixes.append("\n");
-                }
-            }
-            queryWithDefaultPrefixes.append(queryText);
-            Query query = connection.prepareQuery(QueryLanguage.SPARQL, queryWithDefaultPrefixes.toString());
-            query.setMaxQueryTime(timeout);
-            if (query instanceof TupleQuery) {
-                TupleQuery tupleQuery = (TupleQuery) query;
-                return tupleQuery.evaluate();
-            } else if (query instanceof GraphQuery) {
-                GraphQuery graphQuery = (GraphQuery) query;
-                return graphQuery.evaluate();
-            } else if (query instanceof BooleanQuery) {
-                throw new UnsupportedOperationException("Unsupported query type."); //FIXME
-            } else {
-                throw new UnsupportedOperationException("Unsupported query type.");
-            }
-        } finally {
-            connection.close();
-        }
-    }
-    
-    public QueryResult executeSPARQLQueryWithoutPrefixManipulation(String queryText, int timeout) throws MalformedQueryException, QueryEvaluationException, RepositoryException {
-        BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
-        try {
-            Query query = connection.prepareQuery(QueryLanguage.SPARQL, queryText.toString());
-            query.setMaxQueryTime(timeout);
-            if (query instanceof TupleQuery) {
-                TupleQuery tupleQuery = (TupleQuery) query;
-                return tupleQuery.evaluate();
-            } else if (query instanceof GraphQuery) {
-                GraphQuery graphQuery = (GraphQuery) query;
-                return graphQuery.evaluate();
-            } else if (query instanceof BooleanQuery) {
-                throw new UnsupportedOperationException("Unsupported query type."); //FIXME
-            } else {
-                throw new UnsupportedOperationException("Unsupported query type.");
-            }
-        } finally {
-            connection.close();
-        }
-    }
+	public QueryResult executeSPARQLQuery(String queryText, int timeout) throws MalformedQueryException, QueryEvaluationException, RepositoryException {
+		BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
+		try {
+			List<QueryPrologLexer.Token> tokens = QueryPrologLexer.lex(queryText);
+			Set<String> declaredPrefixes = tokens.stream().filter(token -> token.getType().equals(QueryPrologLexer.TokenType.PREFIX)).map(token -> token.getStringValue()).collect(Collectors.toSet());
+			StringBuffer queryWithDefaultPrefixes = new StringBuffer();
+			for (Entry<String, String> entry : getCuriHandler().getMappings().entrySet()) {
+				if (!declaredPrefixes.contains(entry.getKey())) {
+					queryWithDefaultPrefixes.append("PREFIX " + entry.getKey() + ": <" + entry.getValue() + ">");
+					queryWithDefaultPrefixes.append("\n");
+				}
+			}
+			queryWithDefaultPrefixes.append(queryText);
+			Query query = connection.prepareQuery(QueryLanguage.SPARQL, queryWithDefaultPrefixes.toString());
+			query.setMaxQueryTime(timeout);
+			if (query instanceof TupleQuery) {
+				TupleQuery tupleQuery = (TupleQuery) query;
+				return tupleQuery.evaluate();
+			} else if (query instanceof GraphQuery) {
+				GraphQuery graphQuery = (GraphQuery) query;
+				return graphQuery.evaluate();
+			} else if (query instanceof BooleanQuery) {
+				throw new UnsupportedOperationException("Unsupported query type."); //FIXME
+			} else {
+				throw new UnsupportedOperationException("Unsupported query type.");
+			}
+		} finally {
+			connection.close();
+		}
+	}
+
+	public QueryResult executeSPARQLQueryWithoutPrefixManipulation(String queryText, int timeout) throws MalformedQueryException, QueryEvaluationException, RepositoryException {
+		BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
+		try {
+			Query query = connection.prepareQuery(QueryLanguage.SPARQL, queryText.toString());
+			query.setMaxQueryTime(timeout);
+			if (query instanceof TupleQuery) {
+				TupleQuery tupleQuery = (TupleQuery) query;
+				return tupleQuery.evaluate();
+			} else if (query instanceof GraphQuery) {
+				GraphQuery graphQuery = (GraphQuery) query;
+				return graphQuery.evaluate();
+			} else if (query instanceof BooleanQuery) {
+				throw new UnsupportedOperationException("Unsupported query type."); //FIXME
+			} else {
+				throw new UnsupportedOperationException("Unsupported query type.");
+			}
+		} finally {
+			connection.close();
+		}
+	}
 
 	@Override
 	protected void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException {
@@ -680,7 +685,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			}
 			return modeliri;
 		}
-		
+
 	}
 
 	/**
@@ -726,7 +731,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 
 			public void handleStatement(Statement statement) {
 				if (statement.getPredicate().stringValue().equals(AnnotationShorthand.modelstate.getAnnotationProperty().toString()) &&
-					statement.getObject().stringValue().equals("delete")) throw new FoundTripleException(statement);
+						statement.getObject().stringValue().equals("delete")) throw new FoundTripleException(statement);
 			}
 		};
 		InputStream inputStream = new FileInputStream(file);
@@ -915,11 +920,11 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		}
 		return model_genes;
 	}
-	
-	public void updateModelTaxonMap(String model_id) throws IOException {
+
+	public Set<String> updateModelTaxonMap(String model_id) throws IOException {
 		Set<String> genes = getModelGenes(model_id);
 		if(genes.isEmpty()) {
-			return;
+			return null;
 		}
 		Set<String> taxa = this.getGolego_repo().getTaxaByGenes(genes);
 		for(String taxon : taxa) {
@@ -930,9 +935,10 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			models.add(model_id);
 			taxon_models.put(taxon, models);
 		}
-		
+		return taxa;
+
 	}
-	
+
 	public Set<String> getModelGenes(String model_id){ 
 		Set<String> g = new HashSet<String>();
 		TupleQueryResult result;
@@ -946,9 +952,9 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				"        && ?type != <http://www.w3.org/2002/07/owl#ObjectProperty> \n" + 
 				"        && ?type != <http://www.w3.org/2000/01/rdf-schema#Datatype> \n" + 
 				"        && ?type != <http://www.w3.org/2002/07/owl#AnnotationProperty>) . \n" + 
-		//this one cuts out all the reacto genes	
-		//	"FILTER (!regex(str(?type), \"http://purl.obolibrary.org/obo/\" ) )    \n" + 
-		//this will probably let a few past but the effect would only be a slight slow down when looking up taxa
+				//this one cuts out all the reacto genes	
+				//	"FILTER (!regex(str(?type), \"http://purl.obolibrary.org/obo/\" ) )    \n" + 
+				//this will probably let a few past but the effect would only be a slight slow down when looking up taxa
 				"FILTER (!regex(str(?type), \"http://purl.obolibrary.org/obo/ECO_\" ) )  .   \n" + 
 				"FILTER (!regex(str(?type), \"http://purl.obolibrary.org/obo/GO_\" ) ) " +
 				"    }\n" + 
@@ -956,7 +962,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				"  \n";
 		try {
 			result = (TupleQueryResult) executeSPARQLQueryWithoutPrefixManipulation(sparql, 10);
-			
+
 			while(result.hasNext()) {
 				BindingSet bs = result.next();
 				String gene = bs.getBinding("type").getValue().stringValue();
@@ -966,6 +972,31 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			e.printStackTrace();
 		}
 		return g;
+	}
+
+	public void updateTaxonMetadata() {
+		LOG.info("Ready to update "+getTaxon_models().keySet().size()+" "+getTaxon_models().keySet());
+		for(String taxon : getTaxon_models().keySet()) {
+			LOG.info("Updating models in taxon "+taxon);
+			Set<String> models = getTaxon_models().get(taxon);
+			models.stream().parallel().forEach(model -> {
+				OWLOntology model_abox;
+				try {
+					model_abox = loadModelABox(IRI.create(model));
+					model_abox = getGolego_repo().addTaxonModelMetaData(model_abox, IRI.create(taxon));
+					writeModelToDatabase(model_abox, model_abox.getOntologyID().getOntologyIRI().get());
+				} catch (OWLOntologyCreationException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (RepositoryException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}				
+			});
+		}
 	}
 	
 }

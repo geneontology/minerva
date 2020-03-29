@@ -344,25 +344,6 @@ public class CommandLineInterface {
 					System.exit(-1);
 				}
 				validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, gorules_json_output_file, go_lego_journal_file);
-			}else if(cmd.hasOption("update-gene-product-types")) {
-				Options options = new Options();
-				options.addOption(update_gps);
-				options.addOption("i", "input", true, "Sets the folder of GO-CAM ttl files to update");
-				options.addOption("o", "output", true, "Sets the output folder the updated GO-CAM files");
-				options.addOption("n", "neo", true, "Sets the location of the neo file.");
-				options.addOption("c", "catalog", true, "Sets the location for the catalog file for handling go-lego.owl imports");
-				try {
-					cmd = parser.parse( options, args, false);
-					String neo_file = cmd.getOptionValue("n"); 
-					String catalog = cmd.getOptionValue("c"); 
-					String input_dir = cmd.getOptionValue("i"); 
-					String output_dir = cmd.getOptionValue("o"); 		
-					TypeUpdater updater = new TypeUpdater(neo_file, catalog);
-					updater.runBatchUpdate(input_dir, output_dir);
-				}catch( ParseException exp ) {
-					System.out.println( "Unexpected exception for update-gene-product-types:" + exp.getMessage() );
-					System.exit(-1);
-				}
 			}
 		}catch( ParseException exp ) {
 			System.out.println( "Parameter parse exception.  Note that the first parameter must be one of: "

@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,8 +14,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import org.apache.log4j.Logger;
 import org.openrdf.model.URI;
@@ -32,8 +29,16 @@ import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
+import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLAnnotationProperty;
+import org.semanticweb.owlapi.model.OWLAxiom;
+import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLNamedObject;
+import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.OWLOntologyManager;
 
 import com.bigdata.journal.Options;
 import com.bigdata.rdf.sail.BigdataSail;
@@ -49,7 +54,9 @@ public class BlazegraphOntologyManager {
 	private final BigdataSailRepository go_lego_repo;
 	//TODO replace with more stable real URL that gets updated when it exists..  
 	private final static String public_blazegraph_url = "http://skyhook.berkeleybop.org/issue-35-neo-test/products/blazegraph/blazegraph-go-lego.jnl.gz";
-	//
+	//TODO this should probably go somewhere else - like an ontology file
+	public static String in_taxon_uri = "https://w3id.org/biolink/vocab/in_taxon";
+	public static OWLAnnotationProperty in_taxon;
 	private static final Set<String> root_types;
 	static {
 		root_types =  new HashSet<String>();
@@ -65,11 +72,10 @@ public class BlazegraphOntologyManager {
 		root_types.add("http://purl.obolibrary.org/obo/CARO_0000000"); // root root anatomical entity
 		root_types.add("http://purl.obolibrary.org/obo/ECO_0000000"); //evidence root.  
 	}
-	 
-	public BigdataSailRepository getGo_lego_repo() {
-		return go_lego_repo;
-	}
+
 	public BlazegraphOntologyManager(String go_lego_repo_file) throws IOException {
+		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();	
+		in_taxon = ontman.getOWLDataFactory().getOWLAnnotationProperty(IRI.create(in_taxon_uri));
 		if(new File(go_lego_repo_file).exists()) {			
 			go_lego_repo = initializeRepository(go_lego_repo_file);
 		}else {
@@ -87,6 +93,19 @@ public class BlazegraphOntologyManager {
 		}
 	}
 
+	public BigdataSailRepository getGo_lego_repo() {
+		return go_lego_repo;
+	}
+	
+	public OWLOntology addTaxonModelMetaData(OWLOntology model, IRI taxon_iri) {
+		OWLOntologyManager ontman = model.getOWLOntologyManager();
+		OWLDataFactory df = ontman.getOWLDataFactory();		
+		OWLAnnotation taxon_anno = df.getOWLAnnotation(in_taxon, taxon_iri);
+		OWLAxiom taxonannoaxiom = df.getOWLAnnotationAssertionAxiom(model.getOntologyID().getOntologyIRI().get(), taxon_anno);
+		ontman.addAxiom(model, taxonannoaxiom);
+		return model;
+	}
+	
 	public void unGunzipFile(String compressedFile, String decompressedFile) {		 
         byte[] buffer = new byte[1024]; 
         try { 

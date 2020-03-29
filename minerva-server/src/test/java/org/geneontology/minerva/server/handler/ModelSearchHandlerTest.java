@@ -107,7 +107,7 @@ public class ModelSearchHandlerTest {
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		tbox_ontology = ontman.createOntology(IRI.create("http://example.org/dummy"));
 		models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
-		
+		models.updateTaxonMetadata();
 		
 		LOGGER.info("Setup Jetty config.");
 		// Configuration: Use an already existing handler instance
@@ -266,6 +266,7 @@ public class ModelSearchHandlerTest {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
 		builder.addParameter("term", "http://purl.obolibrary.org/obo/WBbt_0008422"); //sex organ parent of vulva
+		builder.addParameter("expand", "");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
 		Gson g = new Gson();

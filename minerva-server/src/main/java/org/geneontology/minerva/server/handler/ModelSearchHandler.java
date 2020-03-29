@@ -32,7 +32,7 @@ import org.geneontology.minerva.curie.CurieHandler;
 import org.openrdf.query.Binding;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.QueryEvaluationException; 
 import org.openrdf.query.QueryResult;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.repository.RepositoryException;
@@ -45,7 +45,7 @@ import org.semanticweb.owlapi.model.IRI;
  */
 @Path("/search")
 public class ModelSearchHandler {
- 
+
 	private final BlazegraphMolecularModelManager<?> m3;
 	private final BlazegraphOntologyManager go_lego;
 	private Map<String, Set<String>> taxon_models;
@@ -320,7 +320,6 @@ public class ModelSearchHandler {
 		}
 		String taxa_constraint = "";
 		if(taxa!=null&&!taxa.isEmpty()) {
-			String model_filter =  " VALUES ?id { \n"; 
 			for(String taxon : taxa) {
 				if(taxon.startsWith("NCBITaxon:")) {
 					taxon = taxon.replace(":", "_");
@@ -329,16 +328,31 @@ public class ModelSearchHandler {
 				else if(!taxon.startsWith("http://purl.obolibrary.org/obo/NCBITaxon_")) {
 					taxon = "http://purl.obolibrary.org/obo/NCBITaxon_"+taxon;
 				} 
-				Set<String> models = taxon_models.get(taxon);
-				if(models!=null) {
-					for(String model : models) {
-						model_filter+="<"+model+"> \n";
-					}
-				}
+				taxa_constraint += "?id <"+BlazegraphOntologyManager.in_taxon_uri+"> <"+taxon+"> . \n";
 			}
-			model_filter += "} . \n";
-			taxa_constraint = model_filter;
-		}
+		} 
+
+
+		//		if(taxa!=null&&!taxa.isEmpty()) {
+		//			String model_filter =  " VALUES ?id { \n"; 
+		//			for(String taxon : taxa) {
+		//				if(taxon.startsWith("NCBITaxon:")) {
+		//					taxon = taxon.replace(":", "_");
+		//					taxon = "http://purl.obolibrary.org/obo/"+taxon;
+		//				}
+		//				else if(!taxon.startsWith("http://purl.obolibrary.org/obo/NCBITaxon_")) {
+		//					taxon = "http://purl.obolibrary.org/obo/NCBITaxon_"+taxon;
+		//				} 
+		//				Set<String> models = taxon_models.get(taxon);
+		//				if(models!=null) {
+		//					for(String model : models) {
+		//						model_filter+="<"+model+"> \n";
+		//					}
+		//				}
+		//			}
+		//			model_filter += "} . \n";
+		//			taxa_constraint = model_filter;
+		//		}
 		String title_search_constraint = "";
 		if(title_search!=null) {
 			title_search_constraint = "?title <http://www.bigdata.com/rdf/search#search> \""+title_search+"\" .\n";
