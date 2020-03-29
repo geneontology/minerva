@@ -16,9 +16,11 @@ import com.bigdata.rdf.rio.json.BigdataSPARQLResultsJSONWriter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.geneontology.minerva.ModelContainer.ModelChangeListener;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.util.AnnotationShorthand;
+import org.geneontology.minerva.util.BlazegraphMutationCounter;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.openrdf.model.*;
 import org.openrdf.model.impl.URIImpl;
@@ -94,7 +96,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	private final List<PreFileSaveHandler> preFileSaveHandlers = new ArrayList<PreFileSaveHandler>();
 	private final List<PostLoadOntologyFilter> postLoadOntologyFilters = new ArrayList<PostLoadOntologyFilter>(); 
 
-	private Map<String, Set<String>> taxon_models;
 
 	/**
 	 * @param tbox
@@ -119,17 +120,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		this.pathToOWLStore = pathToJournal;
 		this.pathToExportFolder = pathToExportFolder;
 		this.repo = initializeRepository(this.pathToOWLStore);
-		if(pathToOntologyJournal!=null) {
-			taxon_models = buildTaxonModelMap();
-		}
-	}
-
-	public Map<String, Set<String>> getTaxon_models() {
-		return taxon_models;
-	}
-
-	public void setTaxon_models(Map<String, Set<String>> taxon_models) {
-		this.taxon_models = taxon_models;
 	}
 
 	/**
@@ -280,7 +270,14 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 					throws OWLOntologyStorageException, OWLOntologyCreationException,
 					IOException, RepositoryException, UnknownIdentifierException {
 		IRI modelId = m.getModelId();
-		final OWLOntology ont = m.getAboxOntology();
+		OWLOntology ont2save = m.getAboxOntology();
+		Set<String> taxa = getTaxonsForModel(modelId.toString());
+		if(taxa!=null) { 
+			for(String taxon : taxa) {
+				ont2save = getGolego_repo().addTaxonModelMetaData(ont2save, IRI.create(taxon));
+			}
+		}
+		final OWLOntology ont = ont2save;
 		final OWLOntologyManager manager = ont.getOWLOntologyManager();
 		List<OWLOntologyChange> changes = preSaveFileHandler(ont);
 		synchronized(ont) {
@@ -296,12 +293,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 						manager.applyChanges(invertedChanges);
 					}
 				}
-			}
-		}
-		Set<String> taxa = this.updateModelTaxonMap(modelId.toString());
-		if(taxa!=null) {
-			for(String taxon : taxa) {
-				this.getGolego_repo().addTaxonModelMetaData(ont, IRI.create(taxon));
 			}
 		}
 	}
@@ -921,20 +912,12 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		return model_genes;
 	}
 
-	public Set<String> updateModelTaxonMap(String model_id) throws IOException {
+	public Set<String> getTaxonsForModel(String model_id) throws IOException {
 		Set<String> genes = getModelGenes(model_id);
 		if(genes.isEmpty()) {
 			return null;
 		}
 		Set<String> taxa = this.getGolego_repo().getTaxaByGenes(genes);
-		for(String taxon : taxa) {
-			Set<String> models = taxon_models.get(taxon);
-			if(models==null) {
-				models = new HashSet<String>();
-			}
-			models.add(model_id);
-			taxon_models.put(taxon, models);
-		}
 		return taxa;
 
 	}
@@ -974,29 +957,72 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		return g;
 	}
 
-	public void updateTaxonMetadata() {
-		LOG.info("Ready to update "+getTaxon_models().keySet().size()+" "+getTaxon_models().keySet());
-		for(String taxon : getTaxon_models().keySet()) {
+
+	public void addTaxonMetadata() throws IOException {
+		Map<String, Set<String>> taxon_models = buildTaxonModelMap();
+		LOG.info("Ready to update "+taxon_models.keySet().size()+" "+taxon_models.keySet());
+		for(String taxon : taxon_models.keySet()) {
 			LOG.info("Updating models in taxon "+taxon);
-			Set<String> models = getTaxon_models().get(taxon);
+			Set<String> models = taxon_models.get(taxon);
 			models.stream().parallel().forEach(model -> {
-				OWLOntology model_abox;
+				//fine for a few thousand models, but ends up eating massive ram for many
+				//addTaxonWithOWL(IRI.create(model), IRI.create(taxon));
 				try {
-					model_abox = loadModelABox(IRI.create(model));
-					model_abox = getGolego_repo().addTaxonModelMetaData(model_abox, IRI.create(taxon));
-					writeModelToDatabase(model_abox, model_abox.getOntologyID().getOntologyIRI().get());
-				} catch (OWLOntologyCreationException e) {
+					addTaxonToDatabaseWithSparql(IRI.create(model), IRI.create(taxon));
+				} catch (RepositoryException | UpdateExecutionException | MalformedQueryException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				} catch (RepositoryException e) {
+				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}				
+				}
 			});
 		}
+	}
+	
+	public void addTaxonToDatabaseWithOWL(IRI model_id, IRI taxon) {
+		OWLOntology model_abox;
+		try {
+			model_abox = loadModelABox(model_id);
+			model_abox = getGolego_repo().addTaxonModelMetaData(model_abox, taxon);
+			writeModelToDatabase(model_abox, model_id);
+		} catch (OWLOntologyCreationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+		catch (RepositoryException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
+	}
+	
+//now try with sparql insert
+	public int addTaxonToDatabaseWithSparql(IRI model_iri, IRI taxon_iri) throws RepositoryException, UpdateExecutionException, MalformedQueryException, InterruptedException {
+		int changes = 0;
+		String update = 
+				"INSERT DATA\n" + 
+				"{ GRAPH <"+model_iri.toString()+"> { "+
+				"  <"+model_iri.toString()+"> <"+BlazegraphOntologyManager.in_taxon_uri+"> <"+taxon_iri.toString()+">" + 
+				"} }";
+		
+		synchronized(repo) {
+			final BigdataSailRepositoryConnection conn = repo.getUnisolatedConnection();
+			try {
+				conn.begin();
+				BlazegraphMutationCounter counter = new BlazegraphMutationCounter();
+				conn.addChangeLog(counter);
+				conn.prepareUpdate(QueryLanguage.SPARQL, update).execute();
+				changes = counter.mutationCount();
+				conn.removeChangeLog(counter);	
+				conn.commit();
+			} finally {
+				conn.close();
+			}
+		}
+		return changes;
 	}
 	
 }

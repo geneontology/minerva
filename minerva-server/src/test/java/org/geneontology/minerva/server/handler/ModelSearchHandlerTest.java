@@ -102,12 +102,13 @@ public class ModelSearchHandlerTest {
 		String modelIdcurie = "gomodel";
 		curieHandler = new MappedCurieHandler();
 		String valid_model_folder = "src/test/resources/models/should_pass/";
+		String model_save =         "src/test/resources/models/tmp/";
 		String inputDB = makeBlazegraphJournal(valid_model_folder);	
 		//leave tbox empty for now
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		tbox_ontology = ontman.createOntology(IRI.create("http://example.org/dummy"));
-		models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
-		models.updateTaxonMetadata();
+		models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, model_save, go_lego_journal_file);
+		models.addTaxonMetadata();
 		
 		LOGGER.info("Setup Jetty config.");
 		// Configuration: Use an already existing handler instance

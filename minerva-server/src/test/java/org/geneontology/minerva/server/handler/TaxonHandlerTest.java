@@ -111,7 +111,7 @@ public class TaxonHandlerTest {
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		tbox_ontology = ontman.createOntology(IRI.create("http://example.org/dummy"));
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
-		
+		models.addTaxonMetadata();
 		
 		LOGGER.info("Setup Jetty config.");
 		// Configuration: Use an already existing handler instance

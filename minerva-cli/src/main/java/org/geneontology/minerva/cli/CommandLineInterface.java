@@ -132,7 +132,15 @@ public class CommandLineInterface {
 				.desc("import OWL tbox ontologies into journal")
 				.hasArg(false)
 				.build();
-		methods.addOption(import_tbox_ontologies);
+		methods.addOption(import_tbox_ontologies);		
+		
+		Option add_taxon_metadata = Option.builder()
+				.longOpt("add-taxon-metadata")
+				.desc("add taxon associated with genes in each model as an annotation on the model")
+				.hasArg(false)
+				.build();
+		methods.addOption(add_taxon_metadata);
+		
 		Option sparql = Option.builder()
 				.longOpt("sparql-update")
 				.desc("update the blazegraph journal with the given sparql statement")
@@ -163,18 +171,24 @@ public class CommandLineInterface {
 				.hasArg(false)
 				.build();
 		methods.addOption(validate);
-		//update-gene-product-types
-		Option update_gps = Option.builder()
-				.longOpt("update-gene-product-types")
-				.desc("Given a directory of go-cam ttl files, assert the root type (e.g. protein) for each gene product instance")
-				.hasArg(false)
-				.build();
-		methods.addOption(update_gps);
+
 		main_options.addOptionGroup(methods);
 
 		CommandLineParser parser = new DefaultParser();
 		try {
 			CommandLine cmd = parser.parse( main_options, args, true);
+			
+			if(cmd.hasOption("add-taxon-metadata")) {
+				Options add_taxon_options = new Options();
+				add_taxon_options.addOption(add_taxon_metadata);
+				add_taxon_options.addOption("j", "journal", true, "This is the go-cam journal that will be updated with taxon annotations.");
+				add_taxon_options.addOption("ontojournal", "ontojournal", true, "Specify a blazegraph journal file containing the merged, pre-reasoned tbox aka go-lego.owl");
+				cmd = parser.parse( add_taxon_options, args, false);
+				String journalFilePath = cmd.getOptionValue("j"); //--journal
+				String ontojournal = cmd.getOptionValue("ontojournal"); //--folder
+				addTaxonMetaData(journalFilePath, ontojournal);
+			}
+			
 			if(cmd.hasOption("import-tbox-ontologies")) {
 				Options import_tbox_options = new Options();
 				import_tbox_options.addOption(import_tbox_ontologies);
@@ -941,6 +955,14 @@ public class CommandLineInterface {
 		LOGGER.info("done with validation");
 	}
 
+	public static void addTaxonMetaData(String go_cam_journal, String go_lego_journal_file) throws OWLOntologyCreationException, IOException {
+		String modelIdPrefix = "http://model.geneontology.org/";
+		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
+		CurieHandler curieHandler = new MappedCurieHandler();
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, go_cam_journal, null, go_lego_journal_file);					
+		m3.addTaxonMetadata();
+		return;
+	}
 
 	public static void printVersion() throws Exception {
 		printManifestEntry("git-revision-sha1", "UNKNOWN");
@@ -948,7 +970,7 @@ public class CommandLineInterface {
 		printManifestEntry("git-branch", "UNKNOWN");
 		printManifestEntry("git-dirty", "UNKNOWN");
 	}
-
+	
 	private static String printManifestEntry(String key, String defaultValue) {
 		String value = owltools.version.VersionInfo.getManifestVersion(key);
 		if (value == null || value.isEmpty()) {
@@ -957,7 +979,7 @@ public class CommandLineInterface {
 		System.out.println(key+"\t"+value);
 		return value;
 	}
-
+	
 	public static void reportSystemParams() {
 		/* Total number of processors or cores available to the JVM */
 		LOGGER.info("Available processors (cores): " + 

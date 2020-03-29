@@ -39,26 +39,5 @@ import com.google.common.collect.Sets;
  */
 public class BatchModelUpdater {
 
-	public static void main(String[] args) {
-		///Users/benjamingood/noctua_config/dev-blazegraph.jnl 
-		String input_journal = "/Users/benjamingood/noctua_config/blazegraph-master.jnl";
-		try {
-			addTaxonMetaData(input_journal);
-		} catch (OWLOntologyCreationException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-	}
-
-	private static void addTaxonMetaData(String go_cam_journal) throws OWLOntologyCreationException, IOException {
-		String go_lego_journal_file = "/tmp/blazegraph.jnl";
-		String modelIdPrefix = "http://model.geneontology.org/";
-		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
-		CurieHandler curieHandler = new MappedCurieHandler();
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, go_cam_journal, null, go_lego_journal_file);					
-		m3.updateTaxonMetadata();
-		return;
-	}
 	
 }

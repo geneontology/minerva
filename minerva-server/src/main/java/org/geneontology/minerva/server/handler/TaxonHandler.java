@@ -12,6 +12,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
+import org.geneontology.minerva.BlazegraphOntologyManager;
+import org.openrdf.query.BindingSet;
+import org.openrdf.query.MalformedQueryException;
+import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.TupleQueryResult;
+import org.openrdf.repository.RepositoryException;
 import org.semanticweb.owlapi.model.IRI;
 
 	
@@ -57,17 +63,26 @@ import org.semanticweb.owlapi.model.IRI;
 		@Produces(MediaType.APPLICATION_JSON)
 		public Taxa get() {	
 			Map<String, String> id_label =  new HashMap<String, String>();
-			for(String t : m3.getTaxon_models().keySet()) {
-				String label = "";
-				try {
-					label = m3.getGolego_repo().getLabel(t);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+			
+			String sparql = "select distinct ?taxon where { ?model <"+BlazegraphOntologyManager.in_taxon_uri+"> ?taxon }";
+			
+			TupleQueryResult result;
+			try {
+				result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 1000);
+				while(result.hasNext()) {
+					BindingSet bs = result.next();
+					String taxon = bs.getBinding("taxon").getValue().stringValue();
+					String label = m3.getGolego_repo().getLabel(taxon);
+					String tcurie = taxon.replace("http://purl.obolibrary.org/obo/NCBITaxon_", "NCBITaxon:");
+					id_label.put(tcurie, label);
 				}
-				String tcurie = t.replace("http://purl.obolibrary.org/obo/NCBITaxon_", "NCBITaxon:");
-				id_label.put(tcurie, label);
+			} catch (MalformedQueryException | QueryEvaluationException | RepositoryException e) {				
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
+
 			return new Taxa(id_label);
 		}
 
