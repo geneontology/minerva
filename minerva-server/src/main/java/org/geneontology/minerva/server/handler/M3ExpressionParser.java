@@ -31,7 +31,7 @@ public class M3ExpressionParser {
 	}
 	
 	M3ExpressionParser(CurieHandler curieHandler) {
-		this(true, curieHandler);
+		this(false, curieHandler);
 	}
 
 	OWLClassExpression parse(ModelContainer model, JsonOwlObject expression, 

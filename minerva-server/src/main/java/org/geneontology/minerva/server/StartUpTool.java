@@ -445,7 +445,7 @@ public class StartUpTool {
 		InferenceProviderCreator ipc = createInferenceProviderCreator(conf.reasonerOpt, models, conf.shex); 
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
 				ipc, conf.importantRelations, conf.lookupService);
-		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
+		batchHandler.CHECK_LITERAL_IDENTIFIERS = false; //conf.checkLiteralIds;
 
 		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
 		//		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
