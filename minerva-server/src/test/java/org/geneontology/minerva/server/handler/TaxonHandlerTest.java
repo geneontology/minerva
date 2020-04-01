@@ -111,7 +111,7 @@ public class TaxonHandlerTest {
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		tbox_ontology = ontman.createOntology(IRI.create("http://example.org/dummy"));
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
-		
+		models.addTaxonMetadata();
 		
 		LOGGER.info("Setup Jetty config.");
 		// Configuration: Use an already existing handler instance
@@ -184,8 +184,8 @@ public class TaxonHandlerTest {
 		TaxonHandler.Taxa result = g.fromJson(json_result, TaxonHandler.Taxa.class);
 		assertTrue(result.taxa.size()>1);
 		LOGGER.info("N taxa: "+result.taxa.size());
-		for(String t : result.taxa) {
-			LOGGER.info(t);
+		for(TaxonHandler.Taxa.Taxon t : result.taxa) {
+			LOGGER.info(t.id+" "+t.label);
 		}
 	}
 	

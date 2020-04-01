@@ -32,7 +32,7 @@ import org.geneontology.minerva.curie.CurieHandler;
 import org.openrdf.query.Binding;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.QueryEvaluationException; 
 import org.openrdf.query.QueryResult;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.repository.RepositoryException;
@@ -45,19 +45,15 @@ import org.semanticweb.owlapi.model.IRI;
  */
 @Path("/search")
 public class ModelSearchHandler {
- 
+
 	private final BlazegraphMolecularModelManager<?> m3;
-	private final int timeout;
 	private final BlazegraphOntologyManager go_lego;
-	private Map<String, Set<String>> taxon_models;
 	/**
 	 * 
 	 */
-	public ModelSearchHandler(BlazegraphMolecularModelManager<?> m3, int timeout) {
+	public ModelSearchHandler(BlazegraphMolecularModelManager<?> m3) {
 		this.m3 = m3;
-		this.timeout = timeout;
 		this.go_lego  = m3.getGolego_repo();
-		this.taxon_models = m3.getTaxon_models();
 	}
 
 	public class ModelSearchResult {
@@ -185,6 +181,7 @@ public class ModelSearchHandler {
 			@QueryParam("taxon") Set<String> taxa, 
 			@QueryParam("gp") Set<String> gene_product_class_uris, 
 			@QueryParam("term") Set<String> terms,
+			@QueryParam("expand") String expand,
 			@QueryParam("pmid") Set<String> pmids,
 			@QueryParam("title") String title,
 			@QueryParam("state") Set<String> state,
@@ -195,10 +192,11 @@ public class ModelSearchHandler {
 			@QueryParam("dateend") String datend,
 			@QueryParam("offset") int offset,
 			@QueryParam("limit") int limit,
-			@QueryParam("count") String count
+			@QueryParam("count") String count,
+			@QueryParam("debug") String debug
 			){
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(taxa, gene_product_class_uris, terms, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug);
 		return result;
 	}
 
@@ -217,10 +215,10 @@ public class ModelSearchHandler {
 	//&count
 	//127.0.0.1:6800/search/?contributor=http://orcid.org/0000-0002-1706-4196
 	public ModelSearchResult search(Set<String> taxa, 
-			Set<String> gene_product_ids, Set<String> terms, Set<String>pmids, 
+			Set<String> gene_product_ids, Set<String> terms, String expand, Set<String>pmids, 
 			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, 
 			String exactdate, String date_search, String datend, 
-			int offset, int limit, String count) {
+			int offset, int limit, String count, String debug) {
 		ModelSearchResult r = new ModelSearchResult();
 		Set<String> go_type_ids = new HashSet<String>();
 		Set<String> gene_type_ids = new HashSet<String>();
@@ -283,8 +281,7 @@ public class ModelSearchHandler {
 			ind_return_list = ind_return_list+" ?ind"+n;
 			types = types+"?ind"+n+" rdf:type <"+type_uri+"> . \n";
 		}
-		boolean expand = true;
-		if(expand) {
+		if(expand!=null) {
 			for(String go_type_uri : go_type_uris) {
 				n++;
 				ind_return.put("?ind"+n, go_type_uri);
@@ -321,7 +318,6 @@ public class ModelSearchHandler {
 		}
 		String taxa_constraint = "";
 		if(taxa!=null&&!taxa.isEmpty()) {
-			String model_filter =  " VALUES ?id { \n"; 
 			for(String taxon : taxa) {
 				if(taxon.startsWith("NCBITaxon:")) {
 					taxon = taxon.replace(":", "_");
@@ -330,16 +326,31 @@ public class ModelSearchHandler {
 				else if(!taxon.startsWith("http://purl.obolibrary.org/obo/NCBITaxon_")) {
 					taxon = "http://purl.obolibrary.org/obo/NCBITaxon_"+taxon;
 				} 
-				Set<String> models = taxon_models.get(taxon);
-				if(models!=null) {
-					for(String model : models) {
-						model_filter+="<"+model+"> \n";
-					}
-				}
+				taxa_constraint += "?id <"+BlazegraphOntologyManager.in_taxon_uri+"> <"+taxon+"> . \n";
 			}
-			model_filter += "} . \n";
-			taxa_constraint = model_filter;
-		}
+		} 
+
+
+		//		if(taxa!=null&&!taxa.isEmpty()) {
+		//			String model_filter =  " VALUES ?id { \n"; 
+		//			for(String taxon : taxa) {
+		//				if(taxon.startsWith("NCBITaxon:")) {
+		//					taxon = taxon.replace(":", "_");
+		//					taxon = "http://purl.obolibrary.org/obo/"+taxon;
+		//				}
+		//				else if(!taxon.startsWith("http://purl.obolibrary.org/obo/NCBITaxon_")) {
+		//					taxon = "http://purl.obolibrary.org/obo/NCBITaxon_"+taxon;
+		//				} 
+		//				Set<String> models = taxon_models.get(taxon);
+		//				if(models!=null) {
+		//					for(String model : models) {
+		//						model_filter+="<"+model+"> \n";
+		//					}
+		//				}
+		//			}
+		//			model_filter += "} . \n";
+		//			taxa_constraint = model_filter;
+		//		}
 		String title_search_constraint = "";
 		if(title_search!=null) {
 			title_search_constraint = "?title <http://www.bigdata.com/rdf/search#search> \""+title_search+"\" .\n";
@@ -432,11 +443,14 @@ public class ModelSearchHandler {
 		sparql = sparql.replaceAll("<limit_constraint>", limit_constraint);
 		sparql = sparql.replaceAll("<offset_constraint>", offset_constraint);
 		sparql = sparql.replaceAll("<taxa_constraint>", taxa_constraint);
-		r.sparql = sparql;
-
+		if(debug!=null) {
+			r.sparql = sparql;
+		}else {
+			r.sparql = "add 'debug' parameter to see sparql request";
+		}
 		TupleQueryResult result;
 		try {
-			result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 10);
+			result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 1000);
 		} catch (MalformedQueryException | QueryEvaluationException | RepositoryException e) {
 			if(e instanceof MalformedQueryException) {
 				r.message = "Malformed Query";
@@ -544,6 +558,7 @@ public class ModelSearchHandler {
 			@FormParam("taxon") Set<String> taxa, 
 			@FormParam("gp") Set<String> gene_product_class_uris, 
 			@FormParam("term") Set<String> terms,
+			@FormParam("expand") String expand, 
 			@FormParam("pmid") Set<String> pmids,
 			@FormParam("title") String title,
 			@FormParam("state") Set<String> state,
@@ -554,9 +569,10 @@ public class ModelSearchHandler {
 			@FormParam("dateend") String datend, 
 			@FormParam("offset") int offset,
 			@FormParam("limit") int limit,
-			@FormParam("count") String count) {
+			@FormParam("count") String count,
+			@FormParam("debug") String debug) {
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(taxa, gene_product_class_uris, terms, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug);
 		return result;
 	}
 

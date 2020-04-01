@@ -102,12 +102,13 @@ public class ModelSearchHandlerTest {
 		String modelIdcurie = "gomodel";
 		curieHandler = new MappedCurieHandler();
 		String valid_model_folder = "src/test/resources/models/should_pass/";
+		String model_save =         "src/test/resources/models/tmp/";
 		String inputDB = makeBlazegraphJournal(valid_model_folder);	
 		//leave tbox empty for now
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		tbox_ontology = ontman.createOntology(IRI.create("http://example.org/dummy"));
-		models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
-		
+		models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, model_save, go_lego_journal_file);
+		models.addTaxonMetadata();
 		
 		LOGGER.info("Setup Jetty config.");
 		// Configuration: Use an already existing handler instance
@@ -116,7 +117,7 @@ public class ModelSearchHandlerTest {
 		resourceConfig.register(GsonMessageBodyHandler.class);
 		resourceConfig.register(RequireJsonpFilter.class);
 
-		ModelSearchHandler searchHandler = new ModelSearchHandler(models, 10000);
+		ModelSearchHandler searchHandler = new ModelSearchHandler(models);
 		resourceConfig = resourceConfig.registerInstances(searchHandler);
 
 		// setup jetty server port, buffers and context path
@@ -224,6 +225,7 @@ public class ModelSearchHandlerTest {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
 		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0140312");//clathrin binding - should get one model that uses child clathrin activity GO_0035615
+		builder.addParameter("expand", "");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
 		Gson g = new Gson();
@@ -232,7 +234,34 @@ public class ModelSearchHandlerTest {
 		LOGGER.info("Search by GO term result "+json_result);
 		LOGGER.info("N models found: "+result.getN());
 		assertTrue(result.getN()+" models found should find some from children of GO_0140312", result.getN()>0);
+		
+		builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0140312");//clathrin binding - should get one model that uses child clathrin activity GO_0035615
+		searchuri = builder.build();
+		json_result = getJsonStringFromUri(searchuri);
+		g = new Gson();
+		result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by GO term URI "+searchuri);
+		LOGGER.info("Search by GO term result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()+" without expand on, should find now models for GO_0140312", result.getN()==0);
 	}
+	
+	@Test
+	public final void testSearchGetByGOGiantclosure() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0003824");
+		builder.addParameter("expand", "");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by GO term URI "+searchuri);
+		LOGGER.info("Search by GO term result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()+" models found should find many children of GO_0003824", result.getN()>0);
+	}	
 
 	@Test
 	public final void testSearchGetByWormAnatomy() throws URISyntaxException, IOException {
@@ -254,6 +283,7 @@ public class ModelSearchHandlerTest {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
 		builder.addParameter("term", "http://purl.obolibrary.org/obo/WBbt_0008422"); //sex organ parent of vulva
+		builder.addParameter("expand", "");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
 		Gson g = new Gson();

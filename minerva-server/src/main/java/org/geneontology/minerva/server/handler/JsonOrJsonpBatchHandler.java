@@ -32,7 +32,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	
 	
 	public static boolean VALIDATE_BEFORE_SAVE = true;
-	public boolean CHECK_LITERAL_IDENTIFIERS = true; // TODO remove the temp work-around
+	public static boolean CHECK_LITERAL_IDENTIFIERS = false;//TODO turning this off because it depends on external lookup service - need to rewire to get rid of external lookup service entirely.
 	
 	private static final Logger logger = Logger.getLogger(JsonOrJsonpBatchHandler.class);
 	
