@@ -246,6 +246,22 @@ public class ModelSearchHandlerTest {
 		LOGGER.info("N models found: "+result.getN());
 		assertTrue(result.getN()+" without expand on, should find now models for GO_0140312", result.getN()==0);
 	}
+	
+	@Test
+	public final void testSearchGetByGOGiantclosure() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0003824");
+		builder.addParameter("expand", "");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by GO term URI "+searchuri);
+		LOGGER.info("Search by GO term result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()+" models found should find many children of GO_0003824", result.getN()>0);
+	}	
 
 	@Test
 	public final void testSearchGetByWormAnatomy() throws URISyntaxException, IOException {

@@ -450,7 +450,7 @@ public class ModelSearchHandler {
 		}
 		TupleQueryResult result;
 		try {
-			result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 10);
+			result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 1000);
 		} catch (MalformedQueryException | QueryEvaluationException | RepositoryException e) {
 			if(e instanceof MalformedQueryException) {
 				r.message = "Malformed Query";
