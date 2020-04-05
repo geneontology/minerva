@@ -54,8 +54,8 @@ public class ValidationTest {
 	static final String catalog = "src/test/resources/ontology/catalog-for-validation.xml";
 	static final String modelIdcurie = "http://model.geneontology.org/";
 	static final String modelIdPrefix = "gomodel";
-	static final String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
-	static final String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
+	static final String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/add-model-level-metadata/shapes/go-cam-shapes.shex";
+	static final String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/add-model-level-metadata/shapes/go-cam-shapes.shapeMap";
 	static OWLOntology tbox_ontology;
 	static CurieHandler curieHandler;
 
