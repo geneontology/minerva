@@ -55,7 +55,7 @@ public class BlazegraphOntologyManager {
 	private static Logger LOG = Logger.getLogger(BlazegraphOntologyManager.class);
 	private final BigdataSailRepository go_lego_repo;
 	//TODO replace with more stable real URL that gets updated when it exists..  
-	private final static String public_blazegraph_url = "http://skyhook.berkeleybop.org/issue-35-neo-test/products/blazegraph/blazegraph-go-lego.jnl.gz";
+	private final static String public_blazegraph_url = "http://skyhook.berkeleybop.org/blazegraph-go-lego-with-reacto.jnl.gz";
 	//TODO this should probably go somewhere else - like an ontology file
 	public static String in_taxon_uri = "https://w3id.org/biolink/vocab/in_taxon";
 	public static OWLAnnotationProperty in_taxon;
