@@ -51,7 +51,7 @@ public class ValidationTest {
 	private static final Logger LOGGER = Logger.getLogger(ValidationTest.class);
 	static final String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
 	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
-	static final String catalog = "src/test/resources/ontology/catalog-for-validation.xml";
+	static final String catalog = "/Users/benjamingood/gocam_ontology/catalog-v001-for-noctua.xml";//"src/test/resources/ontology/catalog-for-validation.xml";
 	static final String modelIdcurie = "http://model.geneontology.org/";
 	static final String modelIdPrefix = "gomodel";
 	static final String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/add-model-level-metadata/shapes/go-cam-shapes.shex";
@@ -105,6 +105,23 @@ public class ValidationTest {
 	}
 
 	@Test
+	public void testTmValid() {
+		String valid_model_folder = "src/test/resources/models/tmp/";
+		boolean should_fail = false;
+		boolean check_shex = true;
+		try {
+			validateGoCams(
+					valid_model_folder, 
+					should_fail, //models should fail check
+					check_shex //check shex (false just OWL)
+					);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
+	}
+	
+//	@Test
 	public void testValid() {
 		String valid_model_folder = "src/test/resources/models/should_pass/";
 		boolean should_fail = false;
@@ -121,7 +138,7 @@ public class ValidationTest {
 		}	
 	}
 
-	@Test
+//	@Test
 	public void testInValid() {
 		String valid_model_folder = "src/test/resources/models/should_fail/";
 		boolean should_fail = true;
