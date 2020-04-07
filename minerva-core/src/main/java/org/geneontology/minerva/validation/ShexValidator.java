@@ -37,6 +37,7 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDFS;
 import org.apache.log4j.Logger;
@@ -212,31 +213,56 @@ public class ShexValidator {
 	}
 
 	private Violation getViolationForMismatch(Label shape_label, Resource focus_node, Typing typing, Model test_model) throws IOException {
-		Status status = typing.getStatus(rdfFactory.createIRI(focus_node.getURI()), shape_label);
-		if(status.equals(Status.NONCONFORMANT)) {
-			//implementing a start on a generic violation report structure here
-			ShexViolation violation = new ShexViolation(getCurie(focus_node.toString()));				 					
-			ShexExplanation explanation = new ShexExplanation();
-			String shape_curie = getCurie(shape_label.stringValue());
-			explanation.setShape(shape_curie);				
-			Set<ShexConstraint> unmet_constraints = getUnmetConstraints(focus_node, shape_label, test_model, typing);				
-			if(unmet_constraints!=null) {
-				for(ShexConstraint constraint : unmet_constraints) {
-					explanation.addConstraint(constraint);
-					violation.addExplanation(explanation);
-				}	
-			}else {
-				explanation.setErrorMessage("explanation computation timed out");
-				violation.addExplanation(explanation);
-			}
-			return violation;			
-		}else if(status.equals(Status.NOTCOMPUTED)) {
-			//if any of these are not computed, there is a problem
-			String error = focus_node+" was not tested against "+shape_label;
-			LOGGER.error(error);
-		}else if(status.equals(Status.CONFORMANT)) {
-			LOGGER.error("node is valid, should not be here trying to make a violation");
+
+		RDFTerm rdfterm = null;
+		if(focus_node.isURIResource()) {
+			rdfterm = rdfFactory.createIRI(focus_node.getURI());
+		}else {
+			rdfterm = rdfFactory.createIRI(focus_node.toString());
 		}
+			Status status = typing.getStatus(rdfterm, shape_label);
+			if(status.equals(Status.NONCONFORMANT)) {
+				//implementing a start on a generic violation report structure here
+				ShexViolation violation = new ShexViolation(getCurie(focus_node.toString()));				 					
+				ShexExplanation explanation = new ShexExplanation();
+				String shape_curie = getCurie(shape_label.stringValue());
+				explanation.setShape(shape_curie);				
+				Set<ShexConstraint> unmet_constraints = getUnmetConstraints(focus_node, shape_label, test_model, typing);				
+				if(unmet_constraints!=null) {
+					for(ShexConstraint constraint : unmet_constraints) {
+						explanation.addConstraint(constraint);
+						violation.addExplanation(explanation);
+					}	
+				}else {
+					explanation.setErrorMessage("explanation computation timed out");
+					violation.addExplanation(explanation);
+				}
+				return violation;			
+			}else if(status.equals(Status.NOTCOMPUTED)) {
+				//if any of these are not computed, there is a problem
+				String error = focus_node+" was not tested against "+shape_label;
+				LOGGER.error(error);
+			}else if(status.equals(Status.CONFORMANT)) {
+				LOGGER.error("node is valid, should not be here trying to make a violation");
+			}
+		
+//	else {
+			LOGGER.error("tried to explain shape violation on anonymous node: "+shape_label+" "+focus_node);
+			StmtIterator node_statements = test_model.listStatements(focus_node.asResource(), null, (RDFNode) null);
+			if(node_statements.hasNext()) {
+				while(node_statements.hasNext()) {
+					Statement s = node_statements.next();
+					System.out.println(s);
+				}
+			}
+			StmtIterator literal_statements = test_model.listStatements(focus_node.asResource(), null, (Literal) null);
+			if(literal_statements.hasNext()) {
+				while(literal_statements.hasNext()) {
+					Statement s = literal_statements.next();
+					System.out.println(s);
+				}
+			}
+//		}
 		return null;
 	}
 

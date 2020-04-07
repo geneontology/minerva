@@ -3,6 +3,7 @@ package org.geneontology.minerva.server.validation;
 import static org.junit.Assert.*;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -10,6 +11,7 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
@@ -37,15 +39,16 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLAnnotationAssertionAxiom;
+import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 
 import com.google.common.collect.Sets;
-
-import fr.inria.lille.shexjava.schema.ShexSchema;
-import fr.inria.lille.shexjava.schema.parsing.GenParser;
 
 public class ValidationTest {
 	private static final Logger LOGGER = Logger.getLogger(ValidationTest.class);
@@ -64,7 +67,9 @@ public class ValidationTest {
 
 	@BeforeClass
 	public static void setUpBeforeClass() {
-
+		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
+		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
+			
 		LOGGER.info("loading tbox ontology: "+ontologyIRI);
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		LOGGER.info("using catalog: "+catalog);
@@ -96,14 +101,29 @@ public class ValidationTest {
 		tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
 		LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
 		LOGGER.info("building model manager and structural reasoner");
-		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
-		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 	}
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
 	}
 
+//	@Test
+	public void testTmValid() {
+		String valid_model_folder = "src/test/resources/models/tmp/";
+		boolean should_fail = false;
+		boolean check_shex = true;
+		try {
+			validateGoCams(
+					valid_model_folder, 
+					should_fail, //models should fail check
+					check_shex //check shex (false just OWL)
+					);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
+	}
+	
 	@Test
 	public void testValid() {
 		String valid_model_folder = "src/test/resources/models/should_pass/";
@@ -150,6 +170,7 @@ public class ValidationTest {
 			URL shex_map_url = new URL(goshapemapFileUrl);
 			File shex_map_file = new File("src/test/resources/validate.shapemap");
 			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
+						
 			MinervaShexValidator shex = new MinervaShexValidator(shex_schema_file, shex_map_file, curieHandler, m3.getGolego_repo());
 			if(check_shex) {
 				if(check_shex) {
@@ -166,6 +187,7 @@ public class ValidationTest {
 				LOGGER.info("processing \t"+modelIRI);
 
 				ModelContainer mc = m3.getModel(modelIRI);	
+				Set<OWLAnnotation> annos = mc.getAboxOntology().getAnnotations();
 				//this is where everything actually happens
 				InferenceProvider ip;
 				try {
@@ -180,9 +202,9 @@ public class ValidationTest {
 						ValidationResultSet validations = ip.getValidation_results();
 						isConformant = validations.allConformant();	
 						if(!should_fail) {
-							assertTrue(modelIRI+" does not conform to the shex schema and it should ", isConformant);
+							assertTrue(modelIRI+" does not conform to the shex schema and it should: \n"+annos, isConformant);
 						}else {
-							assertFalse(modelIRI+" conforms to the shex schema and it should not ", isConformant);
+							assertFalse(modelIRI+" conforms to the shex schema and it should not: \n"+annos, isConformant);
 						}
 					}
 				} catch (Exception e) {
@@ -214,12 +236,12 @@ public class ValidationTest {
 					if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
 						LOGGER.info("Loading " + file);
 						try {
-							String modeluri = m3.importModelToDatabase(file, true);
+							String modeluri = m3.importModelToDatabase(file, true);	
 						} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
 								| RDFHandlerException | IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
-						}
+						} 
 					} 
 				});
 			}else {
