@@ -16,15 +16,6 @@ PREFIX evidence: <http://geneontology.org/lego/evidence>
 PREFIX with: <http://geneontology.org/lego/evidence-with>
 PREFIX x: <http://geneontology.org/lego/hint/layout/x>
 PREFIX y: <http://geneontology.org/lego/hint/layout/y>
-#model level annotations
-PREFIX ontology: <http://www.w3.org/2002/07/owl#Ontology>
-PREFIX taxon: <https://w3id.org/biolink/vocab/in_taxon>
-PREFIX modelstate: <http://geneontology.org/lego/modelstate>
-###contributor, date, providedBy reused
-PREFIX title: <http://purl.org/dc/elements/1.1/title>
-PREFIX imports: <http://www.w3.org/2002/07/owl#imports>
-# always limit imports to? <http://purl.obolibrary.org/obo/go/extensions/go-lego.owl> ;
-PREFIX in_taxon: <https://w3id.org/biolink/vocab/in_taxon>
 #semantic: classes
 PREFIX GoInformationBiomacromolecule: <http://purl.obolibrary.org/obo/CHEBI_33695>
 PREFIX GoProtein: <http://purl.obolibrary.org/obo/CHEBI_36080>
@@ -101,18 +92,6 @@ PREFIX results_in_maturation_of: <http://purl.obolibrary.org/obo/RO_0002299>
 PREFIX results_in_growth_of: <http://purl.obolibrary.org/obo/RO_0002343>
 PREFIX results_in_movement_of: <http://purl.obolibrary.org/obo/RO_0002565>
 PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
-
-<GoCamModel> {
-  a [ontology:] {1};
-  contributor: xsd:string *; #TODO would be better as an IRI
-  date: xsd:string *; #TODO can we make this an xsd:date?
-  provided_by: xsd:string *; #TODO would be better as an IRI
-  rdfs:comment xsd:string *;
-  modelstate: xsd:string *; #TODO would be better as an IRI
-  in_taxon: IRI *;
-  title: xsd:string *;
-  imports: IRI *;
-}
 
 <ProvenanceAnnotated> {
   contributor: xsd:string *; #TODO would be better as an IRI
@@ -336,7 +315,7 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   a ( @<MolecularFunctionClass> OR @<NegatedMolecularFunctionClass> ) {1};
   enabled_by:  ( @<InformationBiomacromolecule> OR @<ProteinContainingComplex> ) {0,1};
   part_of: @<BiologicalProcess> {0,1};
-  occurs_in: ( @<AnatomicalEntity> OR @<ProteinContainingComplex> ) {0,1};
+  occurs_in: ( @<AnatomicalEntity> ) {0,1};
   has_output: ( @<ChemicalEntity> OR @<ProteinContainingComplex> ) *;
   has_input: ( @<ChemicalEntity> OR @<ProteinContainingComplex> ) *;
   directly_provides_input_for: @<MolecularFunction> *;
