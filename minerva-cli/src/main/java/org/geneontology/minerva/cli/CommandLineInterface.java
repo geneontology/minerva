@@ -60,6 +60,7 @@ import org.geneontology.minerva.validation.pipeline.BatchPipelineValidationRepor
 import org.geneontology.minerva.validation.pipeline.ErrorMessage;
 import org.geneontology.whelk.owlapi.WhelkOWLReasoner;
 import org.geneontology.whelk.owlapi.WhelkOWLReasonerFactory;
+import org.obolibrary.robot.CatalogXmlIRIMapper;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.UpdateExecutionException;
@@ -738,6 +739,35 @@ public class CommandLineInterface {
 			LOGGER.error("please provide an input file - either a directory of ttl files or a blazegraph journal");
 			System.exit(-1);
 		}
+		
+		LOGGER.info("loading tbox ontology: "+ontologyIRI);
+		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
+		if(catalog!=null) {
+			LOGGER.info("using catalog: "+catalog);
+			ontman.setIRIMappers(Sets.newHashSet(new CatalogXmlIRIMapper(catalog)));
+		}else {
+			LOGGER.info("no catalog, resolving all ontology uris directly");
+		}
+		for(OWLOntologyIRIMapper m : ontman.getIRIMappers()) {
+			IRI neo_iri = m.getDocumentIRI(IRI.create("http://purl.obolibrary.org/obo/go/noctua/neo.owl"));
+			LOGGER.info("neo mapped iri: "+neo_iri);
+			OWLOntology neo_test = ontman.loadOntology(neo_iri);
+			LOGGER.info("neo axioms "+neo_test.getAxiomCount());
+			
+			IRI gp_iri = m.getDocumentIRI(IRI.create("http://purl.obolibrary.org/obo/go/extensions/go-plus.owl"));
+			LOGGER.info("go plus mapped iri: "+gp_iri);
+			//OWLOntology go_test = ontman.loadOntology(gp_iri);
+			//LOGGER.info("go axioms "+go_test.getAxiomCount());
+			
+			IRI the_iri = m.getDocumentIRI(IRI.create(ontologyIRI));
+			LOGGER.info("lego mapped iri: "+the_iri);
+		}
+		LOGGER.info("loading tbox ontologies");
+		OWLOntology tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
+		LOGGER.info("tbox ontologies loaded: "+tbox_ontology.getAxiomCount());
+		tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
+		LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
+		
 		if(input.endsWith(".jnl")) {
 			inputDB = input;
 			LOGGER.info("loaded blazegraph journal: "+input);
@@ -785,24 +815,7 @@ public class CommandLineInterface {
 				m3.dispose();
 			}
 		}
-		LOGGER.info("loading tbox ontology: "+ontologyIRI);
-		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
-		if(catalog!=null) {
-			LOGGER.info("using catalog: "+catalog);
-			ontman.setIRIMappers(Sets.newHashSet(new owltools.io.CatalogXmlIRIMapper(catalog)));
-		}else {
-			LOGGER.info("no catalog, resolving all ontology uris directly");
-		}
-		for(OWLOntologyIRIMapper m : ontman.getIRIMappers()) {
-			IRI neo_iri = m.getDocumentIRI(IRI.create("http://purl.obolibrary.org/obo/go/noctua/neo.owl"));
-			LOGGER.info("neo mapped iri: "+neo_iri);
-			OWLOntology neo_test = ontman.loadOntology(neo_iri);
-			LOGGER.info("neo axioms "+neo_test.getAxiomCount());
-		}
-		OWLOntology tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
-		LOGGER.info("tbox ontologies loaded: "+tbox_ontology.getAxiomCount());
-		tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
-		LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
+		
 		LOGGER.info("building model manager");
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
