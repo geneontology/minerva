@@ -56,7 +56,7 @@ public class BlazegraphOntologyManager {
 	private final BigdataSailRepository go_lego_repo;
 	//TODO replace with more stable real URL that gets updated when it exists..  
 	private final static String public_blazegraph_url = "http://skyhook.berkeleybop.org/blazegraph-go-lego-with-reacto.jnl.gz";
-	//TODO this should probably go somewhere else - like an ontology file
+	//TODO this should probably go somewhere else - like an ontology file - this was missing..
 	public static String in_taxon_uri = "https://w3id.org/biolink/vocab/in_taxon";
 	public static OWLAnnotationProperty in_taxon;
 	private static final Set<String> root_types;
