@@ -105,6 +105,9 @@ public class ModelEditTest {
 		r = BatchTestTools.addEdge(modelId, "VAR1", "BFO:0000050", individualId);
 		batch.add(r);
 
+		r = BatchTestTools.addEdge(modelId, "VAR1", "RO:0002333", individualId);
+		batch.add(r);
+		
 		executeBatch(batch);
 	}
 
