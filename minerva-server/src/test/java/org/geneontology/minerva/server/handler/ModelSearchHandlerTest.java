@@ -346,7 +346,7 @@ public class ModelSearchHandlerTest {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
 		//builder.addParameter("title", "*test*");
-		builder.addParameter("title", "gcy-8"); //gcy-8
+		builder.addParameter("title", "GO_shapes Activity unit test "); //gcy-8 . GO_shapes Activity unit test 37 (results in specification of)
 		builder.addParameter("debug", "");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
