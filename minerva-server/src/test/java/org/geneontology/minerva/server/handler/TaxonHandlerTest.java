@@ -176,7 +176,7 @@ public class TaxonHandlerTest {
 	@Test
 	public final void testTaxa() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/taxa/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/taxa/");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
 		LOGGER.info("JSON result from test taxa\n"+json_result);

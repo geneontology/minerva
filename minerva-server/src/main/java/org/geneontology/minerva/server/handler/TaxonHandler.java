@@ -25,7 +25,7 @@ import org.semanticweb.owlapi.model.IRI;
 	 * Respond to queries about taxa in minerva world 
 	 *
 	 */
-	@Path("/taxa")
+	@Path("/search/taxa")
 	public class TaxonHandler {
 		private final BlazegraphMolecularModelManager<?> m3;
 		/**
