@@ -176,7 +176,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByGene() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("gp", "http://identifiers.org/uniprot/P15822-3");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
@@ -190,7 +190,7 @@ public class ModelSearchHandlerTest {
 
 	@Test
 	public final void testSearchPostByGene() throws URISyntaxException, IOException {
-		HttpPost post = new HttpPost(server.getURI()+"search");
+		HttpPost post = new HttpPost(server.getURI()+"search/models");
 		List<BasicNameValuePair> urlParameters = new ArrayList<>();
 		urlParameters.add(new BasicNameValuePair("gp", "http://identifiers.org/wormbase/WBGene00001865"));		
 		urlParameters.add(new BasicNameValuePair("gp", "http://identifiers.org/wormbase/WBGene00017304"));	
@@ -208,7 +208,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByGO() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0003677");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
@@ -223,7 +223,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByGOclosure() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0140312");//clathrin binding - should get one model that uses child clathrin activity GO_0035615
 		builder.addParameter("expand", "");
 		URI searchuri = builder.build();
@@ -235,7 +235,7 @@ public class ModelSearchHandlerTest {
 		LOGGER.info("N models found: "+result.getN());
 		assertTrue(result.getN()+" models found should find some from children of GO_0140312", result.getN()>0);
 		
-		builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0140312");//clathrin binding - should get one model that uses child clathrin activity GO_0035615
 		searchuri = builder.build();
 		json_result = getJsonStringFromUri(searchuri);
@@ -250,7 +250,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByGOGiantclosure() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0003824");
 		builder.addParameter("expand", "");
 		URI searchuri = builder.build();
@@ -266,7 +266,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByWormAnatomy() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("term", "http://purl.obolibrary.org/obo/WBbt_0006748"); //vulva
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
@@ -281,7 +281,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByWormAnatomyClosure() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("term", "http://purl.obolibrary.org/obo/WBbt_0008422"); //sex organ parent of vulva
 		builder.addParameter("expand", "");
 		URI searchuri = builder.build();
@@ -299,7 +299,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByTaxon() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("taxon", "6239");//worm 6239 14 models //9606 2 zebrafish 7955 2 
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
@@ -314,7 +314,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByTaxonCurie() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("taxon", "NCBITaxon:559292");//worm 6239 14 models //9606 2 zebrafish 7955 2 
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
@@ -329,7 +329,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByTaxonURI() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("taxon", "http://purl.obolibrary.org/obo/NCBITaxon_7955");//worm 6239 14 models //9606 2 zebrafish 7955 2 
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
@@ -344,7 +344,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByTitle() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		//builder.addParameter("title", "*test*");
 		builder.addParameter("title", "GO_shapes Activity unit test "); //gcy-8 . GO_shapes Activity unit test 37 (results in specification of)
 		builder.addParameter("debug", "");
@@ -361,7 +361,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByPMID() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("pmid", "PMID:1457892");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
@@ -377,7 +377,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByState() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("state", "development");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
@@ -392,7 +392,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByContributors() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("contributor", "http://orcid.org/0000-0002-1706-4196");
 		
 		URI searchuri = builder.build();
@@ -403,7 +403,7 @@ public class ModelSearchHandlerTest {
 		LOGGER.info("Search by contributor "+json_result);
 		LOGGER.info("N models found: "+result.getN());
 		
-		builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("contributor", "http://orcid.org/0000-0003-1813-6857");		
 		searchuri = builder.build();
 		json_result = getJsonStringFromUri(searchuri);
@@ -413,7 +413,7 @@ public class ModelSearchHandlerTest {
 		LOGGER.info("Search by contributor "+json_result);
 		LOGGER.info("N models found: "+result.getN());
 		
-		builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("contributor", "http://orcid.org/0000-0002-8688-6599");		
 		searchuri = builder.build();
 		json_result = getJsonStringFromUri(searchuri);
@@ -423,7 +423,7 @@ public class ModelSearchHandlerTest {
 		LOGGER.info("Search by contributor "+json_result);
 		LOGGER.info("N models found: "+result.getN());
 		
-		builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("contributor", "http://orcid.org/0000-0002-1706-4196");
 		builder.addParameter("contributor", "http://orcid.org/0000-0003-1813-6857");	
 		builder.addParameter("contributor", "http://orcid.org/0000-0002-8688-6599");	
@@ -441,7 +441,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByGroups() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("group", "http://geneontology.org"); //http://www.igs.umaryland.edu "http://www.wormbase.org"
 		builder.addParameter("group", "http://www.igs.umaryland.edu");
 		URI searchuri = builder.build();
@@ -457,7 +457,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByDate() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("date", "2018-08-20");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
@@ -472,7 +472,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByDateRange() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("date", "2018-08-20");
 		builder.addParameter("dateend", "2019-12-02");
 		URI searchuri = builder.build();
@@ -488,7 +488,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByExactDate() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("exactdate", "2020-02-07");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
@@ -503,7 +503,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByDateAndOffset() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("date", "2018-08-20");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
@@ -521,7 +521,7 @@ public class ModelSearchHandlerTest {
 	@Test
 	public final void testSearchGetByDateAndCount() throws URISyntaxException, IOException {
 		//make the request
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/");
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		builder.addParameter("date", "2018-08-20");
 		builder.addParameter("count", "");
 		URI searchuri = builder.build();

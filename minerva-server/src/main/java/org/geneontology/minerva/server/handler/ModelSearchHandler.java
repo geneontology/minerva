@@ -43,7 +43,7 @@ import org.semanticweb.owlapi.model.IRI;
  * Uses Jersey + JSONP
  *
  */
-@Path("/search")
+@Path("/search/models")
 public class ModelSearchHandler {
 
 	private final BlazegraphMolecularModelManager<?> m3;
