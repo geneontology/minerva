@@ -313,10 +313,9 @@ public class BlazegraphOntologyManager {
 		for(String term : all.keySet()) {
 			Set<String> isa_closure = all.get(term);
 			String direct_parent_iri = null;
-			if(isa_closure.contains("http://purl.obolibrary.org/obo/CHEBI_36080")||isa_closure.contains("http://purl.obolibrary.org/obo/PR_000000001")) {
+			if(isa_closure.contains("http://purl.obolibrary.org/obo/CHEBI_36080")) {
 				//protein
-				//direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_36080";
-				direct_parent_iri = "http://purl.obolibrary.org/obo/PR_000000001";
+				direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_36080";
 			}else if(isa_closure.contains("http://purl.obolibrary.org/obo/CHEBI_33695")) {
 				//information biomacrolecule (gene, complex)
 				direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_33695";
