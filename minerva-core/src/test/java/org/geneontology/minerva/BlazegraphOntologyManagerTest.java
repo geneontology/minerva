@@ -125,10 +125,10 @@ public class BlazegraphOntologyManagerTest {
 	//Gene products
 //this is a little extreme.. it works but takes a minute.  Should never have to do this in a live search system
 //		//uniprot
-//		uri = "http://purl.obolibrary.org/obo/PR_000000001";
+//		uri = "http://purl.obolibrary.org/obo/CHEBI_36080";
 //		subs = onto_repo.getAllSubClasses(uri);
 //		//protein
-//		assertTrue("uniprot/Q13253 not subclass of PR_000000001 protein", subs.contains("http://identifiers.org/uniprot/Q13253")); 
+//		assertTrue("uniprot/Q13253 not subclass of http://purl.obolibrary.org/obo/CHEBI_36080 protein", subs.contains("http://identifiers.org/uniprot/Q13253")); 
 //		//"gene"..
 //		//zfin
 //		uri = "http://purl.obolibrary.org/obo/CHEBI_33695";
@@ -178,7 +178,6 @@ public class BlazegraphOntologyManagerTest {
 		uri = "http://identifiers.org/uniprot/Q13253";
 		supers = onto_repo.getAllSuperClasses(uri);
 		//protein
-		assertTrue("uniprot/Q13253 not subclass of PR_000000001 protein", supers.contains("http://purl.obolibrary.org/obo/PR_000000001")); 
 		assertTrue("uniprot/Q13253 not subclass of CHEBI_36080 protein", supers.contains("http://purl.obolibrary.org/obo/CHEBI_36080")); 
 		assertTrue("uniprot/Q13253 not subclass of CHEBI_36695 information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
 		assertTrue("uniprot/Q13253 not subclass of CHEBI_24431 chemical entity", supers.contains("http://purl.obolibrary.org/obo/CHEBI_24431"));
