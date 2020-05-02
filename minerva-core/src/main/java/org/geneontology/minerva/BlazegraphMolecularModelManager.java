@@ -54,8 +54,10 @@ import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLDeclarationAxiom;
 import org.semanticweb.owlapi.model.OWLDocumentFormat;
 import org.semanticweb.owlapi.model.OWLImportsDeclaration;
+import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyAlreadyExistsException;
 import org.semanticweb.owlapi.model.OWLOntologyChange;
@@ -297,6 +299,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		}
 	}
 
+	
 	private void writeModelToDatabase(OWLOntology model, IRI modelId) throws RepositoryException, IOException {
 		// Only one thread at a time can use the unisolated connection.
 		synchronized(repo) {
@@ -309,7 +312,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 					StatementCollector collector = new StatementCollector();
 					RioRenderer renderer = new RioRenderer(model, collector, null);
 					renderer.render();
-					connection.add(collector.getStatements(), graph);
+					connection.add(collector.getStatements(), graph);									
 					connection.commit();
 				} catch (Exception e) {
 					connection.rollback();
@@ -570,7 +573,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				graphs.close();
 				RepositoryResult<Statement> statements =
 						connection.getStatements(null, null, null, false, new URIImpl(modelId.toString()));
-				boolean minimal = true;
+				//boolean minimal = true;
+				boolean minimal = false;
 				OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), minimal);
 				statements.close();
 				abox = postLoadFileFilter(abox);
@@ -583,7 +587,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			throw new OWLOntologyCreationException(e);
 		}
 	}
-
+	
+	
 	@Override
 	protected OWLOntology loadModelABox(IRI modelId) throws OWLOntologyCreationException {
 		LOG.info("Load model abox: " + modelId + " from database");
@@ -598,7 +603,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				graphs.close();
 				RepositoryResult<Statement> statements =
 						connection.getStatements(null, null, null, false, new URIImpl(modelId.toString()));
-				OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), true);
+				boolean minimal = false;
+				OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), minimal);
 				statements.close();
 				abox = postLoadFileFilter(abox);
 				return abox;
