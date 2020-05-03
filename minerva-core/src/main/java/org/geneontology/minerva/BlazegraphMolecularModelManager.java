@@ -82,7 +82,7 @@ import info.aduna.iteration.Iterations;
 public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularModelManager<METADATA> {
 
 	private static Logger LOG = Logger
-			.getLogger(BlazegraphMolecularModelManager.class);
+			.getLogger(BlazegraphMolecularModelManager.class); 
 
 	boolean isPrecomputePropertyClassCombinations = false;
 

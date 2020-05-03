@@ -126,7 +126,8 @@ public class MolecularModelJsonRenderer {
 		// per-Individual
 		//TODO this loop is the slowest part of the service response time. 
 		List<JsonOwlIndividual> iObjs = new ArrayList<JsonOwlIndividual>();
-		for (OWLNamedIndividual i : ont.getIndividualsInSignature()) {
+		Set<OWLNamedIndividual> individuals = ont.getIndividualsInSignature();
+		for (OWLNamedIndividual i : individuals) {
 			iObjs.add(renderObject(i));
 		}
 		json.individuals = iObjs.toArray(new JsonOwlIndividual[iObjs.size()]);

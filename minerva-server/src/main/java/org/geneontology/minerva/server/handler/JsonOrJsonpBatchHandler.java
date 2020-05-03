@@ -1,8 +1,12 @@
 package org.geneontology.minerva.server.handler;
 
 import com.google.common.reflect.TypeToken;
+
+import jdk.internal.org.jline.utils.Log;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.jena.ontology.AnnotationProperty;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.ModelContainer;
@@ -14,8 +18,16 @@ import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.glassfish.jersey.server.JSONP;
+import org.semanticweb.owlapi.model.OWLAnnotationProperty;
+import org.semanticweb.owlapi.model.OWLAnonymousIndividual;
+import org.semanticweb.owlapi.model.OWLClass;
+import org.semanticweb.owlapi.model.OWLEntity;
+import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
+import org.semanticweb.owlapi.model.OWLOntology;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Type;
