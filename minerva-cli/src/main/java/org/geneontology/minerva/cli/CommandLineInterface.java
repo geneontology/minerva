@@ -691,7 +691,7 @@ public class CommandLineInterface {
 				Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(immutableGpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
 				writer.write(gpad);
 				writer.close();
-			} catch (InconsistentOntologyException e) {
+			} catch (InconsistentOntologyException e) { 
 				LOGGER.error("Inconsistent ontology: " + modelIRI);
 			} catch (IOException e) {
 				LOGGER.error("Couldn't export GPAD for: " + modelIRI, e);
