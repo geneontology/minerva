@@ -314,7 +314,13 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		Set<Triple> triples = statements.stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
 		try {
 			// Using model's ontology IRI so that a spurious different ontology declaration triple isn't added
-			OWLOntology schemaOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED), modelId);
+		//	OWLOntology schemaOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED), modelId);
+		// I think the re-use of the model IRI as the IRI of the rule ontology has some weird effects on the model in question, rendering its contents inaccesible.  
+			OWLOntologyManager tmp_man = OWLManager.createOWLOntologyManager();
+			OWLOntology schemaOntology = tmp_man.createOntology(IRI.create("http://therules.org"));
+			Set<OWLAxiom> owl_rules = getOntology().getRBoxAxioms(Imports.INCLUDED);
+			tmp_man.addAxioms(schemaOntology, owl_rules);
+		//	
 			Set<Statement> schemaStatements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(schemaOntology)).asJava();
 			triples.addAll(schemaStatements.stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet()));
 		} catch (OWLOntologyCreationException e) {
@@ -368,7 +374,10 @@ public abstract class CoreMolecularModelManager<METADATA> {
 					}
 				}
 			});
-			return createInferredModel(abox, modelId);
+			WorkingMemory inferred = createInferredModel(abox, modelId);
+			abox_reasoner.dispose();
+			aman.removeOntology(abox);
+			return inferred;
 		} catch (OWLOntologyCreationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

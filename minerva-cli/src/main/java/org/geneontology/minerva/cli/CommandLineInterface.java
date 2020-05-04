@@ -686,12 +686,12 @@ public class CommandLineInterface {
 		m3.getAvailableModelIds().stream().parallel().forEach(modelIRI -> {
 			try {
 				//TODO investigate whether changing to a neo-lite model has an impact on this - may need to make use of ontology journal
-				String gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createInferredModel(modelIRI));
+				String gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createInferredModel(modelIRI), modelIRI);
 				String fileName = StringUtils.replaceOnce(modelIRI.toString(), immutableModelIdPrefix, "") + ".gpad";
 				Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(immutableGpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
 				writer.write(gpad);
 				writer.close();
-			} catch (InconsistentOntologyException e) {
+			} catch (InconsistentOntologyException e) { 
 				LOGGER.error("Inconsistent ontology: " + modelIRI);
 			} catch (IOException e) {
 				LOGGER.error("Couldn't export GPAD for: " + modelIRI, e);
