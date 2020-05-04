@@ -573,7 +573,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				graphs.close();
 				RepositoryResult<Statement> statements =
 						connection.getStatements(null, null, null, false, new URIImpl(modelId.toString()));
-				//boolean minimal = true;
+				//setting minimal = false will load the abox with the tbox ontology manager, allowing for OWL understanding of tbox content
 				boolean minimal = false;
 				OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), minimal);
 				statements.close();
@@ -603,7 +603,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				graphs.close();
 				RepositoryResult<Statement> statements =
 						connection.getStatements(null, null, null, false, new URIImpl(modelId.toString()));
-				boolean minimal = false;
+				//setting minimal to true will give an OWL abox with triples that won't be connected to the tbox, hence e.g. object properties might not be recognized.  
+				boolean minimal = true;
 				OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), minimal);
 				statements.close();
 				abox = postLoadFileFilter(abox);
@@ -984,25 +985,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				}
 			});
 		}
-	}
-	
-	public void addTaxonToDatabaseWithOWL(IRI model_id, IRI taxon) {
-		OWLOntology model_abox;
-		try {
-			model_abox = loadModelABox(model_id);
-			model_abox = getGolego_repo().addTaxonModelMetaData(model_abox, taxon);
-			writeModelToDatabase(model_abox, model_id);
-		} catch (OWLOntologyCreationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
-		catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}	
 	}
 	
 //now try with sparql insert
