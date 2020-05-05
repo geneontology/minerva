@@ -53,7 +53,7 @@ import com.google.common.collect.Sets;
 public class ValidationTest {
 	private static final Logger LOGGER = Logger.getLogger(ValidationTest.class);
 	static final String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
-	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
+	static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 	static final String catalog = "src/test/resources/ontology/catalog-for-validation.xml";
 	static final String modelIdcurie = "http://model.geneontology.org/";
 	static final String modelIdPrefix = "gomodel";

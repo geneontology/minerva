@@ -83,7 +83,7 @@ public class ModelSearchHandlerTest {
 	static final String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
 	static final String modelIdcurie = "http://model.geneontology.org/";
 	static final String modelIdPrefix = "gomodel";
-	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
+	static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 	static OWLOntology tbox_ontology;
 	static CurieHandler curieHandler;	
 	static UndoAwareMolecularModelManager models;

@@ -33,7 +33,7 @@ public class ModelEditTest {
 	private static CurieHandler curieHandler = null;
 	private static JsonOrJsonpBatchHandler handler = null;
 	private static UndoAwareMolecularModelManager models = null;
-	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
+	static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {

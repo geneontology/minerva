@@ -23,7 +23,7 @@ import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 
 public class MolecularModelManagerTest {
-	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
+	static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 	
 	// JUnit way of creating a temporary test folder
 	// will be deleted after the test has run, by JUnit.
