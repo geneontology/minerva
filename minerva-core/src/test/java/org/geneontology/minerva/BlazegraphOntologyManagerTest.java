@@ -20,7 +20,7 @@ public class BlazegraphOntologyManagerTest {
 	//if the file isn't there, it will try to download it from 
 	//BlazegraphOntologyManager.http://skyhook.berkeleybop.org/issue-35-neo-test/products/blazegraph/blazegraph-go-lego.jnl.gz
 	//can override the download by providing the file at the specified location
-	static final String ontology_journal_file = "/tmp/blazegraph.jnl";
+	static final String ontology_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 	static BlazegraphOntologyManager onto_repo;
 	
 	/**

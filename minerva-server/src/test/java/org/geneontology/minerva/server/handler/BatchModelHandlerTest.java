@@ -46,7 +46,7 @@ public class BatchModelHandlerTest {
 	private static UndoAwareMolecularModelManager models = null;
 	private static Set<OWLObjectProperty> importantRelations = null;
 	private final static DateGenerator dateGenerator = new DateGenerator();
-	static final String ontology_journal_file = "/tmp/blazegraph.jnl";
+	static final String ontology_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 	static final String uid = "test-user";
 	static final Set<String> providedBy = Collections.singleton("test-provider"); 
 	static final String intention = "test-intention";
