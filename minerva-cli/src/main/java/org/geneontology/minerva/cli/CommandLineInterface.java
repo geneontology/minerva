@@ -748,25 +748,11 @@ public class CommandLineInterface {
 		}else {
 			LOGGER.info("no catalog, resolving all ontology uris directly");
 		}
-		for(OWLOntologyIRIMapper m : ontman.getIRIMappers()) {
-			IRI neo_iri = m.getDocumentIRI(IRI.create("http://purl.obolibrary.org/obo/go/noctua/neo.owl"));
-			LOGGER.info("neo mapped iri: "+neo_iri);
-			OWLOntology neo_test = ontman.loadOntology(neo_iri);
-			LOGGER.info("neo axioms "+neo_test.getAxiomCount());
-			
-			IRI gp_iri = m.getDocumentIRI(IRI.create("http://purl.obolibrary.org/obo/go/extensions/go-plus.owl"));
-			LOGGER.info("go plus mapped iri: "+gp_iri);
-			//OWLOntology go_test = ontman.loadOntology(gp_iri);
-			//LOGGER.info("go axioms "+go_test.getAxiomCount());
-			
-			IRI the_iri = m.getDocumentIRI(IRI.create(ontologyIRI));
-			LOGGER.info("lego mapped iri: "+the_iri);
-		}
-		LOGGER.info("loading tbox ontologies");
 		OWLOntology tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
-		LOGGER.info("tbox ontologies loaded: "+tbox_ontology.getAxiomCount());
-		tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
-		LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
+		LOGGER.info("tbox ontology axioms loaded: "+tbox_ontology.getAxiomCount());
+		//should not be necessary using pre-merged ontology
+		//tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
+		//LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
 		
 		if(input.endsWith(".jnl")) {
 			inputDB = input;
