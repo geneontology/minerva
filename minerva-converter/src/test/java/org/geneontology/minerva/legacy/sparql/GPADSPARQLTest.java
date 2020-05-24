@@ -57,7 +57,7 @@ public class GPADSPARQLTest {
 		model.read(this.getClass().getResourceAsStream("/581e072c00000473.ttl"), "", "ttl");
 		Set<Triple> triples = model.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
 		WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
-		String gpad = exporter.exportGPAD(mem);
+		String gpad = exporter.exportGPAD(mem, IRI.create("http://test.org"));
 		int lines = gpad.split("\n", -1).length;
 		//TODO test contents of annotations; dumb test for now
 		Assert.assertTrue(gpad.contains("model-state=production"));
@@ -82,7 +82,7 @@ public class GPADSPARQLTest {
 		model.read(this.getClass().getResourceAsStream("/59d1072300000074.ttl"), "", "ttl");
 		Set<Triple> triples = model.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
 		WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
-		String gpad = exporter.exportGPAD(mem);
+		String gpad = exporter.exportGPAD(mem, IRI.create("http://test.org"));
 		
 		/* Check the number of rows in GPAD output */
 		String gpadOutputArr[] = gpad.split("\n", -1);

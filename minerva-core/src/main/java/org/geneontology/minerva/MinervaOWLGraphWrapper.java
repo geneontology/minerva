@@ -134,12 +134,13 @@ public class MinervaOWLGraphWrapper implements Closeable {
 
 	public OWLObjectProperty getOWLObjectProperty(IRI iri) {
 		OWLObjectProperty p = getDataFactory().getOWLObjectProperty(iri);
-		for (OWLOntology o : getAllOntologies()) {
-			if (o.getDeclarationAxioms(p).size() > 0) {
+//TODO re-instate checks using blazegraph ontology		
+//		for (OWLOntology o : getAllOntologies()) {
+//			if (o.getDeclarationAxioms(p).size() > 0) {
 				return p;
-			}
-		}
-		return null;
+//			}
+//		}
+//		return null;
 	}
 
 	/**
@@ -571,12 +572,13 @@ public class MinervaOWLGraphWrapper implements Closeable {
 	
 	public OWLAnnotationProperty getOWLAnnotationProperty(IRI iri) {
 		OWLAnnotationProperty p = getDataFactory().getOWLAnnotationProperty(iri);
-		for (OWLOntology o : getAllOntologies()) {
-			if (o.getDeclarationAxioms(p).size() > 0) {
+//TODO reinstate this check with new blazegraph pattern 
+//		for (OWLOntology o : getAllOntologies()) {
+//			if (o.getDeclarationAxioms(p).size() > 0) {
 				return p;
-			}
-		}
-		return null;
+//			}
+//		}
+//		return null;
 	}
 
 	/**

@@ -32,7 +32,7 @@ public class UndoAwareMolecularModelManagerTest  {
 	static MinervaOWLGraphWrapper g = null;
 	static CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 	static UndoAwareMolecularModelManager m3 = null;
-	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
+	static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 	
 	@Rule
     public TemporaryFolder folder = new TemporaryFolder();

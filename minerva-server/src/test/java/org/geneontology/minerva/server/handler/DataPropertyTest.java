@@ -31,7 +31,7 @@ public class DataPropertyTest {
 	public TemporaryFolder folder = new TemporaryFolder();
 	
 	private final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
-	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
+	static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 	
 	private UndoAwareMolecularModelManager createM3(OWLOntology tbox) throws OWLOntologyCreationException, IOException {
 		UndoAwareMolecularModelManager mmm = new UndoAwareMolecularModelManager(tbox, curieHandler,

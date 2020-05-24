@@ -40,7 +40,7 @@ public class LocalServerTest {
 	private static UndoAwareMolecularModelManager models = null;
 	private static Server server = null;
 	private static String urlPrefix;
-	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
+	static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 
 
 	@BeforeClass

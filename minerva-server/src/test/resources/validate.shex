@@ -408,13 +408,12 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   part_of: @<AnatomicalEntity> {0,1};
   adjacent_to: @<AnatomicalEntity> *;
   overlaps: @<AnatomicalEntity> *;
-  has_part:(@<InformationBiomacromolecule> OR  @<ProteinContainingComplex>) {0,1};
 } // rdfs:comment  "a cellular component"
 
 <ProteinContainingComplex> EXTRA a {
   a @<ProteinContainingComplexClass>;
   located_in: @<CellularComponent> {0,1};
-  has_part: @<InformationBiomacromolecule> *;
+  has_part: ( @<InformationBiomacromolecule> OR @<ProteinContainingComplex> ) *;
 } // rdfs:comment  "a protein complex"
 
 <ProteinContainingComplexClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {

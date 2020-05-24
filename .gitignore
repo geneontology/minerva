@@ -14,3 +14,5 @@ minerva-cli/shape_report_shouldpass.txt
 minerva-cli/shape_explanation_shouldpass.txt
 minerva-cli/.DS_Store
 minerva-cli/.DS_Store
+minerva-server/src/test/resources/validate.shapemap
+minerva-server/src/test/resources/validate.shex

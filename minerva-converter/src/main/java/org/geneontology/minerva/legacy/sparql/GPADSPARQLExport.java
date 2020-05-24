@@ -104,7 +104,7 @@ public class GPADSPARQLExport {
 	}
 
 	/* This is a bit convoluted in order to minimize redundant queries, for performance reasons. */
-	public String exportGPAD(WorkingMemory wm) throws InconsistentOntologyException {
+	public String exportGPAD(WorkingMemory wm, IRI modelIRI) throws InconsistentOntologyException {
 		Model model = ModelFactory.createDefaultModel();
 		model.add(JavaConverters.setAsJavaSetConverter(wm.facts()).asJava().stream().map(t -> model.asStatement(Bridge.jenaFromTriple(t))).collect(Collectors.toList()));
 		if (!isConsistent(model)) throw new InconsistentOntologyException();
@@ -112,7 +112,9 @@ public class GPADSPARQLExport {
 		/* The first step of constructing GPAD records is to construct candidate/basic GPAD records by running gpad-basic.rq. */
 		QueryExecution qe = QueryExecutionFactory.create(mainQuery, model);
 		Set<GPADData> annotations = new HashSet<>();
-		String modelID = model.listResourcesWithProperty(RDF.type, OWL.Ontology).mapWith(r -> curieHandler.getCuri(IRI.create(r.getURI()))).next();
+		//this is unpredictable if more than one
+		//String modelID = model.listResourcesWithProperty(RDF.type, OWL.Ontology).mapWith(r -> curieHandler.getCuri(IRI.create(r.getURI()))).next();
+		String modelID = curieHandler.getCuri(modelIRI);
 		ResultSet results = qe.execSelect();
 		Set<BasicGPADData> basicAnnotations = new HashSet<>();		
 		while (results.hasNext()) {
