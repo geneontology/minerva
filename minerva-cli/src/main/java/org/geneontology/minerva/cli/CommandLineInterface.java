@@ -70,6 +70,7 @@ import org.openrdf.rio.RDFParseException;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLDataFactory;
@@ -837,13 +838,13 @@ public class CommandLineInterface {
 
 		if(basicOutputFile!=null) {
 			FileWriter basic_shex_output = new FileWriter(basicOutputFile, false);
-			basic_shex_output.write("filename\tmodel_id\tOWL_consistent\tshex_valid\tvalidation_time_milliseconds\taxioms\n");
+			basic_shex_output.write("filename\tmodel_title\tmodel_id\tOWL_consistent\tshex_valid\tvalidation_time_milliseconds\taxioms\n");
 			basic_shex_output.close();
 		}
 		if(explanationOutputFile!=null) {
 			FileWriter explanations = new FileWriter(explanationOutputFile, false);
 			explanations.write("Explanations of invalid models.\n");
-			explanations.write("filename\tmodel_iri\tnode\tNode_types\tproperty\tIntended_range_shapes\tobject\tObject_types\tObject_shapes\n");
+			explanations.write("filename\tmodel_title\tmodel_iri\tnode\tNode_types\tproperty\tIntended_range_shapes\tobject\tObject_types\tObject_shapes\n");
 			explanations.close();
 		}	
 		BatchPipelineValidationReport pipe_report = null;
@@ -871,6 +872,14 @@ public class CommandLineInterface {
 				}
 				ModelContainer mc = m3.getModel(modelIRI);	
 				int axioms = mc.getAboxOntology().getAxiomCount();
+				String title = "title";
+				Set<OWLAnnotation> annos = mc.getAboxOntology().getAnnotations();
+				for(OWLAnnotation anno : annos) {
+					if(anno.getProperty().getIRI().toString().equals("http://purl.org/dc/elements/1.1/title")) {
+						title = anno.getValue().asLiteral().get().getLiteral();
+					}
+				}
+				
 				//this is where everything actually happens
 				InferenceProvider ip = ipc.create(mc);
 				isConsistent = ip.isConsistent();
@@ -886,12 +895,12 @@ public class CommandLineInterface {
 
 				if(!isConsistent&&explanationOutputFile!=null) {
 					FileWriter explanations = new FileWriter(explanationOutputFile, true);
-					explanations.write(filename+"\t"+modelIRI+"\n\tOWL fail explanation: "+ip.getValidation_results().getOwlvalidation().getAsText()+"\n");
+					explanations.write(filename+"\t"+title+"\t"+modelIRI+"\n\tOWL fail explanation: "+ip.getValidation_results().getOwlvalidation().getAsText()+"\n");
 					explanations.close();
 				}
 				if(travisMode&&!isConsistent) {
 					if(!shouldFail) {
-						LOGGER.error(filename+"\t"+modelIRI+"\tOWL:is inconsistent, quitting");							
+						LOGGER.error(filename+"\t"+title+"\t"+modelIRI+"\tOWL:is inconsistent, quitting");							
 						System.exit(-1);
 					}
 				}
@@ -918,10 +927,10 @@ public class CommandLineInterface {
 					}
 					if(travisMode) {
 						if(!isConformant&&!shouldFail) {
-							LOGGER.error(filename+"\t"+modelIRI+"\tshex is nonconformant, quitting, explanation:\n"+ip.getValidation_results().getShexvalidation().getAsText());
+							LOGGER.error(filename+"\t"+title+"\t"+modelIRI+"\tshex is nonconformant, quitting, explanation:\n"+ip.getValidation_results().getShexvalidation().getAsText());
 							System.exit(-1);
 						}else if(isConformant&&shouldFail) {
-							LOGGER.error(filename+"\t"+modelIRI+"\tshex validates, but it should not be, quitting");
+							LOGGER.error(filename+"\t"+title+"\t"+modelIRI+"\tshex validates, but it should not be, quitting");
 							System.exit(-1);
 						}
 					}			
