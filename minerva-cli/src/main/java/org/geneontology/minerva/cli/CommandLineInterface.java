@@ -838,7 +838,7 @@ public class CommandLineInterface {
 
 		if(basicOutputFile!=null) {
 			FileWriter basic_shex_output = new FileWriter(basicOutputFile, false);
-			basic_shex_output.write("filename\tmodel_id\tOWL_consistent\tshex_valid\tvalidation_time_milliseconds\taxioms\n");
+			basic_shex_output.write("filename\tmodel_title\tmodel_id\tOWL_consistent\tshex_valid\tvalidation_time_milliseconds\taxioms\n");
 			basic_shex_output.close();
 		}
 		if(explanationOutputFile!=null) {
@@ -927,10 +927,10 @@ public class CommandLineInterface {
 					}
 					if(travisMode) {
 						if(!isConformant&&!shouldFail) {
-							LOGGER.error(filename+"\t"+modelIRI+"\tshex is nonconformant, quitting, explanation:\n"+ip.getValidation_results().getShexvalidation().getAsText());
+							LOGGER.error(filename+"\t"+title+"\t"+modelIRI+"\tshex is nonconformant, quitting, explanation:\n"+ip.getValidation_results().getShexvalidation().getAsText());
 							System.exit(-1);
 						}else if(isConformant&&shouldFail) {
-							LOGGER.error(filename+"\t"+modelIRI+"\tshex validates, but it should not be, quitting");
+							LOGGER.error(filename+"\t"+title+"\t"+modelIRI+"\tshex validates, but it should not be, quitting");
 							System.exit(-1);
 						}
 					}			
