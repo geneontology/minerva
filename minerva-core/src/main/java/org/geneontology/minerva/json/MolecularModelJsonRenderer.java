@@ -124,9 +124,10 @@ public class MolecularModelJsonRenderer {
 		JsonModel json = new JsonModel();
 		json.modelId = modelId;
 		// per-Individual
-		//TODO this loop is the slowest part of the service response time.  
+		//TODO this loop is the slowest part of the service response time. 
 		List<JsonOwlIndividual> iObjs = new ArrayList<JsonOwlIndividual>();
-		for (OWLNamedIndividual i : ont.getIndividualsInSignature()) {
+		Set<OWLNamedIndividual> individuals = ont.getIndividualsInSignature();
+		for (OWLNamedIndividual i : individuals) {
 			iObjs.add(renderObject(i));
 		}
 		json.individuals = iObjs.toArray(new JsonOwlIndividual[iObjs.size()]);
@@ -228,20 +229,22 @@ public class MolecularModelJsonRenderer {
 				json.inferredType = inferredTypeObjs.toArray(new JsonOwlObject[inferredTypeObjs.size()]);
 			}
 			//testing approach to adding additional type information to response
-			List<JsonOwlObject> inferredTypeObjsWithAll = new ArrayList<JsonOwlObject>();
-			//TODO this is particularly slow as there can be a lot of inferred types
-			Set<OWLClass> inferredTypesWithAll = inferenceProvider.getAllTypes(i);
-			// optimization, do not render inferences, if they are equal to the asserted ones
-			if (assertedTypes.equals(inferredTypesWithAll) == false) {
-				for(OWLClass c : inferredTypesWithAll) {
-					if (c.isBuiltIn() == false) {
-						inferredTypeObjsWithAll.add(renderObject(c));
-					}
-				}
-			}
-			if (inferredTypeObjsWithAll.isEmpty() == false) {
-				json.inferredTypeWithAll = inferredTypeObjsWithAll.toArray(new JsonOwlObject[inferredTypeObjsWithAll.size()]);
-			}
+			//this works but ends up going extremely slowly when a lot of inferences are happening
+			//since its not being consumed anywhere now, leaving it out speeds things up considerably
+//			List<JsonOwlObject> inferredTypeObjsWithAll = new ArrayList<JsonOwlObject>();
+//			//TODO this is particularly slow as there can be a lot of inferred types
+//			Set<OWLClass> inferredTypesWithAll = inferenceProvider.getAllTypes(i);
+//			// optimization, do not render inferences, if they are equal to the asserted ones
+//			if (assertedTypes.equals(inferredTypesWithAll) == false) {
+//				for(OWLClass c : inferredTypesWithAll) {
+//					if (c.isBuiltIn() == false) {
+//						inferredTypeObjsWithAll.add(renderObject(c));
+//					}
+//				}
+//			}
+//			if (inferredTypeObjsWithAll.isEmpty() == false) {
+//				json.inferredTypeWithAll = inferredTypeObjsWithAll.toArray(new JsonOwlObject[inferredTypeObjsWithAll.size()]);
+//			}
 			
 			
 		}

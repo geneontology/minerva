@@ -1,14 +1,12 @@
 package org.geneontology.minerva.server.handler;
 
 import com.google.common.reflect.TypeToken;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
-import org.geneontology.minerva.BlazegraphOntologyManager;
-import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
-import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.json.*;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
@@ -20,7 +18,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Type;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 import static org.geneontology.minerva.server.handler.OperationsTools.*;

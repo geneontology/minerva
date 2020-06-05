@@ -54,10 +54,8 @@ import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 public class BlazegraphOntologyManager {
 	private static Logger LOG = Logger.getLogger(BlazegraphOntologyManager.class);
 	private final BigdataSailRepository go_lego_repo;
-	//TODO replace with more stable real URL that gets updated when it exists..  
-	private final static String public_blazegraph_url = "http://skyhook.berkeleybop.org/blazegraph-go-lego.jnl.gz";
-			//"http://skyhook.berkeleybop.org/issue-35-neo-test/products/blazegraph/blazegraph-go-lego.jnl.gz";
-	//TODO this should probably go somewhere else - like an ontology file
+	private final static String public_blazegraph_url = "http://skyhook.berkeleybop.org/blazegraph-go-lego-reacto-neo.jnl.gz";
+	//TODO this should probably go somewhere else - like an ontology file - this was missing..
 	public static String in_taxon_uri = "https://w3id.org/biolink/vocab/in_taxon";
 	public static OWLAnnotationProperty in_taxon;
 	private static final Set<String> root_types;
@@ -312,10 +310,9 @@ public class BlazegraphOntologyManager {
 		for(String term : all.keySet()) {
 			Set<String> isa_closure = all.get(term);
 			String direct_parent_iri = null;
-			if(isa_closure.contains("http://purl.obolibrary.org/obo/CHEBI_36080")||isa_closure.contains("http://purl.obolibrary.org/obo/PR_000000001")) {
+			if(isa_closure.contains("http://purl.obolibrary.org/obo/CHEBI_36080")) {
 				//protein
-				//direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_36080";
-				direct_parent_iri = "http://purl.obolibrary.org/obo/PR_000000001";
+				direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_36080";
 			}else if(isa_closure.contains("http://purl.obolibrary.org/obo/CHEBI_33695")) {
 				//information biomacrolecule (gene, complex)
 				direct_parent_iri = "http://purl.obolibrary.org/obo/CHEBI_33695";

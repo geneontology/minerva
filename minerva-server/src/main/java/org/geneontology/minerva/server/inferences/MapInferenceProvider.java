@@ -20,6 +20,7 @@ import org.geneontology.minerva.validation.ValidationResultSet;
 import org.geneontology.minerva.validation.Violation;
 import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
 import org.semanticweb.owlapi.io.FileDocumentTarget;
+import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -81,7 +82,7 @@ public class MapInferenceProvider implements InferenceProvider {
 		ShexValidationReport shex_validation = null;
 		if(shex.isActive()) {
 			//generate an RDF model			
-			Model model = JenaOwlTool.getJenaModel(ont);
+			Model model = JenaOwlTool.getJenaModel(ont);	
 			//add superclasses to types used in model - needed for shex to find everything
 			//model may now have additional inferred assertions from Arachne
 			model = shex.enrichSuperClasses(model);		

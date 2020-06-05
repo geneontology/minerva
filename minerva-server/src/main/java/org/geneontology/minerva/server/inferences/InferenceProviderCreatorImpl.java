@@ -16,7 +16,10 @@ import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLAnnotationAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
@@ -29,6 +32,7 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
+import org.semanticweb.owlapi.model.parameters.OntologyCopy;
 import org.semanticweb.owlapi.reasoner.OWLReasoner;
 import org.semanticweb.owlapi.reasoner.OWLReasonerFactory;
 import org.semanticweb.owlapi.search.EntitySearcher;
@@ -121,17 +125,21 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 				m.removeOntology(module);
 			}
 			if (temp_ont != null) {
-				m.removeOntology(temp_ont);
+				temp_ont.getOWLOntologyManager().removeOntology(temp_ont);
 			}
 		}
 
 	}
 
 
-	public OWLOntology addAllInferredTypesToCopyLocalOntoBlazegraph(OWLOntology asserted_ont) throws OWLOntologyCreationException, IOException {
-		OWLOntology temp_ont = asserted_ont.getOWLOntologyManager().createOntology();
-		temp_ont.getOWLOntologyManager().addAxioms(temp_ont, asserted_ont.getAxioms());		
-		OWLDataFactory df = temp_ont.getOWLOntologyManager().getOWLDataFactory();
+	public OWLOntology addAllInferredTypesToCopyLocalOntoBlazegraph(OWLOntology asserted_ont) throws OWLOntologyCreationException, IOException {	
+		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();	
+		OWLDataFactory df = ontman.getOWLDataFactory();
+		OWLOntology temp_ont = ontman.copyOntology(asserted_ont, OntologyCopy.SHALLOW);		
+		for(OWLAnnotation a : asserted_ont.getAnnotations()) {
+			OWLAxiom annoaxiom = df.getOWLAnnotationAssertionAxiom(temp_ont.getOntologyID().getOntologyIRI().get(), a);
+			ontman.addAxiom(temp_ont, annoaxiom);
+		}
 		Set<OWLNamedIndividual> individuals = temp_ont.getIndividualsInSignature();
 		Map<String, Set<String>> sub_supers = new HashMap<String, Set<String>>();
 		Set<String> uris = new HashSet<String>();
@@ -164,7 +172,7 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 				Set<String> supers = sub_supers.get(sub.getIRI().toString());			
 				if(supers!=null) {
 					for(String s : supers) {
-						OWLClass parent_class = temp_ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(s));							 
+						OWLClass parent_class = ontman.getOWLDataFactory().getOWLClass(IRI.create(s));							 
 						if(!parent_class.isBuiltIn()&&(!parent_class.isAnonymous())) {
 							OWLClassAssertionAxiom add_parent_type = df.getOWLClassAssertionAxiom(parent_class, i);
 							new_parent_types.add(add_parent_type);
@@ -180,7 +188,7 @@ public class InferenceProviderCreatorImpl implements InferenceProviderCreator {
 			}
 		}
 		if(!new_parent_types.isEmpty()) {
-			temp_ont.getOWLOntologyManager().addAxioms(temp_ont, new_parent_types);
+			ontman.addAxioms(temp_ont, new_parent_types);
 		}
 
 		return temp_ont;

@@ -2588,11 +2588,11 @@ Class: OBO:GO_0005515
     
     EquivalentTo: 
         OBO:GO_0005488
-         and (OBO:RO_0002233 some OBO:PR_000000001)
+         and (OBO:RO_0002233 some OBO:CHEBI_36080)
     
     SubClassOf: 
         OBO:GO_0005488,
-        OBO:RO_0002233 some OBO:PR_000000001
+        OBO:RO_0002233 some OBO:CHEBI_36080
     
     
 Class: OBO:GO_0005539
@@ -4106,12 +4106,12 @@ Class: OBO:GO_0019538
     
     EquivalentTo: 
         OBO:GO_0008152
-         and (OBO:RO_0000057 some OBO:PR_000000001)
+         and (OBO:RO_0000057 some OBO:CHEBI_36080)
     
     SubClassOf: 
         OBO:GO_0043170,
         OBO:GO_0044238,
-        OBO:RO_0000057 some OBO:PR_000000001
+        OBO:RO_0000057 some OBO:CHEBI_36080
     
     
 Class: OBO:GO_0021501
@@ -9200,7 +9200,7 @@ Class: OBO:PATO_0002487
         OBO:PATO_0001236
     
     
-Class: OBO:PR_000000001
+Class: OBO:CHEBI_36080
 
     Annotations: 
         rdfs:label "protein"^^xsd:string
