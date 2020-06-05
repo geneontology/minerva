@@ -70,6 +70,7 @@ import org.openrdf.rio.RDFParseException;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLDataFactory;
@@ -843,7 +844,7 @@ public class CommandLineInterface {
 		if(explanationOutputFile!=null) {
 			FileWriter explanations = new FileWriter(explanationOutputFile, false);
 			explanations.write("Explanations of invalid models.\n");
-			explanations.write("filename\tmodel_iri\tnode\tNode_types\tproperty\tIntended_range_shapes\tobject\tObject_types\tObject_shapes\n");
+			explanations.write("filename\tmodel_title\tmodel_iri\tnode\tNode_types\tproperty\tIntended_range_shapes\tobject\tObject_types\tObject_shapes\n");
 			explanations.close();
 		}	
 		BatchPipelineValidationReport pipe_report = null;
@@ -871,6 +872,14 @@ public class CommandLineInterface {
 				}
 				ModelContainer mc = m3.getModel(modelIRI);	
 				int axioms = mc.getAboxOntology().getAxiomCount();
+				String title = "title";
+				Set<OWLAnnotation> annos = mc.getAboxOntology().getAnnotations();
+				for(OWLAnnotation anno : annos) {
+					if(anno.getProperty().getIRI().toString().equals("http://purl.org/dc/elements/1.1/title")) {
+						title = anno.getValue().asLiteral().get().getLiteral();
+					}
+				}
+				
 				//this is where everything actually happens
 				InferenceProvider ip = ipc.create(mc);
 				isConsistent = ip.isConsistent();
@@ -886,12 +895,12 @@ public class CommandLineInterface {
 
 				if(!isConsistent&&explanationOutputFile!=null) {
 					FileWriter explanations = new FileWriter(explanationOutputFile, true);
-					explanations.write(filename+"\t"+modelIRI+"\n\tOWL fail explanation: "+ip.getValidation_results().getOwlvalidation().getAsText()+"\n");
+					explanations.write(filename+"\t"+title+"\t"+modelIRI+"\n\tOWL fail explanation: "+ip.getValidation_results().getOwlvalidation().getAsText()+"\n");
 					explanations.close();
 				}
 				if(travisMode&&!isConsistent) {
 					if(!shouldFail) {
-						LOGGER.error(filename+"\t"+modelIRI+"\tOWL:is inconsistent, quitting");							
+						LOGGER.error(filename+"\t"+title+"\t"+modelIRI+"\tOWL:is inconsistent, quitting");							
 						System.exit(-1);
 					}
 				}
