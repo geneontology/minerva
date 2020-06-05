@@ -37,6 +37,7 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
@@ -51,7 +52,6 @@ public class ValidationTest {
 	private static final Logger LOGGER = Logger.getLogger(ValidationTest.class);
 	static final String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
 	static final String go_lego_journal_file = "/tmp/blazegraph.jnl";
-	static final String catalog = "src/test/resources/ontology/catalog-for-validation.xml";
 	static final String modelIdcurie = "http://model.geneontology.org/";
 	static final String modelIdPrefix = "gomodel";
 	static final String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
@@ -67,25 +67,6 @@ public class ValidationTest {
 
 		LOGGER.info("loading tbox ontology: "+ontologyIRI);
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
-		LOGGER.info("using catalog: "+catalog);
-		try {
-			ontman.setIRIMappers(Sets.newHashSet(new owltools.io.CatalogXmlIRIMapper(catalog)));
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		for(OWLOntologyIRIMapper m : ontman.getIRIMappers()) {
-			IRI neo_iri = m.getDocumentIRI(IRI.create("http://purl.obolibrary.org/obo/go/noctua/neo.owl"));
-			LOGGER.info("neo mapped iri: "+neo_iri);
-			OWLOntology neo_test;
-			try {
-				neo_test = ontman.loadOntology(neo_iri);
-				LOGGER.info("neo axioms "+neo_test.getAxiomCount());
-			} catch (OWLOntologyCreationException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}		
-		}
 		try {
 			tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
 		} catch (OWLOntologyCreationException e) {
@@ -93,9 +74,6 @@ public class ValidationTest {
 			e.printStackTrace();
 		}
 		LOGGER.info("tbox ontologies loaded: "+tbox_ontology.getAxiomCount());
-		tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
-		LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
-		LOGGER.info("building model manager and structural reasoner");
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 	}
@@ -166,23 +144,30 @@ public class ValidationTest {
 				LOGGER.info("processing \t"+modelIRI);
 
 				ModelContainer mc = m3.getModel(modelIRI);	
+				OWLOntology go_cam = mc.getAboxOntology();
+				String title = "title";
+				for(OWLAnnotation anno : go_cam.getAnnotations()) {
+					if(anno.getProperty().getIRI().toString().equals("http://purl.org/dc/elements/1.1/title")) {
+						title = anno.getValue().asLiteral().get().getLiteral();
+					}
+				}
 				//this is where everything actually happens
 				InferenceProvider ip;
 				try {
 					ip = ipc.create(mc);
 					isConsistent = ip.isConsistent();
 					if(!should_fail) {
-						assertTrue(modelIRI+" is assessed to be (OWL) inconsistent but should not be.", isConsistent);
+						assertTrue(title+" "+modelIRI+" is assessed to be (OWL) inconsistent but should not be. \n"+ip.getValidation_results().getShexvalidation().getAsText()+"\n"+ip.getValidation_results().getShexvalidation().getAsTab(""), isConsistent);
 					}else if(!check_shex) {
-						assertFalse(modelIRI+" is assessed to be (OWL) consistent but should not be.", isConsistent);
+						assertFalse(title+" "+modelIRI+" is assessed to be (OWL) consistent but should not be.", isConsistent);
 					}
 					if(check_shex) {
 						ValidationResultSet validations = ip.getValidation_results();
 						isConformant = validations.allConformant();	
 						if(!should_fail) {
-							assertTrue(modelIRI+" does not conform to the shex schema and it should ", isConformant);
+							assertTrue(title+" "+modelIRI+" does not conform to the shex schema and it should \n"+ip.getValidation_results().getShexvalidation().getAsText()+"\n"+ip.getValidation_results().getShexvalidation().getAsTab(""), isConformant);
 						}else {
-							assertFalse(modelIRI+" conforms to the shex schema and it should not ", isConformant);
+							assertFalse(title+" "+modelIRI+" conforms to the shex schema and it should not ", isConformant);
 						}
 					}
 				} catch (Exception e) {
