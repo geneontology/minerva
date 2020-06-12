@@ -35,12 +35,15 @@ import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLAxiom;
+import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLNamedObject;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.rio.RioRenderer;
+import org.semanticweb.owlapi.search.EntitySearcher;
 
 import com.bigdata.journal.Options;
 import com.bigdata.rdf.sail.BigdataSail;
@@ -70,6 +73,7 @@ public class BlazegraphOntologyManager {
 		root_types.add("http://purl.obolibrary.org/obo/CHEBI_50906");  //chemical role
 		root_types.add("http://purl.obolibrary.org/obo/CHEBI_24431"); //chemical entity
 		root_types.add("http://purl.obolibrary.org/obo/UBERON_0001062"); //anatomical entity
+		root_types.add("http://purl.obolibrary.org/obo/GO_0110165"); //cellular anatomical entity 
 		root_types.add("http://purl.obolibrary.org/obo/CARO_0000000"); // root root anatomical entity
 		root_types.add("http://purl.obolibrary.org/obo/ECO_0000000"); //evidence root.  
 	}
@@ -240,6 +244,30 @@ public class BlazegraphOntologyManager {
 			throw new IOException(e);
 		}
 		return supers;
+	}
+	
+	public Map<OWLNamedIndividual, Set<String>> getSuperCategoryMapForIndividuals(Set<OWLNamedIndividual> inds, OWLOntology ont) throws IOException{
+		Map<OWLNamedIndividual, Set<String>> ind_roots = new HashMap<OWLNamedIndividual, Set<String>>();
+		Set<String> all_types = new HashSet<String>();
+		Map<OWLNamedIndividual, Set<String>> ind_types = new HashMap<OWLNamedIndividual, Set<String>>();
+		for(OWLNamedIndividual ind : inds) {
+			Set<String> types = new HashSet<String>();
+			for(OWLClassExpression oc : EntitySearcher.getTypes(ind, ont)) {
+				types.add(oc.asOWLClass().getIRI().toString());
+				all_types.addAll(types);
+			}
+			ind_types.put(ind, types);			
+		}
+		//just one query..
+		Map<String, Set<String>> type_roots = getSuperCategoryMap(all_types);		
+		for(OWLNamedIndividual ind : inds) {
+			Set<String> types = ind_types.get(ind);
+			for(String type : types) {
+				Set<String> roots = type_roots.get(type);
+				ind_roots.put(ind, roots);
+			}			
+		}
+		return ind_roots;
 	}
 	
 	public Map<String, Set<String>> getSuperCategoryMap(Set<String> uris) throws IOException {
@@ -535,5 +563,41 @@ public class BlazegraphOntologyManager {
 			throw new IOException(e);
 		}
 		return label;
+	}
+	
+	public Map<String, String> getLabels(Set<String> entities) throws IOException {
+		Map<String, String> uri_label = new HashMap<String, String>();
+		
+		String values = "VALUES ?entity {";
+		for(String uri : entities) {
+			values+="<"+uri+"> ";
+		}
+		values+="} . " ;
+		
+		String query = "select ?entity ?label where { "+values+" ?entity rdfs:label ?label }";		
+		try {
+			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+			try {
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
+				TupleQueryResult result = tupleQuery.evaluate();
+				while (result.hasNext()) {
+					BindingSet binding = result.next();
+					Value v = binding.getValue("label");
+					String label = v.stringValue();		
+					Value ev = binding.getValue("entity");
+					String entity = ev.stringValue();	
+					uri_label.put(entity, label);
+				}
+			} catch (MalformedQueryException e) {
+				throw new IOException(e);
+			} catch (QueryEvaluationException e) {
+				throw new IOException(e);
+			} finally {
+				connection.close();
+			}
+		} catch (RepositoryException e) {
+			throw new IOException(e);
+		}
+		return uri_label;
 	}
 }
