@@ -132,31 +132,42 @@ public class MolecularModelJsonRenderer {
 		List<JsonOwlIndividual> iObjs = new ArrayList<JsonOwlIndividual>();
 		Set<OWLNamedIndividual> individuals = ont.getIndividualsInSignature();
 
-		try {
-			type_roots = go_lego_repo.getSuperCategoryMapForIndividuals(individuals, ont);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if(go_lego_repo!=null) {
+			try {
+				type_roots = go_lego_repo.getSuperCategoryMapForIndividuals(individuals, ont);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			//get all the labels ready for the ontology terms in the model
+			Set<String> all_classes = new HashSet<String>();
+			for(OWLNamedIndividual ind : individuals) {
+				Collection<OWLClassExpression> ocs = EntitySearcher.getTypes(ind, ont);
+				if(ocs!=null) {
+					for(OWLClassExpression oc : ocs) {
+						if(!oc.isAnonymous()) {
+							all_classes.add(oc.asOWLClass().getIRI().toString());
+						}
+					}		
+				}
+			}
+			//also the root terms
+			if(type_roots!=null&&type_roots.values()!=null) {
+				for(Set<String> roots : type_roots.values()) {
+					if(roots!=null) {
+						all_classes.addAll(roots);
+					}
+				}
+			}
+			if(all_classes!=null) {
+				try {
+					class_label = go_lego_repo.getLabels(all_classes);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 		}
-
-		//get all the labels ready for the ontology terms in the model
-		Set<String> all_classes = new HashSet<String>();
-		for(OWLNamedIndividual ind : individuals) {
-			for(OWLClassExpression oc : EntitySearcher.getTypes(ind, ont)) {
-				all_classes.add(oc.asOWLClass().getIRI().toString());
-			}		
-		}
-		//also the root terms
-		for(Set<String> roots : type_roots.values()) {
-			all_classes.addAll(roots);
-		}
-		try {
-			class_label = go_lego_repo.getLabels(all_classes);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
 		for (OWLNamedIndividual i : individuals) {
 			iObjs.add(renderObject(i));
 		}
