@@ -28,10 +28,11 @@ WHERE {
       <date_constraint>
       <pmid_constraints>
       <title_constraint>
+      <taxa_constraint>
     }
   } 
   <group_by_constraint>
-  ORDER BY desc(?date)  
+  ORDER BY desc(?date) desc(?id)   
 <limit_constraint>
 <offset_constraint>
  

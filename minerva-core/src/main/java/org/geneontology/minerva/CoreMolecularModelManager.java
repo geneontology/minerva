@@ -67,6 +67,7 @@ import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
 import org.semanticweb.owlapi.model.OWLOntologyLoaderConfiguration;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
+import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
 import org.semanticweb.owlapi.model.RemoveAxiom;
 import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
 import org.semanticweb.owlapi.model.SetOntologyID;
@@ -115,8 +116,11 @@ public abstract class CoreMolecularModelManager<METADATA> {
 
 	final OWLOntology tbox;
 	//	final OWLReasonerFactory rf;
-	final OWLReasoner tbox_reasoner;
+	//	final OWLReasoner tbox_reasoner;
+	//replacing tbox_reasoner structural reasoner functionality with blazegraph queries over pre-inferred relations..
+	private BlazegraphOntologyManager go_lego_repo;
 	private final IRI tboxIRI;
+
 	final Map<IRI, ModelContainer> modelMap = new HashMap<IRI, ModelContainer>();
 	Set<IRI> additionalImports;
 
@@ -197,9 +201,10 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	/**
 	 * @param tbox
 	 * @throws OWLOntologyCreationException
+	 * @throws IOException 
 	 */
-	public CoreMolecularModelManager(OWLOntology tbox) throws OWLOntologyCreationException {
-		super();		
+	public CoreMolecularModelManager(OWLOntology tbox, String go_lego_repo_file) throws OWLOntologyCreationException, IOException {
+		super();
 		this.tbox = tbox;
 		tboxIRI = getTboxIRI(tbox);
 		this.ruleEngine = initializeRuleEngine();
@@ -207,9 +212,12 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		initializeTboxLabelIndex();
 		initializeTboxShorthandIndex();
 		initializeDoNotAnnotateSubset();
-		this.tbox_reasoner = initializeTboxReasoner(tbox);
+		if(go_lego_repo_file!=null) {
+			this.go_lego_repo = new BlazegraphOntologyManager(go_lego_repo_file);
+		}
 		init();
 	}
+
 
 	private OWLReasoner initializeTboxReasoner(OWLOntology tbox) {
 		OWLReasonerFactory reasonerFactory = new StructuralReasonerFactory();
@@ -306,7 +314,13 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		Set<Triple> triples = statements.stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
 		try {
 			// Using model's ontology IRI so that a spurious different ontology declaration triple isn't added
-			OWLOntology schemaOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED), modelId);
+		//	OWLOntology schemaOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED), modelId);
+		// I think the re-use of the model IRI as the IRI of the rule ontology has some weird effects on the model in question, rendering its contents inaccesible.  
+			OWLOntologyManager tmp_man = OWLManager.createOWLOntologyManager();
+			OWLOntology schemaOntology = tmp_man.createOntology(IRI.create("http://therules.org"));
+			Set<OWLAxiom> owl_rules = getOntology().getRBoxAxioms(Imports.INCLUDED);
+			tmp_man.addAxioms(schemaOntology, owl_rules);
+		//	
 			Set<Statement> schemaStatements = JavaConverters.setAsJavaSetConverter(SesameJena.ontologyAsTriples(schemaOntology)).asJava();
 			triples.addAll(schemaStatements.stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet()));
 		} catch (OWLOntologyCreationException e) {
@@ -360,7 +374,10 @@ public abstract class CoreMolecularModelManager<METADATA> {
 					}
 				}
 			});
-			return createInferredModel(abox, modelId);
+			WorkingMemory inferred = createInferredModel(abox, modelId);
+			abox_reasoner.dispose();
+			aman.removeOntology(abox);
+			return inferred;
 		} catch (OWLOntologyCreationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -950,7 +967,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	protected abstract void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException;
 
 	ModelContainer addModel(IRI modelId, OWLOntology abox) throws OWLOntologyCreationException {
-		ModelContainer m = new ModelContainer(modelId, tbox, abox, tbox_reasoner);
+		ModelContainer m = new ModelContainer(modelId, tbox, abox);
 		modelMap.put(modelId, m);
 		return m;
 	}
@@ -1407,8 +1424,10 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return tbox;
 	}
 
-	public OWLReasoner getTbox_reasoner() {
-		return tbox_reasoner;
+	//	public OWLReasoner getTbox_reasoner() {
+	//		return tbox_reasoner;
+	//	}
+	public BlazegraphOntologyManager getGolego_repo() {
+		return go_lego_repo;
 	}
-
 }

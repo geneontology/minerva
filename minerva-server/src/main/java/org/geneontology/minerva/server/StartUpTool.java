@@ -37,8 +37,11 @@ import owltools.io.ParserWrapper;
 
 import java.io.File;
 import java.net.URL;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -98,6 +101,7 @@ public class StartUpTool {
 		public String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 		public String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
 		public MinervaShexValidator shex;
+		public String pathToOntologyJournal;
 
 	}
 
@@ -205,9 +209,16 @@ public class StartUpTool {
 			else if (opts.nextEq("--sparql-endpoint-timeout")) {
 				conf.sparqlEndpointTimeout = Integer.parseInt(opts.nextOpt());
 			}
+			else if (opts.nextEq("--ontojournal")) {
+				conf.pathToOntologyJournal = opts.nextOpt();
+			}
 			else {
 				break;
 			}
+		}
+		if (conf.pathToOntologyJournal == null) {
+			System.err.println("No blazegraph journal containing tbox ontology provided. exit.");
+			System.exit(-1);
 		}
 		if (conf.ontology == null) {
 			System.err.println("No ontology graph available");
@@ -217,10 +228,11 @@ public class StartUpTool {
 			System.err.println("No journal file available");
 			System.exit(-1);
 		} 
-		if (conf.golrUrl == null) {
-			System.err.println("No GOLR service set.  This is required, please add e.g. --golr-labels http://noctua-golr.berkeleybop.org/ to start up parameters ");
-			System.exit(-1);
-		} 
+//		if (conf.golrUrl == null) {
+//			conf.golrUrl = "http://noctua-golr.berkeleybop.org/";
+//			System.err.println("No GOLR service configured.  This is required, please add e.g. --golr-labels http://noctua-golr.berkeleybop.org/ to start up parameters ");
+//			//System.exit(-1);
+//		} 
 		conf.contextString = "/";
 		if (conf.contextPrefix != null) {
 			conf.contextString = "/"+conf.contextPrefix;
@@ -235,6 +247,23 @@ public class StartUpTool {
 		}
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(conf.modelIdcurie, conf.modelIdPrefix));
 		conf.curieHandler = new MappedCurieHandler(mappings, localMappings);
+		// wrap the Golr service with a cache
+//get rid of external look ups altogether.  
+//		if (conf.golrUrl != null) {
+//			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler, conf.useGolrUrlLogging);
+//			LOGGER.info("Setting up Golr cache with size: "+conf.golrCacheSize+" duration: "+
+//					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
+//					" use url logging: "+conf.useGolrUrlLogging);
+//			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
+//		}
+//		if (conf.monarchUrl != null) {
+//			conf.lookupService = new MonarchExternalLookupService(conf.monarchUrl, conf.curieHandler, conf.useGolrUrlLogging);
+//			LOGGER.info("Setting up Monarch Golr cache with size: "+conf.golrCacheSize+" duration: "+
+//					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
+//					" use url logging: "+conf.useGolrUrlLogging);
+//			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
+//		}
+		
 		//TODO maybe make these command line parameters
 		URL shex_schema_url = new URL(conf.shexFileUrl);
 		File shex_schema_file = new File("./target/shex-schema.shex");
@@ -242,25 +271,10 @@ public class StartUpTool {
 		URL shex_map_url = new URL(conf.goshapemapFileUrl);
 		File shex_map_file = new File("./target/go-cam-shapes.shapeMap");
 		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
+		//reasoner set in next phase after ontologies loaded
 		conf.shex = new MinervaShexValidator(shex_schema_file, shex_map_file, conf.curieHandler, null);
-		
-		// wrap the Golr service with a cache
-		if (conf.golrUrl != null) {
-			conf.lookupService = new GolrExternalLookupService(conf.golrUrl, conf.curieHandler, conf.useGolrUrlLogging);
-			LOGGER.info("Setting up Golr cache with size: "+conf.golrCacheSize+" duration: "+
-					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
-					" use url logging: "+conf.useGolrUrlLogging);
-			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
-		}
-		if (conf.monarchUrl != null) {
-			conf.lookupService = new MonarchExternalLookupService(conf.monarchUrl, conf.curieHandler, conf.useGolrUrlLogging);
-			LOGGER.info("Setting up Monarch Golr cache with size: "+conf.golrCacheSize+" duration: "+
-					conf.golrCacheDuration+" "+conf.golrCacheDurationUnit+
-					" use url logging: "+conf.useGolrUrlLogging);
-			conf.lookupService = new CachingExternalLookupService(conf.lookupService, conf.golrCacheSize, conf.golrCacheDuration, conf.golrCacheDurationUnit);
-		}
-
-		Server server = startUp(conf);
+			
+		Server server = startUp(conf); 
 		try {
 			server.join();
 		}
@@ -329,6 +343,13 @@ public class StartUpTool {
 			pw.addIRIMapper(new CatalogXmlIRIMapper(conf.catalog));
 		}
 		MinervaOWLGraphWrapper graph = pw.parseToOWLGraph(conf.ontology);
+
+		//grab ontology metadata and store for status service
+		Map<IRI, Set<OWLAnnotation>> ont_annos = new HashMap<IRI, Set<OWLAnnotation>>();
+		for(OWLOntology ont : graph.getAllOntologies()) {
+			ont_annos.put(ont.getOWLOntologyManager().getOntologyDocumentIRI(ont), ont.getAnnotations());
+		}
+
 		OWLOntology full_tbox = forceMergeImports(graph.getSourceOntology(), graph.getAllOntologies());
 		graph.setSourceOntology(full_tbox);
 
@@ -353,13 +374,14 @@ public class StartUpTool {
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph.getSourceOntology(),
-				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder);
+				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder, conf.pathToOntologyJournal );
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
-		conf.shex.tbox_reasoner = models.getTbox_reasoner();
+	//	conf.shex.tbox_reasoner = models.getTbox_reasoner();
+		conf.shex.setGo_lego_repo(models.getGolego_repo());
 		conf.shex.curieHandler = conf.curieHandler;
 		// start server
-		Server server = startUp(models, conf);
+		Server server = startUp(models, conf, ont_annos);
 		return server;
 	}
 
@@ -385,7 +407,7 @@ public class StartUpTool {
 
 	public static InferenceProviderCreator createInferenceProviderCreator(String reasonerOpt, UndoAwareMolecularModelManager models, MinervaShexValidator shex) { 
 		switch(reasonerOpt) { 
-	//	case ("slme-hermit"): return CachingInferenceProviderCreatorImpl.createHermiT(shex); 
+		//	case ("slme-hermit"): return CachingInferenceProviderCreatorImpl.createHermiT(shex); 
 		case ("slme-elk"): return CachingInferenceProviderCreatorImpl.createElk(true, shex); 
 		case ("elk"): return CachingInferenceProviderCreatorImpl.createElk(false, shex); 
 		case ("arachne"): return CachingInferenceProviderCreatorImpl.createArachne(models.getRuleEngine(), shex); 
@@ -393,8 +415,9 @@ public class StartUpTool {
 		} 
 	} 
 
-	public static Server startUp(UndoAwareMolecularModelManager models, MinervaStartUpConfig conf)
+	public static Server startUp(UndoAwareMolecularModelManager models, MinervaStartUpConfig conf, Map<IRI, Set<OWLAnnotation>> ont_annos)
 			throws Exception {
+
 		LOGGER.info("Setup Jetty config.");
 		// Configuration: Use an already existing handler instance
 		// Configuration: Use custom JSON renderer (GSON)
@@ -420,16 +443,20 @@ public class StartUpTool {
 		LOGGER.info("SeedHandler config golrUrl: "+conf.golrSeedUrl);
 
 		InferenceProviderCreator ipc = createInferenceProviderCreator(conf.reasonerOpt, models, conf.shex); 
-
 		JsonOrJsonpBatchHandler batchHandler = new JsonOrJsonpBatchHandler(models, conf.defaultModelState,
 				ipc, conf.importantRelations, conf.lookupService);
-		batchHandler.CHECK_LITERAL_IDENTIFIERS = conf.checkLiteralIds;
+		batchHandler.CHECK_LITERAL_IDENTIFIERS = false; //conf.checkLiteralIds;
 
 		SimpleEcoMapper ecoMapper = EcoMapperFactory.createSimple();
-//		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
-		SPARQLHandler sparqlHandler = new SPARQLHandler(models, conf.sparqlEndpointTimeout);
-		ModelSearchHandler searchHandler = new ModelSearchHandler(models, conf.sparqlEndpointTimeout);
-		resourceConfig = resourceConfig.registerInstances(batchHandler, sparqlHandler, searchHandler);
+		//		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
+	//	SPARQLHandler sparqlHandler = new SPARQLHandler(models, conf.sparqlEndpointTimeout);
+		ModelSearchHandler searchHandler = new ModelSearchHandler(models);
+		LocalDate d = LocalDate.now();
+		LocalTime t = LocalTime.now(); 
+		String startup = d.toString()+" "+t.toString();
+		StatusHandler statusHandler = new StatusHandler(conf, ont_annos, startup); 
+		TaxonHandler taxonHandler = new TaxonHandler(models);
+		resourceConfig = resourceConfig.registerInstances(batchHandler, searchHandler, statusHandler, taxonHandler);
 
 		// setup jetty server port, buffers and context path
 		Server server = new Server();

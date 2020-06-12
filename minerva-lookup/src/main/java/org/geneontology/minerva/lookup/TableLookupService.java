@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.semanticweb.owlapi.model.IRI;
 
@@ -51,6 +52,12 @@ public class TableLookupService implements ExternalLookupService {
 	@Override
 	public String toString() {
 		return "table: "+entries.size();
+	}
+
+	@Override
+	public Map<IRI, List<LookupEntry>> lookupBatch(Set<IRI> to_look_up) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

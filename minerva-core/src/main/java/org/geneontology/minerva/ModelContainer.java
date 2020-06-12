@@ -25,7 +25,7 @@ public class ModelContainer {
 	private OWLOntology aboxOntology = null;
 	private boolean aboxModified = false;
 	private OWLOntology tboxOntology = null;
-	private OWLReasoner tboxReasoner = null;
+	//private OWLReasoner tboxReasoner = null;
 	
 	private final List<ModelChangeListener> listeners = new CopyOnWriteArrayList<>();
 
@@ -55,11 +55,10 @@ public class ModelContainer {
 	 * @param abox
 	 * @throws OWLOntologyCreationException
 	 */
-	public ModelContainer(IRI modelId, OWLOntology tbox, OWLOntology abox, OWLReasoner tbox_reasoner) throws OWLOntologyCreationException {
+	public ModelContainer(IRI modelId, OWLOntology tbox, OWLOntology abox) throws OWLOntologyCreationException {
 		tboxOntology = tbox;
 		aboxOntology = abox;
 		this.modelId = modelId;
-		this.tboxReasoner = tbox_reasoner;
 		init();
 	}
 

@@ -3,6 +3,8 @@ package org.geneontology.minerva.lookup;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.semanticweb.owlapi.model.IRI;
@@ -52,6 +54,12 @@ public class CombinedExternalLookupService implements ExternalLookupService {
 	@Override
 	public String toString() {
 		return "["+StringUtils.join(services, "|")+"]";
+	}
+
+	@Override
+	public Map<IRI, List<LookupEntry>> lookupBatch(Set<IRI> to_look_up) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	

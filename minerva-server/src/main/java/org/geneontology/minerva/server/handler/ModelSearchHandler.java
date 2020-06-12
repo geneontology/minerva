@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,12 +26,13 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.io.IOUtils;
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
+import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.openrdf.query.Binding;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.QueryEvaluationException; 
 import org.openrdf.query.QueryResult;
 import org.openrdf.query.TupleQueryResult;
 import org.openrdf.repository.RepositoryException;
@@ -41,25 +43,57 @@ import org.semanticweb.owlapi.model.IRI;
  * Uses Jersey + JSONP
  *
  */
-@Path("/search")
+@Path("/search/models")
 public class ModelSearchHandler {
 
-	private final BlazegraphMolecularModelManager m3;
-	private final int timeout;
+	private final BlazegraphMolecularModelManager<?> m3;
+	private final BlazegraphOntologyManager go_lego;
 	/**
 	 * 
 	 */
-	public ModelSearchHandler(BlazegraphMolecularModelManager m3, int timeout) {
+	public ModelSearchHandler(BlazegraphMolecularModelManager<?> m3) {
 		this.m3 = m3;
-		this.timeout = timeout;
+		this.go_lego  = m3.getGolego_repo();
 	}
 
 	public class ModelSearchResult {
 		private Integer n;
-		private Set<ModelMeta> models;
+		private LinkedHashSet<ModelMeta> models;
 		private String message;
 		private String error;
 		private String sparql;
+		public Integer getN() {
+			return n;
+		}
+		public void setN(Integer n) {
+			this.n = n;
+		}
+		public LinkedHashSet<ModelMeta> getModels() {
+			return models;
+		}
+		public void setModels(LinkedHashSet<ModelMeta> models) {
+			this.models = models;
+		}
+		public String getMessage() {
+			return message;
+		}
+		public void setMessage(String message) {
+			this.message = message;
+		}
+		public String getError() {
+			return error;
+		}
+		public void setError(String error) {
+			this.error = error;
+		}
+		public String getSparql() {
+			return sparql;
+		}
+		public void setSparql(String sparql) {
+			this.sparql = sparql;
+		}
+
+
 	}
 
 	public class ModelMeta{
@@ -80,60 +114,147 @@ public class ModelSearchHandler {
 			this.groups = groups;
 			query_match = new HashMap<String, Set<String>>();
 		}
+
+		public String getId() {
+			return id;
+		}
+
+		public void setId(String id) {
+			this.id = id;
+		}
+
+		public String getDate() {
+			return date;
+		}
+
+		public void setDate(String date) {
+			this.date = date;
+		}
+
+		public String getTitle() {
+			return title;
+		}
+
+		public void setTitle(String title) {
+			this.title = title;
+		}
+
+		public String getState() {
+			return state;
+		}
+
+		public void setState(String state) {
+			this.state = state;
+		}
+
+		public Set<String> getContributors() {
+			return contributors;
+		}
+
+		public void setContributors(Set<String> contributors) {
+			this.contributors = contributors;
+		}
+
+		public Set<String> getGroups() {
+			return groups;
+		}
+
+		public void setGroups(Set<String> groups) {
+			this.groups = groups;
+		}
+
+		public HashMap<String, Set<String>> getQuery_match() {
+			return query_match;
+		}
+
+		public void setQuery_match(HashMap<String, Set<String>> query_match) {
+			this.query_match = query_match;
+		}
+
+
 	}
 
 
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	public ModelSearchResult searchGet(
+			@QueryParam("taxon") Set<String> taxa, 
 			@QueryParam("gp") Set<String> gene_product_class_uris, 
-			@QueryParam("goterm") Set<String> goterms,
+			@QueryParam("term") Set<String> terms,
+			@QueryParam("expand") String expand,
 			@QueryParam("pmid") Set<String> pmids,
 			@QueryParam("title") String title,
 			@QueryParam("state") Set<String> state,
 			@QueryParam("contributor") Set<String> contributor,
 			@QueryParam("group") Set<String> group,
+			@QueryParam("exactdate") String exactdate,
 			@QueryParam("date") String date,
+			@QueryParam("dateend") String datend,
 			@QueryParam("offset") int offset,
 			@QueryParam("limit") int limit,
-			@QueryParam("count") String count
+			@QueryParam("count") String count,
+			@QueryParam("debug") String debug
 			){
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(gene_product_class_uris, goterms, pmids, title, state, contributor, group, date, offset, limit, count);
+		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug);
 		return result;
 	}
-	//TODO make junit tests out of these. 
+
 	//examples 
 	//http://127.0.0.1:6800/search/?
+	//?gp=http://identifiers.org/uniprot/P15822-3
+	//?term=http://purl.obolibrary.org/obo/GO_0003677
+	//
+	//
 	//?gp=http://identifiers.org/mgi/MGI:1328355
 	//&gp=http://identifiers.org/mgi/MGI:87986
-	//&goterm=http://purl.obolibrary.org/obo/GO_0030968
+	//&term=http://purl.obolibrary.org/obo/GO_0030968
 	//&title=mouse
 	//&pmid=PMID:19911006
 	//&state=development&state=review {development, production, closed, review, delete} or operator
 	//&count
-	public ModelSearchResult search(
-			Set<String> gene_product_ids, Set<String> goterms, Set<String>pmids, 
-			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, String date_search,
-			int offset, int limit, String count) {
+	//127.0.0.1:6800/search/?contributor=http://orcid.org/0000-0002-1706-4196
+	public ModelSearchResult search(Set<String> taxa, 
+			Set<String> gene_product_ids, Set<String> terms, String expand, Set<String>pmids, 
+			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, 
+			String exactdate, String date_search, String datend, 
+			int offset, int limit, String count, String debug) {
 		ModelSearchResult r = new ModelSearchResult();
-		Set<String> type_ids = new HashSet<String>();
+		Set<String> go_type_ids = new HashSet<String>();
+		Set<String> gene_type_ids = new HashSet<String>();
 		if(gene_product_ids!=null) {
-			type_ids.addAll(gene_product_ids);
+			gene_type_ids.addAll(gene_product_ids);
 		}
-		if(goterms!=null) {
-			type_ids.addAll(goterms);
+		if(terms!=null) {
+			go_type_ids.addAll(terms);
 		}
 		CurieHandler curie_handler = m3.getCuriHandler();
-		Set<String> type_uris = new HashSet<String>();
-		for(String curi : type_ids) {
+		Set<String> go_type_uris = new HashSet<String>();
+		Set<String> gene_type_uris = new HashSet<String>();
+		for(String curi : go_type_ids) {
 			if(curi.startsWith("http")) {
-				type_uris.add(curi);
+				go_type_uris.add(curi);
 			}else {
 				try {
 					IRI iri = curie_handler.getIRI(curi);
 					if(iri!=null) {
-						type_uris.add(iri.toString());
+						go_type_uris.add(iri.toString());
+					}
+				} catch (UnknownIdentifierException e) {
+					r.error += e.getMessage()+" \n ";
+					e.printStackTrace();
+					return r;
+				}
+			}
+		}
+		for(String curi : gene_type_ids) {
+			if(curi.startsWith("http")) {
+				gene_type_uris.add(curi);
+			}else {
+				try {
+					IRI iri = curie_handler.getIRI(curi);
+					if(iri!=null) {
+						gene_type_uris.add(iri.toString());
 					}
 				} catch (UnknownIdentifierException e) {
 					r.error += e.getMessage()+" \n ";
@@ -154,11 +275,37 @@ public class ModelSearchHandler {
 		String ind_return_list = ""; //<ind_return_list>
 		String types = ""; //<types>
 		int n = 0;
-		for(String type_uri : type_uris) {
+		for(String type_uri : gene_type_uris) {
 			n++;
 			ind_return.put("?ind"+n, type_uri);
 			ind_return_list = ind_return_list+" ?ind"+n;
 			types = types+"?ind"+n+" rdf:type <"+type_uri+"> . \n";
+		}
+		if(expand!=null) {
+			for(String go_type_uri : go_type_uris) {
+				n++;
+				ind_return.put("?ind"+n, go_type_uri);
+				ind_return_list = ind_return_list+" ?ind"+n;
+				String expansion = "VALUES ?term"+n+" { ";
+				try {
+					Set<String> subclasses = go_lego.getAllSubClasses(go_type_uri);
+					for(String sub : subclasses) {
+						expansion+="<"+sub+"> \n";
+					}
+					expansion+= "} . \n";
+					types = types+" "+expansion+" ?ind"+n+" rdf:type ?term"+n+" . \n";
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}else {
+			for(String go_type_uri : go_type_uris) {
+				n++;
+				ind_return.put("?ind"+n, go_type_uri);
+				ind_return_list = ind_return_list+" ?ind"+n;
+				types = types+"?ind"+n+" rdf:type <"+go_type_uri+"> . \n";
+			}
 		}
 		String pmid_constraints = ""; //<pmid_constraints>
 		if(pmids!=null) {
@@ -169,9 +316,50 @@ public class ModelSearchHandler {
 				pmid_constraints = pmid_constraints+"?ind"+n+" <http://purl.org/dc/elements/1.1/source> ?pmid FILTER (?pmid=\""+pmid+"\"^^xsd:string) .\n";  		
 			}
 		}
+		String taxa_constraint = "";
+		if(taxa!=null&&!taxa.isEmpty()) {
+			for(String taxon : taxa) {
+				if(taxon.startsWith("NCBITaxon:")) {
+					taxon = taxon.replace(":", "_");
+					taxon = "http://purl.obolibrary.org/obo/"+taxon;
+				}
+				else if(!taxon.startsWith("http://purl.obolibrary.org/obo/NCBITaxon_")) {
+					taxon = "http://purl.obolibrary.org/obo/NCBITaxon_"+taxon;
+				} 
+				taxa_constraint += "?id <"+BlazegraphOntologyManager.in_taxon_uri+"> <"+taxon+"> . \n";
+			}
+		} 
+
+
+		//		if(taxa!=null&&!taxa.isEmpty()) {
+		//			String model_filter =  " VALUES ?id { \n"; 
+		//			for(String taxon : taxa) {
+		//				if(taxon.startsWith("NCBITaxon:")) {
+		//					taxon = taxon.replace(":", "_");
+		//					taxon = "http://purl.obolibrary.org/obo/"+taxon;
+		//				}
+		//				else if(!taxon.startsWith("http://purl.obolibrary.org/obo/NCBITaxon_")) {
+		//					taxon = "http://purl.obolibrary.org/obo/NCBITaxon_"+taxon;
+		//				} 
+		//				Set<String> models = taxon_models.get(taxon);
+		//				if(models!=null) {
+		//					for(String model : models) {
+		//						model_filter+="<"+model+"> \n";
+		//					}
+		//				}
+		//			}
+		//			model_filter += "} . \n";
+		//			taxa_constraint = model_filter;
+		//		}
 		String title_search_constraint = "";
 		if(title_search!=null) {
 			title_search_constraint = "?title <http://www.bigdata.com/rdf/search#search> \""+title_search+"\" .\n";
+			if(!title_search.contains("*")) {
+				title_search_constraint+=" ?title <http://www.bigdata.com/rdf/search#matchAllTerms> \""+"true"+"\" . \n";
+			}
+//			if(exact_match) {
+//				title_search_constraint+=" ?title <http://www.bigdata.com/rdf/search#matchExact>  \""+"true"+"\" . \n";
+//			}
 		}
 		String state_search_constraint = "";
 		if(state_search!=null&&state_search.size()>0) {
@@ -198,7 +386,9 @@ public class ModelSearchHandler {
 					allowed_contributors+=",";
 				}
 			}
-			contributor_search_constraint = "FILTER (?contributor IN ("+allowed_contributors+")) . \n";
+			contributor_search_constraint = 
+					" ?id <http://purl.org/dc/elements/1.1/contributor> ?test_contributor . \n"  
+							+ " FILTER (?test_contributor IN ("+allowed_contributors+")) . \n";
 		}
 		String group_search_constraint = "";
 		if(group_search!=null&&group_search.size()>0) {
@@ -211,12 +401,18 @@ public class ModelSearchHandler {
 					allowed_group+=",";
 				}
 			}
-			contributor_search_constraint = "FILTER (?group IN ("+allowed_group+")) . \n";
+			group_search_constraint = " ?id <http://purl.org/pav/providedBy> ?test_group . \n"
+					+ "FILTER (?test_group IN ("+allowed_group+")) . \n";
 		}
 		String date_constraint = "";
-		if(date_search!=null&&date_search.length()==10) {
+		if(exactdate!=null&&exactdate.length()==10) {
+			date_constraint = "FILTER (?date = '"+exactdate+"') \n";
+		}else if(date_search!=null&&date_search.length()==10) {
 			//e.g. 2019-06-26
 			date_constraint = "FILTER (?date > '"+date_search+"') \n";
+			if(datend!=null&&datend.length()==10) {
+				date_constraint = "FILTER (?date > '"+date_search+"' && ?date < '"+datend+"') \n";
+			}
 		}
 		String offset_constraint = "";
 		if(offset!=0) {
@@ -232,7 +428,8 @@ public class ModelSearchHandler {
 		//default group by
 		String group_by_constraint = "GROUP BY ?id ?date ?title ?state <ind_return_list> ";
 		//default return block
-		String return_block = "?id ?date ?title ?state <ind_return_list> (GROUP_CONCAT(?contributor;separator=\";\") AS ?contributors) (GROUP_CONCAT(?group;separator=\";\") AS ?groups)";
+		//TODO investigate need to add DISTINCT to GROUP_CONCAT here
+		String return_block = "?id ?date ?title ?state <ind_return_list> (GROUP_CONCAT(DISTINCT ?contributor;separator=\";\") AS ?contributors) (GROUP_CONCAT(DISTINCT ?group;separator=\";\") AS ?groups)";
 		if(count!=null) {
 			return_block = "(count(distinct ?id) as ?count)";
 			limit_constraint = "";
@@ -251,11 +448,15 @@ public class ModelSearchHandler {
 		sparql = sparql.replaceAll("<date_constraint>", date_constraint);
 		sparql = sparql.replaceAll("<limit_constraint>", limit_constraint);
 		sparql = sparql.replaceAll("<offset_constraint>", offset_constraint);
-		r.sparql = sparql;
-
+		sparql = sparql.replaceAll("<taxa_constraint>", taxa_constraint);
+		if(debug!=null) {
+			r.sparql = sparql;
+		}else {
+			r.sparql = "add 'debug' parameter to see sparql request";
+		}
 		TupleQueryResult result;
 		try {
-			result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 10);
+			result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 1000);
 		} catch (MalformedQueryException | QueryEvaluationException | RepositoryException e) {
 			if(e instanceof MalformedQueryException) {
 				r.message = "Malformed Query";
@@ -335,11 +536,12 @@ public class ModelSearchHandler {
 			r.error = e.getMessage();
 			e.printStackTrace();
 			return r;
-		}		if(n_count!=null) {
+		}		
+		if(n_count!=null) {
 			r.n = Integer.parseInt(n_count);
 		}else {
 			r.n = id_model.size();
-			r.models = new HashSet<ModelMeta>(id_model.values());
+			r.models = new LinkedHashSet<ModelMeta>(id_model.values());
 		}		
 		try {
 			result.close();
@@ -354,54 +556,31 @@ public class ModelSearchHandler {
 		return r;
 	}
 
-	public ModelSearchResult getAll(int offset, int limit) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException  {
-		ModelSearchResult r = new ModelSearchResult();
-		Set<ModelMeta> models = new HashSet<ModelMeta>();
-		String sparql = IOUtils.toString(ModelSearchHandler.class.getResourceAsStream("/GetAllModels.rq"), StandardCharsets.UTF_8);
-		TupleQueryResult result = (TupleQueryResult) m3.executeSPARQLQuery(sparql, 100);
-		int n_models = 0;
-		while(result.hasNext()) {
-			BindingSet bs = result.next();
-			//model meta
-			String id = bs.getBinding("id").getValue().stringValue();
-			String date = bs.getBinding("date").getValue().stringValue();
-			String title = bs.getBinding("title").getValue().stringValue();
-			String state = bs.getBinding("state").getValue().stringValue();
-			String contribs = bs.getBinding("contributors").getValue().stringValue();
-			String groups_ = bs.getBinding("groups").getValue().stringValue();
-			Set<String> contributors = new HashSet<String>();
-			if(contributors!=null) {
-				for(String c : contribs.split(";")) {
-					contributors.add(c);
-				}
-			}
-			Set<String> groups = new HashSet<String>();
-			if(groups_!=null) {
-				for(String c : groups_.split(";")) {
-					groups.add(c);
-				}
-			}
-			ModelMeta mm = new ModelMeta(id, date, title, state, contributors, groups);
-			models.add(mm);
-			n_models++;
-		}
-		System.out.println("n models "+n_models);
-		r.n = n_models;
-		r.models = models;
-		result.close();
-		//test
-		//http://127.0.0.1:6800/modelsearch/?query=bla
-		return r;
-	}
-
-
 
 	@POST
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-	public String searchPostForm(@FormParam("query") String queryText) {
-		// return m3.executeSPARQLQuery(queryText, timeout);
-		return "post pong";
+	public ModelSearchResult searchPostForm(
+			@FormParam("taxon") Set<String> taxa, 
+			@FormParam("gp") Set<String> gene_product_class_uris, 
+			@FormParam("term") Set<String> terms,
+			@FormParam("expand") String expand, 
+			@FormParam("pmid") Set<String> pmids,
+			@FormParam("title") String title,
+			@FormParam("state") Set<String> state,
+			@FormParam("contributor") Set<String> contributor,
+			@FormParam("group") Set<String> group,
+			@FormParam("exactdate") String exactdate,
+			@FormParam("date") String date,
+			@FormParam("dateend") String datend, 
+			@FormParam("offset") int offset,
+			@FormParam("limit") int limit,
+			@FormParam("count") String count,
+			@FormParam("debug") String debug) {
+		ModelSearchResult result = new ModelSearchResult();
+		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug);
+		return result;
 	}
+
 
 }

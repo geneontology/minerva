@@ -2,39 +2,49 @@ package org.bbop.golr.java;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.commons.httpclient.NameValuePair;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 
 public abstract class AbstractRetrieveGolr {
-	
+
 	protected static final Gson GSON = new GsonBuilder().create();
-	
+
 	private final String server;
 	private int retryCount;
-	
+
 	public AbstractRetrieveGolr(String server) {
 		this(server, 3);
 	}
-	
+
 	public AbstractRetrieveGolr(String server, int retryCount) {
 		this.server = server;
 		this.retryCount = retryCount;
 	}
-	
+
 	protected abstract boolean isIndentJson();
-	
+
 	protected abstract List<String> getRelevantFields();
 
 	/*
@@ -46,8 +56,8 @@ public abstract class AbstractRetrieveGolr {
 	&fq=document_category:%22ontology_class%22
 	&fq=is_obsolete:%22false%22
 	&fq=id:%22UniProtKB:P32241-1%22
-	
-	*/
+
+	 */
 	URI createGolrRequest(List<String []> tagvalues, String category, int start, int pagination) throws IOException {
 		try {
 			URIBuilder builder = new URIBuilder(server);
@@ -89,12 +99,64 @@ public abstract class AbstractRetrieveGolr {
 			throw new IOException("Could not build URI for Golr request", e);
 		}
 	}
+
+
+	HttpPost createGolrPostRequest(List<String []> tagvalues, String category, int start, int pagination) throws UnsupportedEncodingException {
+		HttpPost post = new HttpPost(server+"/select");
+		List<BasicNameValuePair> urlParameters = new ArrayList<>();
+		urlParameters.add(new BasicNameValuePair("username", "abc"));
+
+		urlParameters.add(new BasicNameValuePair("defType", "edismax"));
+		urlParameters.add(new BasicNameValuePair("qt", "standard"));
+		urlParameters.add(new BasicNameValuePair("wt", "json"));
+		if (isIndentJson()) {
+			urlParameters.add(new BasicNameValuePair("indent","on"));
+		}
+		urlParameters.add(new BasicNameValuePair("fl",StringUtils.join(getRelevantFields(), ',')));
+		urlParameters.add(new BasicNameValuePair("facet","false"));
+		urlParameters.add(new BasicNameValuePair("json.nl","arrarr"));
+		urlParameters.add(new BasicNameValuePair("q","*:*"));
+		urlParameters.add(new BasicNameValuePair("rows", Integer.toString(pagination)));
+		urlParameters.add(new BasicNameValuePair("start", Integer.toString(start)));
+		urlParameters.add(new BasicNameValuePair("fq", "document_category:\""+category+"\""));
+		for (String [] tagvalue : tagvalues) {
+			if (tagvalue.length == 2) {
+				urlParameters.add(new BasicNameValuePair("fq", tagvalue[0]+":\""+tagvalue[1]+"\""));
+			}
+			else if (tagvalue.length > 2) {
+				// if there is more than one value, assume that this is an OR query
+				StringBuilder value = new StringBuilder();
+				value.append(tagvalue[0]).append(":(");
+				for (int i = 1; i < tagvalue.length; i++) {
+					if (i > 1) {
+						value.append(" OR ");
+					}
+					value.append('"').append(tagvalue[i]).append('"');
+				}
+				value.append(')');
+				urlParameters.add(new BasicNameValuePair("fq", value.toString()));
+			}
+		}
+		post.setEntity(new UrlEncodedFormEntity(urlParameters));
+		return post;
+	}
+
+
+	//TODO add retry for failed request
+	protected String getJsonStringFromPost(HttpPost post) throws IOException {
+		
+		CloseableHttpClient httpClient = HttpClients.createDefault();
+		CloseableHttpResponse response = httpClient.execute(post);
+		String json = EntityUtils.toString(response.getEntity());
+	
+		return json;
+	}
 	
 	protected String getJsonStringFromUri(URI uri) throws IOException {
 		logRequest(uri);
 		return getJsonStringFromUri(uri, retryCount);
 	}
-	
+
 	protected String getJsonStringFromUri(URI uri, int retryCount) throws IOException {
 		final URL url = uri.toURL();
 		final HttpURLConnection connection;
@@ -102,6 +164,7 @@ public abstract class AbstractRetrieveGolr {
 		// setup and open (actual connection)
 		try {
 			connection = (HttpURLConnection) url.openConnection();
+			//	connection.setRequestMethod("POST");
 			connection.setInstanceFollowRedirects(true); // warning does not follow redirects from http to https
 			response = connection.getInputStream(); // opens the connection to the server
 		}
@@ -121,10 +184,10 @@ public abstract class AbstractRetrieveGolr {
 		if (status != 200) {
 			// try to check error stream
 			String errorMsg = getErrorMsg(connection);
-			
+
 			// construct message for exception
 			StringBuilder sb = new StringBuilder("Unexpected HTTP status code: "+status);
-			
+
 			if (errorMsg != null) {
 				sb.append(" Details: ");
 				sb.append(errorMsg);
@@ -132,7 +195,7 @@ public abstract class AbstractRetrieveGolr {
 			IOException e = new IOException(sb.toString());
 			return retryRequest(uri, e, retryCount);
 		}
-		
+
 		// try to detect charset
 		String contentType = connection.getHeaderField("Content-Type");
 		String charset = null;
@@ -174,7 +237,7 @@ public abstract class AbstractRetrieveGolr {
 		logRequestError(uri, e);
 		throw e;
 	}
-	
+
 	private static String getErrorMsg(HttpURLConnection connection) {
 		String errorMsg = null;
 		InputStream errorStream = null;
@@ -193,7 +256,7 @@ public abstract class AbstractRetrieveGolr {
 		}
 		return errorMsg;
 	}
-	
+
 	protected void defaultRandomWait() {
 		// wait a random interval between 400 and 1500 ms
 		randomWait(400, 1500);
@@ -209,23 +272,23 @@ public abstract class AbstractRetrieveGolr {
 		}
 	}
 
-	
+
 	protected void logRequest(URI uri) {
 		// do nothing
 		// hook to implement logging of requests
 	}
-	
+
 	protected void logRequestError(URI uri, IOException exception) {
 		// do nothing
 		// hook to implement logging of request errors
 	}
-	
+
 	protected void logRetry(URI uri, IOException exception, int remaining) {
 		// do nothing
 		// hook to implement logging of a retry
 	}
-	
-	
+
+
 	protected <T extends GolrEnvelope<?>> T parseGolrResponse(String response, Class<T> clazz) throws IOException {
 		try {
 			T envelope = GSON.fromJson(response, clazz);
@@ -240,22 +303,22 @@ public abstract class AbstractRetrieveGolr {
 			throw new IOException("Could not parse JSON response.", e);
 		}
 	}
-	
+
 	static class GolrEnvelope<T> {
 		GolrResponseHeader responseHeader;
 		GolrResponse<T> response;
 	}
-	
+
 	static class GolrResponseHeader {
 		String status;
 		String QTime;
 		Object params;
 	}
-	
+
 	static class GolrResponse<T> {
 		int numFound;
 		int start;
 		T[] docs;
 	}
-	
+
 }

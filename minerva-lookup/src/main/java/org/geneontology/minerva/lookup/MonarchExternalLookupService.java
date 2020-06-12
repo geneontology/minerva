@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.bbop.golr.java.RetrieveGolrOntologyClass;
@@ -84,6 +86,12 @@ public class MonarchExternalLookupService implements ExternalLookupService {
 	@Override
 	public String toString() {
 		return "Monarch: "+monarchUrl;
+	}
+
+	@Override
+	public Map<IRI, List<LookupEntry>> lookupBatch(Set<IRI> to_look_up) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	

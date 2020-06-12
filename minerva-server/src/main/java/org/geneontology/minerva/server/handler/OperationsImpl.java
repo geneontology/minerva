@@ -24,6 +24,7 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.handler.OperationsTools.MissingParameterException;
 import org.geneontology.minerva.server.validation.BeforeSaveModelValidator;
+import org.geneontology.rules.engine.WorkingMemory;
 import org.openrdf.query.*;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
@@ -149,14 +150,6 @@ abstract class OperationsImpl extends ModelCreator {
 			for(JsonOwlObject expression : request.arguments.expressions) {
 				OWLClassExpression cls = parseM3Expression(expression, values);
 				clsExpressions.add(cls);
-				//check for parentage 
-				if(externalLookupService!=null) {
-					List<LookupEntry> lookup = externalLookupService.lookup(cls.asOWLClass().getIRI());
-					if(lookup!=null&&!lookup.isEmpty()&&lookup.get(0).direct_parent_iri!=null) {
-						OWLClass parent_class = m3.getOntology().getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(lookup.get(0).direct_parent_iri));			
-						clsExpressions.add(parent_class);
-					}
-				}
 			}
 			if (values.notVariable(request.arguments.individual)) {
 				// create indivdual
@@ -403,7 +396,7 @@ abstract class OperationsImpl extends ModelCreator {
 		if (Operation.get == operation){
 			values.nonMeta = true;
 			requireNotNull(request.arguments, "request.arguments");
-			values.model = checkModelId(values.model, request);
+			values.model = checkModelId(values.model, request);			
 			values.renderBulk = true;
 		}
 		else if (Operation.updateImports == operation){
@@ -470,6 +463,7 @@ abstract class OperationsImpl extends ModelCreator {
 			values.nonMeta = true;
 			requireNotNull(request.arguments, "request.arguments");
 			requireNotNull(request.arguments.importModel, "request.arguments.importModel");
+			//this is documented as not working...
 			values.model = m3.importModel(request.arguments.importModel);
 
 			Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, providerGroups, values, values.model);
@@ -684,7 +678,11 @@ abstract class OperationsImpl extends ModelCreator {
 		if ("gpad".equals(format)) {
 			initMetaResponse(response);
 			try {
-				response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(m3.createCanonicalInferredModel(model.getModelId()));
+				GPADSPARQLExport exporter = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset());
+				WorkingMemory wm = m3.createCanonicalInferredModel(model.getModelId());
+				response.data.exportModel = exporter.exportGPAD(wm, model.getModelId());				
+		//		response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(
+		//				m3.createCanonicalInferredModel(model.getModelId()));
 			} catch (InconsistentOntologyException e) {
 				response.messageType = MinervaResponse.MESSAGE_TYPE_ERROR;
 				response.message = "The model is inconsistent; a GPAD cannot be created.";

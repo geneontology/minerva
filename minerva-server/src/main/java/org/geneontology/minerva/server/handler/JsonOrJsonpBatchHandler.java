@@ -1,6 +1,7 @@
 package org.geneontology.minerva.server.handler;
 
 import com.google.common.reflect.TypeToken;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
@@ -17,7 +18,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Type;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 import static org.geneontology.minerva.server.handler.OperationsTools.*;
@@ -29,7 +29,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 	
 	
 	public static boolean VALIDATE_BEFORE_SAVE = true;
-	public boolean CHECK_LITERAL_IDENTIFIERS = true; // TODO remove the temp work-around
+	public static boolean CHECK_LITERAL_IDENTIFIERS = false;//TODO turning this off because it depends on external lookup service - need to rewire to get rid of external lookup service entirely.
 	
 	private static final Logger logger = Logger.getLogger(JsonOrJsonpBatchHandler.class);
 	
@@ -212,7 +212,9 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 
 		// create response.data
 		response.data = new ResponseData();
-		final MolecularModelJsonRenderer renderer = createModelRenderer(values.model, externalLookupService, inferenceProvider, curieHandler);
+		//final MolecularModelJsonRenderer renderer = createModelRenderer(values.model, externalLookupService, inferenceProvider, curieHandler);
+		//working towards zero use of external look up service.. which is both slow and confusing.  
+		final MolecularModelJsonRenderer renderer = createModelRenderer(values.model, m3.getGolego_repo(), inferenceProvider, curieHandler);
 		if (values.renderBulk) {
 			// render complete model
 			JsonModel jsonModel = renderer.renderModel();
@@ -231,7 +233,6 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			response.data.annotations = MolecularModelJsonRenderer.renderModelAnnotations(values.model.getAboxOntology(), curieHandler);
 			response.data.modelId = curieHandler.getCuri(values.model.getModelId());
 		}
-		
 		// add other infos to data
 		if (!isConsistent) {
 			response.data.inconsistentFlag =  Boolean.TRUE;
