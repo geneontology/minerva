@@ -422,7 +422,7 @@ public class MolecularModelJsonRenderer {
 
 	protected String getLabel(OWLNamedObject i, String id) {
 		String label = null;
-		if(class_label.containsKey(i.getIRI().toString())) {
+		if(class_label!=null&&class_label.containsKey(i.getIRI().toString())) {
 			label = class_label.get(i.getIRI().toString());
 		} else if(graph!=null) {
 			label = graph.getLabel(i);
