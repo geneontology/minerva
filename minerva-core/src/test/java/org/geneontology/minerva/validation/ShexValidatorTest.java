@@ -3,8 +3,6 @@ package org.geneontology.minerva.validation;
 import static org.junit.Assert.*;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
 
@@ -16,22 +14,12 @@ import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.semanticweb.owlapi.model.OWLOntology;
 
 import fr.inria.lille.shexjava.schema.ShexSchema;
 import fr.inria.lille.shexjava.schema.parsing.GenParser;
 
 public class ShexValidatorTest {
-/**
- * -c /Users/benjamingood/gocam_ontology/catalog-v001-for-noctua.xml
--s /Users/benjamingood/GitHub/GO_Shapes/shapes/go-cam-shapes.shex 
--m /Users/benjamingood/GitHub/GO_Shapes/shapes/metadata.shapemap 
--i /Users/benjamingood/GitHub/GO_Shapes/test_ttl/go_cams/should_pass/ 
--r ./shape_report_shouldpass.txt 
--e ./shape_explanation_shouldpass.txt
--ontojournal /Users/benjamingood/blazegraph/blazegraph-go-lego-with-reacto.jnl
- * @throws Exception
- */
+
 	//TODO set up some kind of a configuration file that encapsulates these files
 	static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 	static final String schemaFile = "src/test/resources/validation/go-cam-shapes.shex";
@@ -69,13 +57,13 @@ public class ShexValidatorTest {
 		System.out.println(query_map);
 	}
 	
-//	@Test
+	@Test
 	public void testShexShouldPass() throws Exception {		
 		boolean should_be_valid = true;
 		validate("src/test/resources/validation/should_pass/", shex, should_be_valid);		
 	}
 
-//	@Test
+	@Test
 	public void testShexShouldFail() throws Exception {		
 		boolean should_be_valid = false;
 		validate("src/test/resources/validation/should_fail/", shex, should_be_valid);	
