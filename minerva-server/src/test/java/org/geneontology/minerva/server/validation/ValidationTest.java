@@ -79,18 +79,18 @@ public class ValidationTest {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		for(OWLOntologyIRIMapper m : ontman.getIRIMappers()) {
-			IRI neo_iri = m.getDocumentIRI(IRI.create("http://purl.obolibrary.org/obo/go/noctua/neo.owl"));
-			LOGGER.info("neo mapped iri: "+neo_iri);
-			OWLOntology neo_test;
-			try {
-				neo_test = ontman.loadOntology(neo_iri);
-				LOGGER.info("neo axioms "+neo_test.getAxiomCount());
-			} catch (OWLOntologyCreationException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}		
-		}
+//		for(OWLOntologyIRIMapper m : ontman.getIRIMappers()) {
+//			IRI neo_iri = m.getDocumentIRI(IRI.create("http://purl.obolibrary.org/obo/go/noctua/neo.owl"));
+//			LOGGER.info("neo mapped iri: "+neo_iri);
+//			OWLOntology neo_test;
+//			try {
+//				neo_test = ontman.loadOntology(neo_iri);
+//				LOGGER.info("neo axioms "+neo_test.getAxiomCount());
+//			} catch (OWLOntologyCreationException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}		
+//		}
 		try {
 			tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
 		} catch (OWLOntologyCreationException e) {
@@ -98,9 +98,9 @@ public class ValidationTest {
 			e.printStackTrace();
 		}
 		LOGGER.info("tbox ontologies loaded: "+tbox_ontology.getAxiomCount());
-		tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
-		LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
-		LOGGER.info("building model manager and structural reasoner");
+//		tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
+//		LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
+//		LOGGER.info("building model manager and structural reasoner");
 	}
 
 	@AfterClass
