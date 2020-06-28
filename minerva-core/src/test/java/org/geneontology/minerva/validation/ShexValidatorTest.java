@@ -25,7 +25,7 @@ public class ShexValidatorTest {
 	static final String schemaFile = "src/test/resources/validation/go-cam-shapes.shex";
 	static final String metadataSchemaFile = "src/test/resources/validation/metadata-shapes.shex";
 	static final String metadataShapemapFile = "src/test/resources/validation/metadata.shapemap";
-	static final String mainShapemapFile = "src/test/resources/validation/go-cam-shapes.shapemap";
+	static final String mainShapemapFile = "src/test/resources/validation/go-cam-shapes.shapeMap";
 	static ShexValidator shex;
 	static ShexValidator shexMeta;
 	
