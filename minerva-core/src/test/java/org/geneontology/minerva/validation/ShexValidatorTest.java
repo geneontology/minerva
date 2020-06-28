@@ -28,10 +28,11 @@ public class ShexValidatorTest {
 	static final String mainShapemapFile = "src/test/resources/validation/go-cam-shapes.shapeMap";
 	static ShexValidator shex;
 	static ShexValidator shexMeta;
+	static BlazegraphOntologyManager go_lego;
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		BlazegraphOntologyManager go_lego = new BlazegraphOntologyManager(go_lego_journal_file);
+		go_lego = new BlazegraphOntologyManager(go_lego_journal_file);
 		CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 		shex = new ShexValidator(schemaFile, mainShapemapFile, go_lego, curieHandler);
 		shexMeta = new ShexValidator(metadataSchemaFile, metadataShapemapFile, go_lego, curieHandler);
@@ -39,6 +40,7 @@ public class ShexValidatorTest {
 
 	@AfterClass
 	public static void tearDownAfterClass() throws Exception {
+		go_lego.dispose();
 	}
 	
 	@Test
