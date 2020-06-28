@@ -1,0 +1,503 @@
+BASE   <http://purl.obolibrary.org/obo/go/shapes/>
+PREFIX obo: <http://purl.obolibrary.org/obo/>
+PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+#metadata
+PREFIX bl: <https://w3id.org/biolink/vocab/>
+PREFIX contributor: <http://purl.org/dc/elements/1.1/contributor>
+PREFIX provided_by: <http://purl.org/pav/providedBy>
+PREFIX date: <http://purl.org/dc/elements/1.1/date>
+PREFIX xref: <http://www.geneontology.org/formats/oboInOwl#hasDbXref>
+PREFIX exact_match: <http://www.w3.org/2004/02/skos/core#exactMatch>
+PREFIX source: <http://purl.org/dc/elements/1.1/source>
+PREFIX evidence: <http://geneontology.org/lego/evidence>
+PREFIX with: <http://geneontology.org/lego/evidence-with>
+PREFIX x: <http://geneontology.org/lego/hint/layout/x>
+PREFIX y: <http://geneontology.org/lego/hint/layout/y>
+#model level annotations
+PREFIX ontology: <http://www.w3.org/2002/07/owl#Ontology>
+PREFIX taxon: <https://w3id.org/biolink/vocab/in_taxon>
+PREFIX modelstate: <http://geneontology.org/lego/modelstate>
+PREFIX oboinowlid: <http://www.geneontology.org/formats/oboInOwl#id>
+###contributor, date, providedBy reused
+PREFIX title: <http://purl.org/dc/elements/1.1/title>
+PREFIX imports: <http://www.w3.org/2002/07/owl#imports>
+# always limit imports to? <http://purl.obolibrary.org/obo/go/extensions/go-lego.owl> ;
+PREFIX in_taxon: <https://w3id.org/biolink/vocab/in_taxon>
+#semantic: classes
+PREFIX GoInformationBiomacromolecule: <http://purl.obolibrary.org/obo/CHEBI_33695>
+PREFIX GoProtein: <http://purl.obolibrary.org/obo/CHEBI_36080>
+PREFIX GoProteinContainingComplex: <http://purl.obolibrary.org/obo/GO_0032991>
+PREFIX GoCellularComponent: <http://purl.obolibrary.org/obo/GO_0005575>
+PREFIX GoBiologicalProcess: <http://purl.obolibrary.org/obo/GO_0008150>
+PREFIX GoAnatomicalStructureDevelopment: <http://purl.obolibrary.org/obo/GO_0048856>
+PREFIX GoAnatomicalStructureFormationInvolvedInMorphogenesis: <http://purl.obolibrary.org/obo/GO_0048646>
+PREFIX GoAnatomicalStructureMorphogenesis: <http://purl.obolibrary.org/obo/GO_0009653>
+PREFIX GoCellDifferentiation: <http://purl.obolibrary.org/obo/GO_0030154>
+PREFIX GoCellDivision: <http://purl.obolibrary.org/obo/GO_0051301>
+PREFIX GoCellFateCommitment: <http://purl.obolibrary.org/obo/GO_0045165>
+PREFIX GoCellFateDetermination: <http://purl.obolibrary.org/obo/GO_0001709>
+PREFIX GoCellFateSpecification: <http://purl.obolibrary.org/obo/GO_0001708>
+PREFIX GoCellularComponentAssembly: <http://purl.obolibrary.org/obo/GO_0022607>
+PREFIX GoCellularComponentDisassembly: <http://purl.obolibrary.org/obo/GO_0022411>
+PREFIX GoCellularComponentOrganization: <http://purl.obolibrary.org/obo/GO_0016043>
+PREFIX GoDevelopmentalMaturation: <http://purl.obolibrary.org/obo/GO_0021700>
+PREFIX GoGrowth: <http://purl.obolibrary.org/obo/GO_0040007>
+PREFIX GoLocalization: <http://purl.obolibrary.org/obo/GO_0051179>
+PREFIX GoLocomotion: <http://purl.obolibrary.org/obo/GO_0040011>
+PREFIX GoMovementOfCellOrSubcellularComponent: <http://purl.obolibrary.org/obo/GO_0006928>
+PREFIX GoProteinContainingComplexRemodeling: <http://purl.obolibrary.org/obo/GO_0034367>
+PREFIX GoPatternSpecificationProcess: <http://purl.obolibrary.org/obo/GO_0007389>
+PREFIX GoMolecularFunction: <http://purl.obolibrary.org/obo/GO_0003674>
+PREFIX GoTransporterActivity: <http://purl.obolibrary.org/obo/GO_0005215>
+PREFIX GoChemicalEntity: <http://purl.obolibrary.org/obo/CHEBI_24431>
+PREFIX GoEvidence: <http://purl.obolibrary.org/obo/ECO_0000000>
+PREFIX GoAnatomicalEntity: <http://purl.obolibrary.org/obo/CARO_0000000>
+PREFIX GoNativeCell: <http://purl.obolibrary.org/obo/CL_0000003>
+PREFIX GoOrganism: <http://purl.obolibrary.org/obo/NCBITaxon_1>
+PREFIX GoBiologicalPhase: <http://purl.obolibrary.org/obo/GO_0044848>
+PREFIX GoLifeCycleStage: <http://purl.obolibrary.org/obo/UBERON_0000105>
+PREFIX GoPlantStructureDevelopmentStage: <http://purl.obolibrary.org/obo/PO_0009012>
+#semantic: relations
+PREFIX part_of: <http://purl.obolibrary.org/obo/BFO_0000050>
+PREFIX has_part: <http://purl.obolibrary.org/obo/BFO_0000051>
+PREFIX occurs_in: <http://purl.obolibrary.org/obo/BFO_0000066>
+PREFIX adjacent_to: <http://purl.obolibrary.org/obo/RO_0002220>
+PREFIX overlaps: <http://purl.obolibrary.org/obo/RO_0002131>
+PREFIX enabled_by: <http://purl.obolibrary.org/obo/RO_0002333>
+PREFIX has_input: <http://purl.obolibrary.org/obo/RO_0002233>
+PREFIX has_output: <http://purl.obolibrary.org/obo/RO_0002234>
+PREFIX has_target_end_location: <http://purl.obolibrary.org/obo/RO_0002339>
+PREFIX has_target_start_location: <http://purl.obolibrary.org/obo/RO_0002338>
+PREFIX transports_or_maintains_localization_of: <http://purl.obolibrary.org/obo/RO_0002313>
+PREFIX directly_provides_input_for: <http://purl.obolibrary.org/obo/RO_0002413>
+PREFIX directly_positively_regulates: <http://purl.obolibrary.org/obo/RO_0002629>
+PREFIX located_in: <http://purl.obolibrary.org/obo/RO_0001025>
+PREFIX happens_during: <http://purl.obolibrary.org/obo/RO_0002092>
+PREFIX regulates: <http://purl.obolibrary.org/obo/RO_0002211>
+PREFIX negatively_regulates: <http://purl.obolibrary.org/obo/RO_0002212>
+PREFIX positively_regulates: <http://purl.obolibrary.org/obo/RO_0002213>
+PREFIX directly_regulates: <http://purl.obolibrary.org/obo/RO_0002578>
+PREFIX directly_negatively_regulates: <http://purl.obolibrary.org/obo/RO_0002630>
+PREFIX directly_activates: <http://purl.obolibrary.org/obo/RO_0002406>
+PREFIX causally_upstream_of_or_within: <http://purl.obolibrary.org/obo/RO_0002418>
+PREFIX causally_upstream_of_or_within_negative_effect: <http://purl.obolibrary.org/obo/RO_0004046>
+PREFIX causally_upstream_of_or_within_positive_effect: <http://purl.obolibrary.org/obo/RO_0004047>
+PREFIX causally_upstream_of: <http://purl.obolibrary.org/obo/RO_0002411>
+PREFIX causally_upstream_of_negative_effect: <http://purl.obolibrary.org/obo/RO_0002305>
+PREFIX causally_upstream_of_positive_effect: <http://purl.obolibrary.org/obo/RO_0002304>
+PREFIX results_in_development_of: <http://purl.obolibrary.org/obo/RO_0002296>
+PREFIX results_in_formation_of: <http://purl.obolibrary.org/obo/RO_0002297>
+PREFIX results_in_morphogenesis_of: <http://purl.obolibrary.org/obo/RO_0002298>
+PREFIX results_in_acquisition_of_features_of: <http://purl.obolibrary.org/obo/RO_0002315>
+PREFIX results_in_commitment_to: <http://purl.obolibrary.org/obo/RO_0002348>
+PREFIX results_in_determination_of: <http://purl.obolibrary.org/obo/RO_0002349>
+PREFIX results_in_specification_of: <http://purl.obolibrary.org/obo/RO_0002356>
+PREFIX results_in_assembly_of: <http://purl.obolibrary.org/obo/RO_0002588>
+PREFIX results_in_disassembly_of: <http://purl.obolibrary.org/obo/RO_0002590>
+PREFIX results_in_organization_of: <http://purl.obolibrary.org/obo/RO_0002592>
+PREFIX results_in_maturation_of: <http://purl.obolibrary.org/obo/RO_0002299>
+PREFIX results_in_growth_of: <http://purl.obolibrary.org/obo/RO_0002343>
+PREFIX results_in_movement_of: <http://purl.obolibrary.org/obo/RO_0002565>
+PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
+
+<GoCamModel> {
+  a [owl:Ontology] + ;
+  contributor: xsd:string +; #TODO would be better as an IRI
+  date: xsd:string {1}; #TODO can we make this an xsd:date?
+  provided_by: xsd:string +; #TODO would be better as an IRI
+  rdfs:comment xsd:string *;
+  modelstate: xsd:string {1}; #TODO would be better as an IRI
+  in_taxon: . *;
+  title: xsd:string {1};
+  imports: . *;
+  oboinowlid: . *; #TODO not sure if we really want this?
+  owl:versionIRI . *;
+}
+
+<ProvenanceAnnotated> {
+  contributor: xsd:string *; #TODO would be better as an IRI
+  date: xsd:string *; #TODO can we make this an xsd:date?
+  provided_by: xsd:string *; #TODO would be better as an IRI
+  rdfs:comment xsd:string *;
+}
+
+<GoCamEntity> IRI @<ProvenanceAnnotated> AND EXTRA a {
+  a [owl:NamedIndividual] * // rdfs:comment  "Every entity we care about is a named individual";
+  xref: . *;
+  rdfs:label . {0,1} //rdfs:comment "the name" ;
+  exact_match: . *;
+  x: . {0,1} // rdfs:comment  "X coordinate for node";
+  y: . {0,1} // rdfs:comment  "Y coordinate for node";
+} // rdfs:comment  "Default allowable metadata for GO-CAM entities"
+
+<OwlClass> {
+  rdf:type [ owl:Class ] {1};
+}
+
+<BiologicalProcessClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoBiologicalProcess: ] ;
+}
+
+<NegatedBiologicalProcessClass> BNode @<OwlClass> AND {
+  owl:complementOf @<BiologicalProcessClass>
+}
+
+<BiologicalProcess> @<GoCamEntity> AND EXTRA a {
+  a ( @<BiologicalProcessClass> OR @<NegatedBiologicalProcessClass> ) {1};
+  part_of: @<BiologicalProcess> {0,1};
+  has_input: ( @<ChemicalEntity> OR @<AnatomicalEntity> OR @<ProteinContainingComplex> ) *;
+  has_output: ( @<ChemicalEntity> OR @<AnatomicalEntity> OR @<ProteinContainingComplex> ) *;
+  occurs_in: @<AnatomicalEntity> {0,1};
+  transports_or_maintains_localization_of: ( @<InformationBiomacromolecule> OR @<ProteinContainingComplex> ) *;
+  has_target_end_location: @<AnatomicalEntity> {0,1};
+  has_target_start_location: @<AnatomicalEntity> {0,1};
+  causally_upstream_of: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
+  causally_upstream_of_negative_effect: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
+  causally_upstream_of_positive_effect: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
+  regulates: @<BiologicalProcess> *;
+  negatively_regulates: @<BiologicalProcess> *;
+  positively_regulates: @<BiologicalProcess> *;
+} // rdfs:comment  "A biological process"
+
+
+<AnatomicalStructureDevelopmentClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoAnatomicalStructureDevelopment: ] ;
+}
+
+<AnatomicalStructureDevelopment> @<BiologicalProcess> AND EXTRA a {
+  a @<AnatomicalStructureDevelopmentClass> {1};
+  results_in_development_of: @<AnatomicalEntity> {0,1};
+} // rdfs:comment "an anatomical structure development class GO biological process or child"
+
+<AnatomicalStructureFormationInvolvedInMorphogenesisClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoAnatomicalStructureFormationInvolvedInMorphogenesis: ] ;
+}
+
+<AnatomicalStructureFormationInvolvedInMorphogenesis> @<BiologicalProcess> AND EXTRA a {
+  a @<AnatomicalStructureFormationInvolvedInMorphogenesisClass> {1};
+  results_in_formation_of: @<AnatomicalEntity> {0,1};
+} // rdfs:comment "an anatomical structure formation involved in morphogenesis class GO biological process or child"
+
+<AnatomicalStructureMorphogenesisClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoAnatomicalStructureMorphogenesis: ] ;
+}
+
+<AnatomicalStructureMorphogenesis> @<BiologicalProcess> AND EXTRA a {
+  a @<AnatomicalStructureMorphogenesisClass> {1};
+  results_in_morphogenesis_of: @<AnatomicalEntity> {0,1};
+} // rdfs:comment "an anatomical structure morphogenesis class GO biological process or child"
+
+<CellDifferentiationClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoCellDifferentiation: ] ;
+}
+
+<CellDifferentiation> @<BiologicalProcess> AND EXTRA a {
+  a @<CellDifferentiationClass> {1};
+  results_in_acquisition_of_features_of: @<NativeCell> {0,1};
+} // rdfs:comment "a cell differentiation GO biological process or child"
+
+<CellDivisionClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoCellDivision: ] ;
+}
+
+<CellDivision> @<BiologicalProcess> AND EXTRA a {
+  a @<CellDivisionClass> {1};
+  has_input: @<NativeCell> {0,1};
+} // rdfs:comment "a cell division GO biological process or child"
+
+<CellFateCommitmentClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoCellFateCommitment: ] ;
+}
+
+<CellFateCommitment> @<BiologicalProcess> AND EXTRA a {
+  a @<CellFateCommitmentClass> {1};
+  results_in_commitment_to: @<NativeCell> {0,1};
+} // rdfs:comment "a cell fate commitment GO biological process or child"
+
+<CellFateDeterminationClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoCellFateDetermination: ] ;
+}
+
+<CellFateDetermination> @<BiologicalProcess> AND EXTRA a {
+  a @<CellFateDeterminationClass> {1};
+  results_in_determination_of: @<NativeCell> {0,1};
+} // rdfs:comment "a cell fate determination GO biological process or child"
+
+<CellFateSpecificationClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoCellFateSpecification: ] ;
+}
+
+<CellFateSpecification> @<BiologicalProcess> AND EXTRA a {
+  a @<CellFateSpecificationClass> {1};
+  results_in_specification_of: @<NativeCell> {0,1};
+} // rdfs:comment "a cell fate specification GO biological process or child"
+
+<CellularComponentAssemblyClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoCellularComponentAssembly: ] ;
+}
+
+<CellularComponentAssembly> @<BiologicalProcess> AND EXTRA a {
+  a @<CellularComponentAssemblyClass> {1};
+  results_in_assembly_of: @<CellularComponent> {0,1};
+} // rdfs:comment "a cellular component assembly GO biological process or child"
+
+<CellularComponentDisassemblyClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoCellularComponentDisassembly: ] ;
+}
+
+<CellularComponentDisassembly> @<BiologicalProcess> AND EXTRA a {
+  a @<CellularComponentDisassemblyClass> {1};
+  results_in_disassembly_of: @<CellularComponent> {0,1};
+} // rdfs:comment "a cellular component disassembly GO biological process or child"
+
+<CellularComponentOrganizationClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoCellularComponentOrganization: ] ;
+}
+
+<CellularComponentOrganization> @<BiologicalProcess> AND EXTRA a {
+  a @<CellularComponentOrganizationClass> {1};
+  results_in_organization_of: @<CellularComponent> {0,1};
+} // rdfs:comment "a cellular component organization GO biological process or child"
+
+<DevelopmentalMaturationClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoDevelopmentalMaturation: ] ;
+}
+
+<DevelopmentalMaturation> @<BiologicalProcess> AND EXTRA a {
+  a @<DevelopmentalMaturationClass> {1};
+  results_in_maturation_of: @<AnatomicalEntity> {0,1};
+} // rdfs:comment "a developmental maturation GO biological process or child"
+
+<GrowthClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoGrowth: ] ;
+}
+
+<Growth> @<BiologicalProcess> AND EXTRA a {
+  a @<GrowthClass> {1};
+  results_in_growth_of: @<AnatomicalEntity> {0,1};
+} // rdfs:comment "a growth GO biological process or child"
+
+<LocalizationClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoLocalization: ] ;
+}
+
+<Localization> @<BiologicalProcess> AND EXTRA a {
+  a @<LocalizationClass> {1};
+  transports_or_maintains_localization_of: ( @<AnatomicalEntity> OR @<ChemicalEntity> OR @<InformationBiomacromolecule> OR @<ProteinContainingComplex> ) *;
+  has_target_end_location: @<AnatomicalEntity> {0,1};
+  has_target_start_location: @<AnatomicalEntity> {0,1};
+} // rdfs:comment "a localization GO biological process or child"
+
+<LocomotionClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoLocomotion: ] ;
+}
+
+<Locomotion> @<BiologicalProcess> AND EXTRA a {
+  a @<LocomotionClass> {1};
+  results_in_movement_of: @<AnatomicalEntity> {0,1};
+} // rdfs:comment "a locomotion GO biological process or child"
+
+<MovementOfCellOrSubcellularComponentClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoMovementOfCellOrSubcellularComponent: ] ;
+}
+
+<MovementOfCellOrSubcellularComponent> @<BiologicalProcess> AND EXTRA a {
+  a @<MovementOfCellOrSubcellularComponentClass> {1};
+  results_in_movement_of: ( @<NativeCell> OR @<CellularComponent> ) {0,1};
+} // rdfs:comment "a movement of cell or subcellular component GO biological process or child"
+
+<ProteinContainingComplexRemodelingClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoProteinContainingComplexRemodeling: ] ;
+}
+
+<ProteinContainingComplexRemodeling> @<BiologicalProcess> AND EXTRA a {
+  a @<ProteinContainingComplexRemodelingClass> {1};
+  results_in_remodeling_of: @<ProteinContainingComplex> {0,1};
+} // rdfs:comment "a protein containing complex remodeling GO biological process or child"
+
+<PatternSpecificationProcessClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+	rdfs:subClassOf [ GoPatternSpecificationProcess: ] ;
+}
+
+<PatternSpecificationProcess> @<BiologicalProcess> AND EXTRA a {
+  a @<PatternSpecificationProcessClass> {1};
+  results_in_specification_of: @<AnatomicalEntity> {0,1};
+} // rdfs:comment "a pattern specification process GO biological process or child"
+
+<MolecularFunctionClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoMolecularFunction: ] ;
+}
+
+<NegatedMolecularFunctionClass> BNode @<OwlClass> AND {
+  owl:complementOf @<MolecularFunctionClass>
+}
+
+<MolecularFunction> @<GoCamEntity> AND EXTRA a {
+  a ( @<MolecularFunctionClass> OR @<NegatedMolecularFunctionClass> ) {1};
+  enabled_by:  ( @<InformationBiomacromolecule> OR @<ProteinContainingComplex> ) {0,1};
+  part_of: @<BiologicalProcess> {0,1};
+  occurs_in: ( @<AnatomicalEntity> OR @<ProteinContainingComplex> ) {0,1};
+  has_output: ( @<ChemicalEntity> OR @<ProteinContainingComplex> ) *;
+  has_input: ( @<ChemicalEntity> OR @<ProteinContainingComplex> ) *;
+  directly_provides_input_for: @<MolecularFunction> *;
+  regulates: @<MolecularFunction> *;
+  negatively_regulates: @<MolecularFunction> *;
+  positively_regulates: @<MolecularFunction> *;
+  directly_regulates: @<MolecularFunction> *;
+  directly_negatively_regulates: @<MolecularFunction> *;
+  directly_positively_regulates: @<MolecularFunction> *;
+  causally_upstream_of_or_within: @<BiologicalProcess> *;
+  causally_upstream_of_or_within_negative_effect: @<BiologicalProcess> *;
+  causally_upstream_of_or_within_positive_effect: @<BiologicalProcess> *;
+  causally_upstream_of: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
+  causally_upstream_of_negative_effect: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
+  causally_upstream_of_positive_effect: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
+  happens_during: ( @<BiologicalPhase> OR @<LifeCycleStage> OR @<PlantStructureDevelopmentStage> ) *;
+} // rdfs:comment  "A molecular function"
+
+<TransporterActivityClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoTransporterActivity: ];
+}
+
+<TransporterActivity> @<MolecularFunction> AND EXTRA a {
+  a @<TransporterActivityClass> {1};
+  transports_or_maintains_localization_of: ( @<ChemicalEntity> OR @<InformationBiomacromolecule> OR @<ProteinContainingComplex> ) *;
+  has_target_end_location: @<CellularComponent> *;
+  has_target_start_location: @<CellularComponent> *;
+} // rdfs:comment "a transporter activity GO molecular function or child"
+
+
+<MacromolecularMachine> ( @<Protein> OR @<ProteinContainingComplex> ) AND {}
+
+<BiologicalPhaseClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoBiologicalPhase: ];
+}
+
+<BiologicalPhase> @<GoCamEntity> AND EXTRA a {
+  a @<BiologicalPhaseClass>;
+} // rdfs:comment  "a biological phase"
+
+<LifeCycleStageClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoLifeCycleStage: ];
+}
+
+<LifeCycleStage> @<GoCamEntity> AND EXTRA a {
+  a @<LifeCycleStageClass>;
+} // rdfs:comment  "a lifecycle stage"
+
+<PlantStructureDevelopmentStageClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoPlantStructureDevelopmentStage: ];
+}
+
+<PlantStructureDevelopmentStage> @<GoCamEntity> AND EXTRA a {
+  a @<PlantStructureDevelopmentStageClass>;
+} // rdfs:comment  "a plant structure developmental stage"
+
+<AnatomicalEntityClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoAnatomicalEntity: ];
+}
+
+<NegatedAnatomicalEntityClass> BNode @<OwlClass> AND {
+  owl:complementOf @<AnatomicalEntityClass>
+}
+
+<AnatomicalEntity> @<GoCamEntity> AND EXTRA a {
+  a ( @<AnatomicalEntityClass> OR @<NegatedAnatomicalEntityClass> );
+  part_of: @<AnatomicalEntity> {0,1};
+} // rdfs:comment  "an anatomical entity"
+
+<NativeCellClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoNativeCell: ];
+}
+
+<NativeCell> @<GoCamEntity> AND EXTRA a {
+  a @<NativeCellClass> {1};
+  part_of: @<AnatomicalEntity> {0,1};
+} // rdfs:comment  "a native cell or child"
+
+<CellularComponentClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoCellularComponent: ];
+}
+
+<NegatedCellularComponentClass> BNode @<OwlClass> AND {
+  owl:complementOf @<CellularComponentClass>
+}
+
+#<CellularComponent> @<AnatomicalEntity> AND EXTRA a { # If we want to intersect with anatomical entity, then GO cellular_component needs to subclass anatomical entity in go-lego
+<CellularComponent> @<GoCamEntity> AND EXTRA a {
+  a ( @<CellularComponentClass> OR @<NegatedCellularComponentClass> ) {1};
+  part_of: @<AnatomicalEntity> {0,1};
+  adjacent_to: @<AnatomicalEntity> *;
+  overlaps: @<AnatomicalEntity> *;
+  has_part:(@<InformationBiomacromolecule> OR  @<ProteinContainingComplex>) {0,1};
+} // rdfs:comment  "a cellular component"
+
+<ProteinContainingComplex> EXTRA a {
+  a @<ProteinContainingComplexClass>;
+  located_in: @<CellularComponent> {0,1};
+  has_part: @<InformationBiomacromolecule> *;
+} // rdfs:comment  "a protein complex"
+
+<ProteinContainingComplexClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoProteinContainingComplex: ];
+}
+
+<ChemicalEntity> @<GoCamEntity> AND EXTRA a {
+  a @<ChemicalEntityClass> +;
+}// rdfs:comment  "a molecular entity (a gene product, chemical, or complex typically)"
+
+<ChemicalEntityClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf  {
+  rdfs:subClassOf [ GoChemicalEntity: ];
+}
+
+<ProteinClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoProtein: ];
+}
+<Protein> @<ChemicalEntity> AND EXTRA a {
+  a @<ProteinClass> ;
+  located_in: @<CellularComponent> {0,1};
+}// rdfs:comment  "a protein"
+
+
+<InformationBiomacromoleculeClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoInformationBiomacromolecule: ];
+}
+<InformationBiomacromolecule> @<ChemicalEntity> AND EXTRA a {
+   a @<InformationBiomacromoleculeClass> +;
+   part_of: @<CellularComponent> {0,1};
+   part_of: @<ProteinContainingComplex> {0,1};
+}// rdfs:comment  "an information biomacromolecule - e.g. a protein or RNA product"
+
+<EvidenceClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoEvidence: ] ;
+}
+
+<Evidence> @<ProvenanceAnnotated> AND EXTRA a  {
+  a @<EvidenceClass> {1};
+  source: xsd:string {1};
+  with: xsd:string {0,1}
+}// rdfs:comment  "A kind of evidence"
+
+<AnnotatedEdge> BNode @<ProvenanceAnnotated> AND {
+  a [ owl:Axiom ] ;
+  owl:annotatedSource @<GoCamEntity> ;
+  owl:annotatedProperty IRI ;
+  owl:annotatedTarget @<GoCamEntity> ;
+  evidence: @<Evidence> *
+}
+
+#<BL_UNTYPED> {
+#   bl:category . {0}
+#   // rdfs:comment  "has no type tag inside" ;
+#} // rdfs:comment  "has no type tag full rule"
+
+#<BL_TYPED> {
+#   bl:category . {1}
+#} // rdfs:comment  "has exactly one type tag"
+
+#<BL_MULTI_TYPED> {
+#   bl:category . {2,}
+#} // rdfs:comment  "has multiple type tags"
