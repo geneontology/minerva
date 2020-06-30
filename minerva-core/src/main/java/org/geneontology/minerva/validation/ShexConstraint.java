@@ -7,6 +7,8 @@ import java.util.Set;
 
 import com.google.gson.annotations.SerializedName;
 
+import fr.inria.lille.shexjava.util.Interval;
+
 /**
  * @author bgood
  *
@@ -16,11 +18,29 @@ public class ShexConstraint {
 	String property;
 	Set<String> node_types;
 	Set<String> object_types;
+	String cardinality;
+	int nobjects;
 	
 	@SerializedName("matched_range_shapes")
 	Set<String> matched_range_shapes;
 	
 	
+
+	public String getCardinality() {
+		return cardinality;
+	}
+
+	public void setCardinality(String cardinality) {
+		this.cardinality = cardinality;
+	}
+
+	public int getNobjects() {
+		return nobjects;
+	}
+
+	public void setNobjects(int nobjects) {
+		this.nobjects = nobjects;
+	}
 
 	public Set<String> getMatched_range_shapes() {
 		return matched_range_shapes;
@@ -62,6 +82,13 @@ public class ShexConstraint {
 		this.intended_range_shapes = intended_range_shapes;
 		this.node_types = node_types;
 		this.object_types = object_types;
+	}
+	
+	public ShexConstraint(String property, String cardinality, int nobjects) {
+		super();
+		this.property = property;
+		this.cardinality = cardinality;
+		this.nobjects = nobjects;
 	}
 	
 	public Set<String> getIntended_range_shapes() {

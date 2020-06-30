@@ -729,6 +729,7 @@ public class ShexValidator {
 		//check for assertions with properties in the target shape
 		for(String prop_uri : expected_property_ranges.keySet()) {
 			Property prop = model.getProperty(prop_uri);
+			Interval cardinality = shape_expected_property_cardinality.get(shape_label).get(prop_uri);
 			//checking on objects of this property for the problem node.
 			int n_objects = 0;
 			for (StmtIterator i = focus_node.listProperties(prop); i.hasNext(); ) {
@@ -803,15 +804,15 @@ public class ShexValidator {
 				}	
 			}
 			//check for cardinality violations
-			if(!prop_uri.contentEquals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")) { //skip types - should always allow multiple..
-				Map<String, Interval> property_interval = shape_expected_property_cardinality.get(shape_label);			
-				Interval card = property_interval.get(prop_uri);
-				if(!card.contains(n_objects)) {
+			if(!prop_uri.contentEquals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")) { //skip types - should always allow multiple..		
+				if(!cardinality.contains(n_objects)) {
 					System.out.println("cardinality violation!");
 					System.out.println("problem node "+focus_node);
 					System.out.println("prop "+prop);
-					System.out.println("Intended Interval "+card.toString());
+					System.out.println("Intended Interval "+cardinality.toString());
 					System.out.println("Actual "+n_objects);
+					ShexConstraint constraint = new ShexConstraint(getCurie(prop.toString()), cardinality.toString(), n_objects);
+					unmet_constraints.add(constraint);
 				}
 			}
 		}
