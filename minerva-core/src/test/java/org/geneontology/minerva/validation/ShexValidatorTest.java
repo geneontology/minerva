@@ -77,20 +77,26 @@ public class ShexValidatorTest {
 		validate("src/test/resources/validation/should_pass/", shexMeta, should_be_valid);	
 	}
 	
+	@Test 
+	public void testTmp() throws IOException {
+		boolean should_be_valid = false;
+		validate("src/test/resources/validation/tmp/", shex, should_be_valid);	
+	}
+	
 	public void validate(String dir, ShexValidator shex, boolean should_be_valid) throws IOException {
 		File directory = new File(dir);
 		if(directory.isDirectory()) {
 			for(File file : directory.listFiles()) {
 				if(file.getName().endsWith("ttl")) {
 					Model test_model = ModelFactory.createDefaultModel();
-					System.out.println("validating "+file.getAbsolutePath());
 					test_model.read(file.getAbsolutePath());
+					System.out.println("validating "+file.getAbsolutePath()+" size "+test_model.size());
 					//Note that in the live system, Arachne is executed on the model prior to this step, potentially adding inferred classes that are missed with this.
 					//this is faster and useful for debugging the shex though.  See org.geneontology.minerva.server.validation.ValidationTest in the Test branch of Minerva server for a more complete test
 					test_model = shex.enrichSuperClasses(test_model);
 					ShexValidationReport report = shex.runShapeMapValidation(test_model);
 					if(should_be_valid) {
-						assertTrue(file+" not conformant", report.isConformant());
+						assertTrue(file+" not conformant "+report.getAsText()+"\n"+report.getAsTab(""), report.isConformant());
 					}else {
 						assertFalse(file+" is conformant (should not be)", report.isConformant());
 					}
