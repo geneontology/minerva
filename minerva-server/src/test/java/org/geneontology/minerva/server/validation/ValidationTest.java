@@ -116,7 +116,6 @@ public class ValidationTest {
 	@Test
 	public void testValid() {
 		String valid_model_folder = "src/test/resources/models/should_pass/";
-		testJournalLoad(valid_model_folder);
 		boolean should_fail = false;
 		boolean check_shex = true;
 		try {
@@ -131,6 +130,12 @@ public class ValidationTest {
 		}	
 	}
 
+	@Test
+	public void testValidLoad() {
+		String valid_model_folder = "src/test/resources/models/should_pass/";
+		testJournalLoad(valid_model_folder);
+	}
+	
 	@Test
 	public void testInValid() {
 		String valid_model_folder = "src/test/resources/models/should_fail/";
@@ -149,6 +154,11 @@ public class ValidationTest {
 		}	
 	}
 
+	@Test
+	public void testInValidLoad() {
+		String valid_model_folder = "src/test/resources/models/should_fail/";
+		testJournalLoad(valid_model_folder);
+	}
 
 	public static void validateGoCams(String input, boolean should_fail, boolean check_shex) throws Exception {
 
@@ -230,7 +240,6 @@ public class ValidationTest {
 						if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
 							try {
 								String modeluri = m3.importModelToDatabase(file, true);	
-								LOGGER.info("Loaded\t" + file+"\t"+modeluri);
 								if(!model_iris.add(modeluri)) {
 									String error = "\n"+file+"\n redundant iri "+modeluri+"\n with file "+iri_file.get(modeluri);
 									assertFalse(error, true);
@@ -279,7 +288,6 @@ public class ValidationTest {
 				FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
 					if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
 						try {
-							LOGGER.info("Loading " + file);
 							String modeluri = m3.importModelToDatabase(file, true);	
 							LOGGER.info("Loaded\t" + file+"\t"+modeluri);
 						} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
