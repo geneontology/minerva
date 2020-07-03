@@ -10,6 +10,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -55,6 +56,8 @@ public class ValidationTest {
 	static final String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
 	static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 	static final String catalog = "src/test/resources/ontology/catalog-for-validation.xml";
+	//add something like this to the catalog to replace the download step for local testing
+	// <uri id="loading local go-lego" name="http://purl.obolibrary.org/obo/go/extensions/go-lego.owl" uri="file:///tmp/go-lego.owl"/>
 	static final String modelIdcurie = "http://model.geneontology.org/";
 	static final String modelIdPrefix = "gomodel";
 	static final String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
@@ -69,7 +72,7 @@ public class ValidationTest {
 	public static void setUpBeforeClass() {
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-			
+
 		LOGGER.info("loading tbox ontology: "+ontologyIRI);
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		LOGGER.info("using catalog: "+catalog);
@@ -79,18 +82,6 @@ public class ValidationTest {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-//		for(OWLOntologyIRIMapper m : ontman.getIRIMappers()) {
-//			IRI neo_iri = m.getDocumentIRI(IRI.create("http://purl.obolibrary.org/obo/go/noctua/neo.owl"));
-//			LOGGER.info("neo mapped iri: "+neo_iri);
-//			OWLOntology neo_test;
-//			try {
-//				neo_test = ontman.loadOntology(neo_iri);
-//				LOGGER.info("neo axioms "+neo_test.getAxiomCount());
-//			} catch (OWLOntologyCreationException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}		
-//		}
 		try {
 			tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
 		} catch (OWLOntologyCreationException e) {
@@ -98,9 +89,6 @@ public class ValidationTest {
 			e.printStackTrace();
 		}
 		LOGGER.info("tbox ontologies loaded: "+tbox_ontology.getAxiomCount());
-//		tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
-//		LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
-//		LOGGER.info("building model manager and structural reasoner");
 	}
 
 	@AfterClass
@@ -108,8 +96,9 @@ public class ValidationTest {
 	}
 
 //	@Test
-	public void testTmValid() {
+	public void testTmpValid() {
 		String valid_model_folder = "src/test/resources/models/tmp/";
+		testJournalLoad(valid_model_folder);
 		boolean should_fail = false;
 		boolean check_shex = true;
 		try {
@@ -123,10 +112,11 @@ public class ValidationTest {
 			e.printStackTrace();
 		}	
 	}
-	
+
 	@Test
 	public void testValid() {
 		String valid_model_folder = "src/test/resources/models/should_pass/";
+		testJournalLoad(valid_model_folder);
 		boolean should_fail = false;
 		boolean check_shex = true;
 		try {
@@ -144,6 +134,7 @@ public class ValidationTest {
 	@Test
 	public void testInValid() {
 		String valid_model_folder = "src/test/resources/models/should_fail/";
+		testJournalLoad(valid_model_folder);
 		boolean should_fail = true;
 		boolean check_shex = true;
 		try {
@@ -158,6 +149,7 @@ public class ValidationTest {
 		}	
 	}
 
+
 	public static void validateGoCams(String input, boolean should_fail, boolean check_shex) throws Exception {
 
 		String blazegraph_journal = makeBlazegraphJournal(input);
@@ -170,7 +162,7 @@ public class ValidationTest {
 			URL shex_map_url = new URL(goshapemapFileUrl);
 			File shex_map_file = new File("src/test/resources/validate.shapemap");
 			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
-						
+
 			MinervaShexValidator shex = new MinervaShexValidator(shex_schema_file, shex_map_file, curieHandler, m3.getGolego_repo());
 			if(check_shex) {
 				if(check_shex) {
@@ -218,6 +210,58 @@ public class ValidationTest {
 		}
 	}
 
+	public void testJournalLoad(String input_folder) {
+		try {
+			String inputDB = tmp.newFile().getAbsolutePath();
+			File i = new File(input_folder);
+			if(i.exists()) {
+				//remove anything that existed earlier
+				File bgdb = new File(inputDB);
+				if(bgdb.exists()) {
+					bgdb.delete();
+				}		
+				OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
+				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
+				Map<String, String> file_iri = new HashMap<String, String>();
+				Map<String, String> iri_file = new HashMap<String, String>();
+				Set<String> model_iris = new HashSet<String>();
+				if(i.isDirectory()) {
+					FileUtils.listFiles(i, null, true).forEach(file-> {
+						if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
+							try {
+								String modeluri = m3.importModelToDatabase(file, true);	
+								LOGGER.info("Loaded\t" + file+"\t"+modeluri);
+								if(!model_iris.add(modeluri)) {
+									String error = "\n"+file+"\n redundant iri "+modeluri+"\n with file "+iri_file.get(modeluri);
+									assertFalse(error, true);
+								}else {								
+									file_iri.put(file.getName(), modeluri);
+									iri_file.put(modeluri, file.getName());
+								}
+							} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
+									| RDFHandlerException | IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							} 
+						} 
+					});
+					if(model_iris.size()!=file_iri.size()) {
+
+					}
+					assertTrue("same model iri used more than once ", model_iris.size()==file_iri.size());
+				}else {
+					LOGGER.info("Loading " + i);
+					m3.importModelToDatabase(i, true);
+				}
+				LOGGER.info("loaded files into blazegraph journal: "+input_folder);
+				m3.dispose();
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 
 	private static String makeBlazegraphJournal(String input_folder) throws IOException, OWLOntologyCreationException, RepositoryException, RDFParseException, RDFHandlerException {
 		String inputDB = tmp.newFile().getAbsolutePath();
@@ -234,9 +278,10 @@ public class ValidationTest {
 			if(i.isDirectory()) {
 				FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
 					if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
-						LOGGER.info("Loading " + file);
 						try {
+							LOGGER.info("Loading " + file);
 							String modeluri = m3.importModelToDatabase(file, true);	
+							LOGGER.info("Loaded\t" + file+"\t"+modeluri);
 						} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
 								| RDFHandlerException | IOException e) {
 							// TODO Auto-generated catch block
