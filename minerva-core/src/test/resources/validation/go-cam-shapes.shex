@@ -4,6 +4,7 @@ PREFIX rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 #metadata
 PREFIX bl: <https://w3id.org/biolink/vocab/>
 PREFIX contributor: <http://purl.org/dc/elements/1.1/contributor>
@@ -75,6 +76,7 @@ PREFIX transports_or_maintains_localization_of: <http://purl.obolibrary.org/obo/
 PREFIX directly_provides_input_for: <http://purl.obolibrary.org/obo/RO_0002413>
 PREFIX directly_positively_regulates: <http://purl.obolibrary.org/obo/RO_0002629>
 PREFIX located_in: <http://purl.obolibrary.org/obo/RO_0001025>
+PREFIX location_of: <http://purl.obolibrary.org/obo/RO_0001015>
 PREFIX happens_during: <http://purl.obolibrary.org/obo/RO_0002092>
 PREFIX regulates: <http://purl.obolibrary.org/obo/RO_0002211>
 PREFIX negatively_regulates: <http://purl.obolibrary.org/obo/RO_0002212>
@@ -122,6 +124,7 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   date: xsd:string *; #TODO can we make this an xsd:date?
   provided_by: xsd:string *; #TODO would be better as an IRI
   rdfs:comment xsd:string *;
+  skos:note xsd:string *;
 }
 
 <GoCamEntity> IRI @<ProvenanceAnnotated> AND EXTRA a {
@@ -339,7 +342,7 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   a ( @<MolecularFunctionClass> OR @<NegatedMolecularFunctionClass> ) {1};
   enabled_by:  ( @<InformationBiomacromolecule> OR @<ProteinContainingComplex> ) {0,1};
   part_of: @<BiologicalProcess> {0,1};
-  occurs_in: ( @<AnatomicalEntity> OR @<ProteinContainingComplex> ) {0,1};
+  occurs_in: @<AnatomicalEntity> {0,1};
   has_output: ( @<ChemicalEntity> OR @<ProteinContainingComplex> ) *;
   has_input: ( @<ChemicalEntity> OR @<ProteinContainingComplex> ) *;
   directly_provides_input_for: @<MolecularFunction> *;
@@ -357,6 +360,10 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   causally_upstream_of_positive_effect: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
   happens_during: ( @<BiologicalPhase> OR @<LifeCycleStage> OR @<PlantStructureDevelopmentStage> ) *;
 } // rdfs:comment  "A molecular function"
+
+<IdealMolecularActivity> @<MolecularFunction> AND {
+  enabled_by:  ( @<InformationBiomacromolecule> OR @<ProteinContainingComplex> ) {1};
+}
 
 <TransporterActivityClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
   rdfs:subClassOf [ GoTransporterActivity: ];
@@ -407,6 +414,7 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
 <AnatomicalEntity> @<GoCamEntity> AND EXTRA a {
   a ( @<AnatomicalEntityClass> OR @<NegatedAnatomicalEntityClass> );
   part_of: @<AnatomicalEntity> {0,1};
+  location_of: ( @<InformationBiomacromolecule> OR @<ProteinContainingComplex> ) {0,1};
 } // rdfs:comment  "an anatomical entity"
 
 <NativeCellClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
@@ -432,12 +440,11 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   part_of: @<AnatomicalEntity> {0,1};
   adjacent_to: @<AnatomicalEntity> *;
   overlaps: @<AnatomicalEntity> *;
-  has_part:(@<InformationBiomacromolecule> OR  @<ProteinContainingComplex>) {0,1};
 } // rdfs:comment  "a cellular component"
 
 <ProteinContainingComplex> EXTRA a {
   a @<ProteinContainingComplexClass>;
-  located_in: @<CellularComponent> {0,1};
+  located_in: @<AnatomicalEntity> {0,1};
   has_part: @<InformationBiomacromolecule> *;
 } // rdfs:comment  "a protein complex"
 
@@ -458,7 +465,8 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
 }
 <Protein> @<ChemicalEntity> AND EXTRA a {
   a @<ProteinClass> ;
-  located_in: @<CellularComponent> {0,1};
+  located_in: @<AnatomicalEntity> {0,1};
+  part_of: @<ProteinContainingComplex> {0,1};
 }// rdfs:comment  "a protein"
 
 
@@ -467,7 +475,7 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
 }
 <InformationBiomacromolecule> @<ChemicalEntity> AND EXTRA a {
    a @<InformationBiomacromoleculeClass> +;
-   part_of: @<CellularComponent> {0,1};
+   located_in: @<AnatomicalEntity> {0,1};
    part_of: @<ProteinContainingComplex> {0,1};
 }// rdfs:comment  "an information biomacromolecule - e.g. a protein or RNA product"
 
@@ -475,7 +483,7 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   rdfs:subClassOf [ GoEvidence: ] ;
 }
 
-<Evidence> @<ProvenanceAnnotated> AND EXTRA a  {
+<Evidence> @<GoCamEntity> AND EXTRA a  {
   a @<EvidenceClass> {1};
   source: xsd:string {1};
   with: xsd:string {0,1}
