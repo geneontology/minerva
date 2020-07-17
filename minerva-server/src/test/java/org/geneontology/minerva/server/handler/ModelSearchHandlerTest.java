@@ -168,6 +168,40 @@ public class ModelSearchHandlerTest {
 	public void tearDown() throws Exception {
 	}
 
+	
+	@Test
+	public final void testSearchGetByModelIdAsCurie() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
+		//<http://model.geneontology.org/5d29221b00001265> 
+		builder.addParameter("id", "gomodel:5d29221b00001265");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by id URI "+searchuri);
+		LOGGER.info("Search by id result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()==1);
+	}
+	
+	@Test
+	public final void testSearchGetByModelIdAsURI() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
+		//<http://model.geneontology.org/5d29221b00001265> 
+		//builder.addParameter("id", "gomodel:5d29221b00001265");
+		builder.addParameter("id", "http://model.geneontology.org/5d29221b00001265");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by id URI "+searchuri);
+		LOGGER.info("Search by id result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()==1);
+	}
+	
 	/**
 	 * Test method for {@link org.geneontology.minerva.server.handler.ModelSearchHandler#searchGet(java.util.Set, java.util.Set, java.util.Set, java.lang.String, java.util.Set, java.util.Set, java.util.Set, java.lang.String, int, int, java.lang.String)}.
 	 * @throws URISyntaxException 

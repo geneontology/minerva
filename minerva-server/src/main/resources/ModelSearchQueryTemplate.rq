@@ -15,6 +15,7 @@ PREFIX directly_positively_regulates: <http://purl.obolibrary.org/obo/RO_0002629
 
 SELECT  <return_block>    
 WHERE {
+  <id_constraint> 
   GRAPH ?id {  
         ?id <http://purl.org/dc/elements/1.1/title> ?title ;
            <http://purl.org/dc/elements/1.1/date> ?date ;
