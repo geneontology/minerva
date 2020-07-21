@@ -194,7 +194,7 @@ public class ModelSearchHandler {
 			@QueryParam("limit") int limit,
 			@QueryParam("count") String count,
 			@QueryParam("debug") String debug,
-			@QueryParam("id") String id
+			@QueryParam("id") Set<String> id
 			){
 		ModelSearchResult result = new ModelSearchResult();
 		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug, id);
@@ -219,7 +219,7 @@ public class ModelSearchHandler {
 			Set<String> gene_product_ids, Set<String> terms, String expand, Set<String>pmids, 
 			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, 
 			String exactdate, String date_search, String datend, 
-			int offset, int limit, String count, String debug, String id) {
+			int offset, int limit, String count, String debug, Set<String> id) {
 		ModelSearchResult r = new ModelSearchResult();
 		Set<String> go_type_ids = new HashSet<String>();
 		Set<String> gene_type_ids = new HashSet<String>();
@@ -309,24 +309,27 @@ public class ModelSearchHandler {
 			}
 		}
 		String id_constraint = "";
-		if(id!=null) {
-			if(!id.contains("http")) {
-				String[] curie = id.split(":");
-				if(curie!=null&&curie.length==2) {
-					id = "http://model.geneontology.org/"+curie[1];
+		if(id!=null&&id.size()>0) {
+			String id_list = "";
+			for(String mid : id) {
+				if(!mid.contains("http")) {
+					String[] curie = mid.split(":");
+					if(curie!=null&&curie.length==2) {
+						mid = "http://model.geneontology.org/"+curie[1];
+					}
+					//TODO figure this out and add it to standard curie collection				
+					//				try {
+					//					IRI iri = curie_handler.getIRI(id);
+					//					id = iri.toString();
+					//				} catch (UnknownIdentifierException e) {
+					//					// TODO Auto-generated catch block
+					//					e.printStackTrace();
+					//				}
 				}
-//TODO figure this out and add it to standard curie collection				
-//				try {
-//					IRI iri = curie_handler.getIRI(id);
-//					id = iri.toString();
-//				} catch (UnknownIdentifierException e) {
-//					// TODO Auto-generated catch block
-//					e.printStackTrace();
-//				}
+				id_list += "<"+mid+"> ";
 			}
-			id_constraint = " values ?id {<"+id+"> } ";
+			id_constraint = " values ?id { "+id_list+" } ";
 		}
-		
 		String pmid_constraints = ""; //<pmid_constraints>
 		if(pmids!=null) {
 			for(String pmid : pmids) {
@@ -377,9 +380,9 @@ public class ModelSearchHandler {
 			if(!title_search.contains("*")) {
 				title_search_constraint+=" ?title <http://www.bigdata.com/rdf/search#matchAllTerms> \""+"true"+"\" . \n";
 			}
-//			if(exact_match) {
-//				title_search_constraint+=" ?title <http://www.bigdata.com/rdf/search#matchExact>  \""+"true"+"\" . \n";
-//			}
+			//			if(exact_match) {
+			//				title_search_constraint+=" ?title <http://www.bigdata.com/rdf/search#matchExact>  \""+"true"+"\" . \n";
+			//			}
 		}
 		String state_search_constraint = "";
 		if(state_search!=null&&state_search.size()>0) {
@@ -598,7 +601,7 @@ public class ModelSearchHandler {
 			@FormParam("limit") int limit,
 			@FormParam("count") String count,
 			@FormParam("debug") String debug,
-			@FormParam("debug") String id) {
+			@FormParam("debug") Set<String> id) {
 		ModelSearchResult result = new ModelSearchResult();
 		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug, id);
 		return result;
