@@ -20,6 +20,7 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -175,6 +176,8 @@ public class ModelSearchHandlerTest {
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
 		//<http://model.geneontology.org/5d29221b00001265> 
 		builder.addParameter("id", "gomodel:5d29221b00001265");
+		builder.addParameter("id", "gomodel:5d29218800000021");		
+		///  5d29218800000021
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
 		Gson g = new Gson();
@@ -182,7 +185,7 @@ public class ModelSearchHandlerTest {
 		LOGGER.info("Search by id URI "+searchuri);
 		LOGGER.info("Search by id result "+json_result);
 		LOGGER.info("N models found: "+result.getN());
-		assertTrue(result.getN()==1);
+		assertTrue(result.getN()==2);
 	}
 	
 	@Test
