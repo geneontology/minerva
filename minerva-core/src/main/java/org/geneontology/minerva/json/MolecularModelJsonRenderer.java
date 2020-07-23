@@ -208,6 +208,23 @@ public class MolecularModelJsonRenderer {
 	}
 
 	public Pair<JsonOwlIndividual[], JsonOwlFact[]> renderIndividuals(Collection<OWLNamedIndividual> individuals) {
+		
+		//add root types in case these are new to the model
+				if(go_lego_repo!=null) {
+					try {
+						if(type_roots==null) {
+							type_roots = new HashMap<OWLNamedIndividual, Set<String>>();
+						}
+						Map<OWLNamedIndividual, Set<String>> t_r = go_lego_repo.getSuperCategoryMapForIndividuals(new HashSet<OWLNamedIndividual>(individuals), ont);
+						if(t_r!=null) {
+							type_roots.putAll(t_r);				
+						}
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+		
 		List<JsonOwlIndividual> iObjs = new ArrayList<JsonOwlIndividual>();
 		Set<OWLNamedIndividual> individualIds = new HashSet<OWLNamedIndividual>();
 		final Set<OWLObjectPropertyAssertionAxiom> opAxioms = new HashSet<OWLObjectPropertyAssertionAxiom>();
@@ -218,6 +235,7 @@ public class MolecularModelJsonRenderer {
 				individualIds.add(named);
 			}
 		}
+		
 		// filter object property axioms. Only retain axioms which use individuals from the given subset
 		for (OWLNamedIndividual i : individualIds) {
 			Set<OWLObjectPropertyAssertionAxiom> axioms = ont.getObjectPropertyAssertionAxioms(i);
