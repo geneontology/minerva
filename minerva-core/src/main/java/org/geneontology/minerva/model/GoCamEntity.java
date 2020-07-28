@@ -1,5 +1,6 @@
 package org.geneontology.minerva.model;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -19,8 +20,10 @@ public class GoCamEntity extends ProvenanceAnnotated{
 	Set<OWLClass> direct_types;
 	Set<OWLClass> indirect_types;
 	String derived_from;
+	GoCamModel in_model;
 	
-	public GoCamEntity(OWLNamedIndividual ind, OWLOntology ont) {
+	public GoCamEntity(OWLNamedIndividual ind, OWLOntology ont, GoCamModel model) {
+		in_model = model;
 		addAnnotations(ind, ont);
 		individual = ind;
 		direct_types = new HashSet<OWLClass>();
@@ -29,6 +32,7 @@ public class GoCamEntity extends ProvenanceAnnotated{
 				direct_types.add(ce.asOWLClass());
 			}
 		}
+		model.ind_entity.put(ind, this);
 	}
 	
 	private void addAnnotations(OWLNamedIndividual ind, OWLOntology ont) {
@@ -65,5 +69,36 @@ public class GoCamEntity extends ProvenanceAnnotated{
 			}
 		}
 		
+	}
+	protected String stringForClasses(Set<OWLClass> types) {
+		if(types==null) {
+			return "";
+		}
+		String c = "";		
+		for(OWLClass type : types) {
+			try {
+				c+=in_model.go_lego.getLabel(type)+"\t";
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return c;
+	}
+	
+	public String toString(){
+		String g = "";
+		if(label!=null) {
+			g += "label:"+label;
+		}
+		g+="\nIRI:"+individual.toString()+"\ntypes: "+this.stringForClasses(this.direct_types);
+		if(comments!=null) {
+			g+="\ncomments: "+comments+"\n";
+		}
+		if(notes!=null) {
+			g+="\nnotes:"+notes;
+		}
+		
+		return g;
 	}
 }

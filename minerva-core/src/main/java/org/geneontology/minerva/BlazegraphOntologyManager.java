@@ -246,6 +246,43 @@ public class BlazegraphOntologyManager {
 		return supers;
 	}
 	
+	
+	public int getClassDepth(String term, String root_term) throws IOException {
+		int depth = -1;
+		try {
+			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+			try {
+				String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
+						"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
+						+ "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+						"SELECT ?class (count(?mid)-1 as ?depth) " +
+						"WHERE { "
+						+ "values ?class {<"+term+">} . " 
+						+ "?class rdfs:subClassOf* ?mid . " + 
+						"  ?mid rdfs:subClassOf* <"+root_term+"> ." +
+						"filter ( ?class != ?mid )}"
+						+ "group by ?class " + 
+						" order by ?depth";
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
+				TupleQueryResult result = tupleQuery.evaluate();
+				while (result.hasNext()) {
+					BindingSet binding = result.next();
+					Value v = binding.getValue("depth");
+					depth = Integer.parseInt(v.stringValue());
+				}
+			} catch (MalformedQueryException e) {
+				throw new IOException(e);
+			} catch (QueryEvaluationException e) {
+				throw new IOException(e);
+			} finally {
+				connection.close();
+			}
+		} catch (RepositoryException e) {
+			throw new IOException(e);
+		}
+		return depth;
+	}
+	
 	public Map<OWLNamedIndividual, Set<String>> getSuperCategoryMapForIndividuals(Set<OWLNamedIndividual> inds, OWLOntology ont) throws IOException{
 		Map<OWLNamedIndividual, Set<String>> ind_roots = new HashMap<OWLNamedIndividual, Set<String>>();
 		Set<String> all_types = new HashSet<String>();

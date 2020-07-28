@@ -5,8 +5,8 @@ import org.semanticweb.owlapi.model.OWLOntology;
 
 public class AnatomicalEntity extends GoCamEntity{
 
-	public AnatomicalEntity(OWLNamedIndividual loc_ind, OWLOntology ont) {
-		super(loc_ind, ont);
+	public AnatomicalEntity(OWLNamedIndividual loc_ind, OWLOntology ont, GoCamModel model) {
+		super(loc_ind, ont, model);
 	}
 
 }

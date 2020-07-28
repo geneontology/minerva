@@ -7,8 +7,8 @@ import org.semanticweb.owlapi.model.OWLOntology;
 
 
 public class BiologicalProcessUnit extends GoCamOccurent{
-	public BiologicalProcessUnit(OWLNamedIndividual enabler_ind, OWLOntology ont) {
-		super(enabler_ind, ont);
+	public BiologicalProcessUnit(OWLNamedIndividual enabler_ind, OWLOntology ont, GoCamModel model) {
+		super(enabler_ind, ont, model);
 	}
 	Set<PhysicalEntity>  transports;
 	AnatomicalEntity start_location;

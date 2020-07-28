@@ -5,8 +5,8 @@ import org.semanticweb.owlapi.model.OWLOntology;
 
 public class PhysicalEntity extends GoCamEntity{
 
-	public PhysicalEntity(OWLNamedIndividual enabler_ind, OWLOntology ont) {
-		super(enabler_ind, ont);
+	public PhysicalEntity(OWLNamedIndividual enabler_ind, OWLOntology ont, GoCamModel model) {
+		super(enabler_ind, ont, model);
 	}
 
 }

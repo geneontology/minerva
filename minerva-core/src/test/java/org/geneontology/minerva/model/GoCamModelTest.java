@@ -47,7 +47,7 @@ public class GoCamModelTest {
 			e.printStackTrace();
 		}	
 		
-		fail("Not yet implemented"); // TODO
+//		fail("Not yet implemented"); // TODO
 	}
 
 }
