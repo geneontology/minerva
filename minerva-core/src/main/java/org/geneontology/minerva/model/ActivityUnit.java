@@ -71,15 +71,12 @@ public class ActivityUnit extends GoCamOccurent{
 							causal_out.put(prop, objects);
 						}
 					}
-					//above we have annotations of this activity
+					//above we have contextual information for this activity
 					//here we check for causal relations linked to this activity from another one.  
 				}else if(a.getObject().equals(ind)) {
 					//the source 
 					OWLNamedIndividual source = a.getSubject().asOWLNamedIndividual();
-					GoCamEntity source_event = model.ind_entity.get(source);
-					if(source_event==null) {
-						source_event = getOccurent(source, ont, model);					
-					}
+					GoCamEntity source_event = getOccurent(source, ont, model);
 					if(source_event !=null) {
 						Set<GoCamOccurent> sources = causal_in.get(prop);
 						if(sources==null) {
@@ -114,6 +111,10 @@ public class ActivityUnit extends GoCamOccurent{
 	
 	
 	private GoCamOccurent getOccurent(OWLNamedIndividual object, OWLOntology ont, GoCamModel model) {
+		GoCamEntity e = model.ind_entity.get(object);
+		if(e!=null) {
+			return (GoCamOccurent)e;
+		}
 		Set<String> types = model.ind_types.get(object);
 		GoCamOccurent object_event = null;
 		if(types.contains("http://purl.obolibrary.org/obo/GO_0008150")) {
@@ -121,6 +122,7 @@ public class ActivityUnit extends GoCamOccurent{
 		}else if(types.contains("http://purl.obolibrary.org/obo/GO_0003674")) {
 			object_event = new ActivityUnit(object, ont, model);
 		}
+		model.ind_entity.put(object, object_event);
 		return object_event;
 	}
 	

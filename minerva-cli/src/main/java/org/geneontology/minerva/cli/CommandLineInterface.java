@@ -49,6 +49,7 @@ import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
 import org.geneontology.minerva.lookup.GolrExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
+import org.geneontology.minerva.model.GoCamModel;
 import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.server.validation.MinervaShexValidator;
@@ -893,6 +894,9 @@ public class CommandLineInterface {
 					LOGGER.info("processing \t"+modelIRI);
 				}
 				ModelContainer mc = m3.getModel(modelIRI);	
+				LOGGER.info("preparing stats...");
+				GoCamModel gcm = new GoCamModel(mc.getAboxOntology(), m3.getGolego_repo());
+				LOGGER.info("I'm the new object model stat counter thing! \n\t"+gcm.toString()+"\n"+gcm.getStats().toString());
 				int axioms = mc.getAboxOntology().getAxiomCount();
 				String title = "title";
 				Set<OWLAnnotation> annos = mc.getAboxOntology().getAnnotations();

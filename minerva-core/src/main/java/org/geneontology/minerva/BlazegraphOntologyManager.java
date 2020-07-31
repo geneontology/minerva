@@ -62,6 +62,7 @@ public class BlazegraphOntologyManager {
 	public static String in_taxon_uri = "https://w3id.org/biolink/vocab/in_taxon";
 	public static OWLAnnotationProperty in_taxon;
 	private static final Set<String> root_types;
+	public Map<String, Integer> class_depth;
 	static {
 		root_types =  new HashSet<String>();
 		root_types.add("http://purl.obolibrary.org/obo/GO_0008150"); //BP
@@ -96,12 +97,18 @@ public class BlazegraphOntologyManager {
 			}
 			go_lego_repo = initializeRepository(go_lego_repo_file);
 		}
+		class_depth = buildClassDepthMap("http://purl.obolibrary.org/obo/GO_0003674");
+		class_depth.putAll(buildClassDepthMap("http://purl.obolibrary.org/obo/GO_0008150"));
+		class_depth.putAll(buildClassDepthMap("http://purl.obolibrary.org/obo/GO_0005575"));
+		class_depth.put("http://purl.obolibrary.org/obo/GO_0008150", 0);
+		class_depth.put("http://purl.obolibrary.org/obo/GO_0003674", 0);
+		class_depth.put("http://purl.obolibrary.org/obo/GO_0005575", 0);
 	}
 
 	public BigdataSailRepository getGo_lego_repo() {
 		return go_lego_repo;
 	}
-	
+
 	public OWLOntology addTaxonModelMetaData(OWLOntology model, IRI taxon_iri) {
 		OWLOntologyManager ontman = model.getOWLOntologyManager();
 		OWLDataFactory df = ontman.getOWLDataFactory();		
@@ -110,25 +117,25 @@ public class BlazegraphOntologyManager {
 		ontman.addAxiom(model, taxonannoaxiom);
 		return model;
 	}
-	
+
 	public void unGunzipFile(String compressedFile, String decompressedFile) {		 
-        byte[] buffer = new byte[1024]; 
-        try { 
-            FileInputStream fileIn = new FileInputStream(compressedFile);
-            GZIPInputStream gZIPInputStream = new GZIPInputStream(fileIn); 
-            FileOutputStream fileOutputStream = new FileOutputStream(decompressedFile); 
-            int bytes_read; 
-            while ((bytes_read = gZIPInputStream.read(buffer)) > 0) { 
-                fileOutputStream.write(buffer, 0, bytes_read);
-            }
-            gZIPInputStream.close();
-            fileOutputStream.close(); 
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-    }
-	
-	
+		byte[] buffer = new byte[1024]; 
+		try { 
+			FileInputStream fileIn = new FileInputStream(compressedFile);
+			GZIPInputStream gZIPInputStream = new GZIPInputStream(fileIn); 
+			FileOutputStream fileOutputStream = new FileOutputStream(decompressedFile); 
+			int bytes_read; 
+			while ((bytes_read = gZIPInputStream.read(buffer)) > 0) { 
+				fileOutputStream.write(buffer, 0, bytes_read);
+			}
+			gZIPInputStream.close();
+			fileOutputStream.close(); 
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+	}
+
+
 	private BigdataSailRepository initializeRepository(String pathToJournal) {
 		try {
 			Properties properties = new Properties();
@@ -245,8 +252,49 @@ public class BlazegraphOntologyManager {
 		}
 		return supers;
 	}
-	
-	
+
+
+	public Map<String, Integer> buildClassDepthMap(String root_term) throws IOException {
+		Map<String, Integer> class_depth = new HashMap<String, Integer>();
+		try {
+			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+			try {
+				String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
+						"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
+						+ "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+						"SELECT ?class (count(?mid) as ?depth) " +
+						"WHERE { "
+						+ "?class rdfs:subClassOf* ?mid . "  
+						+ "values ?root_term {<"+root_term+">} . "
+						+"  ?mid rdfs:subClassOf* ?root_term ." +
+						"filter ( ?class != ?mid )}"
+						+ "group by ?class " + 
+						" order by ?depth";
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
+				TupleQueryResult result = tupleQuery.evaluate();
+				while (result.hasNext()) {
+					BindingSet binding = result.next();
+					Value v = binding.getValue("depth");
+					Integer depth = Integer.parseInt(v.stringValue());
+					String c = binding.getValue("class").stringValue();
+					Integer k = class_depth.get(c);
+					if((k==null)||(depth<k)) {
+						class_depth.put(c, depth);
+					}
+				}
+			} catch (MalformedQueryException e) {
+				throw new IOException(e);
+			} catch (QueryEvaluationException e) {
+				throw new IOException(e);
+			} finally {
+				connection.close();
+			}
+		} catch (RepositoryException e) {
+			throw new IOException(e);
+		}
+		return class_depth;
+	}
+
 	public int getClassDepth(String term, String root_term) throws IOException {
 		int depth = -1;
 		try {
@@ -255,7 +303,7 @@ public class BlazegraphOntologyManager {
 				String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
 						"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
 						+ "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
-						"SELECT ?class (count(?mid)-1 as ?depth) " +
+						"SELECT ?class (count(?mid) as ?depth) " +
 						"WHERE { "
 						+ "values ?class {<"+term+">} . " 
 						+ "?class rdfs:subClassOf* ?mid . " + 
@@ -282,7 +330,7 @@ public class BlazegraphOntologyManager {
 		}
 		return depth;
 	}
-	
+
 	public Map<OWLNamedIndividual, Set<String>> getSuperCategoryMapForIndividuals(Set<OWLNamedIndividual> inds, OWLOntology ont) throws IOException{
 		Map<OWLNamedIndividual, Set<String>> ind_roots = new HashMap<OWLNamedIndividual, Set<String>>();
 		Set<String> all_types = new HashSet<String>();
@@ -306,7 +354,7 @@ public class BlazegraphOntologyManager {
 		}
 		return ind_roots;
 	}
-	
+
 	public Map<String, Set<String>> getSuperCategoryMap(Set<String> uris) throws IOException {
 		Map<String, Set<String>> sub_supers = new HashMap<String, Set<String>>();
 		try {
@@ -317,7 +365,7 @@ public class BlazegraphOntologyManager {
 					q+="<"+uri+"> ";
 				}
 				q+="} . " ;
-				
+
 				String categories = "VALUES ?super {";
 				for(String c : root_types) {
 					categories += "<"+c+"> ";
@@ -362,12 +410,12 @@ public class BlazegraphOntologyManager {
 		return sub_supers;
 	}
 
-/**
- * This reproduces the results of the golr lookup service for gene product typing
- * @param uris
- * @return
- * @throws IOException
- */
+	/**
+	 * This reproduces the results of the golr lookup service for gene product typing
+	 * @param uris
+	 * @return
+	 * @throws IOException
+	 */
 	public Map<String, Set<String>> getNeoRoots(Set<String> uris) throws IOException {
 		Map<String, Set<String>> all = getSuperClassMap(uris);
 		Map<String, Set<String>> roots = new HashMap<String, Set<String>>();
@@ -390,8 +438,8 @@ public class BlazegraphOntologyManager {
 		}
 		return roots;
 	}
-	
-	
+
+
 	public Map<String, Set<String>> getSuperClassMap(Set<String> uris) throws IOException {
 		Map<String, Set<String>> sub_supers = new HashMap<String, Set<String>>();
 		try {
@@ -440,8 +488,8 @@ public class BlazegraphOntologyManager {
 		}
 		return sub_supers;
 	}
-	
-	
+
+
 	public Set<String> getGenesByTaxid(String ncbi_tax_id) throws IOException {
 		Set<String> genes = new HashSet<String>();
 		try {
@@ -449,11 +497,11 @@ public class BlazegraphOntologyManager {
 			try {
 				String query =
 						"select ?gene   \n" + 
-						"where { \n" + 
-						"  ?gene rdfs:subClassOf ?taxon_restriction .\n" + 
-						"  ?taxon_restriction owl:onProperty <http://purl.obolibrary.org/obo/RO_0002162> .\n" + 
-						"  ?taxon_restriction owl:someValuesFrom <http://purl.obolibrary.org/obo/NCBITaxon_"+ncbi_tax_id+"> \n" + 
-						"}";
+								"where { \n" + 
+								"  ?gene rdfs:subClassOf ?taxon_restriction .\n" + 
+								"  ?taxon_restriction owl:onProperty <http://purl.obolibrary.org/obo/RO_0002162> .\n" + 
+								"  ?taxon_restriction owl:someValuesFrom <http://purl.obolibrary.org/obo/NCBITaxon_"+ncbi_tax_id+"> \n" + 
+								"}";
 
 				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
 				TupleQueryResult result = tupleQuery.evaluate();
@@ -478,7 +526,7 @@ public class BlazegraphOntologyManager {
 		}
 		return genes;
 	}
-	
+
 	public Set<String> getAllTaxaWithGenes() throws IOException {
 		Set<String> taxa = new HashSet<String>();
 		try {
@@ -516,9 +564,9 @@ public class BlazegraphOntologyManager {
 		}
 		return taxa;
 	}
-	
-	
-	
+
+
+
 	public void dispose() {
 		try {
 			go_lego_repo.shutDown();
@@ -568,16 +616,16 @@ public class BlazegraphOntologyManager {
 		}
 		return taxa;
 	}
-	
-	
+
+
 	public String getLabel(OWLNamedObject i) throws IOException {
 		String entity = i.getIRI().toString();
 		return getLabel(entity);
 	}
-	
+
 	public String getLabel(String entity) throws IOException {
 		String label = null;
-		
+
 		String query = "select ?label where { <"+entity+"> rdfs:label ?label } limit 1";		
 		try {
 			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
@@ -601,16 +649,16 @@ public class BlazegraphOntologyManager {
 		}
 		return label;
 	}
-	
+
 	public Map<String, String> getLabels(Set<String> entities) throws IOException {
 		Map<String, String> uri_label = new HashMap<String, String>();
-		
+
 		String values = "VALUES ?entity {";
 		for(String uri : entities) {
 			values+="<"+uri+"> ";
 		}
 		values+="} . " ;
-		
+
 		String query = "select ?entity ?label where { "+values+" ?entity rdfs:label ?label }";		
 		try {
 			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
