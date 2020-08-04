@@ -29,6 +29,7 @@ public class GoCamModelStats {
 
 	public GoCamModelStats(GoCamModel model) {
 		for(ActivityUnit a : model.activities) {
+			n_activity_units++;
 			Set<GoCamOccurent> downstream = a.getDownstream(a);
 			for(OWLClass oc : a.direct_types) {
 				try {
@@ -170,5 +171,19 @@ public class GoCamModelStats {
 		g+=" descriptive statistics for depth in ontology for BP terms containing activity units \n"+stats2string(bp_depth);
 		g+=" descriptive statistics for depth in ontology for CC terms used as locations for activity units \n"+stats2string(cc_depth);
 		return g;
+	}
+
+	public String stats2cols() {
+		String r = n_activity_units+"\t"+n_complete_activity_units+"\t"+n_raw_mf+"\t"+n_raw_bp+"\t"+n_raw_cc+"\t"+n_no_enabler+"\t"+n_no_location+"\t"+n_no_bp+
+				"\t"+n_connected_processes+"\t"+n_causal_out_relation_assertions+"\t"+n_unconnected+"\t"+n_unconnected_out+"\t"+n_unconnected_in+"\t"+max_connected_graph+
+				"\t"+mf_depth.getPercentile(50)+"\t"+bp_depth.getPercentile(50)+"\t"+cc_depth.getPercentile(50);
+		return r;
+	}
+	public static String statsHeader() {
+		String h = "activity units\tn complete activity units\tn root MF activity units\tn root BP process\tn root CC locations"
+				+ "\tn unenabled activity units\tn unlocated activity units\tn activity units unconnected to a BP\tn connected biological processes"
+				+ "\tn causal relation assertions\tn unconnected activities\tn activities with no outgoing connections\tn activities with no incoming connections"
+				+ "\tmax length of connected causal subgraph\tmedian_depth_MF\tmedian_depth_BP\tmedian_depth_cc";
+		return h;
 	}
 }

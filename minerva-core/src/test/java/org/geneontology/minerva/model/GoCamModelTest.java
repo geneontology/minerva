@@ -39,7 +39,8 @@ public class GoCamModelTest {
 			System.out.println("loading "+gocam_file);
 			OWLOntology gocam = man.loadOntologyFromOntologyDocument(new File(gocam_file));
 			GoCamModel g = new GoCamModel(gocam, onto_repo);
-			System.out.println("gocam model \n\t"+g.toString()+"\n"+g.getStats().toString());
+			System.out.println("gocam model \n\t"+g.toString()+"\n"+g.getGoCamModelStats().toString());
+			System.out.println(g.getGoCamModelStats().stats2cols());
 		} catch (OWLOntologyCreationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

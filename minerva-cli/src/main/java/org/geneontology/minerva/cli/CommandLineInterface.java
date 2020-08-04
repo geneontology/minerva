@@ -50,6 +50,7 @@ import org.geneontology.minerva.lookup.GolrExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.geneontology.minerva.model.GoCamModel;
+import org.geneontology.minerva.model.GoCamModelStats;
 import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.server.validation.MinervaShexValidator;
@@ -847,7 +848,8 @@ public class CommandLineInterface {
 
 		if(basicOutputFile!=null) {
 			FileWriter basic_shex_output = new FileWriter(basicOutputFile, false);
-			basic_shex_output.write("filename\tmodel_title\tmodel_id\tOWL_consistent\tshex_valid\tvalidation_time_milliseconds\taxioms\n");
+			basic_shex_output.write("filename\tmodel_title\tmodel_id\tOWL_consistent\tshex_valid\tvalidation_time_milliseconds\taxioms\t");
+			basic_shex_output.write(GoCamModelStats.statsHeader()+"\n");
 			basic_shex_output.close();
 		}
 		if(explanationOutputFile!=null) {
@@ -894,9 +896,9 @@ public class CommandLineInterface {
 					LOGGER.info("processing \t"+modelIRI);
 				}
 				ModelContainer mc = m3.getModel(modelIRI);	
-				LOGGER.info("preparing stats...");
+				LOGGER.info("preparing model stats...");
 				GoCamModel gcm = new GoCamModel(mc.getAboxOntology(), m3.getGolego_repo());
-				LOGGER.info("I'm the new object model stat counter thing! \n\t"+gcm.toString()+"\n"+gcm.getStats().toString());
+				LOGGER.info("model stats done");
 				int axioms = mc.getAboxOntology().getAxiomCount();
 				String title = "title";
 				Set<OWLAnnotation> annos = mc.getAboxOntology().getAnnotations();
@@ -1033,7 +1035,8 @@ public class CommandLineInterface {
 					}			
 					LOGGER.info(filename+"\t"+title+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:"+isConformant);
 
-					basic.write(filename+"\t"+title+"\t"+modelIRI+"\t"+isConsistent+"\t"+isConformant+"\t"+milliseconds+"\t"+axioms+"\n");
+					basic.write(filename+"\t"+title+"\t"+modelIRI+"\t"+isConsistent+"\t"+isConformant+"\t"+milliseconds+"\t"+axioms+"\t"
+							+ gcm.getGoCamModelStats().stats2cols()+"\n");
 				}else {
 					LOGGER.info(filename+"\t"+title+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:not checked");
 					basic.write(filename+"\t"+title+"\t"+modelIRI+"\t"+isConsistent+"\tnot checked\n");						

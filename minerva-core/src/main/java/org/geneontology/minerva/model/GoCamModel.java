@@ -30,6 +30,7 @@ public class GoCamModel extends ProvenanceAnnotated{
 	Map<OWLNamedIndividual, Set<String>> ind_types;
 	Map<OWLNamedIndividual, GoCamEntity> ind_entity;
 	OWLClass mf; OWLClass bp; OWLClass cc;
+	GoCamModelStats stats;
 
 	public GoCamModel(OWLOntology abox, BlazegraphOntologyManager go_lego_manager) throws IOException {
 		ont = abox;
@@ -41,6 +42,7 @@ public class GoCamModel extends ProvenanceAnnotated{
 		ind_entity = new HashMap<OWLNamedIndividual, GoCamEntity>();
 		addAnnotations();
 		addActivities();
+		this.setGoCamModelStats();
 	}
 
 	private void addActivities() throws IOException {
@@ -100,8 +102,11 @@ public class GoCamModel extends ProvenanceAnnotated{
 		return g;
 	}
 	
-	public GoCamModelStats getStats() {
-		return new GoCamModelStats(this);
+	public void setGoCamModelStats() {
+		this.stats = new GoCamModelStats(this);
+	}
+	public GoCamModelStats getGoCamModelStats() {
+		return this.stats;
 	}
 	
 }
