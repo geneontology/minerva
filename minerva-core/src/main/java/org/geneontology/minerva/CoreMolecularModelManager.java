@@ -316,6 +316,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 			// Using model's ontology IRI so that a spurious different ontology declaration triple isn't added
 		//	OWLOntology schemaOntology = OWLManager.createOWLOntologyManager().createOntology(getOntology().getRBoxAxioms(Imports.INCLUDED), modelId);
 		// I think the re-use of the model IRI as the IRI of the rule ontology has some weird effects on the model in question, rendering its contents inaccesible.  
+		//this influences GPAD export
 			OWLOntologyManager tmp_man = OWLManager.createOWLOntologyManager();
 			OWLOntology schemaOntology = tmp_man.createOntology(IRI.create("http://therules.org"));
 			Set<OWLAxiom> owl_rules = getOntology().getRBoxAxioms(Imports.INCLUDED);

@@ -194,6 +194,7 @@ public class GPADSPARQLExport {
 		Map<String, String> modelAnnotations = new HashMap<>();
 		while (result.hasNext()) {
 			QuerySolution qs = result.next();
+			//"http://therules.org" 
 			if (qs.get("model_state") != null) {
 				String modelState = qs.getLiteral("model_state").getLexicalForm();
 				modelAnnotations.put("model-state", modelState);
@@ -202,7 +203,7 @@ public class GPADSPARQLExport {
 				String providedBy = qs.getLiteral("provided_by").getLexicalForm();
 				modelAnnotations.put("assigned-by", providedBy);
 			}
-			break;
+			//break;
 		}
 		return modelAnnotations;
 	}
