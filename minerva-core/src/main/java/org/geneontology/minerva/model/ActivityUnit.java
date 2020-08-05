@@ -91,25 +91,25 @@ public class ActivityUnit extends GoCamOccurent{
 	}	
 
 	//causal_out = new HashMap<OWLObjectProperty, Set<GoCamOccurent>>();
-	
-	public Set<GoCamOccurent> getDownstream(GoCamOccurent activity){
-		Set<GoCamOccurent> down = new HashSet<GoCamOccurent>();
+
+	public Set<GoCamOccurent> getDownstream(GoCamOccurent activity, Set<GoCamOccurent> down){
+		if(down==null) {
+			down = new HashSet<GoCamOccurent>();
+		}
 		if(activity.causal_out!=null) {
 			for(Set<GoCamOccurent> nextsteps : activity.causal_out.values()) {
 				for(GoCamOccurent nextstep : nextsteps) {
-					if(nextstep!=activity) {
-						if(down.add(nextstep)) {
-							Set<GoCamOccurent> morenextsteps = getDownstream(nextstep);
-							down.addAll(morenextsteps);
-						}
+					if(nextstep!=activity&&!down.contains(nextstep)) {
+						down.add(nextstep);
+						down = getDownstream(nextstep, down);
 					}
 				}
 			}
 		}
 		return down;
 	}
-	
-	
+
+
 	private GoCamOccurent getOccurent(OWLNamedIndividual object, OWLOntology ont, GoCamModel model) {
 		GoCamEntity e = model.ind_entity.get(object);
 		if(e!=null) {
@@ -125,7 +125,7 @@ public class ActivityUnit extends GoCamOccurent{
 		model.ind_entity.put(object, object_event);
 		return object_event;
 	}
-	
+
 	public String toString() {
 		String g = "";
 		if(label!=null) {

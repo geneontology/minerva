@@ -790,13 +790,14 @@ public class CommandLineInterface {
 						if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
 							try {
 								String modeluri = m3.importModelToDatabase(file, true);
-								if(!model_iris.add(modeluri)) {
-									LOGGER.error("Multiple models with same IRI: "+modeluri+" file: "+file+" file: "+modelid_filename.get(modeluri));
+								if(modeluri==null) {
+									LOGGER.error("Null model IRI: "+modeluri+" file: "+file);
 								}
-								modelid_filename.put(modeluri, file.getName());
-								//is it okay?
-								ModelContainer mc = m3.getModel(IRI.create(modeluri));
-								mc.getModelId();
+								else if(!model_iris.add(modeluri)) {
+									LOGGER.error("Multiple models with same IRI: "+modeluri+" file: "+file+" file: "+modelid_filename.get(modeluri));
+								}else {
+									modelid_filename.put(modeluri, file.getName());
+								}
 							} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
 									| RDFHandlerException | IOException e) {
 								// TODO Auto-generated catch block
@@ -895,36 +896,37 @@ public class CommandLineInterface {
 				}else {
 					LOGGER.info("processing \t"+modelIRI);
 				}
-				ModelContainer mc = m3.getModel(modelIRI);	
+				//ModelContainer mc = m3.getModel(modelIRI);	
 				LOGGER.info("preparing model stats...");
-				GoCamModel gcm = new GoCamModel(mc.getAboxOntology(), m3.getGolego_repo());
-				LOGGER.info("model stats done");
-				int axioms = mc.getAboxOntology().getAxiomCount();
+				OWLOntology gocam_owl = m3.getModelAbox(modelIRI);
+				GoCamModel gcm = new GoCamModel(gocam_owl, m3.getGolego_repo());
 				String title = "title";
-				Set<OWLAnnotation> annos = mc.getAboxOntology().getAnnotations();
-				for(OWLAnnotation anno : annos) {
-					if(anno.getProperty().getIRI().toString().equals("http://purl.org/dc/elements/1.1/title")) {
-						title = anno.getValue().asLiteral().get().getLiteral();
+					if(gcm.getTitle()!=null) {
+						title = gcm.getTitle();
+					}else {
+						LOGGER.error("no title for "+filename);
 					}
-				}
+				LOGGER.info("model stats done ");
+				int axioms = gocam_owl.getAxiomCount();
+				
 				//this is where everything actually happens
-				InferenceProvider ip = ipc.create(mc);
+				InferenceProvider ip = ipc.create(m3.getModel(modelIRI));
 				isConsistent = ip.isConsistent();
 
 				//for reasoner report
 				if(run_reasoner_report) {
 					FileWriter  reasoner_report = new FileWriter(reasoner_report_file, true);
-					Set<OWLNamedIndividual> individuals = mc.getAboxOntology().getIndividualsInSignature();
+					Set<OWLNamedIndividual> individuals = gocam_owl.getIndividualsInSignature();
 					for (OWLNamedIndividual individual : individuals) {
 						//what kind of individual - mapped or created.  mapped have xrefs, created do not. 
 						String xref = "none";
-						for(OWLAnnotation anno : EntitySearcher.getAnnotations(individual, mc.getAboxOntology())){
+						for(OWLAnnotation anno : EntitySearcher.getAnnotations(individual, gocam_owl)){
 							if(anno.getProperty().getIRI().toString().equals("http://www.geneontology.org/formats/oboInOwl#hasDbXref")) {
 								xref = anno.getValue().asLiteral().get().getLiteral();
 							}
 						}
 
-						Collection<OWLClassExpression> asserted_ce = EntitySearcher.getTypes(individual, mc.getAboxOntology());
+						Collection<OWLClassExpression> asserted_ce = EntitySearcher.getTypes(individual, gocam_owl);
 						Set<OWLClass> asserted = new HashSet<OWLClass>();
 						for(OWLClassExpression ce : asserted_ce) {
 							OWLClass a = ce.asOWLClass();

@@ -30,7 +30,7 @@ public class GoCamModelStats {
 	public GoCamModelStats(GoCamModel model) {
 		for(ActivityUnit a : model.activities) {
 			n_activity_units++;
-			Set<GoCamOccurent> downstream = a.getDownstream(a);
+			Set<GoCamOccurent> downstream = a.getDownstream(a, null);
 			for(OWLClass oc : a.direct_types) {
 				try {
 					int depth = -1;
@@ -64,10 +64,16 @@ public class GoCamModelStats {
 					n_raw_cc++;
 				}
 				for(OWLClass oc : ae.direct_types) {
+					if(oc==null||oc.isAnonymous()) {
+						continue;
+					}
 					try {
 						int depth = -1;
 						if(model.go_lego.class_depth!=null) {
-							depth = model.go_lego.class_depth.get(oc.getIRI().toString());
+							Integer d = model.go_lego.class_depth.get(oc.getIRI().toString());
+							if(d!=null) {
+								depth = d;
+							}
 						}else {
 							depth = model.go_lego.getClassDepth(oc.getIRI().toString(), "http://purl.obolibrary.org/obo/GO_0005575");
 						}

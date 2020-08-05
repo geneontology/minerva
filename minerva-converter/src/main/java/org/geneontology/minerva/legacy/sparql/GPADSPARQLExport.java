@@ -202,7 +202,7 @@ public class GPADSPARQLExport {
 				String providedBy = qs.getLiteral("provided_by").getLexicalForm();
 				modelAnnotations.put("assigned-by", providedBy);
 			}
-			break;
+			//break;
 		}
 		return modelAnnotations;
 	}
