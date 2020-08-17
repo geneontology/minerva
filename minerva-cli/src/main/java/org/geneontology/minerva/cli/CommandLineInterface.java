@@ -36,6 +36,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.BlazegraphOntologyManager;
+import org.geneontology.minerva.CoreMolecularModelManager;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -45,6 +46,7 @@ import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.json.InferenceProvider;
 import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
+import org.geneontology.minerva.legacy.sparql.GPADData;
 import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
 import org.geneontology.minerva.lookup.GolrExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService;
@@ -59,6 +61,7 @@ import org.geneontology.minerva.validation.Enricher;
 import org.geneontology.minerva.validation.ShexValidationReport;
 import org.geneontology.minerva.validation.ShexValidator;
 import org.geneontology.minerva.validation.ValidationResultSet;
+import org.geneontology.minerva.validation.Violation;
 import org.geneontology.minerva.validation.pipeline.BatchPipelineValidationReport;
 import org.geneontology.minerva.validation.pipeline.ErrorMessage;
 import org.geneontology.whelk.owlapi.WhelkOWLReasoner;
@@ -74,10 +77,13 @@ import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLAnnotationProperty;
+import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyAlreadyExistsException;
@@ -759,12 +765,13 @@ public class CommandLineInterface {
 		}else {
 			LOGGER.info("no catalog, resolving all ontology uris directly");
 		}
+		
 		OWLOntology tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
 		LOGGER.info("tbox ontology axioms loaded: "+tbox_ontology.getAxiomCount());
 		//should not be necessary using pre-merged ontology
 		//tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
 		//LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
-
+		
 		if(input.endsWith(".jnl")) {
 			inputDB = input;
 			LOGGER.info("loaded blazegraph journal: "+input);
@@ -818,6 +825,8 @@ public class CommandLineInterface {
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
+		
+		
 		String reasonerOpt = "arachne"; 	
 		if(shexpath==null) {
 			//fall back on downloading from shapes repo
@@ -849,7 +858,7 @@ public class CommandLineInterface {
 
 		if(basicOutputFile!=null) {
 			FileWriter basic_shex_output = new FileWriter(basicOutputFile, false);
-			basic_shex_output.write("filename\tmodel_title\tmodel_id\tOWL_consistent\tshex_valid\tvalidation_time_milliseconds\taxioms\t");
+			basic_shex_output.write("filename\tmodel_title\tmodel_url\tmodelstate\tcontributor\tprovider\tdate\tOWL_consistent\tshex_valid\tshex_meta_problem\tshex_data_problem\tvalidation_time_milliseconds\taxioms\tn_rows_gpad\t");
 			basic_shex_output.write(GoCamModelStats.statsHeader()+"\n");
 			basic_shex_output.close();
 		}
@@ -870,8 +879,6 @@ public class CommandLineInterface {
 			pipe_report.setTaxon(taxon);
 		}
 		final boolean shex_output = checkShex;			
-
-
 		String reasoner_report_file = basicOutputFile+"reasoner_report_all.txt";
 		String reasoner_report_summary_file = basicOutputFile+"reasoner_report_summary.txt";
 		Map<String, Integer> term_asserted_instances_mapped = new HashMap<String, Integer>();
@@ -885,7 +892,8 @@ public class CommandLineInterface {
 			reasoner_report.close();		
 		}
 		//Note that parallelStream does not seem to help with this.  
-		m3.getAvailableModelIds().stream().forEach(modelIRI -> {
+		//m3.getAvailableModelIds().stream().forEach(modelIRI -> {
+		for(IRI modelIRI : m3.getAvailableModelIds()) {
 			try {
 				long start = System.currentTimeMillis();
 				String filename = modelid_filename.get(modelIRI.toString());
@@ -896,37 +904,59 @@ public class CommandLineInterface {
 				}else {
 					LOGGER.info("processing \t"+modelIRI);
 				}
-				//ModelContainer mc = m3.getModel(modelIRI);	
-				LOGGER.info("preparing model stats...");
-				OWLOntology gocam_owl = m3.getModelAbox(modelIRI);
-				GoCamModel gcm = new GoCamModel(gocam_owl, m3.getGolego_repo());
-				String title = "title";
-					if(gcm.getTitle()!=null) {
-						title = gcm.getTitle();
-					}else {
-						LOGGER.error("no title for "+filename);
-					}
-				LOGGER.info("model stats done ");
-				int axioms = gocam_owl.getAxiomCount();
-				
 				//this is where everything actually happens
-				InferenceProvider ip = ipc.create(m3.getModel(modelIRI));
+				ModelContainer mc = m3.getModel(modelIRI);	
+				OWLOntology gocam = mc.getAboxOntology();
+				try {
+					//many of the models do not seem to parse properly - objectproperties and assertions get read as annotation properties and annotation assertions
+					//this will change that - we might want to batch update to fix this so we can skip this step. 
+					gocam = CoreMolecularModelManager.fixBrokenObjectPropertiesAndAxioms(gocam);
+				} catch (OWLOntologyCreationException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				LOGGER.info("preparing model stats...");
+				//OWLOntology gocam_owl = m3.getModelAbox(modelIRI);//no imports
+				GoCamModel gcm = new GoCamModel(gocam, m3.getGolego_repo());
+				String title = "title";
+				if(gcm.getTitle()!=null) {
+					title = makeColSafe(gcm.getTitle());
+				}else {
+					LOGGER.error("no title for "+filename);
+				}
+				String link = modelIRI.toString().replace("http://model.geneontology.org/", "http://noctua.geneontology.org/editor/graph/gomodel:");
+				if(modelIRI.toString().contains("R-HSA")) {
+					link = link.replace("noctua.geneontology", "noctua-dev.berkeleybop");
+				}
+				String modelstate = makeColSafe(gcm.getModelstate());
+				String contributor = makeColSafe(gcm.getContributors().toString());
+				String date = makeColSafe(gcm.getDate());
+				String provider = makeColSafe(gcm.getProvided_by().toString());
+				LOGGER.info("model stats done for title: "+title);
+				int axioms = gocam.getAxiomCount();
+				
+				InferenceProvider ip = ipc.create(mc);
 				isConsistent = ip.isConsistent();
-
+				//TODO re-use reasoner object from ip
+				Set<GPADData> gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).getGPAD(m3.createInferredModel(modelIRI), modelIRI);
+				int n_rows_gpad = 0;
+				if(gpad!=null) {
+					n_rows_gpad = gpad.size();
+				}
 				//for reasoner report
 				if(run_reasoner_report) {
 					FileWriter  reasoner_report = new FileWriter(reasoner_report_file, true);
-					Set<OWLNamedIndividual> individuals = gocam_owl.getIndividualsInSignature();
+					Set<OWLNamedIndividual> individuals = gocam.getIndividualsInSignature();
 					for (OWLNamedIndividual individual : individuals) {
 						//what kind of individual - mapped or created.  mapped have xrefs, created do not. 
 						String xref = "none";
-						for(OWLAnnotation anno : EntitySearcher.getAnnotations(individual, gocam_owl)){
+						for(OWLAnnotation anno : EntitySearcher.getAnnotations(individual, gocam)){
 							if(anno.getProperty().getIRI().toString().equals("http://www.geneontology.org/formats/oboInOwl#hasDbXref")) {
 								xref = anno.getValue().asLiteral().get().getLiteral();
 							}
 						}
 
-						Collection<OWLClassExpression> asserted_ce = EntitySearcher.getTypes(individual, gocam_owl);
+						Collection<OWLClassExpression> asserted_ce = EntitySearcher.getTypes(individual, gocam);
 						Set<OWLClass> asserted = new HashSet<OWLClass>();
 						for(OWLClassExpression ce : asserted_ce) {
 							OWLClass a = ce.asOWLClass();
@@ -1034,14 +1064,26 @@ public class CommandLineInterface {
 							LOGGER.error(filename+"\t"+title+"\t"+modelIRI+"\tshex validates, but it should not be, quitting");
 							System.exit(-1);
 						}
-					}			
+					}
+					//is it a metadata violation or data ?
+					boolean shex_meta_problem = false;
+					boolean shex_data_problem = false;
+					if(!isConformant) {
+						String model_curie = curieHandler.getCuri(modelIRI);
+						for(Violation v : ip.getValidation_results().getShexvalidation().getViolations()) {							
+							if(v.getNode().equals(model_curie)){
+								shex_meta_problem = true;
+							}else {
+								shex_data_problem = true;
+							}
+						}
+					}					
 					LOGGER.info(filename+"\t"+title+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:"+isConformant);
-
-					basic.write(filename+"\t"+title+"\t"+modelIRI+"\t"+isConsistent+"\t"+isConformant+"\t"+milliseconds+"\t"+axioms+"\t"
-							+ gcm.getGoCamModelStats().stats2cols()+"\n");
+					basic.write(filename+"\t"+title+"\t"+link+"\t"+modelstate+"\t"+contributor+"\t"+provider+"\t"+date+"\t"+isConsistent+"\t"+isConformant+"\t"+shex_meta_problem+"\t"+shex_data_problem+"\t"+milliseconds+"\t"+axioms+"\t"+
+							n_rows_gpad+"\t"+ gcm.getGoCamModelStats().stats2cols()+"\n");
 				}else {
 					LOGGER.info(filename+"\t"+title+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:not checked");
-					basic.write(filename+"\t"+title+"\t"+modelIRI+"\t"+isConsistent+"\tnot checked\n");						
+					basic.write(filename+"\t"+title+"\t"+link+"\t"+isConsistent+"\tnot checked\n");						
 				}
 				basic.close();
 			} catch (InconsistentOntologyException e) {
@@ -1050,7 +1092,8 @@ public class CommandLineInterface {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} 
-		});
+		}
+		//});
 
 		if(run_reasoner_report) {
 			FileWriter reasoner_report_summary = new FileWriter(reasoner_report_summary_file, false);
@@ -1063,7 +1106,7 @@ public class CommandLineInterface {
 				if(term_asserted_instances_mapped.containsKey(goterm)) {
 					n_mapped = term_asserted_instances_mapped.get(goterm);
 				}
-				
+
 				if(term_deepened_instances_mapped.get(goterm)!=null) {
 					n_deepened_mapped = term_deepened_instances_mapped.get(goterm);
 				}			
@@ -1091,6 +1134,13 @@ public class CommandLineInterface {
 		}
 		m3.dispose();
 		LOGGER.info("done with validation");
+	}
+
+	private static String makeColSafe(String text) {
+		text = text.replaceAll("\n", " ");
+		text = text.replaceAll("\r", " "); 
+		text = text.replaceAll("\t", " ");
+		return text;
 	}
 
 	public static void addTaxonMetaData(String go_cam_journal, String go_lego_journal_file) throws OWLOntologyCreationException, IOException {
