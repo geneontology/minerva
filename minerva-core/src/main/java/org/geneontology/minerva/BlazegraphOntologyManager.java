@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -35,6 +36,7 @@ import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
 import org.semanticweb.owlapi.model.OWLAxiom;
+import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
@@ -44,6 +46,7 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.rio.RioRenderer;
 import org.semanticweb.owlapi.search.EntitySearcher;
+import org.semarglproject.vocab.OWL;
 
 import com.bigdata.journal.Options;
 import com.bigdata.rdf.sail.BigdataSail;
@@ -331,7 +334,7 @@ public class BlazegraphOntologyManager {
 		return depth;
 	}
 
-	public Map<OWLNamedIndividual, Set<String>> getSuperCategoryMapForIndividuals(Set<OWLNamedIndividual> inds, OWLOntology ont) throws IOException{
+	public Map<OWLNamedIndividual, Set<String>> getSuperCategoryMapForIndividuals(Set<OWLNamedIndividual> inds, OWLOntology ont, boolean fix_deprecated) throws IOException{
 		Map<OWLNamedIndividual, Set<String>> ind_roots = new HashMap<OWLNamedIndividual, Set<String>>();
 		Set<String> all_types = new HashSet<String>();
 		Map<OWLNamedIndividual, Set<String>> ind_types = new HashMap<OWLNamedIndividual, Set<String>>();
@@ -343,7 +346,14 @@ public class BlazegraphOntologyManager {
 					all_types.addAll(types);
 				}
 			}
-			ind_types.put(ind, types);			
+			if(fix_deprecated) {
+				ind_types.put(ind, replaceDeprecated(types));	
+			}else {
+				ind_types.put(ind, types);			
+			}
+		}
+		if(fix_deprecated) {
+			all_types = replaceDeprecated(all_types);
 		}
 		//just one query..
 		Map<String, Set<String>> type_roots = getSuperCategoryMap(all_types);		
@@ -355,6 +365,49 @@ public class BlazegraphOntologyManager {
 			}			
 		}
 		return ind_roots;
+	}
+
+	public Set<String> replaceDeprecated(Set<String> uris){
+		Set<String> fixed = new HashSet<String>(uris);
+		BigdataSailRepositoryConnection connection;
+		try {
+			connection = go_lego_repo.getReadOnlyConnection();
+			try {
+				String q = "VALUES ?c {";
+				for(String uri : uris) {
+					q+="<"+uri+"> \n";
+				}
+				q+="} . " ;
+
+				String query = 
+						"SELECT ?c ?replacement " +
+						"WHERE { " + q 
+						+ "?c <http://purl.obolibrary.org/obo/IAO_0100001> ?replacement . " +
+						"} ";
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
+				TupleQueryResult result = tupleQuery.evaluate();
+				while (result.hasNext()) {
+					BindingSet binding = result.next();
+					Value c = binding.getValue("c");
+					Value replacement = binding.getValue("replacement");
+					if(fixed.remove(c.stringValue())) {
+						fixed.add(replacement.stringValue());
+					}
+				}
+			} catch (MalformedQueryException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (QueryEvaluationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} finally {
+				connection.close();
+			}
+		} catch (RepositoryException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		return fixed;
 	}
 
 	public Map<String, Set<String>> getSuperCategoryMap(Set<String> uris) throws IOException {

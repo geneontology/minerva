@@ -47,9 +47,10 @@ public class GoCamModel extends ProvenanceAnnotated{
 
 	private void addActivities() throws IOException {
 		activities = new HashSet<ActivityUnit> ();
-		ind_types = go_lego.getSuperCategoryMapForIndividuals(ont.getIndividualsInSignature(), ont);
+		boolean fix_deprecated = true;
+		ind_types = go_lego.getSuperCategoryMapForIndividuals(ont.getIndividualsInSignature(), ont, fix_deprecated);
 		for(OWLNamedIndividual ind : ind_types.keySet()) {
-			Set<String> types = ind_types.get(ind);
+			Set<String> types = ind_types.get(ind);		
 			if(types!=null) {
 				if(types.contains(mf.getIRI().toString())) {
 					ActivityUnit unit = new ActivityUnit(ind, ont, this);
