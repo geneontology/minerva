@@ -77,12 +77,6 @@ public class ShexValidatorTest {
 		validate("src/test/resources/validation/should_pass/", shexMeta, should_be_valid);	
 	}
 	
-	@Test 
-	public void testTmp() throws IOException {
-		boolean should_be_valid = false;
-		validate("src/test/resources/validation/tmp/", shex, should_be_valid);	
-	}
-	
 	public void validate(String dir, ShexValidator shex, boolean should_be_valid) throws IOException {
 		File directory = new File(dir);
 		if(directory.isDirectory()) {
