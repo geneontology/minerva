@@ -864,7 +864,6 @@ public class CommandLineInterface {
 		}
 		if(explanationOutputFile!=null) {
 			FileWriter explanations = new FileWriter(explanationOutputFile, false);
-			explanations.write("Explanations of invalid models.\n");
 			explanations.write("filename\tmodel_title\tmodel_iri\tnode\tNode_types\tproperty\tIntended_range_shapes\tobject\tObject_types\tObject_shapes\n");
 			explanations.close();
 		}	
@@ -1026,7 +1025,7 @@ public class CommandLineInterface {
 
 				if(!isConsistent&&explanationOutputFile!=null) {
 					FileWriter explanations = new FileWriter(explanationOutputFile, true);
-					explanations.write(filename+"\t"+title+"\t"+modelIRI+"\n\tOWL fail explanation: "+ip.getValidation_results().getOwlvalidation().getAsText()+"\n");
+					explanations.write(filename+"\t"+title+"\t"+modelIRI+"\tOWL fail explanation: "+ip.getValidation_results().getOwlvalidation().getAsText()+"\n");
 					explanations.close();
 				}
 				if(travisMode&&!isConsistent) {
