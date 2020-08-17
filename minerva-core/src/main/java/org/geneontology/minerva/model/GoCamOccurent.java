@@ -14,6 +14,7 @@ public class GoCamOccurent extends GoCamEntity{
 	Set<PhysicalEntity> outputs;
 	Set<PhysicalEntity> inputs;
 	Set<AnatomicalEntity> locations;
+	Set<AnatomicalEntity> transport_locations;
 	//all causal links to other activities or processes 
 	Map<OWLObjectProperty, Set<GoCamOccurent>> causal_out;
 	Map<OWLObjectProperty, Set<GoCamOccurent>> causal_in;

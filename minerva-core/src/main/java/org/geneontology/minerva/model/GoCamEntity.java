@@ -40,15 +40,17 @@ public class GoCamEntity extends ProvenanceAnnotated{
 		Collection<OWLAnnotation> annos = EntitySearcher.getAnnotations(ind, ont);
 		comments = new HashSet<String>();
 		notes = new HashSet<String>();
+		contributors = new HashSet<String>();
+		provided_by = new HashSet<String>();;
 		for(OWLAnnotation anno : annos) {
 			if(anno.getProperty().getIRI().toString().equals("http://purl.org/dc/elements/1.1/contributor")) {
-				contributor = anno.getValue().asLiteral().get().getLiteral();
+				contributors.add(anno.getValue().asLiteral().get().getLiteral());
 			}
 			else if(anno.getProperty().getIRI().toString().equals("http://purl.org/dc/elements/1.1/date")) {
 				date = anno.getValue().asLiteral().get().getLiteral();
 			}
 			else if(anno.getProperty().getIRI().toString().equals("http://purl.org/pav/providedBy")) {
-				provided_by = anno.getValue().asLiteral().get().getLiteral();
+				provided_by.add(anno.getValue().asLiteral().get().getLiteral());
 			}
 			else if(anno.getProperty().getIRI().toString().equals("http://www.w3.org/2000/01/rdf-schema#comment")) {
 				String comment = anno.getValue().asLiteral().get().toString();

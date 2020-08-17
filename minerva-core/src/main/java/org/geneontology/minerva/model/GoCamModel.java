@@ -65,6 +65,8 @@ public class GoCamModel extends ProvenanceAnnotated{
 		in_taxon = new HashSet<String>();
 		comments = new HashSet<String>();
 		notes = new HashSet<String>();
+		contributors = new HashSet<String>();;
+		provided_by = new HashSet<String>();;
 		for(OWLAnnotation anno : annos) {
 			if(anno.getProperty().getIRI().toString().equals("http://purl.org/dc/elements/1.1/title")) {
 				title = anno.getValue().asLiteral().get().getLiteral();
@@ -73,13 +75,13 @@ public class GoCamModel extends ProvenanceAnnotated{
 				modelstate = anno.getValue().asLiteral().get().getLiteral();
 			}
 			if(anno.getProperty().getIRI().toString().equals("http://purl.org/dc/elements/1.1/contributor")) {
-				contributor = anno.getValue().asLiteral().get().getLiteral();
+				contributors.add(anno.getValue().asLiteral().get().getLiteral());
 			}
 			if(anno.getProperty().getIRI().toString().equals("http://purl.org/dc/elements/1.1/date")) {
 				date = anno.getValue().asLiteral().get().getLiteral();
 			}
 			if(anno.getProperty().getIRI().toString().equals("http://purl.org/pav/providedBy")) {
-				provided_by = anno.getValue().asLiteral().get().getLiteral();
+				provided_by.add(anno.getValue().asLiteral().get().getLiteral());
 			}
 			if(anno.getProperty().getIRI().toString().equals("https://w3id.org/biolink/vocab/in_taxon")) {
 				if(anno.getValue().asIRI().isPresent()) {
@@ -100,7 +102,7 @@ public class GoCamModel extends ProvenanceAnnotated{
 	}
 
 	public String toString() {
-		String g = title+"\n"+iri+"\n"+modelstate+"\n"+contributor+"\n"+date+"\n"+provided_by+"\n"+in_taxon+"\n";
+		String g = title+"\n"+iri+"\n"+modelstate+"\n"+contributors+"\n"+date+"\n"+provided_by+"\n"+in_taxon+"\n";
 		return g;
 	}
 

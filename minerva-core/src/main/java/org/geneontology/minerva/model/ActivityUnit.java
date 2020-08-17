@@ -9,6 +9,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
+import org.geneontology.minerva.CoreMolecularModelManager;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLIndividual;
@@ -28,6 +30,7 @@ import com.google.common.collect.Multimap;
 public class ActivityUnit extends GoCamOccurent{
 	Set<BiologicalProcessUnit> containing_processes;
 	Set<PhysicalEntity> enablers;
+	private static Logger LOG = Logger.getLogger(ActivityUnit.class);
 
 	public ActivityUnit(OWLNamedIndividual ind, OWLOntology ont, GoCamModel model) {
 		super(ind, ont, model);
@@ -38,7 +41,9 @@ public class ActivityUnit extends GoCamOccurent{
 		inputs = new HashSet<PhysicalEntity>();
 		outputs = new HashSet<PhysicalEntity>();
 		locations = new HashSet<AnatomicalEntity>();
-
+		transport_locations = new HashSet<AnatomicalEntity>();
+		//FYI this doesn't work unless the gocam ontology either imports the declarations e.g. for all the object properties and classes
+		//or includes the declarations.  
 		Collection<OWLAxiom> ref_axioms = EntitySearcher.getReferencingAxioms(ind, ont);
 		for(OWLAxiom axiom : ref_axioms) {
 			if(axiom.getAxiomType().equals(AxiomType.OBJECT_PROPERTY_ASSERTION)) {
@@ -58,6 +63,12 @@ public class ActivityUnit extends GoCamOccurent{
 					}
 					else if(prop.getIRI().toString().equals("http://purl.obolibrary.org/obo/BFO_0000066")) {
 						locations.add(new AnatomicalEntity(object, ont, model));
+					}else if(prop.getIRI().toString().equals("http://purl.obolibrary.org/obo/RO_0002339")) {
+						transport_locations.add(new AnatomicalEntity(object, ont, model));
+					}else if(prop.getIRI().toString().equals("http://purl.obolibrary.org/obo/RO_0002338")) {
+						transport_locations.add(new AnatomicalEntity(object, ont, model));
+					}else if(prop.getIRI().toString().equals("http://purl.obolibrary.org/obo/RO_0002313")) {
+						transport_locations.add(new AnatomicalEntity(object, ont, model));
 					}
 					//all other properties now assumed to be causal relations 
 					else {						
@@ -69,6 +80,8 @@ public class ActivityUnit extends GoCamOccurent{
 							}
 							objects.add(object_event);
 							causal_out.put(prop, objects);
+						}else {
+							LOG.error("Linked prop "+prop+" Object Not an occurent "+object+ " in "+model.getIri()+" "+model.getTitle());
 						}
 					}
 					//above we have contextual information for this activity
@@ -113,16 +126,28 @@ public class ActivityUnit extends GoCamOccurent{
 	private GoCamOccurent getOccurent(OWLNamedIndividual object, OWLOntology ont, GoCamModel model) {
 		GoCamEntity e = model.ind_entity.get(object);
 		if(e!=null) {
-			return (GoCamOccurent)e;
+			if(e instanceof GoCamOccurent) {
+				return (GoCamOccurent)e;
+			}else {
+				LOG.error("Tried to get physical entity as occurent "+object+ " in "+model.getIri()+" "+model.getTitle());
+			}
 		}
 		Set<String> types = model.ind_types.get(object);
 		GoCamOccurent object_event = null;
-		if(types.contains("http://purl.obolibrary.org/obo/GO_0008150")) {
-			object_event = new BiologicalProcessUnit(object, ont, model);
-		}else if(types.contains("http://purl.obolibrary.org/obo/GO_0003674")) {
-			object_event = new ActivityUnit(object, ont, model);
+		if(types==null) {
+			LOG.error("No types found for "+object+ " in "+model.getIri()+" "+model.getTitle());
+		}else {
+			if(types.contains("http://purl.obolibrary.org/obo/GO_0008150")) {
+				object_event = new BiologicalProcessUnit(object, ont, model);
+			}else if(types.contains("http://purl.obolibrary.org/obo/GO_0003674")) {
+				object_event = new ActivityUnit(object, ont, model);
+			}else {
+				LOG.error("Tried to get physical entity as occurent "+object+ " in "+model.getIri()+" "+model.getTitle());
+			}
 		}
-		model.ind_entity.put(object, object_event);
+		if(object_event!=null) {
+			model.ind_entity.put(object, object_event);
+		}
 		return object_event;
 	}
 
