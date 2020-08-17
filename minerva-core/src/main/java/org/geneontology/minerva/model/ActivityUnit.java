@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import org.geneontology.minerva.CoreMolecularModelManager;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.OWLAxiom;
+import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLIndividual;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
@@ -30,6 +31,7 @@ import com.google.common.collect.Multimap;
 public class ActivityUnit extends GoCamOccurent{
 	Set<BiologicalProcessUnit> containing_processes;
 	Set<PhysicalEntity> enablers;
+
 	private static Logger LOG = Logger.getLogger(ActivityUnit.class);
 
 	public ActivityUnit(OWLNamedIndividual ind, OWLOntology ont, GoCamModel model) {
@@ -180,4 +182,51 @@ public class ActivityUnit extends GoCamOccurent{
 		}
 		return g;
 	}
+	
+	public Set<BiologicalProcessUnit> getContaining_processes() {
+		return containing_processes;
+	}
+
+	public void setContaining_processes(Set<BiologicalProcessUnit> containing_processes) {
+		this.containing_processes = containing_processes;
+	}
+
+	public Set<PhysicalEntity> getEnablers() {
+		return enablers;
+	}
+
+	public void setEnablers(Set<PhysicalEntity> enablers) {
+		this.enablers = enablers;
+	}
+
+	public String getURIsForConnectedBPs() {
+		String bp_iris = "";
+		Set<OWLClass> bps = new HashSet<OWLClass>();
+		for(BiologicalProcessUnit bpu : getContaining_processes()) {
+			bps.addAll(bpu.direct_types);
+		}
+		if(bps.size()>0) {
+			bp_iris = this.stringForClasses(bps);
+		}
+		return bp_iris;
+	}
+	
+	/**
+	 * Definition of a 'complete' activity unit
+	 * @return
+	 */
+	public boolean isComplete() {
+		boolean complete = false;
+		if(this.getEnablers().size()==1&&
+				this.getLocations().size()==1&&
+				this.getContaining_processes().size()==1&&
+				this.getDirect_types().size()==1) {
+			OWLClass type = this.getDirect_types().iterator().next();		
+			if(!type.equals(this.in_model.mf)) {
+				complete = true;
+			}
+		}
+		return complete;
+	}
+
 }

@@ -51,6 +51,7 @@ import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
 import org.geneontology.minerva.lookup.GolrExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
+import org.geneontology.minerva.model.ActivityUnit;
 import org.geneontology.minerva.model.GoCamModel;
 import org.geneontology.minerva.model.GoCamModelStats;
 import org.geneontology.minerva.server.StartUpTool;
@@ -307,9 +308,7 @@ public class CommandLineInterface {
 				validate_options.addOption("i", "input", true, "Either a blazegrpah journal or a folder with go-cams in it");
 				validate_options.addOption("shex", "shex", false, "If present, will execute shex validation");
 				validate_options.addOption("owl", "owl", false, "If present, will execute shex validation");
-				validate_options.addOption("r", "report-file", true, "Main output file for the validation");
-				validate_options.addOption("e", "explanation-output-file", true, "Explanations for failed validations");
-				validate_options.addOption("j", "pipeline-output-file", true, "JSON file for use in GO Rules report");
+				validate_options.addOption("r", "report-folder", true, "Folder where output files will appear");
 				validate_options.addOption("p", "model-id-prefix", true, "prefix for GO-CAM model ids");
 				validate_options.addOption("cu", "model-id-curie", true, "prefix for GO-CAM curies");
 				validate_options.addOption("ont", "ontology", true, "IRI of tbox ontology - usually default go-lego.owl");
@@ -322,22 +321,16 @@ public class CommandLineInterface {
 						+ "validation and report an error.  Otherwise it will continue to test all the models.");
 				validate_options.addOption("m", "shapemap", true, "Specify a shapemap file.  Otherwise will download from go_shapes repo.");
 				validate_options.addOption("s", "shexpath", true, "Specify a shex schema file.  Otherwise will download from go_shapes repo.");
-				validate_options.addOption("g", "golr", true, "Specify a URL for a golr server.  Defaults to http://noctua-golr.berkeleybop.org/ id not set.  Typical local configuration might be http://127.0.0.1:8080/solr/");
 				validate_options.addOption("ontojournal", "ontojournal", true, "Specify a blazegraph journal file containing the merged, pre-reasoned tbox aka go-lego.owl");
 				validate_options.addOption("reasoner_report", "reasoner_report", false, "Add a report with reasoning results to the output of the validation. ");
 
 
 				cmd = parser.parse(validate_options, args, false);
 				String input = cmd.getOptionValue("input");			
-				String basicOutputFile = cmd.getOptionValue("report-file");
+				String outputFolder = cmd.getOptionValue("report-folder");
 				String shexpath = cmd.getOptionValue("s");
 				String shapemappath = cmd.getOptionValue("shapemap");
 
-				String gorules_json_output_file = null;
-				if(cmd.hasOption("pipeline-output-file")) {
-					gorules_json_output_file = cmd.getOptionValue("pipeline-output-file");
-				}
-				String explanationOutputFile = cmd.getOptionValue("explanation-output-file");
 				String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
 				if(cmd.hasOption("ontology")) {
 					ontologyIRI = cmd.getOptionValue("ontology");
@@ -375,7 +368,7 @@ public class CommandLineInterface {
 				if(cmd.hasOption("reasoner_report")) {
 					run_reasoner_report = true;
 				}
-				validateGoCams(input, basicOutputFile, explanationOutputFile, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, gorules_json_output_file, go_lego_journal_file, run_reasoner_report);
+				validateGoCams(input, outputFolder, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, go_lego_journal_file, run_reasoner_report);
 			}
 		}catch( ParseException exp ) {
 			System.out.println( "Parameter parse exception.  Note that the first parameter must be one of: "
@@ -735,10 +728,10 @@ public class CommandLineInterface {
 	 * @param shouldPass
 	 * @throws Exception
 	 */
-	public static void validateGoCams(String input, String basicOutputFile, String explanationOutputFile, 
+	public static void validateGoCams(String input, String outputFolder,  
 			String ontologyIRI, String catalog, String modelIdPrefix, String modelIdcurie, 
 			String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex,  
-			String gorules_json_output_file, String go_lego_journal_file, boolean run_reasoner_report) throws Exception {
+			String go_lego_journal_file, boolean run_reasoner_report) throws Exception {
 		Logger LOG = Logger.getLogger(CommandLineInterface.class);
 		LOG.setLevel(Level.ERROR);
 		LOGGER.setLevel(Level.INFO);
@@ -748,10 +741,13 @@ public class CommandLineInterface {
 
 		Map<String, String> modelid_filename = new HashMap<String, String>();
 
-		if(basicOutputFile==null) {
-			LOGGER.error("please specify an output file with --output-file ");
+		if(outputFolder==null) {
+			LOGGER.error("please specify an output folder with -r ");
 			System.exit(-1);
+		}else if(!outputFolder.endsWith("/")) {
+			outputFolder+="/";
 		}
+		
 		if(input==null) {
 			LOGGER.error("please provide an input file - either a directory of ttl files or a blazegraph journal");
 			System.exit(-1);
@@ -765,13 +761,13 @@ public class CommandLineInterface {
 		}else {
 			LOGGER.info("no catalog, resolving all ontology uris directly");
 		}
-		
+
 		OWLOntology tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
 		LOGGER.info("tbox ontology axioms loaded: "+tbox_ontology.getAxiomCount());
 		//should not be necessary using pre-merged ontology
 		//tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
 		//LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
-		
+
 		if(input.endsWith(".jnl")) {
 			inputDB = input;
 			LOGGER.info("loaded blazegraph journal: "+input);
@@ -825,8 +821,8 @@ public class CommandLineInterface {
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
-		
-		
+
+
 		String reasonerOpt = "arachne"; 	
 		if(shexpath==null) {
 			//fall back on downloading from shapes repo
@@ -856,30 +852,35 @@ public class CommandLineInterface {
 		InferenceProviderCreator ipc = StartUpTool.createInferenceProviderCreator(reasonerOpt, m3, shex);
 		LOGGER.info("Validating models: "+reasonerOpt);
 
-		if(basicOutputFile!=null) {
-			FileWriter basic_shex_output = new FileWriter(basicOutputFile, false);
+		String basic_output_file = outputFolder+"main_report.txt";
+		String explanations_file = outputFolder+"explanations.txt";
+		String activity_output_file = outputFolder+"activity_report.txt";
+		if(outputFolder!=null) {
+			FileWriter basic_shex_output = new FileWriter(basic_output_file, false);
 			basic_shex_output.write("filename\tmodel_title\tmodel_url\tmodelstate\tcontributor\tprovider\tdate\tOWL_consistent\tshex_valid\tshex_meta_problem\tshex_data_problem\tvalidation_time_milliseconds\taxioms\tn_rows_gpad\t");
 			basic_shex_output.write(GoCamModelStats.statsHeader()+"\n");
 			basic_shex_output.close();
-		}
-		if(explanationOutputFile!=null) {
-			FileWriter explanations = new FileWriter(explanationOutputFile, false);
+
+			FileWriter explanations = new FileWriter(explanations_file, false);
 			explanations.write("filename\tmodel_title\tmodel_iri\tnode\tNode_types\tproperty\tIntended_range_shapes\tobject\tObject_types\tObject_shapes\n");
 			explanations.close();
+			
+			FileWriter activity_output = new FileWriter(activity_output_file, false);
+			activity_output.write("filename\tmodel_title\tmodel_url\tmodelstate\tcontributor\tprovider\tdate\tactivity_xref\tactivity_label\tcomplete\tinputs\toutputs\tenablers\tlocations\tcausal upstream\tcausal downstream\tpart of n BP\tMF\tBP\n");
+			activity_output.close();
 		}	
 		BatchPipelineValidationReport pipe_report = null;
 		Set<ErrorMessage> owl_errors = new HashSet<ErrorMessage>();
 		Set<ErrorMessage> shex_errors = new HashSet<ErrorMessage>();
 		//todo get taxon from somewhere
 		String taxon = "taxon unknown";
-		if(gorules_json_output_file!=null) { 
-			pipe_report = new BatchPipelineValidationReport();
-			pipe_report.setNumber_of_models(m3.getAvailableModelIds().size());
-			pipe_report.setTaxon(taxon);
-		}
+		pipe_report = new BatchPipelineValidationReport();
+		pipe_report.setNumber_of_models(m3.getAvailableModelIds().size());
+		pipe_report.setTaxon(taxon);
+
 		final boolean shex_output = checkShex;			
-		String reasoner_report_file = basicOutputFile+"reasoner_report_all.txt";
-		String reasoner_report_summary_file = basicOutputFile+"reasoner_report_summary.txt";
+		String reasoner_report_file = outputFolder+"reasoner_report_all.txt";
+		String reasoner_report_summary_file = outputFolder+"reasoner_report_summary.txt";
 		Map<String, Integer> term_asserted_instances_mapped = new HashMap<String, Integer>();
 		Map<String, Integer> term_deepened_instances_mapped = new HashMap<String, Integer>();
 		Map<String, Integer> term_asserted_instances_created = new HashMap<String, Integer>();
@@ -933,7 +934,7 @@ public class CommandLineInterface {
 				String provider = makeColSafe(gcm.getProvided_by().toString());
 				LOGGER.info("model stats done for title: "+title);
 				int axioms = gocam.getAxiomCount();
-				
+
 				InferenceProvider ip = ipc.create(mc);
 				isConsistent = ip.isConsistent();
 				//TODO re-use reasoner object from ip
@@ -1014,7 +1015,7 @@ public class CommandLineInterface {
 				}
 
 				//for rules report in pipeline
-				if(!ip.isConsistent()&&gorules_json_output_file!=null) {
+				if(!ip.isConsistent()) {
 					String level = "ERROR";
 					String model_id = curieHandler.getCuri(modelIRI);
 					String message = BatchPipelineValidationReport.getOwlMessage();
@@ -1023,8 +1024,8 @@ public class CommandLineInterface {
 					owl_errors.add(owl);
 				}
 
-				if(!isConsistent&&explanationOutputFile!=null) {
-					FileWriter explanations = new FileWriter(explanationOutputFile, true);
+				if(!isConsistent) {
+					FileWriter explanations = new FileWriter(explanations_file, true);
 					explanations.write(filename+"\t"+title+"\t"+modelIRI+"\tOWL fail explanation: "+ip.getValidation_results().getOwlvalidation().getAsText()+"\n");
 					explanations.close();
 				}
@@ -1034,14 +1035,14 @@ public class CommandLineInterface {
 						System.exit(-1);
 					}
 				}
-				FileWriter  basic= new FileWriter(basicOutputFile, true);
+				FileWriter  basic= new FileWriter(basic_output_file, true);
 				if(shex_output) {
 					ValidationResultSet validations = ip.getValidation_results();
 					isConformant = validations.allConformant();	
 					long done = System.currentTimeMillis();
 					long milliseconds = (done-start);
 
-					if(!isConformant&&gorules_json_output_file!=null) {
+					if(!isConformant) {
 						String level = "WARNING";
 						String model_id = curieHandler.getCuri(modelIRI);
 						String message = BatchPipelineValidationReport.getShexMessage();
@@ -1050,8 +1051,8 @@ public class CommandLineInterface {
 						shex_errors.add(shex_message);
 					}
 
-					if(!isConformant&&explanationOutputFile!=null) {
-						FileWriter explanations = new FileWriter(explanationOutputFile, true);						
+					if(!isConformant) {
+						FileWriter explanations = new FileWriter(explanations_file, true);						
 						explanations.write(ip.getValidation_results().getShexvalidation().getAsTab(filename+"\t"+title+"\t"+modelIRI));
 						explanations.close();
 					}
@@ -1085,6 +1086,16 @@ public class CommandLineInterface {
 					basic.write(filename+"\t"+title+"\t"+link+"\t"+isConsistent+"\tnot checked\n");						
 				}
 				basic.close();
+				
+				//add activity level statistics as a default
+				FileWriter activity_output = new FileWriter(activity_output_file, true);
+				for(ActivityUnit unit : gcm.getActivities()){
+					activity_output.write(filename+"\t"+title+"\t"+link+"\t"+modelstate+"\t"+contributor+"\t"+provider+"\t"+date+"\t"+unit.getXref()+"\t"+unit.getLabel()+"\t");
+					activity_output.write(unit.isComplete()+"\t"+unit.getInputs().size()+"\t"+unit.getOutputs().size()+"\t"+unit.getEnablers().size()+"\t"+unit.getLocations().size()+
+							"\t"+unit.getCausal_in().size()+"\t"+unit.getCausal_out().size()+"\t"+unit.getContaining_processes().size()+"\t"+unit.stringForClasses(unit.getDirect_types())+"\t"+unit.getURIsForConnectedBPs()+"\n");
+				}
+				activity_output.close();
+				
 			} catch (InconsistentOntologyException e) {
 				LOGGER.error("Inconsistent model: " + modelIRI);
 			} catch (Exception e) {
@@ -1121,16 +1132,15 @@ public class CommandLineInterface {
 			reasoner_report_summary.close();
 		}
 
-		if(gorules_json_output_file!=null) { 
-			pipe_report.getMessages().put(BatchPipelineValidationReport.getShexRuleString(), shex_errors);
-			pipe_report.getMessages().put(BatchPipelineValidationReport.getOwlRuleString(), owl_errors);		
-			GsonBuilder builder = new GsonBuilder();		 
-			Gson gson = builder.setPrettyPrinting().create();
-			String json = gson.toJson(pipe_report);
-			FileWriter pipe_json = new FileWriter(gorules_json_output_file, false);
-			pipe_json.write(json);
-			pipe_json.close();
-		}
+
+		pipe_report.getMessages().put(BatchPipelineValidationReport.getShexRuleString(), shex_errors);
+		pipe_report.getMessages().put(BatchPipelineValidationReport.getOwlRuleString(), owl_errors);		
+		GsonBuilder builder = new GsonBuilder();		 
+		Gson gson = builder.setPrettyPrinting().create();
+		String json = gson.toJson(pipe_report);
+		FileWriter pipe_json = new FileWriter(outputFolder+"gorules_report.json", false);
+		pipe_json.write(json);
+		pipe_json.close();
 		m3.dispose();
 		LOGGER.info("done with validation");
 	}
