@@ -4,13 +4,9 @@ import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.ModelContainer;
+import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.junit.AfterClass;
@@ -26,8 +22,8 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 
 public class GoCamModelTest {
-	static final String ontology_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
-	static final String gocam_file = "src/test/resources/validation/tmp/";//SYNGO_2759.ttl";//5966411600000744.ttl";//R-HSA-70171.ttl"; //R-HSA-8952158.ttl";
+	static final String ontology_journal_file = "/tmp/blazegraph.jnl";
+	static final String gocam_dir = "src/test/resources/validation/should_pass/";
 	static BlazegraphOntologyManager onto_repo;
 
 	@BeforeClass
@@ -42,60 +38,45 @@ public class GoCamModelTest {
 		}
 	}
 
-	//@Test
-	public void testDirect() throws IOException {
-		System.out.println("setting up ontology manager");
-		onto_repo = new BlazegraphOntologyManager(ontology_journal_file);
-		System.out.println("ready");
-		OWLOntologyManager man = OWLManager.createOWLOntologyManager();
-		try {
-			System.out.println("loading "+gocam_file);
-			OWLOntology gocam = man.loadOntologyFromOntologyDocument(new File(gocam_file));
-			GoCamModel g = new GoCamModel(gocam, onto_repo);
-			System.out.println("gocam model \n\t"+g.toString()+"\n"+g.getGoCamModelStats().toString());
-			System.out.println(g.getGoCamModelStats().stats2cols());
-		} catch (OWLOntologyCreationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}	
-	}
-
 	@Test
-	public void testWithModelManager() throws OWLOntologyCreationException, IOException, RepositoryException, RDFParseException, RDFHandlerException {
-		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
+	public void testWithM3() throws IOException, OWLOntologyCreationException, RepositoryException, RDFParseException, RDFHandlerException {		
+		OWLOntologyManager man = OWLManager.createOWLOntologyManager();
+		OWLOntology tbox_ontology = man.loadOntology(IRI.create("http://purl.obolibrary.org/obo/go/extensions/go-lego.owl"));		
 		CurieHandler curieHandler = new MappedCurieHandler();
-		String inputDB = "/tmp/test-blazegraph.jnl";
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, "gomodel", inputDB, null, ontology_journal_file);
-		File f = new File(gocam_file);
+		String inputDB = "/tmp/test-blazegraph-models.jnl";
+//load it into a journal and launch an m3
+		UndoAwareMolecularModelManager m3 = null;
+		File f = new File(gocam_dir);
 		if(f.isDirectory()) {
+			//remove anything that existed from previous runs
+			File bgdb = new File(inputDB);
+			if(bgdb.exists()) {
+				bgdb.delete(); 
+			}
+			//set it up with empty db
+			m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, "gomodel", inputDB, null, ontology_journal_file);
+			onto_repo = m3.getGolego_repo(); 
+			//load the db
 			for(File file : f.listFiles()) {
 				if(file.getName().endsWith("ttl")) {
 					m3.importModelToDatabase(file, true);
 				}
 			}
 		}
-		m3.getAvailableModelIds().stream().forEach(modelIRI -> {
-			OWLOntology gocam = m3.getModelAbox(modelIRI); 
-		//the following results in very odd behavior where sometimes the title goes missing from the model	
-		//	ModelContainer mc = m3.getModel(modelIRI);	
-		//	OWLOntology gocam = mc.getAboxOntology();
-			GoCamModel g;
-			try {
-				g = new GoCamModel(gocam, m3.getGolego_repo());
-				if(g.getTitle()==null) {
-					System.out.println("missing title "+modelIRI);
-				}
-				System.out.println("gocam model \n\t"+g.toString()+"\n"+g.getGoCamModelStats().toString());
-				System.out.println(g.getGoCamModelStats().stats2cols());
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		});
-		m3.getGolego_repo().dispose();
+//read it back out		
+		for(IRI modelIRI : m3.getAvailableModelIds()) { 
+			//the following results in very odd behavior where sometimes the title goes missing from the model	
+			ModelContainer mc = m3.getModel(modelIRI);	
+			OWLOntology gocam_via_mc = mc.getAboxOntology();
+			//this works here, but ModxelContainer is used for the reasoner.. 
+			OWLOntology gocam_getmodelabox = m3.getModelAbox(modelIRI); 		
+			GoCamModel g = new GoCamModel(gocam_via_mc, onto_repo);
+			System.out.println(g.getTitle()+" gocam_via_mc");
+			GoCamModel g2 = new GoCamModel(gocam_getmodelabox, onto_repo);
+			System.out.println(g2.getTitle()+" gocam_getmodelabox");
+			assertFalse("title not read out of M3 retrieved model "+modelIRI, (g.getTitle()==null));
+			System.out.println("Finished loading as GoCamModel: "+modelIRI);
+		}	
 	}
 
 }
