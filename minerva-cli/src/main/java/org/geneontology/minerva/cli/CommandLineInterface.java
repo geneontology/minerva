@@ -866,7 +866,7 @@ public class CommandLineInterface {
 			explanations.close();
 			
 			FileWriter activity_output = new FileWriter(activity_output_file, false);
-			activity_output.write("filename\tmodel_title\tmodel_url\tmodelstate\tcontributor\tprovider\tdate\tactivity_xref\tactivity_label\tcomplete\tinputs\toutputs\tenablers\tlocations\tcausal upstream\tcausal downstream\tpart of n BP\tMF\tBP\n");
+			activity_output.write("filename\tmodel_title\tmodel_url\tmodelstate\tcontributor\tprovider\tdate\tactivity_iri\tactivity_xref\tactivity_label\tcomplete\tinputs\toutputs\tenablers\tlocations\tcausal upstream\tcausal downstream\tpart of n BP\tMF\tBP\n");
 			activity_output.close();
 		}	
 		BatchPipelineValidationReport pipe_report = null;
@@ -1090,7 +1090,7 @@ public class CommandLineInterface {
 				//add activity level statistics as a default
 				FileWriter activity_output = new FileWriter(activity_output_file, true);
 				for(ActivityUnit unit : gcm.getActivities()){
-					activity_output.write(filename+"\t"+title+"\t"+link+"\t"+modelstate+"\t"+contributor+"\t"+provider+"\t"+date+"\t"+unit.getXref()+"\t"+unit.getLabel()+"\t");
+					activity_output.write(filename+"\t"+title+"\t"+link+"\t"+modelstate+"\t"+contributor+"\t"+provider+"\t"+date+"\t"+unit.getIndividual().getIRI().toString()+"\t"+unit.getXref()+"\t"+unit.getLabel()+"\t");
 					activity_output.write(unit.isComplete()+"\t"+unit.getInputs().size()+"\t"+unit.getOutputs().size()+"\t"+unit.getEnablers().size()+"\t"+unit.getLocations().size()+
 							"\t"+unit.getCausal_in().size()+"\t"+unit.getCausal_out().size()+"\t"+unit.getContaining_processes().size()+"\t"+unit.stringForClasses(unit.getDirect_types())+"\t"+unit.getURIsForConnectedBPs()+"\n");
 				}
