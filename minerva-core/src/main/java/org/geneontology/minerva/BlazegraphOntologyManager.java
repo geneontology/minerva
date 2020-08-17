@@ -338,8 +338,10 @@ public class BlazegraphOntologyManager {
 		for(OWLNamedIndividual ind : inds) {
 			Set<String> types = new HashSet<String>();
 			for(OWLClassExpression oc : EntitySearcher.getTypes(ind, ont)) {
-				types.add(oc.asOWLClass().getIRI().toString());
-				all_types.addAll(types);
+				if(!oc.isAnonymous()) {
+					types.add(oc.asOWLClass().getIRI().toString());
+					all_types.addAll(types);
+				}
 			}
 			ind_types.put(ind, types);			
 		}
