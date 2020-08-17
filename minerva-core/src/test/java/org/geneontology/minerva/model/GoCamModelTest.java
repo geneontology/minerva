@@ -63,19 +63,16 @@ public class GoCamModelTest {
 				}
 			}
 		}
-//read it back out		
+//read it back out and check on stats		
 		for(IRI modelIRI : m3.getAvailableModelIds()) { 
 			//the following results in very odd behavior where sometimes the title goes missing from the model	
 			ModelContainer mc = m3.getModel(modelIRI);	
 			OWLOntology gocam_via_mc = mc.getAboxOntology();
-			//this works here, but ModxelContainer is used for the reasoner.. 
-			OWLOntology gocam_getmodelabox = m3.getModelAbox(modelIRI); 		
 			GoCamModel g = new GoCamModel(gocam_via_mc, onto_repo);
-			System.out.println(g.getTitle()+" gocam_via_mc");
-			GoCamModel g2 = new GoCamModel(gocam_getmodelabox, onto_repo);
-			System.out.println(g2.getTitle()+" gocam_getmodelabox");
+			//testing for an issue with the OWL blazegraph loader
 			assertFalse("title not read out of M3 retrieved model "+modelIRI, (g.getTitle()==null));
 			System.out.println("Finished loading as GoCamModel: "+modelIRI);
+			
 		}	
 	}
 
