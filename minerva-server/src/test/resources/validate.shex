@@ -372,9 +372,6 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   has_target_start_location: @<CellularComponent> *;
 } // rdfs:comment "a transporter activity GO molecular function or child"
 
-
-<MacromolecularMachine> ( @<Protein> OR @<ProteinContainingComplex> ) AND {}
-
 <BiologicalPhaseClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
   rdfs:subClassOf [ GoBiologicalPhase: ];
 }
