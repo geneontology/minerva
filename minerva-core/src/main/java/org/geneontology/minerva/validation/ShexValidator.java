@@ -62,6 +62,7 @@ import fr.inria.lille.shexjava.schema.abstrsynt.TripleConstraint;
 import fr.inria.lille.shexjava.schema.abstrsynt.TripleExpr;
 import fr.inria.lille.shexjava.schema.abstrsynt.TripleExprRef;
 import fr.inria.lille.shexjava.schema.parsing.GenParser;
+import fr.inria.lille.shexjava.util.Interval;
 import fr.inria.lille.shexjava.util.Pair;
 import fr.inria.lille.shexjava.validation.RecursiveValidation;
 import fr.inria.lille.shexjava.validation.RecursiveValidationWithMemorization;
@@ -81,6 +82,8 @@ public class ShexValidator {
 	private BlazegraphOntologyManager go_lego_repo;
 	public static final String endpoint = "http://rdf.geneontology.org/blazegraph/sparql";
 	public Map<Label, Map<String, Set<String>>> shape_expected_property_ranges;
+	public Map<Label, Map<String, Interval>> shape_expected_property_cardinality;
+	Map<Label, Interval> tripexprlabel_cardinality;
 	public CurieHandler curieHandler;
 	public RDF rdfFactory;
 	public final int timeout_mill = 30000;
@@ -103,6 +106,8 @@ public class ShexValidator {
 		//tbox_reasoner = tbox_reasoner_;
 		setGo_lego_repo(go_lego);
 		shape_expected_property_ranges = new HashMap<Label, Map<String, Set<String>>>();
+		shape_expected_property_cardinality = new HashMap<Label, Map<String, Interval>>();
+		tripexprlabel_cardinality = new HashMap<Label, Interval>();
 		curieHandler = curieHandler_;
 		rdfFactory = new SimpleRDF();
 		for(String shapelabel : GoQueryMap.keySet()) {
@@ -110,8 +115,8 @@ public class ShexValidator {
 				continue;
 			}
 			Label shape_label = new Label(rdfFactory.createIRI(shapelabel));
-			ShapeExpr rule = schema.getRules().get(shape_label);
-			Map<String, Set<String>> expected_property_ranges = getPropertyRangeMap(rule, null);
+			ShapeExpr rule = schema.getRules().get(shape_label); 
+			Map<String, Set<String>> expected_property_ranges = getPropertyRangeMap(shape_label, rule, null);
 			shape_expected_property_ranges.put(shape_label, expected_property_ranges);
 		}
 		LOGGER.info("shex validator ready");
@@ -220,49 +225,47 @@ public class ShexValidator {
 		}else {
 			rdfterm = rdfFactory.createIRI(focus_node.toString());
 		}
-			Status status = typing.getStatus(rdfterm, shape_label);
-			if(status.equals(Status.NONCONFORMANT)) {
-				//implementing a start on a generic violation report structure here
-				ShexViolation violation = new ShexViolation(getCurie(focus_node.toString()));				 					
-				ShexExplanation explanation = new ShexExplanation();
-				String shape_curie = getCurie(shape_label.stringValue());
-				explanation.setShape(shape_curie);				
-				Set<ShexConstraint> unmet_constraints = getUnmetConstraints(focus_node, shape_label, test_model, typing);				
-				if(unmet_constraints!=null) {
-					for(ShexConstraint constraint : unmet_constraints) {
-						explanation.addConstraint(constraint);
-						violation.addExplanation(explanation);
-					}	
-				}else {
-					explanation.setErrorMessage("explanation computation timed out");
+		Status status = typing.getStatus(rdfterm, shape_label);
+		if(status.equals(Status.NONCONFORMANT)) {
+			//implementing a start on a generic violation report structure here
+			ShexViolation violation = new ShexViolation(getCurie(focus_node.toString()));				 					
+			ShexExplanation explanation = new ShexExplanation();
+			String shape_curie = getCurie(shape_label.stringValue());
+			explanation.setShape(shape_curie);				
+			Set<ShexConstraint> unmet_constraints = getUnmetConstraints(focus_node, shape_label, test_model, typing);				
+			if(unmet_constraints!=null) {
+				for(ShexConstraint constraint : unmet_constraints) {
+					explanation.addConstraint(constraint);
 					violation.addExplanation(explanation);
-				}
-				return violation;			
-			}else if(status.equals(Status.NOTCOMPUTED)) {
-				//if any of these are not computed, there is a problem
-				String error = focus_node+" was not tested against "+shape_label;
-				LOGGER.error(error);
-			}else if(status.equals(Status.CONFORMANT)) {
-				LOGGER.error("node is valid, should not be here trying to make a violation");
+				}	
+			}else {
+				explanation.setErrorMessage("explanation computation timed out");
+				violation.addExplanation(explanation);
 			}
-		
-//	else {
-			LOGGER.error("tried to explain shape violation on anonymous node: "+shape_label+" "+focus_node);
-			StmtIterator node_statements = test_model.listStatements(focus_node.asResource(), null, (RDFNode) null);
-			if(node_statements.hasNext()) {
-				while(node_statements.hasNext()) {
-					Statement s = node_statements.next();
-					System.out.println(s);
-				}
+			return violation;			
+		}else if(status.equals(Status.NOTCOMPUTED)) {
+			//if any of these are not computed, there is a problem
+			String error = focus_node+" was not tested against "+shape_label;
+			LOGGER.error(error);
+		}else if(status.equals(Status.CONFORMANT)) {
+			LOGGER.error("node is valid, should not be here trying to make a violation");
+		}
+
+		//	else {
+		LOGGER.error("tried to explain shape violation on anonymous node: "+shape_label+" "+focus_node);
+		StmtIterator node_statements = test_model.listStatements(focus_node.asResource(), null, (RDFNode) null);
+		if(node_statements.hasNext()) {
+			while(node_statements.hasNext()) {
+				Statement s = node_statements.next();
 			}
-			StmtIterator literal_statements = test_model.listStatements(focus_node.asResource(), null, (Literal) null);
-			if(literal_statements.hasNext()) {
-				while(literal_statements.hasNext()) {
-					Statement s = literal_statements.next();
-					System.out.println(s);
-				}
+		}
+		StmtIterator literal_statements = test_model.listStatements(focus_node.asResource(), null, (Literal) null);
+		if(literal_statements.hasNext()) {
+			while(literal_statements.hasNext()) {
+				Statement s = literal_statements.next();
 			}
-//		}
+		}
+		//		}
 		return null;
 	}
 
@@ -704,6 +707,15 @@ public class ShexValidator {
 		return types;
 	}
 
+	/**
+	 * We no there is a problem with the focus node and the shape here.  This tries to figure out the constraints that caused the problem and provide some explanation.
+	 * @param focus_node
+	 * @param shape_label
+	 * @param model
+	 * @param typing
+	 * @return
+	 * @throws IOException
+	 */
 	private Set<ShexConstraint> getUnmetConstraints(Resource focus_node, Label shape_label, Model model, Typing typing) throws IOException {
 		Set<ShexConstraint> unmet_constraints = new HashSet<ShexConstraint>();
 		Set<String> node_types = getNodeTypes(model, focus_node.getURI());		
@@ -717,73 +729,90 @@ public class ShexValidator {
 		//check for assertions with properties in the target shape
 		for(String prop_uri : expected_property_ranges.keySet()) {
 			Property prop = model.getProperty(prop_uri);
+			Interval cardinality = shape_expected_property_cardinality.get(shape_label).get(prop_uri);
 			//checking on objects of this property for the problem node.
+			int n_objects = 0;
 			for (StmtIterator i = focus_node.listProperties(prop); i.hasNext(); ) {
-				RDFNode obj = i.nextStatement().getObject();
-				//check the computed shapes for this individual
-				if(!obj.isResource()) {
-					continue;
-					//no checks on literal values at this time
-				}else if(prop_uri.equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")&&obj.asResource().getURI().equals("http://www.w3.org/2002/07/owl#NamedIndividual")) {
-					continue; //ignore type owl individual
-				}
-				RDFTerm range_obj = rdfFactory.createIRI(obj.asResource().getURI());
-				//does it hit any allowable shapes?
-				boolean good = false;
-				//TODO many property ranges are MISSING from previous step
-				//e.g. any OR will not show up here.  
-				Set<String> expected_ranges = expected_property_ranges.get(prop_uri);
-				for(String target_shape_uri : expected_ranges) {
-					if(target_shape_uri.equals(".")) {
-						//anything is fine 
-						good = true;
-						break;
-					}else if(target_shape_uri.trim().equals("<http://www.w3.org/2001/XMLSchema#string>")) {
-						//ignore syntax type checking for now
-						good = true;
-						break;
+				while(i.hasNext()) {
+					n_objects++;
+					RDFNode obj = i.nextStatement().getObject();
+					//check the computed shapes for this individual
+					if(!obj.isResource()) {
+						continue;
+						//no checks on literal values at this time
+					}else if(prop_uri.equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")&&obj.asResource().getURI().equals("http://www.w3.org/2002/07/owl#NamedIndividual")) {
+						continue; //ignore type owl individual
 					}
-					Label target_shape_label = new Label(rdfFactory.createIRI(target_shape_uri));
-					//		Typing typing = validateNodeWithTimeout(shex_model_validator, obj.asResource(), shape_label);
-					if(typing!=null) {
-						//capture the result
-						//Typing shape_test = shex_model_validator.getTyping();
-						//Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(range_obj, target_shape_label);
-						//			Status r = shape_test.getStatusMap().get(p);
-						Status r = typing.getStatus(range_obj, target_shape_label);
-						if(r!=null&&r.equals(Status.CONFORMANT)) {
+					RDFTerm range_obj = rdfFactory.createIRI(obj.asResource().getURI());
+					//does it hit any allowable shapes?
+					boolean good = false;
+					//TODO many property ranges are MISSING from previous step
+					//e.g. any OR will not show up here.  
+					Set<String> expected_ranges = expected_property_ranges.get(prop_uri);
+					for(String target_shape_uri : expected_ranges) {
+						if(target_shape_uri.equals(".")) {
+							//anything is fine 
 							good = true;
-							break;
+							//break;
+						}else if(target_shape_uri.trim().equals("<http://www.w3.org/2001/XMLSchema#string>")) {
+							//ignore syntax type checking for now
+							good = true;
+							//break;
 						}
-					}else {
-						good = false;
+						Label target_shape_label = new Label(rdfFactory.createIRI(target_shape_uri));
+						//		Typing typing = validateNodeWithTimeout(shex_model_validator, obj.asResource(), shape_label);
+						if(typing!=null) {
+							//capture the result
+							//Typing shape_test = shex_model_validator.getTyping();
+							//Pair<RDFTerm, Label> p = new Pair<RDFTerm, Label>(range_obj, target_shape_label);
+							//Status r = shape_test.getStatusMap().get(p);
+							Status r = typing.getStatus(range_obj, target_shape_label);
+							if(r!=null&&r.equals(Status.CONFORMANT)) {
+								good = true;
+								//break;
+							}
+						}else {
+							good = false;
+						}
 					}
-				}
-				if(!good) {					
-					if(obj.isURIResource()) {
-						String object = obj.toString();
-						Set<String> object_types = getNodeTypes(model, obj.toString());
+					if(!good) { //add violated range constraint to explanation				
+						if(obj.isURIResource()) {
+							String object = obj.toString();
+							Set<String> object_types = getNodeTypes(model, obj.toString());
 
-						String property = prop.toString();
-						object = getCurie(object);
-						property = getCurie(property);
-						Set<String> expected = new HashSet<String>();
-						for(String e : expected_property_ranges.get(prop_uri)) {
-							String curie_e = getCurie(e);
-							expected.add(curie_e);
-						}					
-						ShexConstraint constraint = new ShexConstraint(object, property, expected, node_types, object_types);
-						//return all shapes that are matched by this node for explanation
-						Set<String> obj_matched_shapes = getAllMatchedShapes(range_obj, typing);
-						constraint.setMatched_range_shapes(obj_matched_shapes);
-						unmet_constraints.add(constraint);
-					}else {
-						ShexConstraint constraint = new ShexConstraint(obj.toString(), getCurie(prop.toString()), null, node_types, null);
-						//return all shapes that are matched by this node for explanation
-						Set<String> obj_matched_shapes = getAllMatchedShapes(range_obj, typing);
-						constraint.setMatched_range_shapes(obj_matched_shapes);
-						unmet_constraints.add(constraint);
+							String property = prop.toString();
+							object = getCurie(object);
+							property = getCurie(property);
+							Set<String> expected = new HashSet<String>();
+							for(String e : expected_property_ranges.get(prop_uri)) {
+								String curie_e = getCurie(e);
+								expected.add(curie_e);
+							}					
+							ShexConstraint constraint = new ShexConstraint(object, property, expected, node_types, object_types);
+							//return all shapes that are matched by this node for explanation
+							Set<String> obj_matched_shapes = getAllMatchedShapes(range_obj, typing);
+							constraint.setMatched_range_shapes(obj_matched_shapes);
+							unmet_constraints.add(constraint);
+						}else {
+							ShexConstraint constraint = new ShexConstraint(obj.toString(), getCurie(prop.toString()), null, node_types, null);
+							//return all shapes that are matched by this node for explanation
+							Set<String> obj_matched_shapes = getAllMatchedShapes(range_obj, typing);
+							constraint.setMatched_range_shapes(obj_matched_shapes);
+							unmet_constraints.add(constraint);
+						}
 					}
+				}	
+			}
+			//check for cardinality violations
+			if(!prop_uri.contentEquals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")) { //skip types - should always allow multiple..		
+				if(!cardinality.contains(n_objects)) {
+					System.out.println("cardinality violation!");
+					System.out.println("problem node "+focus_node);
+					System.out.println("prop "+prop);
+					System.out.println("Intended Interval "+cardinality.toString());
+					System.out.println("Actual "+n_objects);
+					ShexConstraint constraint = new ShexConstraint(getCurie(prop.toString()), cardinality.toString(), n_objects);
+					unmet_constraints.add(constraint);
 				}
 			}
 		}
@@ -839,7 +868,7 @@ public class ShexValidator {
 	}
 
 
-	public Map<String, Set<String>> getPropertyRangeMap(ShapeExpr expr, Map<String, Set<String>> prop_range){
+	public Map<String, Set<String>> getPropertyRangeMap(Label rootshapelabel, ShapeExpr expr, Map<String, Set<String>> prop_range){
 		if(prop_range==null) {
 			prop_range = new HashMap<String, Set<String>>();
 		}
@@ -849,7 +878,7 @@ public class ShexValidator {
 			ShapeAnd andshape = (ShapeAnd)expr;
 			for(ShapeExpr subexp : andshape.getSubExpressions()) {
 				//boolean is_closed = subexp.closed;
-				prop_range = getPropertyRangeMap(subexp, prop_range);
+				prop_range = getPropertyRangeMap(rootshapelabel, subexp, prop_range);
 				explanation += subexp+" ";
 			}
 		}
@@ -863,14 +892,14 @@ public class ShexValidator {
 		}else if(expr instanceof ShapeExprRef) {
 			ShapeExprRef ref = (ShapeExprRef) expr; 
 			ShapeExpr ref_expr = ref.getShapeDefinition();
-			prop_range = getPropertyRangeMap(ref_expr, prop_range);
+			prop_range = getPropertyRangeMap(rootshapelabel, ref_expr, prop_range);
 			//not in the rdf model - this is a match of this expr on a shape
 			//e.g. <http://purl.obolibrary.org/obo/go/shapes/GoCamEntity>
 			explanation += "\t\tis a: "+((ShapeExprRef) expr).getLabel()+"\n";			
 		}else if(expr instanceof Shape) {
 			Shape shape = (Shape)expr;
 			TripleExpr texp = shape.getTripleExpression();
-			prop_range = getPropertyRangeMap(texp, prop_range);
+			prop_range = getPropertyRangeMap(rootshapelabel, texp, prop_range);
 		}else if (expr instanceof NodeConstraint) {
 			NodeConstraint nc = (NodeConstraint)expr;
 			explanation += "\t\tnode constraint "+nc.toPrettyString();
@@ -883,7 +912,7 @@ public class ShexValidator {
 
 
 
-	public Map<String, Set<String>> getPropertyRangeMap(TripleExpr texp, Map<String, Set<String>> prop_range) {
+	public Map<String, Set<String>> getPropertyRangeMap(Label rootshapelabel, TripleExpr texp, Map<String, Set<String>> prop_range) {
 		if(prop_range==null) {
 			prop_range = new HashMap<String, Set<String>>();
 		}
@@ -896,23 +925,31 @@ public class ShexValidator {
 			if(ranges==null) {
 				ranges = new HashSet<String>();
 			}
-			ranges.addAll(getShapeExprRefs(range,ranges));
+			ranges.addAll(getShapeExprRefs(rootshapelabel, range,ranges));
 			prop_range.put(prop_uri, ranges);
+			//Map<Label, Map<String, Integer>> shape_expected_property_cardinality
+			Map<String, Interval> property_cardinality = shape_expected_property_cardinality.get(rootshapelabel);
+			if(property_cardinality==null) {
+				property_cardinality = new HashMap<String, Interval>();
+			}
+			property_cardinality.put(prop_uri, tripexprlabel_cardinality.get(texp.getId()));
+			shape_expected_property_cardinality.put(rootshapelabel, property_cardinality);
 		}else if(texp instanceof EachOf){
 			EachOf each = (EachOf)texp;
 			for(TripleExpr eachtexp : each.getSubExpressions()) {
 				if(!texp.equals(eachtexp)) {
-					prop_range = getPropertyRangeMap(eachtexp, prop_range);
+					prop_range = getPropertyRangeMap(rootshapelabel, eachtexp, prop_range);
 				}
 			}
 		}else if(texp instanceof RepeatedTripleExpression) {
 			RepeatedTripleExpression rep = (RepeatedTripleExpression)texp;
-			rep.getCardinality().toString();
 			TripleExpr t = rep.getSubExpression();
-			prop_range = getPropertyRangeMap(t, prop_range);
+			Label texp_label = t.getId();
+			tripexprlabel_cardinality.put(texp_label, rep.getCardinality());
+			prop_range = getPropertyRangeMap(rootshapelabel, t, prop_range);
 		}else if(texp instanceof TripleExprRef) {
 			TripleExprRef ref = (TripleExprRef)texp;
-			prop_range = getPropertyRangeMap(ref.getTripleExp(), prop_range);
+			prop_range = getPropertyRangeMap(rootshapelabel, ref.getTripleExp(), prop_range);
 		}
 		else {
 			System.out.println("\tlost again here on "+texp);
@@ -920,7 +957,7 @@ public class ShexValidator {
 		return prop_range;
 	}
 
-	private Set<String> getShapeExprRefs(ShapeExpr expr, Set<String> shape_refs) {
+	private Set<String> getShapeExprRefs(Label rootshapelabel, ShapeExpr expr, Set<String> shape_refs) {
 		if(shape_refs==null) {
 			shape_refs = new HashSet<String>();
 		}
@@ -935,7 +972,7 @@ public class ShexValidator {
 		}else if (expr instanceof ShapeOr) {
 			ShapeOr orshape = (ShapeOr)expr;
 			for(ShapeExpr subexp : orshape.getSubExpressions()) {
-				shape_refs = getShapeExprRefs(subexp, shape_refs);
+				shape_refs = getShapeExprRefs(rootshapelabel, subexp, shape_refs);
 			}
 		}else if (expr instanceof NodeConstraint){
 			String reference_string = ((NodeConstraint) expr).toPrettyString();
@@ -950,6 +987,7 @@ public class ShexValidator {
 		}
 		return shape_refs;
 	}
+
 
 	public static String getModelTitle(Model model) {
 		String model_title = null;

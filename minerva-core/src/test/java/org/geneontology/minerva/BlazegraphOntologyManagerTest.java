@@ -6,6 +6,8 @@ package org.geneontology.minerva;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.AfterClass;
@@ -192,8 +194,88 @@ public class BlazegraphOntologyManagerTest {
 		supers = onto_repo.getAllSuperClasses(uri);
 		assertTrue("WBGene00000275 not subclass of CHEBI_36695 information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
 		assertTrue("WBGene00000275 not subclass of CHEBI_24431 chemical entity", supers.contains("http://purl.obolibrary.org/obo/CHEBI_24431"));
-		
-		
 	}
+	
+	@Test	
+	public void testGetUpperTypes() throws IOException {
+		//make sure its possible to get from leaf to root for the key classes
+		Set<String> uris = new HashSet<String>();
+		String eco = "http://purl.obolibrary.org/obo/ECO_0000314";
+		String wbbt = "http://purl.obolibrary.org/obo/WBbt_0005753";
+		String cc = "http://purl.obolibrary.org/obo/GO_0000776";
+		String bp = "http://purl.obolibrary.org/obo/GO_0022607";
+		String mf = "http://purl.obolibrary.org/obo/GO_0060090";
+		String human_protein = "http://identifiers.org/uniprot/Q13253";
+		String zfin_protein = "http://identifiers.org/zfin/ZDB-GENE-010410-3";
+		String worm_gene = "http://identifiers.org/wormbase/WBGene00000275";
+		uris.add(eco);
+		uris.add(wbbt);
+		uris.add(cc);
+		uris.add(bp);
+		uris.add(mf);
+		uris.add(human_protein);
+		uris.add(zfin_protein);
+		uris.add(worm_gene);
+		
+		Map<String, Set<String>> uri_roots = onto_repo.getSuperCategoryMap(uris);
+	//Evidence
+		Set<String> supers = uri_roots.get(eco);
+		assertTrue("ECO_0000314 not subclass of ECO_0000000", supers.contains("http://purl.obolibrary.org/obo/ECO_0000000"));
+	//Anatomy
+		//worm anatomy - note that it needs parts of the cl ontology in there
+		supers = uri_roots.get(wbbt);
+		//GO native cell - used a lot in shex
+		//assertTrue("WBbt_0005753 not subclass of CL_0000003", supers.contains("http://purl.obolibrary.org/obo/CL_0000003")); 
+		//anatomy - also used a lot in shex
+		assertTrue("WBbt_0005753 not subclass of CARO_0000000", supers.contains("http://purl.obolibrary.org/obo/CARO_0000000"));
+	//Cell component
+		supers = uri_roots.get(cc);
+		assertTrue("GO_0000776 not subclass of GO_0110165 'cellular anatomical entity'", supers.contains("http://purl.obolibrary.org/obo/GO_0110165"));
+		assertTrue("GO_0000776 not subclass of GO_0005575 'cellular component'", supers.contains("http://purl.obolibrary.org/obo/GO_0005575"));
+	//biological process
+		supers = uri_roots.get(bp);
+		assertTrue("GO_0022607 not subclass of GO_000815 biological process", supers.contains("http://purl.obolibrary.org/obo/GO_0008150"));
+	//molecular function
+		supers = uri_roots.get(mf);
+		assertTrue("GO_0060090 not subclass of molecular function GO_0003674", supers.contains("http://purl.obolibrary.org/obo/GO_0003674"));	
+	//Gene products
+		//uniprot
+		supers = uri_roots.get(human_protein);
+		//protein
+		assertTrue("uniprot/Q13253 not subclass of CHEBI_36080 protein", supers.contains("http://purl.obolibrary.org/obo/CHEBI_36080")); 
+		assertTrue("uniprot/Q13253 not subclass of CHEBI_36695 information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
+		assertTrue("uniprot/Q13253 not subclass of CHEBI_24431 chemical entity", supers.contains("http://purl.obolibrary.org/obo/CHEBI_24431"));
+		//"gene"..
+		//zfin
+		supers = uri_roots.get(zfin_protein);
+		assertTrue("ZDB-GENE-010410-3 not subclass of CHEBI_36695 information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
+		assertTrue("ZDB-GENE-010410-3 not subclass of CHEBI_24431 chemical entity", supers.contains("http://purl.obolibrary.org/obo/CHEBI_24431"));
+		//wormbase
+		supers = uri_roots.get(worm_gene);
+		assertTrue("WBGene00000275 not subclass of CHEBI_36695 information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
+		assertTrue("WBGene00000275 not subclass of CHEBI_24431 chemical entity", supers.contains("http://purl.obolibrary.org/obo/CHEBI_24431"));
+	}
+	
+	@Test	
+	public void testGetComplexPortalTypes() throws IOException {
+		//make sure its possible to get from leaf to root for the key classes
+		Set<String> uris = new HashSet<String>();
+		String cp1 = "http://purl.obolibrary.org/obo/ComplexPortal_CPX-9";
+		String cp2 = "http://purl.obolibrary.org/obo/ComplexPortal_CPX-4082";
+//this doesn't work now.  It should work while the ones above do not.  this is problem with the neo ontology.  
+//		String cp3 = "https://www.ebi.ac.uk/complexportal/complex/CPX-9";
+		uris.add(cp1);
+		uris.add(cp2);
+//		uris.add(cp3);
+		
+		Map<String, Set<String>> uri_roots = onto_repo.getSuperCategoryMap(uris);
+		Set<String> supers = uri_roots.get(cp1);
+		assertTrue("ComplexPortal_CPX-9 not an information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
+		supers = uri_roots.get(cp2);
+		assertTrue("ComplexPortal_CPX-4082 not an information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
+//		supers = uri_roots.get(cp3);
+//		assertTrue("ComplexPortal_CPX-9 as https://www.ebi.ac.uk/complexportal/complex/CPX-9 is not an information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
+		
 
+	}
 }

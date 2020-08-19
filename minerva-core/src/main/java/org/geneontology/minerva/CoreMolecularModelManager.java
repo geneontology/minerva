@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.reasoner.rulesys.Rule;
+import org.apache.jena.vocabulary.OWL;
 import org.apache.log4j.Logger;
 import org.geneontology.jena.OWLtoRules;
 import org.geneontology.jena.SesameJena;
@@ -49,6 +50,7 @@ import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLDataProperty;
 import org.semanticweb.owlapi.model.OWLDataPropertyAssertionAxiom;
+import org.semanticweb.owlapi.model.OWLDeclarationAxiom;
 import org.semanticweb.owlapi.model.OWLDocumentFormat;
 import org.semanticweb.owlapi.model.OWLImportsDeclaration;
 import org.semanticweb.owlapi.model.OWLIndividual;
@@ -81,6 +83,7 @@ import org.semanticweb.owlapi.rio.RioMemoryTripleSource;
 import org.semanticweb.owlapi.rio.RioParserImpl;
 import org.semanticweb.owlapi.search.EntitySearcher;
 import org.semanticweb.owlapi.util.PriorityCollection;
+import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
 
 import com.google.common.base.Optional;
 
@@ -1321,16 +1324,18 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return loadOntologyDocumentSource(source, minimal, tbox.getOWLOntologyManager());
 	}
 
-	static OWLOntology loadOntologyDocumentSource(final OWLOntologyDocumentSource source, boolean minimal, OWLOntologyManager manager) throws OWLOntologyCreationException {
+	static OWLOntology loadOntologyDocumentSource(final OWLOntologyDocumentSource source, boolean minimal, OWLOntologyManager manager) throws OWLOntologyCreationException {		
 		// silence the OBO parser in the OWL-API
 		java.util.logging.Logger.getLogger("org.obolibrary").setLevel(java.util.logging.Level.SEVERE);
 		final Set<OWLParserFactory> originalFactories = removeOBOParserFactories(manager);
-		try {
+		try {			
 			// load model from source
 			if (minimal == false) {
-				// add the obsolete imports to the ignored imports
-				OWLOntology abox = loadOWLOntologyDocumentSource(source, manager);
-				return abox;
+				//this gets the model to load all the OWL properly because it is using the tbox manager
+				//otherwise it doesn't understand the object properties.  
+				OWLOntology abox_tbox_manager = loadOWLOntologyDocumentSource(source, manager);
+				//unfortunately it bizarrely does not retrieve the http://purl.org/dc/elements/1.1/title annotation 
+				return abox_tbox_manager;
 			}
 			else {
 				// only load the model, skip imports
@@ -1372,8 +1377,9 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		if (source instanceof RioMemoryTripleSource) {
 			RioParserImpl parser = new RioParserImpl(new RioRDFXMLDocumentFormatFactory());
 			ontology = manager.createOntology();
+			OWLOntologyLoaderConfiguration config = new OWLOntologyLoaderConfiguration();
 			try {
-				parser.parse(source, ontology, new OWLOntologyLoaderConfiguration());
+				parser.parse(source, ontology, config);
 			} catch (IOException e) {
 				throw new OWLOntologyCreationException(e);
 			}
@@ -1424,10 +1430,111 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return tbox;
 	}
 
-	//	public OWLReasoner getTbox_reasoner() {
-	//		return tbox_reasoner;
-	//	}
 	public BlazegraphOntologyManager getGolego_repo() {
 		return go_lego_repo;
+	}
+	
+	
+	/**
+	 * even if the manager has loaded a property before, and should know what kind it is, 
+	   if the next ontology doesn't include an import statement, the loader will guess that
+	   object properties are annotation properties and screw up.  
+	   This purifies the gocam
+	 * @param ont
+	 * @return
+	 * @throws OWLOntologyCreationException
+	 */
+	public static OWLOntology fixBrokenObjectPropertiesAndAxioms(OWLOntology ont) throws OWLOntologyCreationException {
+		OWLOntologyManager newman = OWLManager.createOWLOntologyManager();
+		OWLOntology frank = newman.createOntology(ont.getOntologyID());
+		OWLDataFactory df = newman.getOWLDataFactory();
+
+		//declare known annotation properties
+		OWLAnnotationProperty title_prop = df.getOWLAnnotationProperty(IRI.create("http://purl.org/dc/elements/1.1/title"));
+		OWLDeclarationAxiom title_prop_declaration = df.getOWLDeclarationAxiom(title_prop);
+		newman.addAxiom(frank, title_prop_declaration);
+		
+		OWLAnnotationProperty title_prop2 = df.getOWLAnnotationProperty(IRI.create("http://purl.org/dc/terms/title"));
+		OWLDeclarationAxiom title_prop2_declaration = df.getOWLDeclarationAxiom(title_prop2);
+		newman.addAxiom(frank, title_prop2_declaration);
+		
+		
+		OWLAnnotationProperty skos_note = df.getOWLAnnotationProperty(IRI.create("http://www.w3.org/2004/02/skos/core#note"));
+		OWLAnnotationProperty version_info = df.getOWLAnnotationProperty(IRI.create(OWL.versionInfo.getURI()));
+		OWLAnnotationProperty contributor_prop = df.getOWLAnnotationProperty(IRI.create("http://purl.org/dc/elements/1.1/contributor"));
+		OWLAnnotationProperty date_prop = df.getOWLAnnotationProperty(IRI.create("http://purl.org/dc/elements/1.1/date"));
+		OWLAnnotationProperty source_prop = df.getOWLAnnotationProperty(IRI.create("http://purl.org/dc/elements/1.1/source"));
+		OWLAnnotationProperty state_prop = df.getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/modelstate"));
+		OWLAnnotationProperty evidence_prop = df.getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/evidence"));
+		OWLAnnotationProperty provided_by_prop = df.getOWLAnnotationProperty(IRI.create("http://purl.org/pav/providedBy"));
+		OWLAnnotationProperty x_prop = df.getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/hint/layout/x"));
+		OWLAnnotationProperty y_prop = df.getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/hint/layout/y"));
+		OWLAnnotationProperty rdfs_label = df.getOWLAnnotationProperty(OWLRDFVocabulary.RDFS_LABEL.getIRI());
+		OWLAnnotationProperty rdfs_comment = df.getOWLAnnotationProperty(OWLRDFVocabulary.RDFS_COMMENT.getIRI());
+		OWLAnnotationProperty rdfs_seealso = df.getOWLAnnotationProperty(OWLRDFVocabulary.RDFS_SEE_ALSO.getIRI());
+		OWLAnnotationProperty skos_exact_match = df.getOWLAnnotationProperty(IRI.create("http://www.w3.org/2004/02/skos/core#exactMatch"));
+		OWLAnnotationProperty skos_altlabel = df.getOWLAnnotationProperty(IRI.create("http://www.w3.org/2004/02/skos/core#altLabel"));
+		OWLAnnotationProperty definition = df.getOWLAnnotationProperty(IRI.create("http://purl.obolibrary.org/obo/IAO_0000115"));	
+		OWLAnnotationProperty database_cross_reference = df.getOWLAnnotationProperty(IRI.create("http://www.geneontology.org/formats/oboInOwl#hasDbXref"));	
+		OWLAnnotationProperty canonical_record = df.getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/canonical_record"));
+		OWLAnnotationProperty iuphar_id = df.getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/iuphar_id"));
+		OWLAnnotationProperty in_taxon = df.getOWLAnnotationProperty(IRI.create("https://w3id.org/biolink/vocab/in_taxon"));
+
+		
+		//copy over ontology annotations
+		for(OWLAnnotation anno : ont.getAnnotations()) {
+			AddOntologyAnnotation add = new AddOntologyAnnotation(frank, anno);
+			newman.applyChange(add);
+		}
+		
+		//add correct property declarations
+		Set<OWLAnnotationProperty> anno_properties = ont.getAnnotationPropertiesInSignature();
+		Set<String> bad_props = new HashSet<String>();
+		for(OWLAnnotationProperty anno_prop : anno_properties) {
+			if(anno_prop.getIRI().toString().contains("http://purl.obolibrary.org/obo/RO_")||
+					anno_prop.getIRI().toString().contains("http://purl.obolibrary.org/obo/BFO_")) {
+				bad_props.add(anno_prop.getIRI().toString());
+				OWLObjectProperty object_prop = df.getOWLObjectProperty(anno_prop.getIRI());
+				OWLDeclarationAxiom object_prop_declaration = df.getOWLDeclarationAxiom(object_prop);
+				newman.addAxiom(frank, object_prop_declaration);
+			}
+		}
+		//fix screwed up axioms, collect the rest
+		for(OWLAxiom axiom : ont.getAxioms()) {
+			if(axiom.isOfType(AxiomType.ANNOTATION_ASSERTION)) {
+				OWLAnnotationAssertionAxiom a = (OWLAnnotationAssertionAxiom)axiom;
+				String prop_iri = a.getProperty().getIRI().toString();
+				if(bad_props.contains(prop_iri)) {
+					Set<OWLAnnotation> annos = a.getAnnotations();
+					OWLObjectProperty p = df.getOWLObjectProperty(IRI.create(prop_iri));
+					IRI object = a.getValue().asIRI().get();
+					IRI subject = IRI.create(a.getSubject().toString());					
+					OWLObjectPropertyAssertionAxiom new_ass = df.getOWLObjectPropertyAssertionAxiom(p, df.getOWLNamedIndividual(subject),  df.getOWLNamedIndividual(object), annos);
+					newman.addAxiom(frank, new_ass);
+				}else {
+					newman.addAxiom(frank, axiom);
+				}
+			}else {
+				newman.addAxiom(frank, axiom);
+			}
+		}	
+		//return new fixed ontology
+		return frank;
+	}
+
+	public static boolean hasLegoImport(OWLOntology ont) {
+		Set<OWLOntology> imports = ont.getDirectImports();
+		for(OWLOntology i : imports) {
+			com.google.common.base.Optional<IRI> iri = i.getOntologyID().getOntologyIRI();
+			if(iri.isPresent()) {
+				String s_iri = iri.get().toString();
+				if(s_iri.equals("http://purl.obolibrary.org/obo/go/extensions/go-lego-reacto.owl")||
+						s_iri.equals("http://purl.obolibrary.org/obo/go/extensions/go-lego.owl")) {
+					return true;
+				}
+
+			}
+		}
+		return false;
 	}
 }

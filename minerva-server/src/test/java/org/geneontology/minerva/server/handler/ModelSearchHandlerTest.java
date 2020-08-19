@@ -20,6 +20,7 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -168,6 +169,42 @@ public class ModelSearchHandlerTest {
 	public void tearDown() throws Exception {
 	}
 
+	
+	@Test
+	public final void testSearchGetByModelIdAsCurie() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
+		//<http://model.geneontology.org/5d29221b00001265> 
+		builder.addParameter("id", "gomodel:5d29221b00001265");
+		builder.addParameter("id", "gomodel:5d29218800000021");		
+		///  5d29218800000021
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by id URI "+searchuri);
+		LOGGER.info("Search by id result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()==2);
+	}
+	
+	@Test
+	public final void testSearchGetByModelIdAsURI() throws URISyntaxException, IOException {
+		//make the request
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
+		//<http://model.geneontology.org/5d29221b00001265> 
+		//builder.addParameter("id", "gomodel:5d29221b00001265");
+		builder.addParameter("id", "http://model.geneontology.org/5d29221b00001265");
+		URI searchuri = builder.build();
+		String json_result = getJsonStringFromUri(searchuri);
+		Gson g = new Gson();
+		ModelSearchResult result = g.fromJson(json_result, ModelSearchResult.class);
+		LOGGER.info("Search by id URI "+searchuri);
+		LOGGER.info("Search by id result "+json_result);
+		LOGGER.info("N models found: "+result.getN());
+		assertTrue(result.getN()==1);
+	}
+	
 	/**
 	 * Test method for {@link org.geneontology.minerva.server.handler.ModelSearchHandler#searchGet(java.util.Set, java.util.Set, java.util.Set, java.lang.String, java.util.Set, java.util.Set, java.util.Set, java.lang.String, int, int, java.lang.String)}.
 	 * @throws URISyntaxException 
@@ -224,7 +261,7 @@ public class ModelSearchHandlerTest {
 	public final void testSearchGetByGOclosure() throws URISyntaxException, IOException {
 		//make the request
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
-		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0140312");//clathrin binding - should get one model that uses child clathrin activity GO_0035615
+		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0140110");//transcription factor regulator activity GO_0140110
 		builder.addParameter("expand", "");
 		URI searchuri = builder.build();
 		String json_result = getJsonStringFromUri(searchuri);
@@ -233,10 +270,10 @@ public class ModelSearchHandlerTest {
 		LOGGER.info("Search by GO term URI "+searchuri);
 		LOGGER.info("Search by GO term result "+json_result);
 		LOGGER.info("N models found: "+result.getN());
-		assertTrue(result.getN()+" models found should find some from children of GO_0140312", result.getN()>0);
+		assertTrue(result.getN()+" models found should find some from children of GO_0140110", result.getN()>0);
 		
 		builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
-		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0140312");//clathrin binding - should get one model that uses child clathrin activity GO_0035615
+		builder.addParameter("term", "http://purl.obolibrary.org/obo/GO_0140110");
 		searchuri = builder.build();
 		json_result = getJsonStringFromUri(searchuri);
 		g = new Gson();
@@ -244,7 +281,7 @@ public class ModelSearchHandlerTest {
 		LOGGER.info("Search by GO term URI "+searchuri);
 		LOGGER.info("Search by GO term result "+json_result);
 		LOGGER.info("N models found: "+result.getN());
-		assertTrue(result.getN()+" without expand on, should find now models for GO_0140312", result.getN()==0);
+		assertTrue(result.getN()+" without expand on, should find now models for GO_0140110", result.getN()==0);
 	}
 	
 	@Test

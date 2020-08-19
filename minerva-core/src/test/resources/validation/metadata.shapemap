@@ -1,0 +1,2 @@
+SPARQL 'SELECT ?x WHERE { ?x a <http://www.w3.org/2002/07/owl#Ontology> }' @ <http://purl.obolibrary.org/obo/go/shapes/GoCamModel>,
+SPARQL 'SELECT ?x WHERE { ?x a <http://www.w3.org/2002/07/owl#Ontology> }' @ <http://purl.obolibrary.org/obo/go/shapes/GoCamModel> 

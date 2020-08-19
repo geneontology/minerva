@@ -103,8 +103,13 @@ public class GPADSPARQLExport {
 		this.doNotAnnotateSubset = doNotAnnotateSubset;
 	}
 
-	/* This is a bit convoluted in order to minimize redundant queries, for performance reasons. */
 	public String exportGPAD(WorkingMemory wm, IRI modelIRI) throws InconsistentOntologyException {
+		Set<GPADData> annotations = getGPAD(wm, modelIRI);
+		return new GPADRenderer(curieHandler, relationShorthandIndex).renderAll(annotations);
+	}
+	
+	/* This is a bit convoluted in order to minimize redundant queries, for performance reasons. */
+	public Set<GPADData> getGPAD(WorkingMemory wm, IRI modelIRI) throws InconsistentOntologyException {
 		Model model = ModelFactory.createDefaultModel();
 		model.add(JavaConverters.setAsJavaSetConverter(wm.facts()).asJava().stream().map(t -> model.asStatement(Bridge.jenaFromTriple(t))).collect(Collectors.toList()));
 		if (!isConsistent(model)) throw new InconsistentOntologyException();
@@ -185,7 +190,7 @@ public class GPADSPARQLExport {
 				}
 			}
 		}
-		return new GPADRenderer(curieHandler, relationShorthandIndex).renderAll(annotations);
+		return annotations;
 	}
 
 	private Map<String, String> getModelAnnotations(Model model) {
@@ -202,7 +207,7 @@ public class GPADSPARQLExport {
 				String providedBy = qs.getLiteral("provided_by").getLexicalForm();
 				modelAnnotations.put("assigned-by", providedBy);
 			}
-			break;
+			//break;
 		}
 		return modelAnnotations;
 	}

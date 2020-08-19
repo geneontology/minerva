@@ -193,10 +193,11 @@ public class ModelSearchHandler {
 			@QueryParam("offset") int offset,
 			@QueryParam("limit") int limit,
 			@QueryParam("count") String count,
-			@QueryParam("debug") String debug
+			@QueryParam("debug") String debug,
+			@QueryParam("id") Set<String> id
 			){
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug);
+		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug, id);
 		return result;
 	}
 
@@ -218,7 +219,7 @@ public class ModelSearchHandler {
 			Set<String> gene_product_ids, Set<String> terms, String expand, Set<String>pmids, 
 			String title_search,Set<String> state_search, Set<String> contributor_search, Set<String> group_search, 
 			String exactdate, String date_search, String datend, 
-			int offset, int limit, String count, String debug) {
+			int offset, int limit, String count, String debug, Set<String> id) {
 		ModelSearchResult r = new ModelSearchResult();
 		Set<String> go_type_ids = new HashSet<String>();
 		Set<String> gene_type_ids = new HashSet<String>();
@@ -307,6 +308,28 @@ public class ModelSearchHandler {
 				types = types+"?ind"+n+" rdf:type <"+go_type_uri+"> . \n";
 			}
 		}
+		String id_constraint = "";
+		if(id!=null&&id.size()>0) {
+			String id_list = "";
+			for(String mid : id) {
+				if(!mid.contains("http")) {
+					String[] curie = mid.split(":");
+					if(curie!=null&&curie.length==2) {
+						mid = "http://model.geneontology.org/"+curie[1];
+					}
+					//TODO figure this out and add it to standard curie collection				
+					//				try {
+					//					IRI iri = curie_handler.getIRI(id);
+					//					id = iri.toString();
+					//				} catch (UnknownIdentifierException e) {
+					//					// TODO Auto-generated catch block
+					//					e.printStackTrace();
+					//				}
+				}
+				id_list += "<"+mid+"> ";
+			}
+			id_constraint = " values ?id { "+id_list+" } ";
+		}
 		String pmid_constraints = ""; //<pmid_constraints>
 		if(pmids!=null) {
 			for(String pmid : pmids) {
@@ -357,9 +380,9 @@ public class ModelSearchHandler {
 			if(!title_search.contains("*")) {
 				title_search_constraint+=" ?title <http://www.bigdata.com/rdf/search#matchAllTerms> \""+"true"+"\" . \n";
 			}
-//			if(exact_match) {
-//				title_search_constraint+=" ?title <http://www.bigdata.com/rdf/search#matchExact>  \""+"true"+"\" . \n";
-//			}
+			//			if(exact_match) {
+			//				title_search_constraint+=" ?title <http://www.bigdata.com/rdf/search#matchExact>  \""+"true"+"\" . \n";
+			//			}
 		}
 		String state_search_constraint = "";
 		if(state_search!=null&&state_search.size()>0) {
@@ -437,6 +460,7 @@ public class ModelSearchHandler {
 			group_by_constraint = "";
 		}
 		sparql = sparql.replaceAll("<return_block>", return_block);
+		sparql = sparql.replaceAll("<id_constraint>", id_constraint);
 		sparql = sparql.replaceAll("<group_by_constraint>", group_by_constraint);
 		sparql = sparql.replaceAll("<ind_return_list>", ind_return_list);
 		sparql = sparql.replaceAll("<types>", types);
@@ -477,11 +501,11 @@ public class ModelSearchHandler {
 					n_count = bs.getBinding("count").getValue().stringValue();
 				}else {
 					//model meta
-					String id = bs.getBinding("id").getValue().stringValue();
+					String model_id = bs.getBinding("id").getValue().stringValue();
 					try {
-						String curie = curie_handler.getCuri(IRI.create(id));
+						String curie = curie_handler.getCuri(IRI.create(model_id));
 						if(curie!=null) {
-							id = curie;
+							model_id = curie;
 						}
 					} catch (Exception e) {
 						r.error += e.getMessage()+" \n ";
@@ -514,9 +538,9 @@ public class ModelSearchHandler {
 							groups.add(c);
 						}
 					}
-					ModelMeta mm = id_model.get(id);
+					ModelMeta mm = id_model.get(model_id);
 					if(mm==null) {
-						mm = new ModelMeta(id, date, title, state, contributors, groups);
+						mm = new ModelMeta(model_id, date, title, state, contributors, groups);
 					}
 					//matching     		
 					for(String ind : ind_return.keySet()) {
@@ -528,7 +552,7 @@ public class ModelSearchHandler {
 						matching_inds.add(ind_class_match);
 						mm.query_match.put(ind_return.get(ind), matching_inds);
 					}
-					id_model.put(id, mm);
+					id_model.put(model_id, mm);
 				}
 			}
 		} catch (QueryEvaluationException e) {
@@ -576,9 +600,10 @@ public class ModelSearchHandler {
 			@FormParam("offset") int offset,
 			@FormParam("limit") int limit,
 			@FormParam("count") String count,
-			@FormParam("debug") String debug) {
+			@FormParam("debug") String debug,
+			@FormParam("debug") Set<String> id) {
 		ModelSearchResult result = new ModelSearchResult();
-		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug);
+		result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug, id);
 		return result;
 	}
 

@@ -7,6 +7,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,7 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyDocumentAlreadyExistsException;
 import org.semanticweb.owlapi.model.OWLOntologyID;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.search.EntitySearcher;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -63,7 +65,7 @@ import owltools.util.OwlHelper;
  * @author cjm
  */
 public class MolecularModelJsonRenderer {
-	
+
 	private static Logger LOG = Logger.getLogger(MolecularModelJsonRenderer.class);
 
 	private final String modelId;
@@ -73,14 +75,16 @@ public class MolecularModelJsonRenderer {
 	private final CurieHandler curieHandler;
 	private final InferenceProvider inferenceProvider;
 	private BlazegraphOntologyManager go_lego_repo;
-	
+	private Map<OWLNamedIndividual, Set<String>> type_roots;
+	private Map<String, String> class_label;
+
 	public static final ThreadLocal<DateFormat> AnnotationTypeDateFormat = new ThreadLocal<DateFormat>(){
 
 		@Override
 		protected DateFormat initialValue() {
 			return new SimpleDateFormat("yyyy-MM-dd");
 		}
-		
+
 	};
 
 	public MolecularModelJsonRenderer(ModelContainer model, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
@@ -89,11 +93,11 @@ public class MolecularModelJsonRenderer {
 				new MinervaOWLGraphWrapper(model.getAboxOntology()), 
 				inferenceProvider, curieHandler);
 	}
-	
+
 	public MolecularModelJsonRenderer(String modelId, OWLOntology ontology, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
 		this(modelId, ontology, new MinervaOWLGraphWrapper(ontology), inferenceProvider, curieHandler);
 	}
-	
+
 	public MolecularModelJsonRenderer(String modelId, MinervaOWLGraphWrapper graph, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
 		this(modelId, graph.getSourceOntology(), graph, inferenceProvider, curieHandler);
 	}
@@ -106,7 +110,7 @@ public class MolecularModelJsonRenderer {
 		this.inferenceProvider = inferenceProvider;
 		this.curieHandler = curieHandler;
 	}
-	
+
 	public MolecularModelJsonRenderer(String modelId, OWLOntology ont, BlazegraphOntologyManager go_lego_repo,
 			InferenceProvider inferenceProvider, CurieHandler curieHandler) {
 		super();
@@ -127,6 +131,43 @@ public class MolecularModelJsonRenderer {
 		//TODO this loop is the slowest part of the service response time. 
 		List<JsonOwlIndividual> iObjs = new ArrayList<JsonOwlIndividual>();
 		Set<OWLNamedIndividual> individuals = ont.getIndividualsInSignature();
+
+		if(go_lego_repo!=null) {
+			try {
+				type_roots = go_lego_repo.getSuperCategoryMapForIndividuals(individuals, ont, true);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			//get all the labels ready for the ontology terms in the model
+			Set<String> all_classes = new HashSet<String>();
+			for(OWLNamedIndividual ind : individuals) {
+				Collection<OWLClassExpression> ocs = EntitySearcher.getTypes(ind, ont);
+				if(ocs!=null) {
+					for(OWLClassExpression oc : ocs) {
+						if(!oc.isAnonymous()) {
+							all_classes.add(oc.asOWLClass().getIRI().toString());
+						}
+					}		
+				}
+			}
+			//also the root terms
+			if(type_roots!=null&&type_roots.values()!=null) {
+				for(Set<String> roots : type_roots.values()) {
+					if(roots!=null) {
+						all_classes.addAll(roots);
+					}
+				}
+			}
+			if(all_classes!=null) {
+				try {
+					class_label = go_lego_repo.getLabels(all_classes);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
 		for (OWLNamedIndividual i : individuals) {
 			iObjs.add(renderObject(i));
 		}
@@ -147,14 +188,14 @@ public class MolecularModelJsonRenderer {
 			json.annotations = anObjs;
 		}
 		return json;
-		
+
 	}
-	
+
 	public static JsonAnnotation[] renderModelAnnotations(OWLOntology ont, CurieHandler curieHandler) {
 		JsonAnnotation[] anObjs = renderAnnotations(ont.getAnnotations(), curieHandler);
 		return anObjs;
 	}
-	
+
 	private static JsonAnnotation[] renderAnnotations(Set<OWLAnnotation> annotations, CurieHandler curieHandler) {
 		List<JsonAnnotation> anObjs = new ArrayList<JsonAnnotation>();
 		for (OWLAnnotation annotation : annotations) {
@@ -165,8 +206,25 @@ public class MolecularModelJsonRenderer {
 		}
 		return anObjs.toArray(new JsonAnnotation[anObjs.size()]);
 	}
-	
+
 	public Pair<JsonOwlIndividual[], JsonOwlFact[]> renderIndividuals(Collection<OWLNamedIndividual> individuals) {
+		
+		//add root types in case these are new to the model
+				if(go_lego_repo!=null) {
+					try {
+						if(type_roots==null) {
+							type_roots = new HashMap<OWLNamedIndividual, Set<String>>();
+						}
+						Map<OWLNamedIndividual, Set<String>> t_r = go_lego_repo.getSuperCategoryMapForIndividuals(new HashSet<OWLNamedIndividual>(individuals), ont, true);
+						if(t_r!=null) {
+							type_roots.putAll(t_r);				
+						}
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+		
 		List<JsonOwlIndividual> iObjs = new ArrayList<JsonOwlIndividual>();
 		Set<OWLNamedIndividual> individualIds = new HashSet<OWLNamedIndividual>();
 		final Set<OWLObjectPropertyAssertionAxiom> opAxioms = new HashSet<OWLObjectPropertyAssertionAxiom>();
@@ -177,6 +235,7 @@ public class MolecularModelJsonRenderer {
 				individualIds.add(named);
 			}
 		}
+		
 		// filter object property axioms. Only retain axioms which use individuals from the given subset
 		for (OWLNamedIndividual i : individualIds) {
 			Set<OWLObjectPropertyAssertionAxiom> axioms = ont.getObjectPropertyAssertionAxioms(i);
@@ -194,13 +253,13 @@ public class MolecularModelJsonRenderer {
 				aObjs.add(fact);
 			}
 		}
-		
+
 		return Pair.of(iObjs.toArray(new JsonOwlIndividual[iObjs.size()]), 
 				aObjs.toArray(new JsonOwlFact[aObjs.size()]));
 	}
-	
+
 	/**
-	 //TODO this is slow, spped it up.  The slowest part of the service, including reasoning and validation.   
+	 //TODO this is slow, speed it up.  The slowest part of the service, including reasoning and validation.   
 	 * @param i
 	 * @return Map to be passed to Gson
 	 */
@@ -213,7 +272,19 @@ public class MolecularModelJsonRenderer {
 			typeObjs.add(renderObject(x));
 		}
 		json.type = typeObjs.toArray(new JsonOwlObject[typeObjs.size()]);
-		
+
+		//if we have it, add the root type for the individual 
+		List<JsonOwlObject> rootTypes = new ArrayList<JsonOwlObject>();
+		if(type_roots!=null&&(type_roots.get(i)!=null)) {
+			for(String root_type : type_roots.get(i)) {
+				OWLClass root_class = ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(root_type));
+				//this takes a lot of time... 
+				rootTypes.add(renderObject(root_class));
+			}
+		}
+		json.rootType = rootTypes.toArray(new JsonOwlObject[rootTypes.size()]);					
+
+		//add direct inferred type information 
 		if (inferenceProvider != null && inferenceProvider.isConsistent()) {
 			List<JsonOwlObject> inferredTypeObjs = new ArrayList<JsonOwlObject>();
 			Set<OWLClass> inferredTypes = inferenceProvider.getTypes(i);
@@ -231,22 +302,22 @@ public class MolecularModelJsonRenderer {
 			//testing approach to adding additional type information to response
 			//this works but ends up going extremely slowly when a lot of inferences are happening
 			//since its not being consumed anywhere now, leaving it out speeds things up considerably
-//			List<JsonOwlObject> inferredTypeObjsWithAll = new ArrayList<JsonOwlObject>();
-//			//TODO this is particularly slow as there can be a lot of inferred types
-//			Set<OWLClass> inferredTypesWithAll = inferenceProvider.getAllTypes(i);
-//			// optimization, do not render inferences, if they are equal to the asserted ones
-//			if (assertedTypes.equals(inferredTypesWithAll) == false) {
-//				for(OWLClass c : inferredTypesWithAll) {
-//					if (c.isBuiltIn() == false) {
-//						inferredTypeObjsWithAll.add(renderObject(c));
-//					}
-//				}
-//			}
-//			if (inferredTypeObjsWithAll.isEmpty() == false) {
-//				json.inferredTypeWithAll = inferredTypeObjsWithAll.toArray(new JsonOwlObject[inferredTypeObjsWithAll.size()]);
-//			}
-			
-			
+			//			List<JsonOwlObject> inferredTypeObjsWithAll = new ArrayList<JsonOwlObject>();
+			//			//TODO this is particularly slow as there can be a lot of inferred types
+			//			Set<OWLClass> inferredTypesWithAll = inferenceProvider.getAllTypes(i);
+			//			// optimization, do not render inferences, if they are equal to the asserted ones
+			//			if (assertedTypes.equals(inferredTypesWithAll) == false) {
+			//				for(OWLClass c : inferredTypesWithAll) {
+			//					if (c.isBuiltIn() == false) {
+			//						inferredTypeObjsWithAll.add(renderObject(c));
+			//					}
+			//				}
+			//			}
+			//			if (inferredTypeObjsWithAll.isEmpty() == false) {
+			//				json.inferredTypeWithAll = inferredTypeObjsWithAll.toArray(new JsonOwlObject[inferredTypeObjsWithAll.size()]);
+			//			}
+
+
 		}
 		final List<JsonAnnotation> anObjs = new ArrayList<JsonAnnotation>();
 		Set<OWLAnnotationAssertionAxiom> annotationAxioms = ont.getAnnotationAssertionAxioms(i.getIRI());
@@ -264,13 +335,13 @@ public class MolecularModelJsonRenderer {
 				anObjs.add(jsonAnn);
 			}
 		}
-		
+
 		if (anObjs.isEmpty() == false) {
 			json.annotations = anObjs.toArray(new JsonAnnotation[anObjs.size()]);
 		}
 		return json;
 	}
-	
+
 	/**
 	 * @param opa
 	 * @return Map to be passed to Gson
@@ -285,7 +356,7 @@ public class MolecularModelJsonRenderer {
 			subject = opa.getSubject().asOWLNamedIndividual();
 			property = opa.getProperty().asOWLObjectProperty();
 			object = opa.getObject().asOWLNamedIndividual();
-	
+
 			fact = new JsonOwlFact();
 			fact.subject = curieHandler.getCuri(subject);
 			fact.property = curieHandler.getCuri(property);
@@ -303,7 +374,7 @@ public class MolecularModelJsonRenderer {
 				fact.propertyLabel = curieHandler.getCuri(property);
 			}
 			fact.object = curieHandler.getCuri(object);
-			
+
 			JsonAnnotation[] anObjs = renderAnnotations(opa.getAnnotations(), curieHandler);
 			if (anObjs != null && anObjs.length > 0) {
 				fact.annotations = anObjs;
@@ -318,7 +389,7 @@ public class MolecularModelJsonRenderer {
 		JsonOwlObject json = JsonOwlObject.createProperty(id, label);
 		return json;
 	}
-	
+
 	private JsonOwlObject renderObject(OWLObjectPropertyExpression p) {
 		if (p.isAnonymous()) {
 			return null;
@@ -380,9 +451,11 @@ public class MolecularModelJsonRenderer {
 
 	protected String getLabel(OWLNamedObject i, String id) {
 		String label = null;
-		if(graph!=null) {
+		if(class_label!=null&&class_label.containsKey(i.getIRI().toString())) {
+			label = class_label.get(i.getIRI().toString());
+		} else if(graph!=null) {
 			label = graph.getLabel(i);
-		}else if(go_lego_repo!=null) {
+		} else if(go_lego_repo!=null) {
 			try {
 				label = go_lego_repo.getLabel(i);
 			} catch (IOException e) {
@@ -392,7 +465,7 @@ public class MolecularModelJsonRenderer {
 		}
 		return label;
 	}
-	
+
 
 	public static Pair<List<JsonRelationInfo>,List<JsonRelationInfo>> renderProperties(MolecularModelManager<?> mmm, Set<OWLObjectProperty> importantRelations, CurieHandler curieHandler) throws OWLOntologyCreationException {
 		/* [{
@@ -429,7 +502,7 @@ public class MolecularModelJsonRenderer {
 				wrapper.addSupportOntology(ontology);
 			}
 		}
-	
+
 		// get all properties from all loaded ontologies
 		Set<OWLObjectProperty> properties = new HashSet<OWLObjectProperty>();
 		Set<OWLDataProperty> dataProperties = new HashSet<OWLDataProperty>();
@@ -438,7 +511,7 @@ public class MolecularModelJsonRenderer {
 			properties.addAll(o.getObjectPropertiesInSignature());
 			dataProperties.addAll(o.getDataPropertiesInSignature());
 		}
-		
+
 		// sort properties
 		List<OWLObjectProperty> propertyList = new ArrayList<OWLObjectProperty>(properties);
 		List<OWLDataProperty> dataPropertyList = new ArrayList<OWLDataProperty>(dataProperties);
@@ -463,7 +536,7 @@ public class MolecularModelJsonRenderer {
 			}
 			relList.add(json);
 		}
-		
+
 		// retrieve id and label for all data properties
 		List<JsonRelationInfo> dataList = new ArrayList<JsonRelationInfo>();
 		for(OWLDataProperty p : dataPropertyList) {
@@ -478,14 +551,14 @@ public class MolecularModelJsonRenderer {
 		IOUtils.closeQuietly(wrapper);
 		return Pair.of(relList, dataList);
 	}
-	
+
 	public static List<JsonEvidenceInfo> renderEvidences(MolecularModelManager<?> mmm, CurieHandler curieHandler) throws OWLException, IOException {
 		return renderEvidences(mmm.getOntology().getOWLOntologyManager(), curieHandler);
 	}
-	
+
 	private static final Object ecoMutex = new Object();
 	private static volatile OntologyMapperPair<EcoMapper> eco = null;
-	
+
 	public static List<JsonEvidenceInfo> renderEvidences(OWLOntologyManager manager, CurieHandler curieHandler) throws OWLException, IOException {
 		// TODO remove the hard coded ECO dependencies
 		OntologyMapperPair<EcoMapper> pair;
@@ -515,17 +588,17 @@ public class MolecularModelJsonRenderer {
 		}
 		return relList;
 	}
-	
+
 	public static String renderToJson(String modelId, OWLOntology ont, InferenceProvider inferenceProvider, CurieHandler curieHandler) {
 		return renderToJson(modelId, ont, inferenceProvider, curieHandler, false);
 	}
-	
+
 	public static String renderToJson(String modelId, OWLOntology ont, InferenceProvider inferenceProvider, CurieHandler curieHandler, boolean prettyPrint) {
 		MolecularModelJsonRenderer r = new MolecularModelJsonRenderer(modelId, ont, inferenceProvider, curieHandler);
 		JsonModel model = r.renderModel();
 		return renderToJson(model, prettyPrint);
 	}
-	
+
 	public static String renderToJson(Object model, boolean prettyPrint) {
 		GsonBuilder builder = new GsonBuilder();
 		if (prettyPrint) {
@@ -535,7 +608,7 @@ public class MolecularModelJsonRenderer {
 		String json = gson.toJson(model);
 		return json;
 	}
-	
+
 	public static <T> T parseFromJson(String json, Class<T> type) {
 		Gson gson = new GsonBuilder().create();
 		T result = gson.fromJson(json, type);
