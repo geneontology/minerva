@@ -31,12 +31,14 @@ public class GoCamModel extends ProvenanceAnnotated{
 	Map<OWLNamedIndividual, GoCamEntity> ind_entity;
 	OWLClass mf; OWLClass bp; OWLClass cc;
 	GoCamModelStats stats;
+	Map<OWLObjectProperty, Integer> causal_count;
 
 	public GoCamModel(OWLOntology abox, BlazegraphOntologyManager go_lego_manager) throws IOException {
 		ont = abox;
 		mf =  ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create("http://purl.obolibrary.org/obo/GO_0003674"));
 		bp =  ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create("http://purl.obolibrary.org/obo/GO_0008150"));
 		cc =  ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create("http://purl.obolibrary.org/obo/GO_0005575"));
+		causal_count = new HashMap<OWLObjectProperty, Integer>();
 		go_lego = go_lego_manager;
 		iri = abox.getOntologyID().getOntologyIRI().get().toString();
 		ind_entity = new HashMap<OWLNamedIndividual, GoCamEntity>();
@@ -56,6 +58,14 @@ public class GoCamModel extends ProvenanceAnnotated{
 					ActivityUnit unit = new ActivityUnit(ind, ont, this);
 					activities.add(unit);
 					ind_entity.put(ind, unit);
+					for(OWLObjectProperty prop : unit.causal_out.keySet()) {
+						Integer np = causal_count.get(prop);
+						if(np==null) {
+							np = 0;
+						}
+						np++;
+						causal_count.put(prop, np);
+					}
 				}
 			}
 		}
@@ -232,6 +242,14 @@ public class GoCamModel extends ProvenanceAnnotated{
 
 	public void setStats(GoCamModelStats stats) {
 		this.stats = stats;
+	}
+
+	public Map<OWLObjectProperty, Integer> getCausal_count() {
+		return causal_count;
+	}
+
+	public void setCausal_count(Map<OWLObjectProperty, Integer> causal_count) {
+		this.causal_count = causal_count;
 	}
 
 }

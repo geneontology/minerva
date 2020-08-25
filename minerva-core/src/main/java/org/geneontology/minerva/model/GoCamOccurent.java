@@ -13,6 +13,7 @@ public class GoCamOccurent extends GoCamEntity{
 	}
 	Set<PhysicalEntity> outputs;
 	Set<PhysicalEntity> inputs;
+	Set<PhysicalEntity> regulating_entities;
 	Set<AnatomicalEntity> locations;
 	Set<AnatomicalEntity> transport_locations;
 	//all causal links to other activities or processes 
@@ -54,6 +55,11 @@ public class GoCamOccurent extends GoCamEntity{
 	public void setCausal_in(Map<OWLObjectProperty, Set<GoCamOccurent>> causal_in) {
 		this.causal_in = causal_in;
 	}
-	
+	public Set<PhysicalEntity> getRegulating_entities() {
+		return regulating_entities;
+	}
+	public void setRegulating_entities(Set<PhysicalEntity> regulating_entities) {
+		this.regulating_entities = regulating_entities;
+	}
 	
 }

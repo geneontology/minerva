@@ -42,6 +42,7 @@ public class ActivityUnit extends GoCamOccurent{
 		causal_in = new HashMap<OWLObjectProperty, Set<GoCamOccurent>>();
 		inputs = new HashSet<PhysicalEntity>();
 		outputs = new HashSet<PhysicalEntity>();
+		regulating_entities = new HashSet<PhysicalEntity>();
 		locations = new HashSet<AnatomicalEntity>();
 		transport_locations = new HashSet<AnatomicalEntity>();
 		//FYI this doesn't work unless the gocam ontology either imports the declarations e.g. for all the object properties and classes
@@ -71,9 +72,13 @@ public class ActivityUnit extends GoCamOccurent{
 						transport_locations.add(new AnatomicalEntity(object, ont, model));
 					}else if(prop.getIRI().toString().equals("http://purl.obolibrary.org/obo/RO_0002313")) {
 						transport_locations.add(new AnatomicalEntity(object, ont, model));
+					}else if(prop.getIRI().toString().equals("http://purl.obolibrary.org/obo/RO_0002429")) {
+						regulating_entities.add(new PhysicalEntity(object, ont, model));
+					}else if(prop.getIRI().toString().equals("http://purl.obolibrary.org/obo/RO_0002430")) {
+						regulating_entities.add(new PhysicalEntity(object, ont, model));
 					}
 					//all other properties now assumed to be causal relations 
-					else {						
+					else {	
 						GoCamOccurent object_event = getOccurent(object, ont, model);
 						if(object_event!=null) {
 							Set<GoCamOccurent> objects = causal_out.get(prop);
@@ -91,14 +96,20 @@ public class ActivityUnit extends GoCamOccurent{
 				}else if(a.getObject().equals(ind)) {
 					//the source 
 					OWLNamedIndividual source = a.getSubject().asOWLNamedIndividual();
-					GoCamEntity source_event = getOccurent(source, ont, model);
-					if(source_event !=null) {
-						Set<GoCamOccurent> sources = causal_in.get(prop);
-						if(sources==null) {
-							sources = new HashSet<GoCamOccurent>();
+					if(prop.getIRI().toString().equals("http://purl.obolibrary.org/obo/RO_0002429")) {
+						regulating_entities.add(new PhysicalEntity(source, ont, model));
+					}else if(prop.getIRI().toString().equals("http://purl.obolibrary.org/obo/RO_0002430")) {
+						regulating_entities.add(new PhysicalEntity(source, ont, model));
+					}else {
+						GoCamEntity source_event = getOccurent(source, ont, model);
+						if(source_event !=null) {
+							Set<GoCamOccurent> sources = causal_in.get(prop);
+							if(sources==null) {
+								sources = new HashSet<GoCamOccurent>();
+							}
+							sources.add((GoCamOccurent)source_event);
+							causal_in.put(prop, sources);
 						}
-						sources.add((GoCamOccurent)source_event);
-						causal_in.put(prop, sources);
 					}
 				}
 			}
@@ -132,6 +143,7 @@ public class ActivityUnit extends GoCamOccurent{
 				return (GoCamOccurent)e;
 			}else {
 				LOG.error("Tried to get physical entity as occurent "+object+ " in "+model.getIri()+" "+model.getTitle());
+				return null;
 			}
 		}
 		Set<String> types = model.ind_types.get(object);
@@ -145,6 +157,7 @@ public class ActivityUnit extends GoCamOccurent{
 				object_event = new ActivityUnit(object, ont, model);
 			}else {
 				LOG.error("Tried to get physical entity as occurent "+object+ " in "+model.getIri()+" "+model.getTitle());
+				return null;
 			}
 		}
 		if(object_event!=null) {
@@ -182,7 +195,7 @@ public class ActivityUnit extends GoCamOccurent{
 		}
 		return g;
 	}
-	
+
 	public Set<BiologicalProcessUnit> getContaining_processes() {
 		return containing_processes;
 	}
@@ -210,7 +223,7 @@ public class ActivityUnit extends GoCamOccurent{
 		}
 		return bp_iris;
 	}
-	
+
 	/**
 	 * Definition of a 'complete' activity unit
 	 * @return
