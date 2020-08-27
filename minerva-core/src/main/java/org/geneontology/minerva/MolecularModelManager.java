@@ -603,18 +603,5 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 		return i;
 	}
 	
-	/**
-	 * This method will check the given model and update the import declarations.
-	 * It will add missing IRIs and remove obsolete ones.
-	 * 
-	 * @param modelId 
-	 * @throws UnknownIdentifierException
-	 * @see #additionalImports
-	 * @see #addImports(Iterable)
-	 */
-	public void updateImports(IRI modelId) throws UnknownIdentifierException {
-		ModelContainer model = checkModelId(modelId);
-		updateImports(model);
-	}
 	
 }

@@ -579,7 +579,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				statements.close();
 				abox = postLoadFileFilter(abox);
 				ModelContainer model = addModel(modelId, abox);
-				updateImports(model);
 			} finally {
 				connection.close();
 			}

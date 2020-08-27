@@ -961,9 +961,6 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		// add to internal model
 		ModelContainer newModel = addModel(modelId, modelOntology);
 
-		// update imports
-		updateImports(newModel);
-
 		return newModel;
 	}
 
@@ -1387,43 +1384,6 @@ public abstract class CoreMolecularModelManager<METADATA> {
 			ontology = manager.loadOntologyFromOntologyDocument(source);
 		}
 		return ontology;
-	}
-
-	/**
-	 * This method will check the given model and update the import declarations.
-	 * It will add missing IRIs and remove obsolete ones.
-	 * 
-	 * @param model
-	 * @see #additionalImports
-	 * @see #addImports(Iterable)
-	 */
-	public void updateImports(ModelContainer model) {
-		updateImports(model.getAboxOntology(), tboxIRI, additionalImports);
-	}
-
-	static void updateImports(final OWLOntology aboxOntology, IRI tboxIRI, Set<IRI> additionalImports) {
-		List<OWLOntologyChange> changes = new ArrayList<OWLOntologyChange>();
-
-		Set<IRI> missingImports = new HashSet<IRI>();
-		missingImports.add(tboxIRI);
-		missingImports.addAll(additionalImports);
-		Set<OWLImportsDeclaration> importsDeclarations = aboxOntology.getImportsDeclarations();
-		for (OWLImportsDeclaration decl : importsDeclarations) {
-			IRI iri = decl.getIRI();
-			missingImports.remove(iri);
-		}
-		final OWLOntologyManager m = aboxOntology.getOWLOntologyManager();
-		if (!missingImports.isEmpty()) {
-			OWLDataFactory f = m.getOWLDataFactory();
-			for(IRI missingImport : missingImports) {
-				OWLImportsDeclaration decl = f.getOWLImportsDeclaration(missingImport);
-				changes.add(new AddImport(aboxOntology, decl));
-			}
-		}
-
-		if (!changes.isEmpty()) {
-			m.applyChanges(changes);
-		}
 	}
 
 	public OWLOntology getTbox() {

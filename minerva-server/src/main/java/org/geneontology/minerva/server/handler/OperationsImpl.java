@@ -403,7 +403,6 @@ abstract class OperationsImpl extends ModelCreator {
 			values.nonMeta = true;
 			requireNotNull(request.arguments, "request.arguments");
 			values.model = checkModelId(values.model, request);
-			m3.updateImports(values.model);
 			values.renderBulk = true;
 		}
 		// add an empty model

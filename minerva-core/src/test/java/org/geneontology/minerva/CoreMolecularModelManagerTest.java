@@ -20,49 +20,6 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 
 public class CoreMolecularModelManagerTest {
 
-	@Test
-	public void testUpdateImports() throws Exception {
-		final OWLOntologyManager m = OWLManager.createOWLOntologyManager();
-		final OWLDataFactory f = m.getOWLDataFactory();
-		
-		// setup other import
-		final IRI other = IRI.generateDocumentIRI();
-		m.createOntology(other);
-		
-		// setup additional
-		final IRI add1 = IRI.generateDocumentIRI();
-		m.createOntology(add1);
-		final IRI add2 = IRI.generateDocumentIRI();
-		m.createOntology(add2);
-		final Set<IRI> additional = new HashSet<IRI>();
-		additional.add(add1);
-		additional.add(add2);
-		
-		// setup tbox
-		final IRI tboxIRI = IRI.generateDocumentIRI();
-		m.createOntology(tboxIRI);
-		
-		// setup abox
-		final OWLOntology abox = m.createOntology(IRI.generateDocumentIRI());
-		// add initial imports to abox
-		m.applyChange(new AddImport(abox, f.getOWLImportsDeclaration(other)));
-		
-		// update imports
-		CoreMolecularModelManager.updateImports(abox, tboxIRI, additional);
-		
-		// check the resulting imports
-		Set<OWLImportsDeclaration> declarations = abox.getImportsDeclarations();
-		assertEquals(4, declarations.size());
-		Set<IRI> declaredImports = new HashSet<IRI>();
-		for (OWLImportsDeclaration importsDeclaration : declarations) {
-			declaredImports.add(importsDeclaration.getIRI());
-		}
-		assertEquals(4, declaredImports.size());
-		assertTrue(declaredImports.contains(tboxIRI));
-		assertTrue(declaredImports.contains(add1));
-		assertTrue(declaredImports.contains(add1));
-		assertTrue(declaredImports.contains(other));
-	}
 
 	@Test(expected=UnparsableOntologyException.class)
 	public void testSyntaxErrorModel() throws Exception {
