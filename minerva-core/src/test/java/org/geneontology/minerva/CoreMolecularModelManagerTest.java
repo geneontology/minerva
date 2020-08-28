@@ -50,7 +50,6 @@ public class CoreMolecularModelManagerTest {
 		OWLOntologyManager m = OWLManager.createOWLOntologyManager();
 		File directory = new File("src/test/resources/broken-ontologies/");
 		boolean ignore_imports = true;
-		OWLAnnotationProperty json_model_prop = m.getOWLDataFactory().getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/json-model"));
 		if(directory.isDirectory()) {
 			for(File file : directory.listFiles()) {
 				if(file.getName().endsWith("ttl")) {

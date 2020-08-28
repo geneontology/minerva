@@ -1322,7 +1322,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return loadOntologyDocumentSource(source, minimal, tbox.getOWLOntologyManager());
 	}
 
-	static OWLOntology loadOntologyDocumentSource(final OWLOntologyDocumentSource source, boolean minimal, OWLOntologyManager manager) throws OWLOntologyCreationException {		
+	public static OWLOntology loadOntologyDocumentSource(final OWLOntologyDocumentSource source, boolean minimal, OWLOntologyManager manager) throws OWLOntologyCreationException {		
 		// silence the OBO parser in the OWL-API
 		java.util.logging.Logger.getLogger("org.obolibrary").setLevel(java.util.logging.Level.SEVERE);
 		final Set<OWLParserFactory> originalFactories = removeOBOParserFactories(manager);

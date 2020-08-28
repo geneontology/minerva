@@ -1,5 +1,6 @@
 package org.geneontology.minerva.cli;
 
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -76,6 +77,9 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
+import org.semanticweb.owlapi.io.IRIDocumentSource;
+import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLAnnotationProperty;
@@ -84,6 +88,8 @@ import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLDocumentFormat;
+import org.semanticweb.owlapi.model.OWLImportsDeclaration;
 import org.semanticweb.owlapi.model.OWLLiteral;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -155,6 +161,13 @@ public class CommandLineInterface {
 				.build();
 		methods.addOption(add_taxon_metadata);
 
+		Option clean_gocams = Option.builder()
+				.longOpt("clean-gocams")
+				.desc("remove import statements, add property declarations, remove json-model annotation")
+				.hasArg(false)
+				.build();
+		methods.addOption(clean_gocams);
+		
 		Option sparql = Option.builder()
 				.longOpt("sparql-update")
 				.desc("update the blazegraph journal with the given sparql statement")
@@ -201,6 +214,15 @@ public class CommandLineInterface {
 				String journalFilePath = cmd.getOptionValue("j"); //--journal
 				String ontojournal = cmd.getOptionValue("ontojournal"); //--folder
 				addTaxonMetaData(journalFilePath, ontojournal);
+			}
+			
+			if(cmd.hasOption("clean-gocams")) {
+				Options clean_options = new Options();
+				clean_options.addOption(clean_gocams);
+				clean_options.addOption("i", "input", true, "This is the directory of gocam files to clean.");
+				clean_options.addOption("o", "output", true, "This is the directory of cleaned gocam files that are produced.");
+				cmd = parser.parse(clean_options, args, false);
+				cleanGoCams(cmd.getOptionValue("i"), cmd.getOptionValue("o"));
 			}
 
 			if(cmd.hasOption("import-tbox-ontologies")) {
@@ -1161,6 +1183,42 @@ public class CommandLineInterface {
 		return;
 	}
 
+	public static void cleanGoCams(String input_dir, String output_dir) {
+		OWLOntologyManager m = OWLManager.createOWLOntologyManager();
+		File directory = new File(input_dir);
+		boolean ignore_imports = true;
+		if(directory.isDirectory()) {
+			for(File file : directory.listFiles()) {
+				if(file.getName().endsWith("ttl")) {
+					System.out.println("fixing "+file.getAbsolutePath());
+					final IRI modelFile = IRI.create(file.getAbsoluteFile());
+					OWLOntology o;
+					try {
+						o = CoreMolecularModelManager.loadOntologyDocumentSource(new IRIDocumentSource(modelFile), ignore_imports, m);
+						//in case the reader was confused by the missing import, fix declarations
+						o = CoreMolecularModelManager.fixBrokenObjectPropertiesAndAxioms(o);
+						//clean the model
+						OWLOntology cleaned_ont = CoreMolecularModelManager.removeDeadAnnotationsAndImports(o);						
+						//saved the blessed ontology
+						OWLDocumentFormat owlFormat = new TurtleDocumentFormat();
+						m.setOntologyFormat(cleaned_ont, owlFormat);
+						String cleaned_ont_file = output_dir+file.getName();
+						try {
+							m.saveOntology(cleaned_ont, new FileOutputStream(cleaned_ont_file));
+						} catch (OWLOntologyStorageException | FileNotFoundException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					} catch (OWLOntologyCreationException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
+			}
+		}
+	}
+	
+	
 	public static void printVersion() throws Exception {
 		printManifestEntry("git-revision-sha1", "UNKNOWN");
 		printManifestEntry("git-revision-url", "UNKNOWN");
