@@ -159,39 +159,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		}
 	}
 
-	private void createImports(OWLOntology ont, OWLOntologyID tboxId,
-			METADATA metadata) throws OWLOntologyCreationException {
-		OWLOntologyManager m = ont.getOWLOntologyManager();
-		OWLDataFactory f = m.getOWLDataFactory();
-
-		// import T-Box
-		Optional<IRI> ontologyIRI = tboxId.getOntologyIRI();
-		if (ontologyIRI.isPresent()) {
-			OWLImportsDeclaration tBoxImportDeclaration = f
-					.getOWLImportsDeclaration(ontologyIRI.get());
-			m.applyChange(new AddImport(ont, tBoxImportDeclaration));
-		}
-
-		// import additional ontologies via IRI
-		for (IRI importIRI : additionalImports) {
-			OWLImportsDeclaration importDeclaration = f
-					.getOWLImportsDeclaration(importIRI);
-			// check that the import ontology is available
-			OWLOntology importOntology = m.getOntology(importIRI);
-			if (importOntology == null) {
-				// only try to load it, if it isn't already loaded
-				try {
-					m.loadOntology(importIRI);
-				} catch (OWLOntologyDocumentAlreadyExistsException e) {
-					// ignore
-				} catch (OWLOntologyAlreadyExistsException e) {
-					// ignore
-				}
-			}
-			m.applyChange(new AddImport(ont, importDeclaration));
-		}
-	}
-
 	/**
 	 * Generates a blank model
 	 *
@@ -216,10 +183,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		ModelContainer model = null;
 		try {
 			abox = m.createOntology(modelId);
-
-			// add imports to T-Box and additional ontologies via IRI
-			createImports(abox, tbox.getOntologyID(), metadata);
-
 			// generate model
 			model = new ModelContainer(modelId, tbox, abox);
 		} catch (OWLOntologyCreationException exception) {
