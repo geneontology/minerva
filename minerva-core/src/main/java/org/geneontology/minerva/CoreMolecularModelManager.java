@@ -71,6 +71,7 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
 import org.semanticweb.owlapi.model.RemoveAxiom;
+import org.semanticweb.owlapi.model.RemoveImport;
 import org.semanticweb.owlapi.model.RemoveOntologyAnnotation;
 import org.semanticweb.owlapi.model.SetOntologyID;
 import org.semanticweb.owlapi.model.parameters.Imports;
@@ -1413,33 +1414,49 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		OWLAnnotationProperty title_prop = df.getOWLAnnotationProperty(IRI.create("http://purl.org/dc/elements/1.1/title"));
 		OWLDeclarationAxiom title_prop_declaration = df.getOWLDeclarationAxiom(title_prop);
 		newman.addAxiom(frank, title_prop_declaration);
-		
 		OWLAnnotationProperty title_prop2 = df.getOWLAnnotationProperty(IRI.create("http://purl.org/dc/terms/title"));
 		OWLDeclarationAxiom title_prop2_declaration = df.getOWLDeclarationAxiom(title_prop2);
-		newman.addAxiom(frank, title_prop2_declaration);
-		
-		
+		newman.addAxiom(frank, title_prop2_declaration);				
 		OWLAnnotationProperty skos_note = df.getOWLAnnotationProperty(IRI.create("http://www.w3.org/2004/02/skos/core#note"));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(skos_note));
 		OWLAnnotationProperty version_info = df.getOWLAnnotationProperty(IRI.create(OWL.versionInfo.getURI()));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(version_info));
 		OWLAnnotationProperty contributor_prop = df.getOWLAnnotationProperty(IRI.create("http://purl.org/dc/elements/1.1/contributor"));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(contributor_prop));
 		OWLAnnotationProperty date_prop = df.getOWLAnnotationProperty(IRI.create("http://purl.org/dc/elements/1.1/date"));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(date_prop));
 		OWLAnnotationProperty source_prop = df.getOWLAnnotationProperty(IRI.create("http://purl.org/dc/elements/1.1/source"));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(source_prop));
 		OWLAnnotationProperty state_prop = df.getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/modelstate"));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(state_prop));
 		OWLAnnotationProperty evidence_prop = df.getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/evidence"));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(evidence_prop));
 		OWLAnnotationProperty provided_by_prop = df.getOWLAnnotationProperty(IRI.create("http://purl.org/pav/providedBy"));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(provided_by_prop));
 		OWLAnnotationProperty x_prop = df.getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/hint/layout/x"));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(x_prop));
 		OWLAnnotationProperty y_prop = df.getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/hint/layout/y"));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(y_prop));
 		OWLAnnotationProperty rdfs_label = df.getOWLAnnotationProperty(OWLRDFVocabulary.RDFS_LABEL.getIRI());
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(rdfs_label));
 		OWLAnnotationProperty rdfs_comment = df.getOWLAnnotationProperty(OWLRDFVocabulary.RDFS_COMMENT.getIRI());
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(rdfs_comment));
 		OWLAnnotationProperty rdfs_seealso = df.getOWLAnnotationProperty(OWLRDFVocabulary.RDFS_SEE_ALSO.getIRI());
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(rdfs_seealso));
 		OWLAnnotationProperty skos_exact_match = df.getOWLAnnotationProperty(IRI.create("http://www.w3.org/2004/02/skos/core#exactMatch"));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(skos_exact_match));
 		OWLAnnotationProperty skos_altlabel = df.getOWLAnnotationProperty(IRI.create("http://www.w3.org/2004/02/skos/core#altLabel"));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(skos_altlabel));
 		OWLAnnotationProperty definition = df.getOWLAnnotationProperty(IRI.create("http://purl.obolibrary.org/obo/IAO_0000115"));	
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(definition));
 		OWLAnnotationProperty database_cross_reference = df.getOWLAnnotationProperty(IRI.create("http://www.geneontology.org/formats/oboInOwl#hasDbXref"));	
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(database_cross_reference));
 		OWLAnnotationProperty canonical_record = df.getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/canonical_record"));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(canonical_record));
 		OWLAnnotationProperty iuphar_id = df.getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/iuphar_id"));
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(iuphar_id));
 		OWLAnnotationProperty in_taxon = df.getOWLAnnotationProperty(IRI.create("https://w3id.org/biolink/vocab/in_taxon"));
-
+		newman.addAxiom(frank, df.getOWLDeclarationAxiom(in_taxon));
 		
 		//copy over ontology annotations
 		for(OWLAnnotation anno : ont.getAnnotations()) {
@@ -1482,19 +1499,24 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		return frank;
 	}
 
-	public static boolean hasLegoImport(OWLOntology ont) {
-		Set<OWLOntology> imports = ont.getDirectImports();
-		for(OWLOntology i : imports) {
-			com.google.common.base.Optional<IRI> iri = i.getOntologyID().getOntologyIRI();
-			if(iri.isPresent()) {
-				String s_iri = iri.get().toString();
-				if(s_iri.equals("http://purl.obolibrary.org/obo/go/extensions/go-lego-reacto.owl")||
-						s_iri.equals("http://purl.obolibrary.org/obo/go/extensions/go-lego.owl")) {
-					return true;
-				}
-
+	public static OWLOntology removeDeadAnnotationsAndImports(OWLOntology ont) throws OWLOntologyCreationException {
+		OWLOntologyManager m = OWLManager.createOWLOntologyManager();
+		OWLAnnotationProperty json_model_prop = m.getOWLDataFactory().getOWLAnnotationProperty(IRI.create("http://geneontology.org/lego/json-model"));
+		//get rid of all imports
+		Set<OWLImportsDeclaration> imports = ont.getImportsDeclarations();
+		for(OWLImportsDeclaration import_declaration : imports) {
+			m.applyChange(new RemoveImport(ont, import_declaration));
+		}
+		//get rid of the json annotations lurking about
+		for(OWLAnnotation anno : ont.getAnnotations()) {
+			if(anno.getProperty().equals(json_model_prop)) {
+				RemoveOntologyAnnotation rm = new RemoveOntologyAnnotation(ont, anno);
+				m.applyChange(rm);
 			}
 		}
-		return false;
+		//purify of the json annotation property as well
+		OWLDeclarationAxiom json_prop_declaration = m.getOWLDataFactory().getOWLDeclarationAxiom(json_model_prop);
+		m.removeAxiom(ont, json_prop_declaration);
+		return ont;
 	}
 }
