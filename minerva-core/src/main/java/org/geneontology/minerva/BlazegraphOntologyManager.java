@@ -70,6 +70,7 @@ public class BlazegraphOntologyManager {
 		root_types =  new HashSet<String>();
 		root_types.add("http://purl.obolibrary.org/obo/GO_0008150"); //BP
 		root_types.add("http://purl.obolibrary.org/obo/GO_0003674"); //MF
+		root_types.add("http://purl.obolibrary.org/obo/go/extensions/reacto.owl#molecular_event");//ME
 		root_types.add("http://purl.obolibrary.org/obo/GO_0005575"); //CC
 		root_types.add("http://purl.obolibrary.org/obo/GO_0032991"); //Complex
 		root_types.add("http://purl.obolibrary.org/obo/CHEBI_36080"); //protein
@@ -106,6 +107,7 @@ public class BlazegraphOntologyManager {
 		class_depth.put("http://purl.obolibrary.org/obo/GO_0008150", 0);
 		class_depth.put("http://purl.obolibrary.org/obo/GO_0003674", 0);
 		class_depth.put("http://purl.obolibrary.org/obo/GO_0005575", 0);
+		class_depth.put("http://purl.obolibrary.org/obo/go/extensions/reacto.owl#molecular_event", 0);
 	}
 
 	public BigdataSailRepository getGo_lego_repo() {
