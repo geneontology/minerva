@@ -17,13 +17,14 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 
 public class GoCamModelTest {
 	static final String ontology_journal_file = "/tmp/blazegraph.jnl";
-	static final String gocam_dir = "src/test/resources/validation/should_pass/";
+	static final String gocam_dir = "src/test/resources/validation/tmp/";
 	static BlazegraphOntologyManager onto_repo;
 
 	@BeforeClass
@@ -71,6 +72,9 @@ public class GoCamModelTest {
 			GoCamModel g = new GoCamModel(gocam_via_mc, onto_repo);
 			//testing for an issue with the OWL blazegraph loader
 			assertFalse("title not read out of M3 retrieved model "+modelIRI, (g.getTitle()==null));
+			for(OWLObjectProperty p : g.getCausal_count().keySet()) {
+				System.out.println(p+" "+g.getCausal_count().get(p));
+			}
 			System.out.println("Finished loading as GoCamModel: "+modelIRI);
 			
 		}	

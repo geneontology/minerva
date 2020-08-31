@@ -704,6 +704,36 @@ public class BlazegraphOntologyManager {
 		}
 		return label;
 	}
+	
+	public boolean exists(String entity) throws IOException {
+		boolean exists = false;
+		String query = "select * "
+				+ "WHERE {" + 
+				"{<"+entity+"> ?p ?o . } " + 
+				"UNION " + 
+				"{?s ?p <"+entity+"> . }" + 
+				"} limit 1";		
+		try {
+			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+			try {
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
+				TupleQueryResult result = tupleQuery.evaluate();
+				if (result.hasNext()) {
+					exists = true;
+					return exists;
+				}
+			} catch (MalformedQueryException e) {
+				throw new IOException(e);
+			} catch (QueryEvaluationException e) {
+				throw new IOException(e);
+			} finally {
+				connection.close();
+			}
+		} catch (RepositoryException e) {
+			throw new IOException(e);
+		}
+		return exists;
+	}
 
 	public Map<String, String> getLabels(Set<String> entities) throws IOException {
 		Map<String, String> uri_label = new HashMap<String, String>();
