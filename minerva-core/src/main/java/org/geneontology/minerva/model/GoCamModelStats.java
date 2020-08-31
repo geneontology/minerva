@@ -28,6 +28,9 @@ public class GoCamModelStats {
 	DescriptiveStatistics bp_depth = new DescriptiveStatistics();
 
 	public GoCamModelStats(GoCamModel model) {
+		if(model.activities==null) {
+			return;
+		}
 		for(ActivityUnit a : model.activities) {
 			n_activity_units++;
 			Set<GoCamOccurent> downstream = a.getDownstream(a, null);

@@ -29,12 +29,13 @@ public class GoCamModel extends ProvenanceAnnotated{
 	Set<ActivityUnit> activities;
 	Map<OWLNamedIndividual, Set<String>> ind_types;
 	Map<OWLNamedIndividual, GoCamEntity> ind_entity;
-	OWLClass mf; OWLClass bp; OWLClass cc;
+	OWLClass mf; OWLClass bp; OWLClass cc; OWLClass me;
 	GoCamModelStats stats;
 	Map<OWLObjectProperty, Integer> causal_count;
 
 	public GoCamModel(OWLOntology abox, BlazegraphOntologyManager go_lego_manager) throws IOException {
 		ont = abox;
+		me =  ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create("http://purl.obolibrary.org/obo/go/extensions/reacto.owl#molecular_event"));
 		mf =  ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create("http://purl.obolibrary.org/obo/GO_0003674"));
 		bp =  ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create("http://purl.obolibrary.org/obo/GO_0008150"));
 		cc =  ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create("http://purl.obolibrary.org/obo/GO_0005575"));
@@ -54,7 +55,7 @@ public class GoCamModel extends ProvenanceAnnotated{
 		for(OWLNamedIndividual ind : ind_types.keySet()) {
 			Set<String> types = ind_types.get(ind);		
 			if(types!=null) {
-				if(types.contains(mf.getIRI().toString())) {
+				if(types.contains(mf.getIRI().toString())||types.contains(me.getIRI().toString())) {
 					ActivityUnit unit = new ActivityUnit(ind, ont, this);
 					activities.add(unit);
 					ind_entity.put(ind, unit);

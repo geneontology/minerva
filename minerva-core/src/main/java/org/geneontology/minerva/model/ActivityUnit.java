@@ -153,7 +153,8 @@ public class ActivityUnit extends GoCamOccurent{
 		}else {
 			if(types.contains("http://purl.obolibrary.org/obo/GO_0008150")) {
 				object_event = new BiologicalProcessUnit(object, ont, model);
-			}else if(types.contains("http://purl.obolibrary.org/obo/GO_0003674")) {
+			}else if(types.contains("http://purl.obolibrary.org/obo/GO_0003674")||
+					types.contains("http://purl.obolibrary.org/obo/go/extensions/reacto.owl#molecular_event")) {
 				object_event = new ActivityUnit(object, ont, model);
 			}else {
 				LOG.error("Tried to get physical entity as occurent "+object+ " in "+model.getIri()+" "+model.getTitle());
@@ -235,7 +236,7 @@ public class ActivityUnit extends GoCamOccurent{
 				this.getContaining_processes().size()==1&&
 				this.getDirect_types().size()==1) {
 			OWLClass type = this.getDirect_types().iterator().next();		
-			if(!type.equals(this.in_model.mf)) {
+			if(!type.equals(this.in_model.mf)&&!type.equals(this.in_model.me)) {
 				complete = true;
 			}
 		}
