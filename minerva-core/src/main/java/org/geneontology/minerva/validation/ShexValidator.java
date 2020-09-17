@@ -191,6 +191,7 @@ public class ShexValidator {
 								extra_violations = checkForExtraProperties(node, test_model, shape_label, all_typed);
 								if(extra_violations!=null&&!extra_violations.isEmpty()) {
 									r.addViolations(extra_violations);
+									all_good = false;
 								}
 							} catch (IOException e) {
 								// TODO Auto-generated catch block
