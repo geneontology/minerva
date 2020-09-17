@@ -57,15 +57,25 @@ public class GoCamModel extends ProvenanceAnnotated{
 			if(types!=null) {
 				if(types.contains(mf.getIRI().toString())||types.contains(me.getIRI().toString())) {
 					ActivityUnit unit = new ActivityUnit(ind, ont, this);
-					activities.add(unit);
-					ind_entity.put(ind, unit);
-					for(OWLObjectProperty prop : unit.causal_out.keySet()) {
-						Integer np = causal_count.get(prop);
-						if(np==null) {
-							np = 0;
+					
+					boolean skip = false;
+					for(String comment : unit.getComments()){
+						if(comment.contains("reaction from external pathway")) {
+							skip = true;
+							break;
 						}
-						np++;
-						causal_count.put(prop, np);
+					}
+					if(!skip) {
+						activities.add(unit);
+						ind_entity.put(ind, unit);
+						for(OWLObjectProperty prop : unit.causal_out.keySet()) {
+							Integer np = causal_count.get(prop);
+							if(np==null) {
+								np = 0;
+							}
+							np++;
+							causal_count.put(prop, np);
+						}
 					}
 				}
 			}
