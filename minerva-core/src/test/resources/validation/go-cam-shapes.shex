@@ -448,10 +448,10 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   overlaps: @<AnatomicalEntity> *;
 } // rdfs:comment  "a cellular component"
 
-<ProteinContainingComplex> EXTRA a {
+<ProteinContainingComplex> @<GoCamEntity> AND EXTRA a {
   a @<ProteinContainingComplexClass>;
   located_in: @<AnatomicalEntity> {0,1};
-  has_part: @<InformationBiomacromolecule> *;
+  has_part: ( @<InformationBiomacromolecule> OR @<ProteinContainingComplex>) *;
 } // rdfs:comment  "a protein complex"
 
 <ProteinContainingComplexClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
@@ -489,7 +489,7 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   rdfs:subClassOf [ GoEvidence: ] ;
 }
 
-<Evidence> @<ProvenanceAnnotated> AND EXTRA a  {
+<Evidence> @<GoCamEntity> AND EXTRA a  {
   a @<EvidenceClass> {1};
   source: xsd:string {1};
   with: xsd:string {0,1}
