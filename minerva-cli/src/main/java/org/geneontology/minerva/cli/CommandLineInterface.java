@@ -939,7 +939,7 @@ public class CommandLineInterface {
 				}
 				LOGGER.info("preparing model stats...");
 				//OWLOntology gocam_owl = m3.getModelAbox(modelIRI);//no imports
-				GoCamModel gcm = new GoCamModel(gocam, m3.getGolego_repo());
+				GoCamModel gcm = new GoCamModel(gocam, m3);
 				String title = "title";
 				if(gcm.getTitle()!=null) {
 					title = makeColSafe(gcm.getTitle());
