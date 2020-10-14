@@ -1,3 +1,3 @@
 #!/bin/bash
-mvn clean package -am -pl minerva-cli -DskipTests -Dmaven.javadoc.skip=true -Dsource.skip=true
-
+mvn -v 
+mvn clean package -am -pl minerva-cli -DskipTests -Dmaven.javadoc.skip=true -Dsource.skip=true -B
