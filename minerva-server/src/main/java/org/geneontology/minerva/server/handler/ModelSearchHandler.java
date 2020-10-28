@@ -27,6 +27,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.commons.io.IOUtils;
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.BlazegraphOntologyManager;
+import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.openrdf.query.Binding;
@@ -104,16 +105,32 @@ public class ModelSearchHandler {
 		private Set<String> contributors;
 		private Set<String> groups;
 		private HashMap<String, Set<String>> query_match;
+		private boolean modified;
 
-		public ModelMeta(String id, String date, String title, String state, Set<String> contributors, Set<String> groups) {
+		public ModelMeta(String id, String date, String title, String state, Set<String> contributors, Set<String> groups, boolean modified) {
 			this.id = id;
 			this.date = date;
 			this.title = title;
 			this.state = state;
 			this.contributors = contributors;
 			this.groups = groups;
+			this.modified = modified;
 			query_match = new HashMap<String, Set<String>>();
 		}
+
+		
+		
+		public boolean isModified() {
+			return modified;
+		}
+
+
+
+		public void setModified(boolean modified) {
+			this.modified = modified;
+		}
+
+
 
 		public String getId() {
 			return id;
@@ -501,11 +518,13 @@ public class ModelSearchHandler {
 					n_count = bs.getBinding("count").getValue().stringValue();
 				}else {
 					//model meta
-					String model_id = bs.getBinding("id").getValue().stringValue();
+					String model_iri_string = bs.getBinding("id").getValue().stringValue();
+					IRI model_iri = IRI.create(model_iri_string);
+					String model_curie = null;
 					try {
-						String curie = curie_handler.getCuri(IRI.create(model_id));
-						if(curie!=null) {
-							model_id = curie;
+						model_curie = curie_handler.getCuri(IRI.create(model_iri_string));
+						if(model_curie==null) {
+							model_curie = model_iri_string;
 						}
 					} catch (Exception e) {
 						r.error += e.getMessage()+" \n ";
@@ -538,9 +557,11 @@ public class ModelSearchHandler {
 							groups.add(c);
 						}
 					}
-					ModelMeta mm = id_model.get(model_id);
+					ModelMeta mm = id_model.get(model_curie);
 					if(mm==null) {
-						mm = new ModelMeta(model_id, date, title, state, contributors, groups);
+						//look up model in in-memory cache to check edit state
+						boolean is_modified = m3.isModelModified(model_iri);
+						mm = new ModelMeta(model_curie, date, title, state, contributors, groups, is_modified);
 					}
 					//matching     		
 					for(String ind : ind_return.keySet()) {
@@ -552,7 +573,7 @@ public class ModelSearchHandler {
 						matching_inds.add(ind_class_match);
 						mm.query_match.put(ind_return.get(ind), matching_inds);
 					}
-					id_model.put(model_id, mm);
+					id_model.put(model_curie, mm);
 				}
 			}
 		} catch (QueryEvaluationException e) {
