@@ -495,6 +495,19 @@ abstract class OperationsImpl extends ModelCreator {
 			m3.saveModel(values.model, annotations, token);
 			values.renderBulk = true;
 		}
+		else if (Operation.resetModel == operation) {
+			values.nonMeta = true;
+			requireNotNull(request.arguments, "request.arguments");
+			values.model = checkModelId(values.model, request);
+			//drop in memory model and reload
+			IRI model_iri = values.model.getModelId();
+			boolean drop_cached = true;
+			//load will reload from db if override 
+			m3.loadModel(model_iri, drop_cached);
+			//reset model values
+			values.model = checkModelId(null, request);
+			values.renderBulk = true;
+		}
 		else if (Operation.undo == operation) {
 			values.nonMeta = true;
 			requireNotNull(request.arguments, "request.arguments");

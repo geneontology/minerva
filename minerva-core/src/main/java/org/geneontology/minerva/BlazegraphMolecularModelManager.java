@@ -519,7 +519,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	}
 
 	@Override
-	protected void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException {
+	public void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException {
 		if (modelMap.containsKey(modelId)) {
 			if (!isOverride) {
 				throw new OWLOntologyCreationException("Model already exists: " + modelId);
@@ -973,6 +973,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			}
 		}
 		return changes;
-	}
+	}	
 	
 }

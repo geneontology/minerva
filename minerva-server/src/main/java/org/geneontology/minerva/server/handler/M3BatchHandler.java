@@ -60,6 +60,9 @@ public interface M3BatchHandler {
 		@SerializedName("store")
 		storeModel,
 		
+		@SerializedName("reset")
+		resetModel,
+		
 		@SerializedName("update-imports")
 		updateImports,
 		
