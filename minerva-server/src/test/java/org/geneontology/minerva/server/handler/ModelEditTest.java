@@ -74,7 +74,7 @@ public class ModelEditTest {
 		models.importModel(writer.toString());
 	}
 
-//	@Test
+	@Test
 	public void testAddEdgeAsBatch() throws Exception {
 		List<M3Request> batch = new ArrayList<>();
 		M3Request r;
@@ -160,7 +160,7 @@ public class ModelEditTest {
 		assertTrue(start_axioms.equals(end_axioms));
 	}
 	
-//	@Test
+	@Test
 	public void testModifiedFlag() throws Exception {
 		
 		final String modelId = "http://model.geneontology.org/5437882f00000024";

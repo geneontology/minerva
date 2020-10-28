@@ -227,6 +227,7 @@ public class ModelSearchHandlerTest {
 		//now look it up by search API again and show that modified state is false once again
 		json_result = getJsonStringFromUri(searchuri);
 		g = new Gson();
+		result = g.fromJson(json_result, ModelSearchResult.class);
 		assertTrue(result.getN()==1);
 		//show that it now knows it in a non-modified state
 		for(ModelSearchHandler.ModelMeta mm : result.getModels()) {
