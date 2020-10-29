@@ -24,7 +24,10 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.handler.OperationsTools.MissingParameterException;
 import org.geneontology.minerva.server.validation.BeforeSaveModelValidator;
+import org.geneontology.owl.differ.Differ;
 import org.geneontology.rules.engine.WorkingMemory;
+import org.obolibrary.robot.DiffOperation;
+import org.obolibrary.robot.IOHelper;
 import org.openrdf.query.*;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
@@ -32,10 +35,12 @@ import org.openrdf.rio.RDFWriter;
 import org.openrdf.rio.Rio;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.model.parameters.OntologyCopy;
 import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.*;
 
 import static org.geneontology.minerva.server.handler.OperationsTools.requireNotNull;
@@ -78,7 +83,8 @@ abstract class OperationsImpl extends ModelCreator {
 		boolean nonMeta = false;
 		ModelContainer model = null;
 		Map<String, OWLNamedIndividual> individualVariable = new HashMap<>();
-
+		String diffResult = null;
+		
 		@Override
 		public boolean notVariable(String id) {
 			return individualVariable.containsKey(id) == false;
@@ -506,6 +512,26 @@ abstract class OperationsImpl extends ModelCreator {
 			m3.loadModel(model_iri, drop_cached);
 			//reset model values
 			values.model = checkModelId(null, request);
+			values.renderBulk = true;
+		}else if (Operation.diffModel == operation) {
+			values.nonMeta = true;
+			requireNotNull(request.arguments, "request.arguments");
+			//this won't change
+			values.model = checkModelId(values.model, request);
+			IRI model_iri = values.model.getModelId();
+			//run diff
+			OWLOntologyManager man1 = OWLManager.createOWLOntologyManager();
+			OWLOntology active_ontology = man1.copyOntology(values.model.getAboxOntology(), OntologyCopy.DEEP);			
+			OWLOntology stored_ontology = m3.loadModelABox(model_iri);
+			//TODO refine representation of diff result..
+			StringWriter writer = new StringWriter();
+		   // boolean actual = DiffOperation.compare(active_ontology, stored_ontology, writer);
+			Map<String, String> options = new HashMap<>();
+		    options.put("labels", "true");
+		    options.put("format", "html");
+		    DiffOperation.compare(active_ontology, stored_ontology, new IOHelper(), writer, options);
+			values.diffResult = writer.toString();
+			writer.close();
 			values.renderBulk = true;
 		}
 		else if (Operation.undo == operation) {

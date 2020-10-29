@@ -552,7 +552,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	
 	
 	@Override
-	protected OWLOntology loadModelABox(IRI modelId) throws OWLOntologyCreationException {
+	public OWLOntology loadModelABox(IRI modelId) throws OWLOntologyCreationException {
 		LOG.info("Load model abox: " + modelId + " from database");
 		try {
 			BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();

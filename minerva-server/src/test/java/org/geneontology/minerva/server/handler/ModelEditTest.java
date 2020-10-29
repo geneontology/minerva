@@ -142,6 +142,16 @@ public class ModelEditTest {
 		Set<OWLAxiom> mid_axioms = midModel.getABoxAxioms(null);
 		assertFalse(mid_axioms.equals(start_axioms));
 		
+		//test diff command for comparison
+		r = new M3Request();
+		r.entity = Entity.model;
+		r.operation = Operation.diffModel;
+		r.arguments = new M3Argument();
+		r.arguments.modelId = modelId;
+		M3BatchResponse diffresp = executeBatch(r);
+		String dr = diffresp.data.diffResult;
+		assertFalse(dr.equals("Ontologies are identical\n"));
+		
 		//now reset the model
 		r = new M3Request();
 		r.entity = Entity.model;
@@ -158,6 +168,16 @@ public class ModelEditTest {
 		OWLOntology endModel = man3.copyOntology(models.getModelAbox(IRI.create(modelId)), OntologyCopy.DEEP);
 		Set<OWLAxiom> end_axioms = endModel.getABoxAxioms(null);
 		assertTrue(start_axioms.equals(end_axioms));
+		
+		//test diff command for comparison
+		r = new M3Request();
+		r.entity = Entity.model;
+		r.operation = Operation.diffModel;
+		r.arguments = new M3Argument();
+		r.arguments.modelId = modelId;
+		diffresp = executeBatch(r);
+		dr = diffresp.data.diffResult;
+		assertTrue(dr.equals("Ontologies are identical\n"));
 	}
 	
 	@Test
