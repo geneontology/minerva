@@ -39,6 +39,8 @@ import org.openrdf.query.TupleQueryResult;
 import org.openrdf.repository.RepositoryException;
 import org.semanticweb.owlapi.model.IRI;
 
+import com.google.gson.annotations.SerializedName;
+
 /**
  * Respond to queries for models in the running blazegraph instance backing minerva
  * Uses Jersey + JSONP
@@ -105,6 +107,8 @@ public class ModelSearchHandler {
 		private Set<String> contributors;
 		private Set<String> groups;
 		private HashMap<String, Set<String>> query_match;
+		
+		@SerializedName("modified-p")
 		private boolean modified;
 
 		public ModelMeta(String id, String date, String title, String state, Set<String> contributors, Set<String> groups, boolean modified) {
