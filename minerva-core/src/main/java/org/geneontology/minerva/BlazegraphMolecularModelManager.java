@@ -620,13 +620,15 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				if(importOpt.isPresent()) {
 					modeliri = ontIRIOpt.get().stringValue();
 					//need to remove the imports before loading.
+					//if the imports are large, this gets slow
+					//consider 1) loading the model as below 2) running a SPARQL update to get rid of the imports
 					OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 					OWLOntology cam = ontman.loadOntologyFromOntologyDocument(file);
 					Set<OWLImportsDeclaration> imports = cam.getImportsDeclarations();
 					for(OWLImportsDeclaration impdec : imports) {
 						RemoveImport rm = new RemoveImport(cam, impdec);
 						ontman.applyChange(rm);
-					}
+					}					
 					//write it 
 					this.writeModelToDatabase(cam, IRI.create(ontIRIOpt.get().stringValue()));
 				}else { //otherwise just load it all up as rdf (faster because avoids owl api)
