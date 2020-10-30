@@ -519,7 +519,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	}
 
 	@Override
-	protected void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException {
+	public void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException {
 		if (modelMap.containsKey(modelId)) {
 			if (!isOverride) {
 				throw new OWLOntologyCreationException("Model already exists: " + modelId);
@@ -552,7 +552,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	
 	
 	@Override
-	protected OWLOntology loadModelABox(IRI modelId) throws OWLOntologyCreationException {
+	public OWLOntology loadModelABox(IRI modelId) throws OWLOntologyCreationException {
 		LOG.info("Load model abox: " + modelId + " from database");
 		try {
 			BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
@@ -973,6 +973,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			}
 		}
 		return changes;
-	}
+	}	
 	
 }

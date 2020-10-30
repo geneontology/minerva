@@ -240,6 +240,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		if(!isConformant) {
 			response.data.validation_results = inferenceProvider.getValidation_results();
 		}
+		response.data.diffResult = values.diffResult;
 		response.data.modifiedFlag = Boolean.valueOf(values.model.isModified());
 		// These are required for an "okay" response.
 		response.messageType = M3BatchResponse.MESSAGE_TYPE_SUCCESS;

@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import org.geneontology.minerva.json.*;
 import org.geneontology.minerva.validation.ValidationResultSet;
+import org.geneontology.owl.differ.Differ;
 
 import javax.ws.rs.*;
 import java.util.List;
@@ -60,6 +61,12 @@ public interface M3BatchHandler {
 		@SerializedName("store")
 		storeModel,
 		
+		@SerializedName("reset")
+		resetModel,
+		
+		@SerializedName("diff")
+		diffModel,
+		
 		@SerializedName("update-imports")
 		updateImports,
 		
@@ -111,6 +118,10 @@ public interface M3BatchHandler {
 			@SerializedName("modified-p")
 			public Boolean modifiedFlag;
 
+			//TODO starting out here with raw result from robot
+			@SerializedName("diff-result")
+			public String diffResult;
+			
 			public Object undo;
 			public Object redo;
 			
