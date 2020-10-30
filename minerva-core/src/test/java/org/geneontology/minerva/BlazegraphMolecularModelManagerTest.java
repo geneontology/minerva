@@ -57,6 +57,28 @@ public class BlazegraphMolecularModelManagerTest  {
 		m3.dispose();
 	}
 
+  @Test
+	public void testRemoveImportsDuringImport() throws Exception {
+		/* I used the file from one of the turtle file in https://github.com/geneontology/noctua-models/blob/master/models/0000000300000001.ttl */
+		String sourceModelPath = "src/test/resources/dummy-noctua-modelwith-import.ttl";
+		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
+		OWLOntology cam = ontman.loadOntologyFromOntologyDocument(new File(sourceModelPath));
+		int axioms = cam.getAxiomCount();
+		Set<OWLImportsDeclaration> imports = cam.getImportsDeclarations();
+		assertFalse(imports.size()==0);
+		
+		BlazegraphMolecularModelManager<Void> m3 = createBlazegraphMolecularModelManager();
+		/* Import the test turtle file */
+		String modelId = m3.importModelToDatabase(new File(sourceModelPath), false);
+		// read it back out and show it is imports free
+		OWLOntology loaded = m3.loadModelABox(IRI.create(modelId));
+		Set<OWLImportsDeclaration> shouldbenone = loaded.getImportsDeclarations();
+		int loadedaxioms = loaded.getAxiomCount();
+		assertTrue(shouldbenone.size()==0);
+		assertTrue(axioms==loadedaxioms);
+		m3.dispose();
+	}
+  
 	/**
 	 * Test the whole cycle of data processing using Blazegraph.
 	 * Check this pull request: https://github.com/geneontology/minerva/issues/143

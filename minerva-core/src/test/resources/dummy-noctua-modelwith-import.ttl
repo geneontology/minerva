@@ -108,9 +108,10 @@
 	a <http://www.w3.org/2002/07/owl#Class> .
 
 <http://model.geneontology.org/0000000300000001> <http://geneontology.org/lego/modelstate> "development"^^<http://www.w3.org/2001/XMLSchema#string> ;
-	<http://www.geneontology.org/formats/oboInOwl#id> "gomodel:0000000300000001"^^<http://www.w3.org/2001/XMLSchema#string> ;
+<http://www.geneontology.org/formats/oboInOwl#id> "gomodel:0000000300000001"^^<http://www.w3.org/2001/XMLSchema#string> ;
 	a <http://www.w3.org/2002/07/owl#Ontology> ;
 	<http://www.w3.org/2000/01/rdf-schema#comment> "Save."^^<http://www.w3.org/2001/XMLSchema#string> ;
+	<http://www.w3.org/2002/07/owl#imports> <http://purl.obolibrary.org/obo/go/extensions/go-lego.owl> ;
 	<http://purl.org/dc/elements/1.1/title> "Paul canonical WNT pathway (AI)"^^<http://www.w3.org/2001/XMLSchema#string> ;
 	<http://purl.org/dc/elements/1.1/contributor> "GOC:kltm"^^<http://www.w3.org/2001/XMLSchema#string> , "GOC:sjc"^^<http://www.w3.org/2001/XMLSchema#string> ;
 	<http://purl.org/dc/elements/1.1/date> "2015-08-10"^^<http://www.w3.org/2001/XMLSchema#string> .
