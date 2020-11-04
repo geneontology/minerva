@@ -8,7 +8,6 @@
 <http://model.geneontology.org/5ee8120100002598> <http://geneontology.org/lego/modelstate> "development"^^<http://www.w3.org/2001/XMLSchema#string> ;
 	<http://purl.org/pav/providedBy> "http://www.wormbase.org"^^<http://www.w3.org/2001/XMLSchema#string> ;
 	a <http://www.w3.org/2002/07/owl#Ontology> ;
-	<http://www.w3.org/2002/07/owl#imports> <http://purl.obolibrary.org/obo/go/extensions/go-lego-reacto.owl> ;
 	<http://purl.org/dc/elements/1.1/title> "Test model title save"^^<http://www.w3.org/2001/XMLSchema#string> ;
 	<http://purl.org/dc/elements/1.1/contributor> "http://orcid.org/0000-0002-1706-4196"^^<http://www.w3.org/2001/XMLSchema#string> ;
 	<http://purl.org/dc/elements/1.1/date> "2020-08-26"^^<http://www.w3.org/2001/XMLSchema#string> .

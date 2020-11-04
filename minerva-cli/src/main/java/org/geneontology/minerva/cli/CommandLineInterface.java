@@ -327,7 +327,7 @@ public class CommandLineInterface {
 			}else if(cmd.hasOption("validate-go-cams")) {
 				Options validate_options = new Options();
 				validate_options.addOption(validate);
-				validate_options.addOption("i", "input", true, "Either a blazegrpah journal or a folder with go-cams in it");
+				validate_options.addOption("i", "input", true, "Either a blazegraph journal or a folder with go-cams in it");
 				validate_options.addOption("shex", "shex", false, "If present, will execute shex validation");
 				validate_options.addOption("owl", "owl", false, "If present, will execute shex validation");
 				validate_options.addOption("r", "report-folder", true, "Folder where output files will appear");

@@ -8,7 +8,6 @@
 
 <http://model.geneontology.org/5d27d1cf00000647> rdf:type owl:Ontology ;
                                                   owl:versionIRI <http://model.geneontology.org/5d27d1cf00000647> ;
-                                                  owl:imports <http://purl.obolibrary.org/obo/go/extensions/go-lego.owl> ;
                                                   <http://purl.org/dc/elements/1.1/title> "GO_shapes Activity unit test 30"^^xsd:string ;
                                                   <http://geneontology.org/lego/modelstate> "development"^^xsd:string ;
                                                   rdfs:comment "FAIL causally_upstream_of_or_within 2 biological_process"^^xsd:string ;
