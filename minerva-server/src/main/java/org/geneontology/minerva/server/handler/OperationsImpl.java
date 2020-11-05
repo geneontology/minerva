@@ -510,6 +510,8 @@ abstract class OperationsImpl extends ModelCreator {
 			boolean drop_cached = true;
 			//load will reload from db if override 
 			m3.loadModel(model_iri, drop_cached);
+			//ensure the change queue is gone to avoid downstream confusion.
+			m3.clearUndoHistory(model_iri);
 			//reset model values
 			values.model = checkModelId(null, request);
 			values.renderBulk = true;
