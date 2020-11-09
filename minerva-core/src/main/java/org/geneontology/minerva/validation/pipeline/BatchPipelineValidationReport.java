@@ -23,7 +23,7 @@ public class BatchPipelineValidationReport {
 	@Expose(serialize = false) 
 	final static String shex_rule_string = "gorule-0000056";
 	
-	String taxon;
+	Set<String> taxa;
 	int number_of_models;
 	int number_of_models_in_error;
 	int number_of_correct_models;
@@ -33,14 +33,6 @@ public class BatchPipelineValidationReport {
 	
 	public BatchPipelineValidationReport() {
 		messages = new HashMap<String, Set<ErrorMessage>>();
-	}
-
-	public String getTaxon() {
-		return taxon;
-	}
-
-	public void setTaxon(String taxon) {
-		this.taxon = taxon;
 	}
 
 	public int getNumber_of_models() {
@@ -99,6 +91,14 @@ public class BatchPipelineValidationReport {
 		return shex_rule_string;
 	}
 
+	public void setTaxa(Set<String> taxa) {
+		this.taxa = taxa;		
+	}
+
+	public Set<String> getTaxa() {
+		return taxa;
+	}
+	
 	public static void main(String[] args) {
 		GsonBuilder builder = new GsonBuilder();		 
 		Gson gson = builder.setPrettyPrinting().create();
@@ -110,20 +110,21 @@ public class BatchPipelineValidationReport {
 		Set<ErrorMessage> owl_errors = new HashSet<ErrorMessage>();
 		String level = "ERROR";
 		String model_id = "DEMO model:007";
-		String taxon = "other taxon";
+		Set<String> taxa = new HashSet<String>();
+		String taxon = "9606";
+		taxa.add(taxon);
 		String message = owl_message;
 		int rule = owl_rule;
-		ErrorMessage owl = new ErrorMessage(level, model_id, taxon, message, rule);
+		ErrorMessage owl = new ErrorMessage(level, model_id, taxa, message, rule);
 		owl_errors.add(owl);
 		report.messages.put(owl_rule_string, owl_errors);
 		
 		Set<ErrorMessage> shex_errors = new HashSet<ErrorMessage>();
 		level = "WARNING";
 		model_id = "DEMO model:007";
-		taxon = "other taxon";
 		message = shex_message;
 		rule = shex_rule;
-		ErrorMessage shex = new ErrorMessage(level, model_id, taxon, message, rule);
+		ErrorMessage shex = new ErrorMessage(level, model_id, taxa, message, rule);
 		shex_errors.add(shex);
 		report.messages.put(shex_rule_string, shex_errors);
 		
@@ -131,4 +132,5 @@ public class BatchPipelineValidationReport {
 		System.out.println(json);
 	}
 
+	
 }

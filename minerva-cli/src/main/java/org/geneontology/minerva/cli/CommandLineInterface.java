@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
@@ -167,7 +168,7 @@ public class CommandLineInterface {
 				.hasArg(false)
 				.build();
 		methods.addOption(clean_gocams);
-		
+
 		Option sparql = Option.builder()
 				.longOpt("sparql-update")
 				.desc("update the blazegraph journal with the given sparql statement")
@@ -215,7 +216,7 @@ public class CommandLineInterface {
 				String ontojournal = cmd.getOptionValue("ontojournal"); //--folder
 				addTaxonMetaData(journalFilePath, ontojournal);
 			}
-			
+
 			if(cmd.hasOption("clean-gocams")) {
 				Options clean_options = new Options();
 				clean_options.addOption(clean_gocams);
@@ -748,12 +749,13 @@ public class CommandLineInterface {
 	 * @param shapemappath
 	 * @param travisMode
 	 * @param shouldPass
-	 * @throws Exception
+	 * @throws IOException 
+	 * @throws OWLOntologyCreationException 
 	 */
 	public static void validateGoCams(String input, String outputFolder,  
 			String ontologyIRI, String catalog, String modelIdPrefix, String modelIdcurie, 
 			String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex,  
-			String go_lego_journal_file, boolean run_reasoner_report) throws Exception {
+			String go_lego_journal_file, boolean run_reasoner_report) throws OWLOntologyCreationException, IOException {
 		Logger LOG = Logger.getLogger(CommandLineInterface.class);
 		LOG.setLevel(Level.ERROR);
 		LOGGER.setLevel(Level.INFO);
@@ -769,7 +771,7 @@ public class CommandLineInterface {
 		}else if(!outputFolder.endsWith("/")) {
 			outputFolder+="/";
 		}
-		
+
 		if(input==null) {
 			LOGGER.error("please provide an input file - either a directory of ttl files or a blazegraph journal");
 			System.exit(-1);
@@ -779,13 +781,24 @@ public class CommandLineInterface {
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		if(catalog!=null) {
 			LOGGER.info("using catalog: "+catalog);
-			ontman.setIRIMappers(Sets.newHashSet(new CatalogXmlIRIMapper(catalog)));
+			try {
+				ontman.setIRIMappers(Sets.newHashSet(new CatalogXmlIRIMapper(catalog)));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}else {
 			LOGGER.info("no catalog, resolving all ontology uris directly");
 		}
 
-		OWLOntology tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
-		LOGGER.info("tbox ontology axioms loaded: "+tbox_ontology.getAxiomCount());
+		OWLOntology tbox_ontology = null;
+		try {
+			tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
+			LOGGER.info("tbox ontology axioms loaded: "+tbox_ontology.getAxiomCount());
+		} catch (OWLOntologyCreationException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		//should not be necessary using pre-merged ontology
 		//tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
 		//LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
@@ -804,7 +817,13 @@ public class CommandLineInterface {
 					bgdb.delete();
 				}
 				//load everything into a bg journal
-				OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
+				OWLOntology dummy = null;
+				try {
+					dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
+				} catch (OWLOntologyCreationException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 				CurieHandler curieHandler = new MappedCurieHandler();
 				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);				
 
@@ -832,7 +851,13 @@ public class CommandLineInterface {
 					});
 				}else {
 					LOGGER.info("Loading " + i);
-					m3.importModelToDatabase(i, true);
+					try {
+						m3.importModelToDatabase(i, true);
+					} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
+							| RDFHandlerException | IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
 				LOGGER.info("loaded files into blazegraph journal: "+input);
 				m3.dispose();
@@ -842,27 +867,57 @@ public class CommandLineInterface {
 		LOGGER.info("building model manager");
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
+		UndoAwareMolecularModelManager m3 = null;
+		try {
+			m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
+		} catch (OWLOntologyCreationException | IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 
 
 		String reasonerOpt = "arachne"; 	
 		if(shexpath==null) {
 			//fall back on downloading from shapes repo
-			URL shex_schema_url = new URL(shexFileUrl);
-			shexpath = "./go-cam-schema.shex";
-			File shex_schema_file = new File(shexpath);
-			org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);			
-			System.err.println("-s .No shex schema provided, using: "+shexFileUrl);
+			URL shex_schema_url;
+			try {
+				shex_schema_url = new URL(shexFileUrl);
+				shexpath = "./go-cam-schema.shex";
+				File shex_schema_file = new File(shexpath);
+				org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);			
+				System.err.println("-s .No shex schema provided, using: "+shexFileUrl);
+			} catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		if(shapemappath==null) {
-			URL shex_map_url = new URL(goshapemapFileUrl);
-			shapemappath = "./go-cam-shapes.shapeMap";
-			File shex_map_file = new File(shapemappath);
-			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
-			System.err.println("-m .No shape map file provided, using: "+goshapemapFileUrl);
+			URL shex_map_url;
+			try {
+				shex_map_url = new URL(goshapemapFileUrl);
+				shapemappath = "./go-cam-shapes.shapeMap";
+				File shex_map_file = new File(shapemappath);
+				org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
+				System.err.println("-m .No shape map file provided, using: "+goshapemapFileUrl);
+			} catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		LOGGER.info("making shex validator: "+shexpath+" "+shapemappath+" "+curieHandler+" ");
-		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getGolego_repo());  
+		MinervaShexValidator shex = null;
+		try {
+			shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getGolego_repo());
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}  
 		if(checkShex) {
 			if(checkShex) {
 				shex.setActive(true);
@@ -878,28 +933,35 @@ public class CommandLineInterface {
 		String explanations_file = outputFolder+"explanations.txt";
 		String activity_output_file = outputFolder+"activity_report.txt";
 		if(outputFolder!=null) {
-			FileWriter basic_shex_output = new FileWriter(basic_output_file, false);
-			basic_shex_output.write("filename\tmodel_title\tmodel_url\tmodelstate\tcontributor\tprovider\tdate\tOWL_consistent\tshex_valid\tshex_meta_problem\tshex_data_problem\tvalidation_time_milliseconds\taxioms\tn_rows_gpad\t");
-			basic_shex_output.write(GoCamModelStats.statsHeader()+"\n");
-			basic_shex_output.close();
+			try {
+				FileWriter basic_shex_output = new FileWriter(basic_output_file, false);
+				basic_shex_output.write("filename\tmodel_title\tmodel_url\tmodelstate\tcontributor\tprovider\tdate\tOWL_consistent\tshex_valid\tshex_meta_problem\tshex_data_problem\tvalidation_time_milliseconds\taxioms\tn_rows_gpad\t");
+				basic_shex_output.write(GoCamModelStats.statsHeader()+"\n");
+				basic_shex_output.close();
 
-			FileWriter explanations = new FileWriter(explanations_file, false);
-			explanations.write("filename\tmodel_title\tmodel_iri\tnode\tNode_types\tproperty\tIntended_range_shapes\tobject\tObject_types\tObject_shapes\n");
-			explanations.close();
-			
-			FileWriter activity_output = new FileWriter(activity_output_file, false);
-			activity_output.write("filename\tmodel_title\tmodel_url\tmodelstate\tcontributor\tprovider\tdate\tactivity_iri\tactivity_xref\tactivity_label\tcomplete\tinputs\toutputs\tenablers\tlocations\tcausal upstream\tcausal downstream\tpart of n BP\tMF\tBP\n");
-			activity_output.close();
+				FileWriter explanations = new FileWriter(explanations_file, false);
+				explanations.write("filename\tmodel_title\tmodel_iri\tnode\tNode_types\tproperty\tIntended_range_shapes\tobject\tObject_types\tObject_shapes\n");
+				explanations.close();
+
+				FileWriter activity_output = new FileWriter(activity_output_file, false);
+				activity_output.write("filename\tmodel_title\tmodel_url\tmodelstate\tcontributor\tprovider\tdate\tactivity_iri\tactivity_xref\tactivity_label\tcomplete\tinputs\toutputs\tenablers\tlocations\tcausal upstream\tcausal downstream\tpart of n BP\tMF\tBP\n");
+				activity_output.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}	
 		BatchPipelineValidationReport pipe_report = null;
 		Set<ErrorMessage> owl_errors = new HashSet<ErrorMessage>();
 		Set<ErrorMessage> shex_errors = new HashSet<ErrorMessage>();
-		//todo get taxon from somewhere
-		String taxon = "taxon unknown";
 		pipe_report = new BatchPipelineValidationReport();
-		pipe_report.setNumber_of_models(m3.getAvailableModelIds().size());
-		pipe_report.setTaxon(taxon);
-
+		try {
+			pipe_report.setNumber_of_models(m3.getAvailableModelIds().size());
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		int bad_models = 0;  int good_models = 0;
 		final boolean shex_output = checkShex;			
 		String reasoner_report_file = outputFolder+"reasoner_report_all.txt";
 		String reasoner_report_summary_file = outputFolder+"reasoner_report_summary.txt";
@@ -909,14 +971,20 @@ public class CommandLineInterface {
 		Map<String, Integer> term_deepened_instances_created = new HashMap<String, Integer>();
 
 		if(run_reasoner_report) {		
-			FileWriter reasoner_report = new FileWriter(reasoner_report_file, false);
-			reasoner_report.write("title\tindividual\txref\tasserted\tinferred\n");
-			reasoner_report.close();		
+			FileWriter reasoner_report;
+			try {
+				reasoner_report = new FileWriter(reasoner_report_file, false);
+				reasoner_report.write("title\tindividual\txref\tasserted\tinferred\n");
+				reasoner_report.close();	
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		//Note that parallelStream does not seem to help with this.  
 		//m3.getAvailableModelIds().stream().forEach(modelIRI -> {
-		for(IRI modelIRI : m3.getAvailableModelIds()) {
-			try {
+		try {
+			for(IRI modelIRI : m3.getAvailableModelIds()) {
 				long start = System.currentTimeMillis();
 				String filename = modelid_filename.get(modelIRI.toString());
 				boolean isConsistent = true;
@@ -954,16 +1022,23 @@ public class CommandLineInterface {
 				String contributor = makeColSafe(gcm.getContributors().toString());
 				String date = makeColSafe(gcm.getDate());
 				String provider = makeColSafe(gcm.getProvided_by().toString());
+				pipe_report.setTaxa(gcm.getIn_taxon()); 
 				LOGGER.info("model stats done for title: "+title);
 				int axioms = gocam.getAxiomCount();
 
 				InferenceProvider ip = ipc.create(mc);
 				isConsistent = ip.isConsistent();
 				//TODO re-use reasoner object from ip
-				Set<GPADData> gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).getGPAD(m3.createInferredModel(modelIRI), modelIRI);
 				int n_rows_gpad = 0;
-				if(gpad!=null) {
-					n_rows_gpad = gpad.size();
+				if(isConsistent) {
+					try {
+						Set<GPADData> gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).getGPAD(m3.createInferredModel(modelIRI), modelIRI);
+						if(gpad!=null) {
+							n_rows_gpad = gpad.size();
+						}
+					}catch(InconsistentOntologyException e) {
+						LOG.error("inconsistent ontology, can't make gpad");
+					}
 				}
 				//for reasoner report
 				if(run_reasoner_report) {
@@ -1035,14 +1110,15 @@ public class CommandLineInterface {
 					}
 					reasoner_report.close();			
 				}
-
+				long done = System.currentTimeMillis();
+				long milliseconds = (done-start);
 				//for rules report in pipeline
 				if(!ip.isConsistent()) {
 					String level = "ERROR";
 					String model_id = curieHandler.getCuri(modelIRI);
 					String message = BatchPipelineValidationReport.getOwlMessage();
 					int rule = BatchPipelineValidationReport.getOwlRule();
-					ErrorMessage owl = new ErrorMessage(level, model_id, taxon, message, rule);
+					ErrorMessage owl = new ErrorMessage(level, model_id, gcm.getIn_taxon(), message, rule);
 					owl_errors.add(owl);
 				}
 
@@ -1058,22 +1134,31 @@ public class CommandLineInterface {
 					}
 				}
 				FileWriter  basic= new FileWriter(basic_output_file, true);
-				if(shex_output) {
+				if(!shex_output) {
+					if(ip.isConsistent()) {
+						good_models++;
+					}else {
+						bad_models++;
+					}
+				}else{
 					ValidationResultSet validations = ip.getValidation_results();
 					isConformant = validations.allConformant();	
-					long done = System.currentTimeMillis();
-					long milliseconds = (done-start);
-
-					if(!isConformant) {
+					if(isConformant) {
+						good_models++;
+					}else {
+						bad_models++;
+					}					
+					if(!validations.getShexvalidation().isConformant()) {
 						String level = "WARNING";
 						String model_id = curieHandler.getCuri(modelIRI);
 						String message = BatchPipelineValidationReport.getShexMessage();
 						int rule = BatchPipelineValidationReport.getShexRule();
-						ErrorMessage shex_message = new ErrorMessage(level, model_id, taxon, message, rule);
+						ErrorMessage shex_message = new ErrorMessage(level, model_id, gcm.getIn_taxon(), message, rule);
+						boolean include_explanations_in_json = true; //TODO set as a parameter
+						if(include_explanations_in_json) {
+							shex_message.setExplanations(validations);
+						}
 						shex_errors.add(shex_message);
-					}
-
-					if(!isConformant) {
 						FileWriter explanations = new FileWriter(explanations_file, true);						
 						explanations.write(ip.getValidation_results().getShexvalidation().getAsTab(filename+"\t"+title+"\t"+modelIRI));
 						explanations.close();
@@ -1090,25 +1175,29 @@ public class CommandLineInterface {
 					//is it a metadata violation or data ?
 					boolean shex_meta_problem = false;
 					boolean shex_data_problem = false;
-					if(!isConformant) {
+					if(!validations.getShexvalidation().isConformant()) {
 						String model_curie = curieHandler.getCuri(modelIRI);
-						for(Violation v : ip.getValidation_results().getShexvalidation().getViolations()) {							
-							if(v.getNode().equals(model_curie)){
-								shex_meta_problem = true;
-							}else {
-								shex_data_problem = true;
+						ValidationResultSet validationset = ip.getValidation_results();
+						ShexValidationReport shex_report = validationset.getShexvalidation();
+						Set<Violation> violations = shex_report.getViolations();
+						if(violations!=null) { 
+							for(Violation v : violations) {							
+								if(v.getNode().equals(model_curie)){
+									shex_meta_problem = true;
+								}else {
+									shex_data_problem = true;
+								}
 							}
+						}else {
+							LOGGER.error("Invalid model but no violations reported");
 						}
 					}					
 					LOGGER.info(filename+"\t"+title+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:"+isConformant);
 					basic.write(filename+"\t"+title+"\t"+link+"\t"+modelstate+"\t"+contributor+"\t"+provider+"\t"+date+"\t"+isConsistent+"\t"+isConformant+"\t"+shex_meta_problem+"\t"+shex_data_problem+"\t"+milliseconds+"\t"+axioms+"\t"+
 							n_rows_gpad+"\t"+ gcm.getGoCamModelStats().stats2cols()+"\n");
-				}else {
-					LOGGER.info(filename+"\t"+title+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:not checked");
-					basic.write(filename+"\t"+title+"\t"+link+"\t"+isConsistent+"\tnot checked\n");						
 				}
 				basic.close();
-				
+
 				//add activity level statistics as a default
 				FileWriter activity_output = new FileWriter(activity_output_file, true);
 				for(ActivityUnit unit : gcm.getActivities()){
@@ -1117,52 +1206,61 @@ public class CommandLineInterface {
 							"\t"+unit.getCausal_in().size()+"\t"+unit.getCausal_out().size()+"\t"+unit.getContaining_processes().size()+"\t"+unit.stringForClasses(unit.getDirect_types())+"\t"+unit.getURIsForConnectedBPs()+"\n");
 				}
 				activity_output.close();
-				
-			} catch (InconsistentOntologyException e) {
-				LOGGER.error("Inconsistent model: " + modelIRI);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} 
+
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
-		//});
 
 		if(run_reasoner_report) {
-			FileWriter reasoner_report_summary = new FileWriter(reasoner_report_summary_file, false);
-			reasoner_report_summary.write("asserted GO term\tmapped individual count\tmapped N deepened\tcreated individual count\tcreated N deepened\n");			
-			Set<String> terms = new HashSet<String>();
-			terms.addAll(term_asserted_instances_mapped.keySet());
-			terms.addAll(term_asserted_instances_created.keySet());
-			for(String goterm : terms) {
-				int n_deepened_mapped = 0; int n_mapped = 0;
-				if(term_asserted_instances_mapped.containsKey(goterm)) {
-					n_mapped = term_asserted_instances_mapped.get(goterm);
-				}
+			FileWriter reasoner_report_summary;
+			try {
+				reasoner_report_summary = new FileWriter(reasoner_report_summary_file, false);
+				reasoner_report_summary.write("asserted GO term\tmapped individual count\tmapped N deepened\tcreated individual count\tcreated N deepened\n");			
+				Set<String> terms = new HashSet<String>();
+				terms.addAll(term_asserted_instances_mapped.keySet());
+				terms.addAll(term_asserted_instances_created.keySet());
+				for(String goterm : terms) {
+					int n_deepened_mapped = 0; int n_mapped = 0;
+					if(term_asserted_instances_mapped.containsKey(goterm)) {
+						n_mapped = term_asserted_instances_mapped.get(goterm);
+					}
 
-				if(term_deepened_instances_mapped.get(goterm)!=null) {
-					n_deepened_mapped = term_deepened_instances_mapped.get(goterm);
-				}			
-				int n_deepened_created = 0; int n_created = 0;
-				if(term_asserted_instances_created.containsKey(goterm)) {
-					n_created = term_asserted_instances_created.get(goterm);
-				}				
-				if(term_deepened_instances_created.get(goterm)!=null) {
-					n_deepened_created = term_deepened_instances_created.get(goterm);
-				}				
-				reasoner_report_summary.write(goterm+"\t"+n_mapped+"\t"+n_deepened_mapped+"\t"+n_created+"\t"+n_deepened_created+"\n");
+					if(term_deepened_instances_mapped.get(goterm)!=null) {
+						n_deepened_mapped = term_deepened_instances_mapped.get(goterm);
+					}			
+					int n_deepened_created = 0; int n_created = 0;
+					if(term_asserted_instances_created.containsKey(goterm)) {
+						n_created = term_asserted_instances_created.get(goterm);
+					}				
+					if(term_deepened_instances_created.get(goterm)!=null) {
+						n_deepened_created = term_deepened_instances_created.get(goterm);
+					}				
+					reasoner_report_summary.write(goterm+"\t"+n_mapped+"\t"+n_deepened_mapped+"\t"+n_created+"\t"+n_deepened_created+"\n");
+				}
+				reasoner_report_summary.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-			reasoner_report_summary.close();
 		}
 
-
+		pipe_report.setNumber_of_correct_models(good_models);
+		pipe_report.setNumber_of_models_in_error(bad_models);
 		pipe_report.getMessages().put(BatchPipelineValidationReport.getShexRuleString(), shex_errors);
 		pipe_report.getMessages().put(BatchPipelineValidationReport.getOwlRuleString(), owl_errors);		
 		GsonBuilder builder = new GsonBuilder();		 
 		Gson gson = builder.setPrettyPrinting().create();
 		String json = gson.toJson(pipe_report);
-		FileWriter pipe_json = new FileWriter(outputFolder+"gorules_report.json", false);
-		pipe_json.write(json);
-		pipe_json.close();
+		try {
+			FileWriter pipe_json = new FileWriter(outputFolder+"gorules_report.json", false);
+			pipe_json.write(json);
+			pipe_json.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		m3.dispose();
 		LOGGER.info("done with validation");
 	}
@@ -1217,8 +1315,8 @@ public class CommandLineInterface {
 			}
 		}
 	}
-	
-	
+
+
 	public static void printVersion() throws Exception {
 		printManifestEntry("git-revision-sha1", "UNKNOWN");
 		printManifestEntry("git-revision-url", "UNKNOWN");
