@@ -59,8 +59,7 @@ public class BlazegraphMolecularModelManagerTest  {
 
   @Test
 	public void testRemoveImportsDuringImport() throws Exception {
-		/* I used the file from one of the turtle file in https://github.com/geneontology/noctua-models/blob/master/models/0000000300000001.ttl */
-		String sourceModelPath = "src/test/resources/dummy-noctua-modelwith-import.ttl";
+	  	String sourceModelPath = "src/test/resources/dummy-noctua-modelwith-import.ttl";
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		OWLOntology cam = ontman.loadOntologyFromOntologyDocument(new File(sourceModelPath));
 		int axioms = cam.getAxiomCount();
