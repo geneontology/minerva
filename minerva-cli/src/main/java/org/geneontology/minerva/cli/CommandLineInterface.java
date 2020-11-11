@@ -464,6 +464,7 @@ public class CommandLineInterface {
 		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null, null);
 		//in case of update rather than whole new journal
 		Set<IRI> stored = new HashSet<IRI>(m3.getStoredModelIds());
+		LOGGER.info("loading gocams from "+inputFolder);
 		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
 			if(!file.getName().endsWith("ttl")){
 				LOGGER.info("Ignored for not ending with .ttl" + file);
@@ -487,6 +488,7 @@ public class CommandLineInterface {
 			}
 		}
 		m3.dispose();
+		LOGGER.info("done loading gocams");
 	}
 
 	/**
