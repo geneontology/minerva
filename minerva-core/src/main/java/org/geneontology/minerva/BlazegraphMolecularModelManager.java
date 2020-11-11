@@ -706,7 +706,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @throws RDFHandlerException
 	 * @throws RDFParseException
 	 */
-	private java.util.Optional<String> scanForOntologyIRI(File file) throws RDFParseException, RDFHandlerException, IOException {
+	public java.util.Optional<String> scanForOntologyIRI(File file) throws RDFParseException, RDFHandlerException, IOException {
 		RDFHandlerBase handler = new RDFHandlerBase() {
 			public void handleStatement(Statement statement) {
 				if (statement.getObject().stringValue().equals("http://www.w3.org/2002/07/owl#Ontology") &&

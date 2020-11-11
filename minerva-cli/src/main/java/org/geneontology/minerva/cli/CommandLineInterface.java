@@ -463,18 +463,25 @@ public class CommandLineInterface {
 		CurieHandler curieHandler = new MappedCurieHandler();
 		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null, null);
 		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
-			LOGGER.info("Loading " + file);
-			try {
-				if(file.getName().endsWith("ttl")) {
-					m3.importModelToDatabase(file, true); 
-				} else if (file.getName().endsWith("owl")) {
-					m3.importModelToDatabase(file, false);
+			java.util.Optional<String> irio = m3.scanForOntologyIRI(file);
+			IRI iri = null;
+			if(irio.isPresent()) {
+				iri = IRI.create(irio.get());
+			}
+			LOGGER.info("Loading " + file+" with iri "+iri);
+			//is it in there already?
+			if(m3.getStoredModelIds().contains(iri)) {
+				LOGGER.error("Attempted to load gocam ttl file into database but gocam with that iri already exists, skipping "+ file+" "+iri);
+			}else {
+				try {
+					if(file.getName().endsWith("ttl")) {
+						m3.importModelToDatabase(file, true); 
+					}else {
+						LOGGER.info("Ignored for not ending with .ttl" + file);
+					}
+				}catch(RDFParseException e) {
+					LOGGER.error("Failed to parse and load RDF go-cam file: "+file );
 				}
-				else {
-					LOGGER.info("Ignored for not ending with .ttl or .owl " + file);
-				}
-			}catch(RDFParseException e) {
-				LOGGER.error("Failed to parse and load RDF go-cam file: "+file );
 			}
 		}
 		m3.dispose();
