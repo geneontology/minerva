@@ -1398,7 +1398,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	
 	/**
 	 * even if the manager has loaded a property before, and should know what kind it is, 
-	   if the next ontology doesn't include an import statement, the loader will guess that
+	   if the next ontology doesn't include an import statement or otherwise declare the properties used, the loader will guess that
 	   object properties are annotation properties and screw up.  
 	   This purifies the gocam
 	 * @param ont
