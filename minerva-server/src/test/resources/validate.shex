@@ -17,6 +17,16 @@ PREFIX evidence: <http://geneontology.org/lego/evidence>
 PREFIX with: <http://geneontology.org/lego/evidence-with>
 PREFIX x: <http://geneontology.org/lego/hint/layout/x>
 PREFIX y: <http://geneontology.org/lego/hint/layout/y>
+#model level annotations
+PREFIX ontology: <http://www.w3.org/2002/07/owl#Ontology>
+PREFIX taxon: <https://w3id.org/biolink/vocab/in_taxon>
+PREFIX modelstate: <http://geneontology.org/lego/modelstate>
+PREFIX oboinowlid: <http://www.geneontology.org/formats/oboInOwl#id>
+###contributor, date, providedBy reused
+PREFIX title: <http://purl.org/dc/elements/1.1/title>
+PREFIX imports: <http://www.w3.org/2002/07/owl#imports>
+# always limit imports to? <http://purl.obolibrary.org/obo/go/extensions/go-lego.owl> ;
+PREFIX in_taxon: <https://w3id.org/biolink/vocab/in_taxon>
 #semantic: classes
 PREFIX GoInformationBiomacromolecule: <http://purl.obolibrary.org/obo/CHEBI_33695>
 PREFIX GoProtein: <http://purl.obolibrary.org/obo/CHEBI_36080>
@@ -42,6 +52,7 @@ PREFIX GoMovementOfCellOrSubcellularComponent: <http://purl.obolibrary.org/obo/G
 PREFIX GoProteinContainingComplexRemodeling: <http://purl.obolibrary.org/obo/GO_0034367>
 PREFIX GoPatternSpecificationProcess: <http://purl.obolibrary.org/obo/GO_0007389>
 PREFIX GoMolecularFunction: <http://purl.obolibrary.org/obo/GO_0003674>
+prefix GoMolecularEvent: <http://purl.obolibrary.org/obo/go/extensions/reacto.owl#molecular_event>
 PREFIX GoTransporterActivity: <http://purl.obolibrary.org/obo/GO_0005215>
 PREFIX GoChemicalEntity: <http://purl.obolibrary.org/obo/CHEBI_24431>
 PREFIX GoEvidence: <http://purl.obolibrary.org/obo/ECO_0000000>
@@ -95,6 +106,20 @@ PREFIX results_in_growth_of: <http://purl.obolibrary.org/obo/RO_0002343>
 PREFIX results_in_movement_of: <http://purl.obolibrary.org/obo/RO_0002565>
 PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
 
+<GoCamModel> {
+  a [owl:Ontology] + ;
+  contributor: xsd:string +; #TODO would be better as an IRI
+  date: xsd:string {1}; #TODO can we make this an xsd:date?
+  provided_by: xsd:string +; #TODO would be better as an IRI
+  rdfs:comment xsd:string *;
+  modelstate: xsd:string {1}; #TODO would be better as an IRI
+  in_taxon: . *;
+  title: xsd:string {1};
+  imports: . *;
+  oboinowlid: . *; #TODO not sure if we really want this?
+  owl:versionIRI . *;
+}
+
 <ProvenanceAnnotated> {
   contributor: xsd:string *; #TODO would be better as an IRI
   date: xsd:string *; #TODO can we make this an xsd:date?
@@ -110,6 +135,8 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   exact_match: . *;
   x: . {0,1} // rdfs:comment  "X coordinate for node";
   y: . {0,1} // rdfs:comment  "Y coordinate for node";
+  skos:narrower . * //rdfs:comment "This entity (e.g. a node representing a pathway) represents a narrower (in any sense) concept then the target node. ";
+  skos:broader . * //rdfs:comment "This entity (e.g. a node representing a pathway) represents a broader (in any sense) concept then the target node. ";
 } // rdfs:comment  "Default allowable metadata for GO-CAM entities"
 
 <OwlClass> {
@@ -126,16 +153,16 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
 
 <BiologicalProcess> @<GoCamEntity> AND EXTRA a {
   a ( @<BiologicalProcessClass> OR @<NegatedBiologicalProcessClass> ) {1};
-  part_of: @<BiologicalProcess> {0,1};
+  part_of: @<BiologicalProcess> *;
   has_input: ( @<ChemicalEntity> OR @<AnatomicalEntity> OR @<ProteinContainingComplex> ) *;
   has_output: ( @<ChemicalEntity> OR @<AnatomicalEntity> OR @<ProteinContainingComplex> ) *;
   occurs_in: @<AnatomicalEntity> {0,1};
   transports_or_maintains_localization_of: ( @<InformationBiomacromolecule> OR @<ProteinContainingComplex> ) *;
   has_target_end_location: @<AnatomicalEntity> {0,1};
   has_target_start_location: @<AnatomicalEntity> {0,1};
-  causally_upstream_of: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
-  causally_upstream_of_negative_effect: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
-  causally_upstream_of_positive_effect: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
+  causally_upstream_of: ( @<BiologicalProcess> OR @<MolecularFunction> OR @<MolecularEvent> ) *;
+  causally_upstream_of_negative_effect: ( @<BiologicalProcess> OR @<MolecularFunction> OR @<MolecularEvent> ) *;
+  causally_upstream_of_positive_effect: ( @<BiologicalProcess> OR @<MolecularFunction> OR @<MolecularEvent> ) *;
   regulates: @<BiologicalProcess> *;
   negatively_regulates: @<BiologicalProcess> *;
   positively_regulates: @<BiologicalProcess> *;
@@ -314,6 +341,18 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   owl:complementOf @<MolecularFunctionClass>
 }
 
+<MolecularEventClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
+  rdfs:subClassOf [ GoMolecularEvent: ] ;
+}
+
+<NegatedMolecularEventClass> BNode @<OwlClass> AND {
+  owl:complementOf @<MolecularEventClass>
+}
+
+<MolecularEvent> @<GoCamEntity> AND EXTRA a {
+  a ( @<MolecularEventClass> OR @<NegatedMolecularEventClass> ) {1};
+}
+
 <MolecularFunction> @<GoCamEntity> AND EXTRA a {
   a ( @<MolecularFunctionClass> OR @<NegatedMolecularFunctionClass> ) {1};
   enabled_by:  ( @<InformationBiomacromolecule> OR @<ProteinContainingComplex> ) {0,1};
@@ -321,19 +360,19 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   occurs_in: @<AnatomicalEntity> {0,1};
   has_output: ( @<ChemicalEntity> OR @<ProteinContainingComplex> ) *;
   has_input: ( @<ChemicalEntity> OR @<ProteinContainingComplex> ) *;
-  directly_provides_input_for: @<MolecularFunction> *;
-  regulates: @<MolecularFunction> *;
-  negatively_regulates: @<MolecularFunction> *;
-  positively_regulates: @<MolecularFunction> *;
-  directly_regulates: @<MolecularFunction> *;
-  directly_negatively_regulates: @<MolecularFunction> *;
-  directly_positively_regulates: @<MolecularFunction> *;
-  causally_upstream_of_or_within: @<BiologicalProcess> *;
+  directly_provides_input_for: ( @<MolecularFunction> OR @<MolecularEvent> ) *;
+  regulates: ( @<MolecularFunction> OR @<MolecularEvent> ) *;
+  negatively_regulates: ( @<MolecularFunction> OR @<MolecularEvent> ) *;
+  positively_regulates: ( @<MolecularFunction> OR @<MolecularEvent> ) *;
+  directly_regulates: ( @<MolecularFunction> OR @<MolecularEvent> ) *;
+  directly_negatively_regulates: ( @<MolecularFunction> OR @<MolecularEvent> ) *;
+  directly_positively_regulates: ( @<MolecularFunction> OR @<MolecularEvent> ) *;
+  causally_upstream_of_or_within: ( @<MolecularFunction> OR @<MolecularEvent> OR @<BiologicalProcess> ) *;
   causally_upstream_of_or_within_negative_effect: @<BiologicalProcess> *;
   causally_upstream_of_or_within_positive_effect: @<BiologicalProcess> *;
-  causally_upstream_of: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
-  causally_upstream_of_negative_effect: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
-  causally_upstream_of_positive_effect: ( @<BiologicalProcess> OR @<MolecularFunction> ) *;
+  causally_upstream_of: ( @<BiologicalProcess> OR @<MolecularFunction> OR @<MolecularEvent> ) *;
+  causally_upstream_of_negative_effect: ( @<BiologicalProcess> OR @<MolecularFunction> OR @<MolecularEvent> ) *;
+  causally_upstream_of_positive_effect: ( @<BiologicalProcess> OR @<MolecularFunction> OR @<MolecularEvent> ) *;
   happens_during: ( @<BiologicalPhase> OR @<LifeCycleStage> OR @<PlantStructureDevelopmentStage> ) *;
 } // rdfs:comment  "A molecular function"
 
@@ -347,9 +386,6 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   has_target_end_location: @<CellularComponent> *;
   has_target_start_location: @<CellularComponent> *;
 } // rdfs:comment "a transporter activity GO molecular function or child"
-
-
-<MacromolecularMachine> ( @<Protein> OR @<ProteinContainingComplex> ) AND {}
 
 <BiologicalPhaseClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
   rdfs:subClassOf [ GoBiologicalPhase: ];
@@ -414,10 +450,10 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   overlaps: @<AnatomicalEntity> *;
 } // rdfs:comment  "a cellular component"
 
-<ProteinContainingComplex> EXTRA a {
+<ProteinContainingComplex> @<GoCamEntity> AND EXTRA a {
   a @<ProteinContainingComplexClass>;
   located_in: @<AnatomicalEntity> {0,1};
-  has_part: @<InformationBiomacromolecule> *;
+  has_part: ( @<InformationBiomacromolecule> OR @<ProteinContainingComplex>) *;
 } // rdfs:comment  "a protein complex"
 
 <ProteinContainingComplexClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf {
@@ -455,7 +491,7 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   rdfs:subClassOf [ GoEvidence: ] ;
 }
 
-<Evidence> @<ProvenanceAnnotated> AND EXTRA a  {
+<Evidence> @<GoCamEntity> AND EXTRA a  {
   a @<EvidenceClass> {1};
   source: xsd:string {1};
   with: xsd:string {0,1}

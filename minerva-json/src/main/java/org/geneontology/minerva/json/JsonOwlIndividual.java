@@ -11,6 +11,9 @@ public class JsonOwlIndividual extends JsonAnnotatedObject {
 
 	@SerializedName("inferred-type")
 	public JsonOwlObject[] inferredType;
+
+	@SerializedName("root-type")
+	public JsonOwlObject[] rootType;
 	
 	@SerializedName("inferred-type-with-all")
 	public JsonOwlObject[] inferredTypeWithAll;

@@ -24,7 +24,10 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.M3Request;
 import org.geneontology.minerva.server.handler.M3BatchHandler.Operation;
 import org.geneontology.minerva.server.handler.OperationsTools.MissingParameterException;
 import org.geneontology.minerva.server.validation.BeforeSaveModelValidator;
+import org.geneontology.owl.differ.Differ;
 import org.geneontology.rules.engine.WorkingMemory;
+import org.obolibrary.robot.DiffOperation;
+import org.obolibrary.robot.IOHelper;
 import org.openrdf.query.*;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
@@ -32,10 +35,12 @@ import org.openrdf.rio.RDFWriter;
 import org.openrdf.rio.Rio;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.model.parameters.OntologyCopy;
 import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.*;
 
 import static org.geneontology.minerva.server.handler.OperationsTools.requireNotNull;
@@ -78,7 +83,8 @@ abstract class OperationsImpl extends ModelCreator {
 		boolean nonMeta = false;
 		ModelContainer model = null;
 		Map<String, OWLNamedIndividual> individualVariable = new HashMap<>();
-
+		String diffResult = null;
+		
 		@Override
 		public boolean notVariable(String id) {
 			return individualVariable.containsKey(id) == false;
@@ -403,7 +409,6 @@ abstract class OperationsImpl extends ModelCreator {
 			values.nonMeta = true;
 			requireNotNull(request.arguments, "request.arguments");
 			values.model = checkModelId(values.model, request);
-			m3.updateImports(values.model);
 			values.renderBulk = true;
 		}
 		// add an empty model
@@ -494,6 +499,49 @@ abstract class OperationsImpl extends ModelCreator {
 				}
 			}
 			m3.saveModel(values.model, annotations, token);
+			values.renderBulk = true;
+		}
+		else if (Operation.resetModel == operation) {
+			values.nonMeta = true;
+			requireNotNull(request.arguments, "request.arguments");
+			values.model = checkModelId(values.model, request);
+			//drop in memory model and reload
+			IRI model_iri = values.model.getModelId();
+			boolean drop_cached = true;
+			//load will reload from db if override 
+			m3.loadModel(model_iri, drop_cached);
+			//ensure the change queue is gone to avoid downstream confusion.
+			m3.clearUndoHistory(model_iri);
+			//reset model values
+			values.model = checkModelId(null, request);
+			values.renderBulk = true;
+		}else if (Operation.diffModel == operation) {
+			values.nonMeta = true;
+			requireNotNull(request.arguments, "request.arguments");
+			//this won't change
+			values.model = checkModelId(values.model, request);
+			IRI model_iri = values.model.getModelId();
+			//run diff
+			OWLOntologyManager man1 = OWLManager.createOWLOntologyManager();
+			//do we have an ontology in the datastore with that id?
+			OWLOntology stored_ontology = null;
+			if(m3.getStoredModelIds().contains(model_iri)) {
+				stored_ontology = m3.loadModelABox(model_iri);
+			}else {
+				//could error out here, but maybe this is more useful
+				stored_ontology = man1.createOntology();
+			}
+			OWLOntology active_ontology = man1.copyOntology(values.model.getAboxOntology(), OntologyCopy.DEEP);			
+			
+			//TODO refine representation of diff result..
+			StringWriter writer = new StringWriter();
+		   // boolean actual = DiffOperation.compare(active_ontology, stored_ontology, writer);
+			Map<String, String> options = new HashMap<>();
+		    options.put("labels", "true");
+		    options.put("format", "pretty"); //plain, pretty, html, markdown
+		    DiffOperation.compare(stored_ontology, active_ontology, new IOHelper(), writer, options);
+			values.diffResult = writer.toString();
+			writer.close();
 			values.renderBulk = true;
 		}
 		else if (Operation.undo == operation) {

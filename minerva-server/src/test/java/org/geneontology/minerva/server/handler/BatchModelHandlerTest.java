@@ -112,7 +112,7 @@ public class BatchModelHandlerTest {
 		}
 	}
 
-	//FIXME @Test
+	@Test
 	public void testTypeOperations() throws Exception {
 		final String modelId = generateBlankModel();
 		
@@ -240,7 +240,7 @@ public class BatchModelHandlerTest {
 
 	
 	
-	//FIXME @Test
+	@Test
 	public void testAddIndividual() throws Exception {
 		final String modelId = generateBlankModel();
 		
@@ -379,7 +379,7 @@ public class BatchModelHandlerTest {
 		assertEquals("review", foundModelState);
 	}
 
-	//FIXME @Test
+	@Test
 	public void testMultipleMeta() throws Exception {
 		//models.dispose();		
 		
@@ -402,14 +402,14 @@ public class BatchModelHandlerTest {
 				hasPartOf = true;
 			}
 		}
-		assertTrue(relations.length > 100);
+		assertTrue(relations.length > 20);
 		assertTrue(hasPartOf);
 
 		final JsonEvidenceInfo[] evidences = BatchTestTools.responseEvidences(response);
 		assertTrue(evidences.length > 100);
 		
 		final Map<String, List<JsonAnnotation>> modelIds = BatchTestTools.responseModelsMeta(response);
-		assertEquals(0, modelIds.size());
+		assertFalse(modelIds.size()==0);
 	}
 	
 	@Test
@@ -433,7 +433,7 @@ public class BatchModelHandlerTest {
 		assertEquals(M3BatchResponse.MESSAGE_TYPE_ERROR, response.messageType);
 	}
 	
-	//FIXME @Test
+	@Test
 	public void testSaveAsNonMeta() throws Exception {
 		//models.dispose();
 		
@@ -497,7 +497,7 @@ public class BatchModelHandlerTest {
 		assertNotEquals(modelId2, modelId3);
 	}
 	
-	//FIXME @Test
+	@Test
 	public void testDelete() throws Exception {
 		//models.dispose();
 		
@@ -550,7 +550,7 @@ public class BatchModelHandlerTest {
 		assertEquals(2, types2.length);
 	}
 	
-	//FIXME @Test
+	@Test
 	public void testDeleteEdge() throws Exception {
 		//models.dispose();
 		final String modelId = generateBlankModel();
@@ -618,7 +618,7 @@ public class BatchModelHandlerTest {
 		assertEquals(2, iObjs2.length);
 	}
 	
-	//FIXME @Test
+	@Test
 	public void testDeleteEvidenceIndividuals() throws Exception {
 		//models.dispose();
 		final String modelId = generateBlankModel();
@@ -664,6 +664,18 @@ public class BatchModelHandlerTest {
 		
 		final M3BatchResponse response1 = executeBatch(batch1, false);
 		
+		//run diff to show changes
+		//test diff command for comparison
+		M3Request dr = new M3Request();
+		dr.entity = Entity.model;
+		dr.operation = Operation.diffModel;
+		dr.arguments = new M3Argument();
+		dr.arguments.modelId = modelId;
+		M3BatchResponse diffresp = execute(dr, false);
+		String diff = diffresp.data.diffResult;
+		assertFalse(diff.equals("Ontologies are identical\n"));
+		
+		
 		// find individuals
 		JsonOwlIndividual[] iObjs1 = BatchTestTools.responseIndividuals(response1);
 		assertEquals(5, iObjs1.length);
@@ -706,7 +718,7 @@ public class BatchModelHandlerTest {
 		// one edge
 		JsonOwlFact[] facts1 = BatchTestTools.responseFacts(response1);
 		assertEquals(1, facts1.length);
-		assertEquals(3, facts1[0].annotations.length); // evidence, date, contributor
+		assertEquals(4, facts1[0].annotations.length); // evidence, date, contributor, provider
 		
 		// remove fact evidence
 		final List<M3Request> batch2 = new ArrayList<M3Request>();
@@ -717,7 +729,7 @@ public class BatchModelHandlerTest {
 		
 		final M3BatchResponse response3 = checkCounts(modelId, 4, 1);
 		JsonOwlFact[] factsObjs = BatchTestTools.responseFacts(response3);
-		assertEquals(2, factsObjs[0].annotations.length); // date and contributor remain
+		assertEquals(3, factsObjs[0].annotations.length); // date and contributor remain
 		
 		// delete bp evidence instance
 		final List<M3Request> batch4 = new ArrayList<M3Request>();
@@ -740,7 +752,7 @@ public class BatchModelHandlerTest {
 			assertNotNull(typeId);
 			if ("GO:0008150".equals(typeId)) {
 				found = true;
-				assertTrue(iObj.annotations.length == 2); // date and contributor remain
+				assertTrue(iObj.annotations.length == 3); // date and contributor and provider remain
 			}
 		}
 		assertTrue(found);

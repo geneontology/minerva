@@ -9,8 +9,6 @@ Prefix: rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 Ontology: <http://model.geneontology.org/5525a0fc00000001>
 
-Import: <http://purl.obolibrary.org/obo/go/extensions/go-lego.owl>
-
 Annotations: 
     dc:title "Consistency Paper March dph"^^xsd:string,
     dc:contributor "http://orcid.org/0000-0001-7476-6306"^^xsd:string,
