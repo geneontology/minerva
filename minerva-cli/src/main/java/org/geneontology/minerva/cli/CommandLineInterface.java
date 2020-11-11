@@ -462,23 +462,25 @@ public class CommandLineInterface {
 		String modelIdPrefix = "http://model.geneontology.org/"; // this will not be used for anything
 		CurieHandler curieHandler = new MappedCurieHandler();
 		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null, null);
+		//in case of update rather than whole new journal
+		Set<IRI> stored = new HashSet<IRI>(m3.getStoredModelIds());
 		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
+			if(!file.getName().endsWith("ttl")){
+				LOGGER.info("Ignored for not ending with .ttl" + file);
+				continue;
+			}
 			java.util.Optional<String> irio = m3.scanForOntologyIRI(file);
 			IRI iri = null;
 			if(irio.isPresent()) {
 				iri = IRI.create(irio.get());
 			}
-			LOGGER.info("Loading " + file+" with iri "+iri);
 			//is it in there already?
-			if(m3.getStoredModelIds().contains(iri)) {
+			if(stored.contains(iri)) {
 				LOGGER.error("Attempted to load gocam ttl file into database but gocam with that iri already exists, skipping "+ file+" "+iri);
 			}else {
+				stored.add(iri);
 				try {
-					if(file.getName().endsWith("ttl")) {
-						m3.importModelToDatabase(file, true); 
-					}else {
-						LOGGER.info("Ignored for not ending with .ttl" + file);
-					}
+					m3.importModelToDatabase(file, true); 
 				}catch(RDFParseException e) {
 					LOGGER.error("Failed to parse and load RDF go-cam file: "+file );
 				}
