@@ -7,7 +7,15 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.apache.log4j.Logger;
+import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.BlazegraphOntologyManager;
+import org.geneontology.minerva.CoreMolecularModelManager;
+import org.openrdf.query.BindingSet;
+import org.openrdf.query.MalformedQueryException;
+import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.TupleQueryResult;
+import org.openrdf.repository.RepositoryException;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLAnnotation;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -16,6 +24,7 @@ import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
 
 public class GoCamModel extends ProvenanceAnnotated{
+	private static Logger LOG = Logger.getLogger(GoCamModel.class);
 	BlazegraphOntologyManager go_lego;
 	String modelstate;
 	Set<String> in_taxon;
@@ -29,33 +38,104 @@ public class GoCamModel extends ProvenanceAnnotated{
 	Set<ActivityUnit> activities;
 	Map<OWLNamedIndividual, Set<String>> ind_types;
 	Map<OWLNamedIndividual, GoCamEntity> ind_entity;
-	OWLClass mf; OWLClass bp; OWLClass cc;
+	OWLClass mf; OWLClass bp; OWLClass cc; OWLClass me;
 	GoCamModelStats stats;
+	Map<OWLObjectProperty, Integer> causal_count;
 
-	public GoCamModel(OWLOntology abox, BlazegraphOntologyManager go_lego_manager) throws IOException {
+	public GoCamModel(OWLOntology abox, BlazegraphMolecularModelManager m3) throws IOException, MalformedQueryException, QueryEvaluationException, RepositoryException {
 		ont = abox;
+		me =  ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create("http://purl.obolibrary.org/obo/go/extensions/reacto.owl#molecular_event"));
 		mf =  ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create("http://purl.obolibrary.org/obo/GO_0003674"));
 		bp =  ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create("http://purl.obolibrary.org/obo/GO_0008150"));
 		cc =  ont.getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create("http://purl.obolibrary.org/obo/GO_0005575"));
-		go_lego = go_lego_manager;
+		causal_count = new HashMap<OWLObjectProperty, Integer>();
+		go_lego = m3.getGolego_repo();
 		iri = abox.getOntologyID().getOntologyIRI().get().toString();
 		ind_entity = new HashMap<OWLNamedIndividual, GoCamEntity>();
 		addAnnotations();
+		//setIndTypesWithOwl();
+		setIndTypesWithSparql(m3, iri);
 		addActivities();
 		this.setGoCamModelStats();
 	}
-
+	
+	private void setIndTypesWithSparql(BlazegraphMolecularModelManager m3, String graph_id) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException {
+		Map<OWLNamedIndividual, Set<String>> i_types = new HashMap<OWLNamedIndividual, Set<String>>();
+		Set<String> all_types = new HashSet<String>();
+		TupleQueryResult r = (TupleQueryResult) m3.executeSPARQLQuery(""
+				+ "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
+				+ "select ?instance ?type where {"
+				+ "GRAPH <"+graph_id+"> { "
+				+ "?instance rdf:type <http://www.w3.org/2002/07/owl#NamedIndividual> ."
+				+ "?instance rdf:type ?type ."
+				+ "filter (?type != <http://www.w3.org/2002/07/owl#NamedIndividual> ) "
+				+ "}}", 100);
+		while(r.hasNext()) {
+			BindingSet bs = r.next();
+			String instance = bs.getBinding("instance").getValue().stringValue();
+			String type = bs.getBinding("type").getValue().stringValue();
+			OWLNamedIndividual i = ont.getOWLOntologyManager().getOWLDataFactory().getOWLNamedIndividual(IRI.create(instance));
+			Set<String> types = i_types.get(i);
+			if(types==null) {
+				types = new HashSet<String>();
+			}
+			types.add(type);
+			i_types.put(i, types);
+			all_types.add(type);
+		}
+		r.close();
+		Map<String, String> old_new = go_lego.mapDeprecated(all_types);
+		Set<String> corrected_types = go_lego.replaceDeprecated(all_types, old_new);
+		Map<String, Set<String>> type_roots = go_lego.getSuperCategoryMap(corrected_types);
+		//set global
+		ind_types = new HashMap<OWLNamedIndividual, Set<String>>();		
+		for(OWLNamedIndividual ind : i_types.keySet()) {
+			//fix deprecated
+			Set<String> types = go_lego.replaceDeprecated(i_types.get(ind), old_new);
+			//convert to root types 
+			Set<String> roots = new HashSet<String>();
+			for(String type : types) {
+				if(type_roots.get(type)!=null) {
+					roots.addAll(type_roots.get(type));
+				}
+			}
+			ind_types.put(ind, roots);
+		}
+	}
+	
+	private void setIndTypesWithOwl() throws IOException {
+		boolean fix_deprecated = true;
+		Set<OWLNamedIndividual> inds = ont.getIndividualsInSignature();
+		ind_types = go_lego.getSuperCategoryMapForIndividuals(inds, ont, fix_deprecated);
+	}
+	
 	private void addActivities() throws IOException {
 		activities = new HashSet<ActivityUnit> ();
-		boolean fix_deprecated = true;
-		ind_types = go_lego.getSuperCategoryMapForIndividuals(ont.getIndividualsInSignature(), ont, fix_deprecated);
 		for(OWLNamedIndividual ind : ind_types.keySet()) {
 			Set<String> types = ind_types.get(ind);		
 			if(types!=null) {
-				if(types.contains(mf.getIRI().toString())) {
+				if(types.contains(mf.getIRI().toString())||types.contains(me.getIRI().toString())) {
 					ActivityUnit unit = new ActivityUnit(ind, ont, this);
-					activities.add(unit);
-					ind_entity.put(ind, unit);
+					
+					boolean skip = false;
+					for(String comment : unit.getComments()){
+						if(comment.contains("reaction from external pathway")) {
+							skip = true;
+							break;
+						}
+					}
+					if(!skip) {
+						activities.add(unit);
+						ind_entity.put(ind, unit);
+						for(OWLObjectProperty prop : unit.causal_out.keySet()) {
+							Integer np = causal_count.get(prop);
+							if(np==null) {
+								np = 0;
+							}
+							np++;
+							causal_count.put(prop, np);
+						}
+					}
 				}
 			}
 		}
@@ -232,6 +312,14 @@ public class GoCamModel extends ProvenanceAnnotated{
 
 	public void setStats(GoCamModelStats stats) {
 		this.stats = stats;
+	}
+
+	public Map<OWLObjectProperty, Integer> getCausal_count() {
+		return causal_count;
+	}
+
+	public void setCausal_count(Map<OWLObjectProperty, Integer> causal_count) {
+		this.causal_count = causal_count;
 	}
 
 }

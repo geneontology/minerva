@@ -21,5 +21,6 @@ SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf>
 SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/GO_0034367> }' @ <http://purl.obolibrary.org/obo/go/shapes/ProteinContainingComplexRemodeling>,
 SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/GO_0007389> }' @ <http://purl.obolibrary.org/obo/go/shapes/PatternSpecificationProcess>,
 SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/GO_0005575> }' @ <http://purl.obolibrary.org/obo/go/shapes/CellularComponent>,
+SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/GO_0032991> }' @ <http://purl.obolibrary.org/obo/go/shapes/ProteinContainingComplex>,
 SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/ECO_0000000> }' @ <http://purl.obolibrary.org/obo/go/shapes/Evidence>,
 SPARQL 'SELECT ?x WHERE { ?x a <http://www.w3.org/2002/07/owl#Axiom> . ?x <http://geneontology.org/lego/evidence> ?ev . }' @ <http://purl.obolibrary.org/obo/go/shapes/AnnotatedEdge>

@@ -193,6 +193,7 @@ public class ValidationTest {
 				//this is where everything actually happens
 				InferenceProvider ip;
 				try {
+					//this ipc.create method results in the execution of the OWL reasoner and, if shex is set to active, the shex validation
 					ip = ipc.create(mc);
 					isConsistent = ip.isConsistent();
 					if(!should_fail) {

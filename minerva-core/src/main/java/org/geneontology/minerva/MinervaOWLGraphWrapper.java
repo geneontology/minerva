@@ -111,12 +111,10 @@ public class MinervaOWLGraphWrapper implements Closeable {
 	 */
 	public OWLClass getOWLClass(IRI iri) {
 		OWLClass c = getDataFactory().getOWLClass(iri);
-		for (OWLOntology o : getAllOntologies()) {
-			if (o.getDeclarationAxioms(c).size() > 0) {
-				return c;
-			}
-		}
-		return null;
+		return c;
+		//there used to be a check here to ensure that the class IRI existed in a tbox ontology
+		//as there is no way to create a class using the UI without getting one out of the tbox ontology
+		//I think it is probably safe to remove this check.  To add it, use BlazegraphOntologyManager.exists()  
 	}
 
 

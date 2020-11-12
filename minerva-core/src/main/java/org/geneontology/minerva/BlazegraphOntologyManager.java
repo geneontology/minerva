@@ -70,6 +70,7 @@ public class BlazegraphOntologyManager {
 		root_types =  new HashSet<String>();
 		root_types.add("http://purl.obolibrary.org/obo/GO_0008150"); //BP
 		root_types.add("http://purl.obolibrary.org/obo/GO_0003674"); //MF
+		root_types.add("http://purl.obolibrary.org/obo/go/extensions/reacto.owl#molecular_event");//ME
 		root_types.add("http://purl.obolibrary.org/obo/GO_0005575"); //CC
 		root_types.add("http://purl.obolibrary.org/obo/GO_0032991"); //Complex
 		root_types.add("http://purl.obolibrary.org/obo/CHEBI_36080"); //protein
@@ -106,6 +107,7 @@ public class BlazegraphOntologyManager {
 		class_depth.put("http://purl.obolibrary.org/obo/GO_0008150", 0);
 		class_depth.put("http://purl.obolibrary.org/obo/GO_0003674", 0);
 		class_depth.put("http://purl.obolibrary.org/obo/GO_0005575", 0);
+		class_depth.put("http://purl.obolibrary.org/obo/go/extensions/reacto.owl#molecular_event", 0);
 	}
 
 	public BigdataSailRepository getGo_lego_repo() {
@@ -368,14 +370,41 @@ public class BlazegraphOntologyManager {
 	}
 
 	public Set<String> replaceDeprecated(Set<String> uris){
-		Set<String> fixed = new HashSet<String>(uris);
+		Set<String> fixed = new HashSet<String>();
+		Map<String, String> old_new = mapDeprecated(uris);
+		for(String t : uris) {
+			if(old_new.get(t)!=null) {
+				fixed.add(old_new.get(t));
+			}else {
+				fixed.add(t);
+			}
+		}
+		return fixed;
+	}
+	
+	public Set<String> replaceDeprecated(Set<String> uris, Map<String, String> old_new){
+		Set<String> fixed = new HashSet<String>();
+		for(String t : uris) {
+			if(old_new.get(t)!=null) {
+				fixed.add(old_new.get(t));
+			}else {
+				fixed.add(t);
+			}
+		}
+		return fixed;
+	}
+	
+	public Map<String, String> mapDeprecated(Set<String> uris){
+		Map<String, String> old_new = new HashMap<String, String>();
 		BigdataSailRepositoryConnection connection;
 		try {
 			connection = go_lego_repo.getReadOnlyConnection();
 			try {
 				String q = "VALUES ?c {";
 				for(String uri : uris) {
-					q+="<"+uri+"> \n";
+					if(uri.startsWith("http")) {
+						q+="<"+uri+"> \n";
+					}
 				}
 				q+="} . " ;
 
@@ -390,9 +419,7 @@ public class BlazegraphOntologyManager {
 					BindingSet binding = result.next();
 					Value c = binding.getValue("c");
 					Value replacement = binding.getValue("replacement");
-					if(fixed.remove(c.stringValue())) {
-						fixed.add(replacement.stringValue());
-					}
+					old_new.put(c.stringValue(),replacement.stringValue());
 				}
 			} catch (MalformedQueryException e) {
 				// TODO Auto-generated catch block
@@ -407,7 +434,7 @@ public class BlazegraphOntologyManager {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		return fixed;
+		return old_new;
 	}
 
 	public Map<String, Set<String>> getSuperCategoryMap(Set<String> uris) throws IOException {
@@ -417,7 +444,9 @@ public class BlazegraphOntologyManager {
 			try {
 				String q = "VALUES ?sub {";
 				for(String uri : uris) {
-					q+="<"+uri+"> ";
+					if(uri.startsWith("http")) {
+						q+="<"+uri+"> ";
+					}
 				}
 				q+="} . " ;
 
@@ -703,6 +732,38 @@ public class BlazegraphOntologyManager {
 			throw new IOException(e);
 		}
 		return label;
+	}
+	
+
+	
+	public boolean exists(String entity) throws IOException {
+		boolean exists = false;
+		String query = "select * "
+				+ "WHERE {" + 
+				"{<"+entity+"> ?p ?o . } " + 
+				"UNION " + 
+				"{?s ?p <"+entity+"> . }" + 
+				"} limit 1";		
+		try {
+			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+			try {
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
+				TupleQueryResult result = tupleQuery.evaluate();
+				if (result.hasNext()) {
+					exists = true;
+					return exists;
+				}
+			} catch (MalformedQueryException e) {
+				throw new IOException(e);
+			} catch (QueryEvaluationException e) {
+				throw new IOException(e);
+			} finally {
+				connection.close();
+			}
+		} catch (RepositoryException e) {
+			throw new IOException(e);
+		}
+		return exists;
 	}
 
 	public Map<String, String> getLabels(Set<String> entities) throws IOException {

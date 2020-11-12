@@ -68,6 +68,7 @@ import org.semanticweb.owlapi.model.OWLOntologyIRIMapper;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.OWLOntologyStorageException;
 import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
+import org.semanticweb.owlapi.model.RemoveImport;
 import org.semanticweb.owlapi.rio.RioMemoryTripleSource;
 import org.semanticweb.owlapi.rio.RioRenderer;
 
@@ -159,39 +160,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		}
 	}
 
-	private void createImports(OWLOntology ont, OWLOntologyID tboxId,
-			METADATA metadata) throws OWLOntologyCreationException {
-		OWLOntologyManager m = ont.getOWLOntologyManager();
-		OWLDataFactory f = m.getOWLDataFactory();
-
-		// import T-Box
-		Optional<IRI> ontologyIRI = tboxId.getOntologyIRI();
-		if (ontologyIRI.isPresent()) {
-			OWLImportsDeclaration tBoxImportDeclaration = f
-					.getOWLImportsDeclaration(ontologyIRI.get());
-			m.applyChange(new AddImport(ont, tBoxImportDeclaration));
-		}
-
-		// import additional ontologies via IRI
-		for (IRI importIRI : additionalImports) {
-			OWLImportsDeclaration importDeclaration = f
-					.getOWLImportsDeclaration(importIRI);
-			// check that the import ontology is available
-			OWLOntology importOntology = m.getOntology(importIRI);
-			if (importOntology == null) {
-				// only try to load it, if it isn't already loaded
-				try {
-					m.loadOntology(importIRI);
-				} catch (OWLOntologyDocumentAlreadyExistsException e) {
-					// ignore
-				} catch (OWLOntologyAlreadyExistsException e) {
-					// ignore
-				}
-			}
-			m.applyChange(new AddImport(ont, importDeclaration));
-		}
-	}
-
 	/**
 	 * Generates a blank model
 	 *
@@ -216,10 +184,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		ModelContainer model = null;
 		try {
 			abox = m.createOntology(modelId);
-
-			// add imports to T-Box and additional ontologies via IRI
-			createImports(abox, tbox.getOntologyID(), metadata);
-
 			// generate model
 			model = new ModelContainer(modelId, tbox, abox);
 		} catch (OWLOntologyCreationException exception) {
@@ -299,7 +263,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		}
 	}
 
-	
+
 	private void writeModelToDatabase(OWLOntology model, IRI modelId) throws RepositoryException, IOException {
 		// Only one thread at a time can use the unisolated connection.
 		synchronized(repo) {
@@ -556,7 +520,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	}
 
 	@Override
-	protected void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException {
+	public void loadModel(IRI modelId, boolean isOverride) throws OWLOntologyCreationException {
 		if (modelMap.containsKey(modelId)) {
 			if (!isOverride) {
 				throw new OWLOntologyCreationException("Model already exists: " + modelId);
@@ -579,7 +543,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 				statements.close();
 				abox = postLoadFileFilter(abox);
 				ModelContainer model = addModel(modelId, abox);
-				updateImports(model);
 			} finally {
 				connection.close();
 			}
@@ -587,10 +550,10 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			throw new OWLOntologyCreationException(e);
 		}
 	}
-	
-	
+
+
 	@Override
-	protected OWLOntology loadModelABox(IRI modelId) throws OWLOntologyCreationException {
+	public OWLOntology loadModelABox(IRI modelId) throws OWLOntologyCreationException {
 		LOG.info("Load model abox: " + modelId + " from database");
 		try {
 			BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
@@ -636,54 +599,105 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	}
 
 	/**
-	 * Imports ontology RDF directly to database. No OWL checks are performed.
+	 * Imports ontology RDF directly to database. Will remove any import statements in the ontology (because GO-CAMs should not have any as of now)
 	 * @param file
 	 * @throws OWLOntologyCreationException
 	 * @throws IOException
 	 * @throws RepositoryException
 	 */
 	public String importModelToDatabase(File file, boolean skipMarkedDelete) throws OWLOntologyCreationException, RepositoryException, IOException, RDFParseException, RDFHandlerException {
-		synchronized(repo) {
-			String modeliri = null;
-			final BigdataSailRepositoryConnection connection = repo.getUnisolatedConnection();
-			try {
-				connection.begin();
-				try {
-					final boolean delete; 
-					if (skipMarkedDelete) {
-						delete = scanForIsDelete(file);
-					} else {
-						delete = false;
-					}
-					if (!delete) {
-						java.util.Optional<URI> ontIRIOpt = scanForOntologyIRI(file).map(id -> new URIImpl(id));
-						if (ontIRIOpt.isPresent()) {
-							URI graph = ontIRIOpt.get();
-							connection.clear(graph);
-							//FIXME Turtle format is hard-coded here
-							if(file.getName().endsWith(".ttl")) {
-								connection.add(file, "", RDFFormat.TURTLE, graph);
-							}else if(file.getName().endsWith(".owl")) {
-								connection.add(file, "", RDFFormat.RDFXML, graph);
-							}
-							connection.commit();
-							modeliri = graph.toString();
-						} else {
-							throw new OWLOntologyCreationException("Detected anonymous ontology; must have IRI");
-						}
-					}else {
-						System.err.println("skipping "+file.getName());
-					}
-				} catch (Exception e) {
-					connection.rollback();
-					throw e;
-				}
-			} finally {
-				connection.close();
-			}
-			return modeliri;
+		final boolean delete; 
+		if (skipMarkedDelete) {
+			delete = scanForIsDelete(file);
+		} else {
+			delete = false;
 		}
+		String modeliri = null;
+		if (!delete) {
+			java.util.Optional<URI> ontIRIOpt = scanForOntologyIRI(file).map(id -> new URIImpl(id));
+			if (ontIRIOpt.isPresent()) {
+				java.util.Optional<URI> importOpt = scanForImport(file).map(id -> new URIImpl(id));
+				if(importOpt.isPresent()) {
+					modeliri = ontIRIOpt.get().stringValue();
+					//need to remove the imports before loading.
+					//if the imports are large, this gets slow
+					//consider 1) loading the model as below 2) running a SPARQL update to get rid of the imports
+					OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
+					OWLOntology cam = ontman.loadOntologyFromOntologyDocument(file);
+					Set<OWLImportsDeclaration> imports = cam.getImportsDeclarations();
+					for(OWLImportsDeclaration impdec : imports) {
+						RemoveImport rm = new RemoveImport(cam, impdec);
+						ontman.applyChange(rm);
+					}					
+					//write it 
+					this.writeModelToDatabase(cam, IRI.create(ontIRIOpt.get().stringValue()));
+				}else { //otherwise just load it all up as rdf (faster because avoids owl api)
+					synchronized(repo) {
+						final BigdataSailRepositoryConnection connection = repo.getUnisolatedConnection();
+						try {
+							connection.begin();
+							try {				
+								URI graph = ontIRIOpt.get();
+								connection.clear(graph);
+								//FIXME Turtle format is hard-coded here
+								if(file.getName().endsWith(".ttl")) {
+									connection.add(file, "", RDFFormat.TURTLE, graph);
+								}else if(file.getName().endsWith(".owl")) {
+									connection.add(file, "", RDFFormat.RDFXML, graph);
+								}
+								connection.commit();
+								modeliri = graph.toString();
+							} catch (Exception e) {
+								connection.rollback();
+								throw e;
+							}
+						} finally {
+							connection.close();
+						}
+					}
+				} 
+			}else {
+				throw new OWLOntologyCreationException("Detected anonymous ontology; must have IRI");
+			}
+		}else {
+			System.err.println("skipping "+file.getName());
+		}
+		return modeliri;
 
+	}
+
+	/**
+	 * checks an OWLRDF (ttl) file for owl import statements
+	 * @param file
+	 * @return
+	 * @throws RDFParseException
+	 * @throws RDFHandlerException
+	 * @throws IOException
+	 */
+	private java.util.Optional<String> scanForImport(File file) throws RDFParseException, RDFHandlerException, IOException {
+		RDFHandlerBase handler = new RDFHandlerBase() {
+			public void handleStatement(Statement statement) {
+				if (statement.getPredicate().stringValue().equals("http://www.w3.org/2002/07/owl#imports")) throw new FoundTripleException(statement);
+			}
+		};
+		InputStream inputStream = new FileInputStream(file);
+		try {
+			//FIXME Turtle format is hard-coded here
+			RDFParser parser = Rio.createParser(RDFFormat.RDFXML);
+			if(file.getName().endsWith(".ttl")) {
+				parser = Rio.createParser(RDFFormat.TURTLE);
+			}
+			parser.setRDFHandler(handler);
+			parser.parse(inputStream, "");
+			// If an import triple is found, it will be thrown out
+			// in an exception. Otherwise, return empty.
+			return java.util.Optional.empty();
+		} catch (FoundTripleException fte) {
+			Statement statement = fte.getStatement();
+			return java.util.Optional.of(statement.getObject().stringValue());
+		} finally {
+			inputStream.close();
+		}
 	}
 
 	/**
@@ -692,7 +706,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @throws RDFHandlerException
 	 * @throws RDFParseException
 	 */
-	private java.util.Optional<String> scanForOntologyIRI(File file) throws RDFParseException, RDFHandlerException, IOException {
+	public java.util.Optional<String> scanForOntologyIRI(File file) throws RDFParseException, RDFHandlerException, IOException {
 		RDFHandlerBase handler = new RDFHandlerBase() {
 			public void handleStatement(Statement statement) {
 				if (statement.getObject().stringValue().equals("http://www.w3.org/2002/07/owl#Ontology") &&
@@ -986,16 +1000,16 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			});
 		}
 	}
-	
-//now try with sparql insert
+
+	//now try with sparql insert
 	public int addTaxonToDatabaseWithSparql(IRI model_iri, IRI taxon_iri) throws RepositoryException, UpdateExecutionException, MalformedQueryException, InterruptedException {
 		int changes = 0;
 		String update = 
 				"INSERT DATA\n" + 
-				"{ GRAPH <"+model_iri.toString()+"> { "+
-				"  <"+model_iri.toString()+"> <"+BlazegraphOntologyManager.in_taxon_uri+"> <"+taxon_iri.toString()+">" + 
-				"} }";
-		
+						"{ GRAPH <"+model_iri.toString()+"> { "+
+						"  <"+model_iri.toString()+"> <"+BlazegraphOntologyManager.in_taxon_uri+"> <"+taxon_iri.toString()+">" + 
+						"} }";
+
 		synchronized(repo) {
 			final BigdataSailRepositoryConnection conn = repo.getUnisolatedConnection();
 			try {
@@ -1011,6 +1025,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			}
 		}
 		return changes;
-	}
-	
+	}	
+
 }

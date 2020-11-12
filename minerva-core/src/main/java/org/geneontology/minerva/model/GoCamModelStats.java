@@ -12,7 +12,7 @@ public class GoCamModelStats {
 	int n_activity_units = 0;
 	int n_complete_activity_units = 0;
 	int n_connected_processes = 0;
-	int n_causal_out_relation_assertions = 0;
+	int n_causal_in_relation_assertions = 0;
 	int n_unconnected = 0;
 	int n_unconnected_out = 0;
 	int n_unconnected_in = 0;
@@ -28,6 +28,9 @@ public class GoCamModelStats {
 	DescriptiveStatistics bp_depth = new DescriptiveStatistics();
 
 	public GoCamModelStats(GoCamModel model) {
+		if(model.activities==null) {
+			return;
+		}
 		for(ActivityUnit a : model.activities) {
 			n_activity_units++;
 			Set<GoCamOccurent> downstream = a.getDownstream(a, null);
@@ -146,11 +149,11 @@ public class GoCamModelStats {
 				}
 			}
 			n_connected_processes = p.size();
-			if(a.causal_out!=null) {
-				for(OWLObjectProperty prop : a.causal_out.keySet()) {
-					Set<GoCamOccurent> ocs = a.causal_out.get(prop);
+			if(a.causal_in!=null) {
+				for(OWLObjectProperty prop : a.causal_in.keySet()) {
+					Set<GoCamOccurent> ocs = a.causal_in.get(prop);
 					for(GoCamOccurent oc : ocs ) {
-						n_causal_out_relation_assertions++;
+						n_causal_in_relation_assertions++;
 					}
 				}
 			}
@@ -177,7 +180,7 @@ public class GoCamModelStats {
 		g+=" n unlocated activity units "+n_no_location+"\n";
 		g+=" n activity units unconnected to a BP "+n_no_bp+"\n";
 		g+=" n connected biological processes "+n_connected_processes+"\n";
-		g+=" n causal relation assertions "+n_causal_out_relation_assertions+"\n";
+		g+=" n causal relation assertions "+n_causal_in_relation_assertions+"\n";
 		g+=" n unconnected activities "+n_unconnected+"\n";
 		g+=" n activities with no outgoing connections "+n_unconnected_out+"\n";
 		g+=" n activities with no incoming connections "+n_unconnected_in+"\n";
@@ -186,11 +189,11 @@ public class GoCamModelStats {
 		g+=" descriptive statistics for depth in ontology for BP terms containing activity units \n"+stats2string(bp_depth);
 		g+=" descriptive statistics for depth in ontology for CC terms used as locations for activity units \n"+stats2string(cc_depth);
 		return g;
-	}
+	} 
 
 	public String stats2cols() {
 		String r = n_activity_units+"\t"+n_complete_activity_units+"\t"+n_raw_mf+"\t"+n_raw_bp+"\t"+n_raw_cc+"\t"+n_no_enabler+"\t"+n_no_location+"\t"+n_no_bp+
-				"\t"+n_connected_processes+"\t"+n_causal_out_relation_assertions+"\t"+n_unconnected+"\t"+n_unconnected_out+"\t"+n_unconnected_in+"\t"+max_connected_graph+
+				"\t"+n_connected_processes+"\t"+n_causal_in_relation_assertions+"\t"+n_unconnected+"\t"+n_unconnected_out+"\t"+n_unconnected_in+"\t"+max_connected_graph+
 				"\t"+mf_depth.getPercentile(50)+"\t"+bp_depth.getPercentile(50)+"\t"+cc_depth.getPercentile(50);
 		return r;
 	}
