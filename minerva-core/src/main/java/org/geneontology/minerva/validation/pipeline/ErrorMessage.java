@@ -1,5 +1,9 @@
 package org.geneontology.minerva.validation.pipeline;
 
+import java.util.Set;
+
+import org.geneontology.minerva.validation.ValidationResultSet;
+
 import com.google.gson.annotations.SerializedName;
 
 public class ErrorMessage {
@@ -8,14 +12,22 @@ public class ErrorMessage {
 	String model_id;
 	String type = "Violates GO Rule";
 	String obj = "";
-	String taxon = "";
+	Set<String> taxa;
 	String message;
 	int rule;
-	public ErrorMessage(String level, String model_id, String taxon, String message, int rule) {
+	ValidationResultSet explanations; 
+	public ErrorMessage(String level, String model_id, Set<String> taxa, String message, int rule) {
 		this.level = level;
 		this.model_id = model_id;
-		this.taxon = taxon;
+		this.taxa = taxa;
 		this.message = message;
 		this.rule = rule;
 	}
+	public ValidationResultSet getExplanations() {
+		return explanations;
+	}
+	public void setExplanations(ValidationResultSet explanations) {
+		this.explanations = explanations;
+	}
+	
 }

@@ -402,7 +402,9 @@ public class BlazegraphOntologyManager {
 			try {
 				String q = "VALUES ?c {";
 				for(String uri : uris) {
-					q+="<"+uri+"> \n";
+					if(uri.startsWith("http")) {
+						q+="<"+uri+"> \n";
+					}
 				}
 				q+="} . " ;
 
@@ -442,7 +444,9 @@ public class BlazegraphOntologyManager {
 			try {
 				String q = "VALUES ?sub {";
 				for(String uri : uris) {
-					q+="<"+uri+"> ";
+					if(uri.startsWith("http")) {
+						q+="<"+uri+"> ";
+					}
 				}
 				q+="} . " ;
 

@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
@@ -167,7 +168,7 @@ public class CommandLineInterface {
 				.hasArg(false)
 				.build();
 		methods.addOption(clean_gocams);
-		
+
 		Option sparql = Option.builder()
 				.longOpt("sparql-update")
 				.desc("update the blazegraph journal with the given sparql statement")
@@ -215,7 +216,7 @@ public class CommandLineInterface {
 				String ontojournal = cmd.getOptionValue("ontojournal"); //--folder
 				addTaxonMetaData(journalFilePath, ontojournal);
 			}
-			
+
 			if(cmd.hasOption("clean-gocams")) {
 				Options clean_options = new Options();
 				clean_options.addOption(clean_gocams);
@@ -327,7 +328,7 @@ public class CommandLineInterface {
 			}else if(cmd.hasOption("validate-go-cams")) {
 				Options validate_options = new Options();
 				validate_options.addOption(validate);
-				validate_options.addOption("i", "input", true, "Either a blazegrpah journal or a folder with go-cams in it");
+				validate_options.addOption("i", "input", true, "Either a blazegraph journal or a folder with go-cams in it");
 				validate_options.addOption("shex", "shex", false, "If present, will execute shex validation");
 				validate_options.addOption("owl", "owl", false, "If present, will execute shex validation");
 				validate_options.addOption("r", "report-folder", true, "Folder where output files will appear");
@@ -461,22 +462,33 @@ public class CommandLineInterface {
 		String modelIdPrefix = "http://model.geneontology.org/"; // this will not be used for anything
 		CurieHandler curieHandler = new MappedCurieHandler();
 		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null, null);
+		//in case of update rather than whole new journal
+		Set<IRI> stored = new HashSet<IRI>(m3.getStoredModelIds());
+		LOGGER.info("loading gocams from "+inputFolder);
 		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
-			LOGGER.info("Loading " + file);
-			try {
-				if(file.getName().endsWith("ttl")) {
+			if(!file.getName().endsWith("ttl")){
+				LOGGER.info("Ignored for not ending with .ttl" + file);
+				continue;
+			}
+			java.util.Optional<String> irio = m3.scanForOntologyIRI(file);
+			IRI iri = null;
+			if(irio.isPresent()) {
+				iri = IRI.create(irio.get());
+			}
+			//is it in there already?
+			if(stored.contains(iri)) {
+				LOGGER.error("Attempted to load gocam ttl file into database but gocam with that iri already exists, skipping "+ file+" "+iri);
+			}else {
+				stored.add(iri);
+				try {
 					m3.importModelToDatabase(file, true); 
-				} else if (file.getName().endsWith("owl")) {
-					m3.importModelToDatabase(file, false);
+				}catch(RDFParseException e) {
+					LOGGER.error("Failed to parse and load RDF go-cam file: "+file );
 				}
-				else {
-					LOGGER.info("Ignored for not ending with .ttl or .owl " + file);
-				}
-			}catch(RDFParseException e) {
-				LOGGER.error("Failed to parse and load RDF go-cam file: "+file );
 			}
 		}
 		m3.dispose();
+		LOGGER.info("done loading gocams");
 	}
 
 	/**
@@ -748,19 +760,19 @@ public class CommandLineInterface {
 	 * @param shapemappath
 	 * @param travisMode
 	 * @param shouldPass
-	 * @throws Exception
+	 * @throws IOException 
+	 * @throws OWLOntologyCreationException 
 	 */
 	public static void validateGoCams(String input, String outputFolder,  
 			String ontologyIRI, String catalog, String modelIdPrefix, String modelIdcurie, 
 			String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex,  
-			String go_lego_journal_file, boolean run_reasoner_report) throws Exception {
-		Logger LOG = Logger.getLogger(CommandLineInterface.class);
-		LOG.setLevel(Level.ERROR);
+			String go_lego_journal_file, boolean run_reasoner_report) throws OWLOntologyCreationException, IOException {
 		LOGGER.setLevel(Level.INFO);
 		String inputDB = "blazegraph.jnl";
 		String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
 		String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
-
+		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
+		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		Map<String, String> modelid_filename = new HashMap<String, String>();
 
 		if(outputFolder==null) {
@@ -769,7 +781,7 @@ public class CommandLineInterface {
 		}else if(!outputFolder.endsWith("/")) {
 			outputFolder+="/";
 		}
-		
+
 		if(input==null) {
 			LOGGER.error("please provide an input file - either a directory of ttl files or a blazegraph journal");
 			System.exit(-1);
@@ -779,90 +791,121 @@ public class CommandLineInterface {
 		OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
 		if(catalog!=null) {
 			LOGGER.info("using catalog: "+catalog);
-			ontman.setIRIMappers(Sets.newHashSet(new CatalogXmlIRIMapper(catalog)));
+			try {
+				ontman.setIRIMappers(Sets.newHashSet(new CatalogXmlIRIMapper(catalog)));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}else {
 			LOGGER.info("no catalog, resolving all ontology uris directly");
 		}
 
-		OWLOntology tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
-		LOGGER.info("tbox ontology axioms loaded: "+tbox_ontology.getAxiomCount());
-		//should not be necessary using pre-merged ontology
-		//tbox_ontology = StartUpTool.forceMergeImports(tbox_ontology, tbox_ontology.getImports());
-		//LOGGER.info("ontology axioms merged loaded: "+tbox_ontology.getAxiomCount());
-
+		OWLOntology tbox_ontology = null;
+		try {
+			tbox_ontology = ontman.loadOntology(IRI.create(ontologyIRI));
+			LOGGER.info("tbox ontology axioms loaded: "+tbox_ontology.getAxiomCount());
+		} catch (OWLOntologyCreationException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		//either load directly from existing journal
 		if(input.endsWith(".jnl")) {
 			inputDB = input;
-			LOGGER.info("loaded blazegraph journal: "+input);
 		}else {
-			LOGGER.info("no journal found, trying as directory: "+input);
+			//or make sure that the journal file provided is cleared out and ready
 			File i = new File(input);
-			int n = 0;
 			if(i.exists()) {
 				//remove anything that existed earlier
 				File bgdb = new File(inputDB);
 				if(bgdb.exists()) {
 					bgdb.delete();
 				}
-				//load everything into a bg journal
-				OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
-				CurieHandler curieHandler = new MappedCurieHandler();
-				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);				
-
-				if(i.isDirectory()) {
-					LOGGER.info("Loading models from " + i.getAbsolutePath());
-					Set<String> model_iris = new HashSet<String>();
-					FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
-						if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
-							try {
-								String modeluri = m3.importModelToDatabase(file, true);
-								if(modeluri==null) {
-									LOGGER.error("Null model IRI: "+modeluri+" file: "+file);
-								}
-								else if(!model_iris.add(modeluri)) {
-									LOGGER.error("Multiple models with same IRI: "+modeluri+" file: "+file+" file: "+modelid_filename.get(modeluri));
-								}else {
-									modelid_filename.put(modeluri, file.getName());
-								}
-							} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
-									| RDFHandlerException | IOException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-						} 
-					});
-				}else {
-					LOGGER.info("Loading " + i);
-					m3.importModelToDatabase(i, true);
-				}
-				LOGGER.info("loaded files into blazegraph journal: "+input);
-				m3.dispose();
 			}
 		}
-
-		LOGGER.info("building model manager");
-		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
-		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
+		//make the manager
+		LOGGER.info("Setting up model manager and initializing rules for Arachne reasoner");
 		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
-
-
-		String reasonerOpt = "arachne"; 	
+		//if provided a directory as input, load them ttl files into the manager
+		File i = new File(input);
+		if(i.exists()&&!input.endsWith(".jnl")) {
+			if(i.isDirectory()) {
+				LOGGER.info("Loading models from " + i.getAbsolutePath());
+				Set<String> model_iris = new HashSet<String>();
+				FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
+					if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {
+						try {
+							String modeluri = m3.importModelToDatabase(file, true);
+							if(modeluri==null) {
+								LOGGER.error("Null model IRI: "+modeluri+" file: "+file);
+							}
+							else if(!model_iris.add(modeluri)) {
+								LOGGER.error("Multiple models with same IRI: "+modeluri+" file: "+file+" file: "+modelid_filename.get(modeluri));
+							}else {
+								modelid_filename.put(modeluri, file.getName());
+							}
+						} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
+								| RDFHandlerException | IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					} 
+				});
+			}else {//just load the one provided
+				LOGGER.info("Loading " + i);
+				try {
+					m3.importModelToDatabase(i, true);
+				} catch (OWLOntologyCreationException | RepositoryException | RDFParseException
+						| RDFHandlerException | IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			LOGGER.info("loaded files into blazegraph journal: "+input);
+		}
+		//models ready 
+		//now set up shex validator
 		if(shexpath==null) {
 			//fall back on downloading from shapes repo
-			URL shex_schema_url = new URL(shexFileUrl);
-			shexpath = "./go-cam-schema.shex";
-			File shex_schema_file = new File(shexpath);
-			org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);			
-			System.err.println("-s .No shex schema provided, using: "+shexFileUrl);
+			URL shex_schema_url;
+			try {
+				shex_schema_url = new URL(shexFileUrl);
+				shexpath = "./go-cam-schema.shex";
+				File shex_schema_file = new File(shexpath);
+				org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);			
+				System.err.println("-s .No shex schema provided, using: "+shexFileUrl);
+			} catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		if(shapemappath==null) {
-			URL shex_map_url = new URL(goshapemapFileUrl);
-			shapemappath = "./go-cam-shapes.shapeMap";
-			File shex_map_file = new File(shapemappath);
-			org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
-			System.err.println("-m .No shape map file provided, using: "+goshapemapFileUrl);
+			URL shex_map_url;
+			try {
+				shex_map_url = new URL(goshapemapFileUrl);
+				shapemappath = "./go-cam-shapes.shapeMap";
+				File shex_map_file = new File(shapemappath);
+				org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
+				System.err.println("-m .No shape map file provided, using: "+goshapemapFileUrl);
+			} catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		LOGGER.info("making shex validator: "+shexpath+" "+shapemappath+" "+curieHandler+" ");
-		MinervaShexValidator shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getGolego_repo());  
+		MinervaShexValidator shex = null;
+		try {
+			shex = new MinervaShexValidator(shexpath, shapemappath, curieHandler, m3.getGolego_repo());
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}  
 		if(checkShex) {
 			if(checkShex) {
 				shex.setActive(true);
@@ -870,57 +913,62 @@ public class CommandLineInterface {
 				shex.setActive(false);
 			}
 		}
+		//shex validator is ready, now build the inference provider (which provides access to the shex validator and provides inferences useful for shex)
+		String reasonerOpt = "arachne"; 
 		LOGGER.info("Building OWL inference provider: "+reasonerOpt);
 		InferenceProviderCreator ipc = StartUpTool.createInferenceProviderCreator(reasonerOpt, m3, shex);
 		LOGGER.info("Validating models: "+reasonerOpt);
 
+		//Set up all the report files.  
 		String basic_output_file = outputFolder+"main_report.txt";
 		String explanations_file = outputFolder+"explanations.txt";
 		String activity_output_file = outputFolder+"activity_report.txt";
 		if(outputFolder!=null) {
-			FileWriter basic_shex_output = new FileWriter(basic_output_file, false);
-			basic_shex_output.write("filename\tmodel_title\tmodel_url\tmodelstate\tcontributor\tprovider\tdate\tOWL_consistent\tshex_valid\tshex_meta_problem\tshex_data_problem\tvalidation_time_milliseconds\taxioms\tn_rows_gpad\t");
-			basic_shex_output.write(GoCamModelStats.statsHeader()+"\n");
-			basic_shex_output.close();
-
-			FileWriter explanations = new FileWriter(explanations_file, false);
-			explanations.write("filename\tmodel_title\tmodel_iri\tnode\tNode_types\tproperty\tIntended_range_shapes\tobject\tObject_types\tObject_shapes\n");
-			explanations.close();
-			
-			FileWriter activity_output = new FileWriter(activity_output_file, false);
-			activity_output.write("filename\tmodel_title\tmodel_url\tmodelstate\tcontributor\tprovider\tdate\tactivity_iri\tactivity_xref\tactivity_label\tcomplete\tinputs\toutputs\tenablers\tlocations\tcausal upstream\tcausal downstream\tpart of n BP\tMF\tBP\n");
-			activity_output.close();
+			try {
+				//valid or not
+				FileWriter basic_shex_output = new FileWriter(basic_output_file, false);
+				basic_shex_output.write("filename\tmodel_title\tmodel_url\tmodelstate\tcontributor\tprovider\tdate\tOWL_consistent\tshex_valid\tshex_meta_problem\tshex_data_problem\tvalidation_time_milliseconds\taxioms\tn_rows_gpad\t");
+				basic_shex_output.write(GoCamModelStats.statsHeader()+"\n");
+				basic_shex_output.close();
+				//tab delimited explanations for failures
+				FileWriter explanations = new FileWriter(explanations_file, false);
+				explanations.write("filename\tmodel_title\tmodel_iri\tnode\tNode_types\tproperty\tIntended_range_shapes\tobject\tObject_types\tObject_shapes\n");
+				explanations.close();
+				//tab delimited summary of properties of activity units
+				FileWriter activity_output = new FileWriter(activity_output_file, false);
+				activity_output.write("filename\tmodel_title\tmodel_url\tmodelstate\tcontributor\tprovider\tdate\tactivity_iri\tactivity_xref\tactivity_label\tcomplete\tinputs\toutputs\tenablers\tlocations\tcausal upstream\tcausal downstream\tpart of n BP\tMF\tBP\n");
+				activity_output.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}	
+		//this will generate the json file used for the go rules report for the pipeline
 		BatchPipelineValidationReport pipe_report = null;
 		Set<ErrorMessage> owl_errors = new HashSet<ErrorMessage>();
 		Set<ErrorMessage> shex_errors = new HashSet<ErrorMessage>();
-		//todo get taxon from somewhere
-		String taxon = "taxon unknown";
 		pipe_report = new BatchPipelineValidationReport();
-		pipe_report.setNumber_of_models(m3.getAvailableModelIds().size());
-		pipe_report.setTaxon(taxon);
-
-		final boolean shex_output = checkShex;			
-		String reasoner_report_file = outputFolder+"reasoner_report_all.txt";
-		String reasoner_report_summary_file = outputFolder+"reasoner_report_summary.txt";
-		Map<String, Integer> term_asserted_instances_mapped = new HashMap<String, Integer>();
-		Map<String, Integer> term_deepened_instances_mapped = new HashMap<String, Integer>();
-		Map<String, Integer> term_asserted_instances_created = new HashMap<String, Integer>();
-		Map<String, Integer> term_deepened_instances_created = new HashMap<String, Integer>();
-
-		if(run_reasoner_report) {		
-			FileWriter reasoner_report = new FileWriter(reasoner_report_file, false);
-			reasoner_report.write("title\tindividual\txref\tasserted\tinferred\n");
-			reasoner_report.close();		
+		try {
+			pipe_report.setNumber_of_models(m3.getAvailableModelIds().size());
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
 		}
-		//Note that parallelStream does not seem to help with this.  
-		//m3.getAvailableModelIds().stream().forEach(modelIRI -> {
-		for(IRI modelIRI : m3.getAvailableModelIds()) {
-			try {
+		int bad_models = 0;  int good_models = 0;
+		final boolean shex_output = checkShex;			
+
+		//only used if OWL reasoning report is requested
+		ReasonerReport reasoner_report = null;
+		if(run_reasoner_report) {
+			reasoner_report = initReasonerReport(outputFolder);
+		}
+		//now process each gocam
+		try {
+			for(IRI modelIRI : m3.getAvailableModelIds()) {
 				long start = System.currentTimeMillis();
 				String filename = modelid_filename.get(modelIRI.toString());
-				boolean isConsistent = true;
-				boolean isConformant = true;
+				boolean isConsistent = true; //OWL 
+				boolean isConformant = true; //shex
 				if(filename !=null) {
 					LOGGER.info("processing "+filename+"\t"+modelIRI);
 				}else {
@@ -930,15 +978,17 @@ public class CommandLineInterface {
 				ModelContainer mc = m3.getModel(modelIRI);	
 				OWLOntology gocam = mc.getAboxOntology();
 				try {
-					//many of the models do not seem to parse properly - objectproperties and assertions get read as annotation properties and annotation assertions
-					//this will change that - we might want to batch update to fix this so we can skip this step. 
+					//if a model does not have an import statement that links in an ontology that defines all of its classes and object properties
+					//or if the model does not define the classes and object properties itself, parsing problems will prevail
+					//this step makes sure that does not happen
 					gocam = CoreMolecularModelManager.fixBrokenObjectPropertiesAndAxioms(gocam);
 				} catch (OWLOntologyCreationException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				LOGGER.info("preparing model stats...");
-				//OWLOntology gocam_owl = m3.getModelAbox(modelIRI);//no imports
+				//The GoCamModel code is used to capture model-level statistics such as 'how many causal relations are there?'
+				//This might be an area for a speed improvement if needed
 				GoCamModel gcm = new GoCamModel(gocam, m3);
 				String title = "title";
 				if(gcm.getTitle()!=null) {
@@ -946,6 +996,7 @@ public class CommandLineInterface {
 				}else {
 					LOGGER.error("no title for "+filename);
 				}
+				//this is to make clickable links in reports
 				String link = modelIRI.toString().replace("http://model.geneontology.org/", "http://noctua.geneontology.org/editor/graph/gomodel:");
 				if(modelIRI.toString().contains("R-HSA")) {
 					link = link.replace("noctua.geneontology", "noctua-dev.berkeleybop");
@@ -954,126 +1005,83 @@ public class CommandLineInterface {
 				String contributor = makeColSafe(gcm.getContributors().toString());
 				String date = makeColSafe(gcm.getDate());
 				String provider = makeColSafe(gcm.getProvided_by().toString());
+				pipe_report.setTaxa(gcm.getIn_taxon()); 
 				LOGGER.info("model stats done for title: "+title);
 				int axioms = gocam.getAxiomCount();
+				//add activity level statistics as a default
+				FileWriter activity_output = new FileWriter(activity_output_file, true);
+				for(ActivityUnit unit : gcm.getActivities()){
+					activity_output.write(filename+"\t"+title+"\t"+link+"\t"+modelstate+"\t"+contributor+"\t"+provider+"\t"+date+"\t"+unit.getIndividual().getIRI().toString()+"\t"+unit.getXref()+"\t"+unit.getLabel()+"\t");
+					activity_output.write(unit.isComplete()+"\t"+unit.getInputs().size()+"\t"+unit.getOutputs().size()+"\t"+unit.getEnablers().size()+"\t"+unit.getLocations().size()+
+							"\t"+unit.getCausal_in().size()+"\t"+unit.getCausal_out().size()+"\t"+unit.getContaining_processes().size()+"\t"+unit.stringForClasses(unit.getDirect_types())+"\t"+unit.getURIsForConnectedBPs()+"\n");
+				}
+				activity_output.close();
 
 				InferenceProvider ip = ipc.create(mc);
 				isConsistent = ip.isConsistent();
 				//TODO re-use reasoner object from ip
-				Set<GPADData> gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).getGPAD(m3.createInferredModel(modelIRI), modelIRI);
+				//TODO this is another area that could be touched/removed for speed improvement
 				int n_rows_gpad = 0;
-				if(gpad!=null) {
-					n_rows_gpad = gpad.size();
-				}
-				//for reasoner report
-				if(run_reasoner_report) {
-					FileWriter  reasoner_report = new FileWriter(reasoner_report_file, true);
-					Set<OWLNamedIndividual> individuals = gocam.getIndividualsInSignature();
-					for (OWLNamedIndividual individual : individuals) {
-						//what kind of individual - mapped or created.  mapped have xrefs, created do not. 
-						String xref = "none";
-						for(OWLAnnotation anno : EntitySearcher.getAnnotations(individual, gocam)){
-							if(anno.getProperty().getIRI().toString().equals("http://www.geneontology.org/formats/oboInOwl#hasDbXref")) {
-								xref = anno.getValue().asLiteral().get().getLiteral();
-							}
+				if(isConsistent) {
+					try {
+						Set<GPADData> gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).getGPAD(m3.createInferredModel(modelIRI), modelIRI);
+						if(gpad!=null) {
+							n_rows_gpad = gpad.size();
 						}
-
-						Collection<OWLClassExpression> asserted_ce = EntitySearcher.getTypes(individual, gocam);
-						Set<OWLClass> asserted = new HashSet<OWLClass>();
-						for(OWLClassExpression ce : asserted_ce) {
-							OWLClass a = ce.asOWLClass();
-							if(a.isBuiltIn() == false) {
-								asserted.add(a);
-							}
-						}
-						Set<OWLClass> inferred_direct = new HashSet<>();						
-						Set<OWLClass> flattened = ip.getTypes(individual);
-						for (OWLClass cls : flattened) {
-							if (cls.isBuiltIn() == false) {
-								inferred_direct.add(cls);
-							}
-						}
-						inferred_direct.removeAll(asserted);
-						reasoner_report.write(title+"\t"+individual.getIRI()+"\t"+xref+"\t"+asserted+"\t"+inferred_direct+"\n");
-						if(asserted!=null) {
-							for(OWLClass go : asserted) {
-								if(xref.equals("none")) {
-									Integer n = term_asserted_instances_created.get(go.toString());
-									if(n==null) {
-										n = 0;
-									}
-									n = n+1;
-									term_asserted_instances_created.put(go.toString(), n);
-
-									if(inferred_direct!=null&&inferred_direct.size()>0) {
-										Integer deepened = term_deepened_instances_created.get(go.toString());
-										if(deepened==null) {
-											deepened = 0;
-										}
-										deepened = deepened+1;
-										term_deepened_instances_created.put(go.toString(), deepened);
-									}
-								}else {
-									Integer n = term_asserted_instances_mapped.get(go.toString());
-									if(n==null) {
-										n = 0;
-									}
-									n = n+1;
-									term_asserted_instances_mapped.put(go.toString(), n);
-
-									if(inferred_direct!=null&&inferred_direct.size()>0) {
-										Integer deepened = term_deepened_instances_mapped.get(go.toString());
-										if(deepened==null) {
-											deepened = 0;
-										}
-										deepened = deepened+1;
-										term_deepened_instances_mapped.put(go.toString(), deepened);
-									}
-								}
-							}
-						}
+					}catch(InconsistentOntologyException e) {
+						LOGGER.error("inconsistent ontology, can't make gpad");
 					}
-					reasoner_report.close();			
 				}
-
+				long done = System.currentTimeMillis();
+				long milliseconds = (done-start);
 				//for rules report in pipeline
 				if(!ip.isConsistent()) {
 					String level = "ERROR";
 					String model_id = curieHandler.getCuri(modelIRI);
 					String message = BatchPipelineValidationReport.getOwlMessage();
 					int rule = BatchPipelineValidationReport.getOwlRule();
-					ErrorMessage owl = new ErrorMessage(level, model_id, taxon, message, rule);
+					ErrorMessage owl = new ErrorMessage(level, model_id, gcm.getIn_taxon(), message, rule);
 					owl_errors.add(owl);
 				}
-
 				if(!isConsistent) {
 					FileWriter explanations = new FileWriter(explanations_file, true);
 					explanations.write(filename+"\t"+title+"\t"+modelIRI+"\tOWL fail explanation: "+ip.getValidation_results().getOwlvalidation().getAsText()+"\n");
 					explanations.close();
 				}
+				//travis mode causes the system to exit when an invalid model is detected (unless shouldFail is on)
 				if(travisMode&&!isConsistent) {
 					if(!shouldFail) {
 						LOGGER.error(filename+"\t"+title+"\t"+modelIRI+"\tOWL:is inconsistent, quitting");							
 						System.exit(-1);
 					}
 				}
+				//basic is just one row per model - did it validate or not
 				FileWriter  basic= new FileWriter(basic_output_file, true);
-				if(shex_output) {
+				if(!shex_output) {
+					if(ip.isConsistent()) {
+						good_models++;
+					}else {
+						bad_models++;
+					}
+				}else{
 					ValidationResultSet validations = ip.getValidation_results();
 					isConformant = validations.allConformant();	
-					long done = System.currentTimeMillis();
-					long milliseconds = (done-start);
-
-					if(!isConformant) {
+					if(isConformant) {
+						good_models++;
+					}else {
+						bad_models++;
+					}					
+					if(!validations.getShexvalidation().isConformant()) {
 						String level = "WARNING";
 						String model_id = curieHandler.getCuri(modelIRI);
 						String message = BatchPipelineValidationReport.getShexMessage();
 						int rule = BatchPipelineValidationReport.getShexRule();
-						ErrorMessage shex_message = new ErrorMessage(level, model_id, taxon, message, rule);
+						ErrorMessage shex_message = new ErrorMessage(level, model_id, gcm.getIn_taxon(), message, rule);
+						boolean include_explanations_in_json = true; //TODO set as a parameter
+						if(include_explanations_in_json) {
+							shex_message.setExplanations(validations);
+						}
 						shex_errors.add(shex_message);
-					}
-
-					if(!isConformant) {
 						FileWriter explanations = new FileWriter(explanations_file, true);						
 						explanations.write(ip.getValidation_results().getShexvalidation().getAsTab(filename+"\t"+title+"\t"+modelIRI));
 						explanations.close();
@@ -1090,82 +1098,190 @@ public class CommandLineInterface {
 					//is it a metadata violation or data ?
 					boolean shex_meta_problem = false;
 					boolean shex_data_problem = false;
-					if(!isConformant) {
+					if(!validations.getShexvalidation().isConformant()) {
 						String model_curie = curieHandler.getCuri(modelIRI);
-						for(Violation v : ip.getValidation_results().getShexvalidation().getViolations()) {							
-							if(v.getNode().equals(model_curie)){
-								shex_meta_problem = true;
-							}else {
-								shex_data_problem = true;
+						ValidationResultSet validationset = ip.getValidation_results();
+						ShexValidationReport shex_report = validationset.getShexvalidation();
+						Set<Violation> violations = shex_report.getViolations();
+						if(violations!=null) { 
+							for(Violation v : violations) {							
+								if(v.getNode().equals(model_curie)){
+									shex_meta_problem = true;
+								}else {
+									shex_data_problem = true;
+								}
 							}
+						}else {
+							LOGGER.error("Invalid model but no violations reported");
 						}
 					}					
 					LOGGER.info(filename+"\t"+title+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:"+isConformant);
 					basic.write(filename+"\t"+title+"\t"+link+"\t"+modelstate+"\t"+contributor+"\t"+provider+"\t"+date+"\t"+isConsistent+"\t"+isConformant+"\t"+shex_meta_problem+"\t"+shex_data_problem+"\t"+milliseconds+"\t"+axioms+"\t"+
 							n_rows_gpad+"\t"+ gcm.getGoCamModelStats().stats2cols()+"\n");
-				}else {
-					LOGGER.info(filename+"\t"+title+"\t"+modelIRI+"\tOWL:"+isConsistent+"\tshex:not checked");
-					basic.write(filename+"\t"+title+"\t"+link+"\t"+isConsistent+"\tnot checked\n");						
 				}
 				basic.close();
-				
-				//add activity level statistics as a default
-				FileWriter activity_output = new FileWriter(activity_output_file, true);
-				for(ActivityUnit unit : gcm.getActivities()){
-					activity_output.write(filename+"\t"+title+"\t"+link+"\t"+modelstate+"\t"+contributor+"\t"+provider+"\t"+date+"\t"+unit.getIndividual().getIRI().toString()+"\t"+unit.getXref()+"\t"+unit.getLabel()+"\t");
-					activity_output.write(unit.isComplete()+"\t"+unit.getInputs().size()+"\t"+unit.getOutputs().size()+"\t"+unit.getEnablers().size()+"\t"+unit.getLocations().size()+
-							"\t"+unit.getCausal_in().size()+"\t"+unit.getCausal_out().size()+"\t"+unit.getContaining_processes().size()+"\t"+unit.stringForClasses(unit.getDirect_types())+"\t"+unit.getURIsForConnectedBPs()+"\n");
+				if(run_reasoner_report) {
+					addReasonerReport(outputFolder, gocam, ip, title, reasoner_report);
 				}
-				activity_output.close();
-				
-			} catch (InconsistentOntologyException e) {
-				LOGGER.error("Inconsistent model: " + modelIRI);
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} 
-		}
-		//});
-
-		if(run_reasoner_report) {
-			FileWriter reasoner_report_summary = new FileWriter(reasoner_report_summary_file, false);
-			reasoner_report_summary.write("asserted GO term\tmapped individual count\tmapped N deepened\tcreated individual count\tcreated N deepened\n");			
-			Set<String> terms = new HashSet<String>();
-			terms.addAll(term_asserted_instances_mapped.keySet());
-			terms.addAll(term_asserted_instances_created.keySet());
-			for(String goterm : terms) {
-				int n_deepened_mapped = 0; int n_mapped = 0;
-				if(term_asserted_instances_mapped.containsKey(goterm)) {
-					n_mapped = term_asserted_instances_mapped.get(goterm);
-				}
-
-				if(term_deepened_instances_mapped.get(goterm)!=null) {
-					n_deepened_mapped = term_deepened_instances_mapped.get(goterm);
-				}			
-				int n_deepened_created = 0; int n_created = 0;
-				if(term_asserted_instances_created.containsKey(goterm)) {
-					n_created = term_asserted_instances_created.get(goterm);
-				}				
-				if(term_deepened_instances_created.get(goterm)!=null) {
-					n_deepened_created = term_deepened_instances_created.get(goterm);
-				}				
-				reasoner_report_summary.write(goterm+"\t"+n_mapped+"\t"+n_deepened_mapped+"\t"+n_created+"\t"+n_deepened_created+"\n");
 			}
-			reasoner_report_summary.close();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if(run_reasoner_report) {
+			summarizeReasonerReport(outputFolder, reasoner_report);
 		}
 
-
+		pipe_report.setNumber_of_correct_models(good_models);
+		pipe_report.setNumber_of_models_in_error(bad_models);
 		pipe_report.getMessages().put(BatchPipelineValidationReport.getShexRuleString(), shex_errors);
 		pipe_report.getMessages().put(BatchPipelineValidationReport.getOwlRuleString(), owl_errors);		
 		GsonBuilder builder = new GsonBuilder();		 
 		Gson gson = builder.setPrettyPrinting().create();
 		String json = gson.toJson(pipe_report);
-		FileWriter pipe_json = new FileWriter(outputFolder+"gorules_report.json", false);
-		pipe_json.write(json);
-		pipe_json.close();
+		try {
+			FileWriter pipe_json = new FileWriter(outputFolder+"gorules_report.json", false);
+			pipe_json.write(json);
+			pipe_json.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		m3.dispose();
 		LOGGER.info("done with validation");
 	}
+
+	static class ReasonerReport {
+		Map<String, Integer> term_asserted_instances_mapped = new HashMap<String, Integer>();
+		Map<String, Integer> term_deepened_instances_mapped = new HashMap<String, Integer>();
+		Map<String, Integer> term_asserted_instances_created = new HashMap<String, Integer>();
+		Map<String, Integer> term_deepened_instances_created = new HashMap<String, Integer>();	
+	}
+
+
+	private static ReasonerReport initReasonerReport(String outputFolder) {
+		String reasoner_report_file = outputFolder+"reasoner_report_all.txt";
+		FileWriter reasoner_report;
+		try {
+			reasoner_report = new FileWriter(reasoner_report_file, false);
+			reasoner_report.write("title\tindividual\txref\tasserted\tinferred\n");
+			reasoner_report.close();	
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		ReasonerReport report = new ReasonerReport();
+		return report;
+	}
+
+	private static ReasonerReport addReasonerReport(String outputFolder, OWLOntology gocam, InferenceProvider ip, String title, ReasonerReport report) throws IOException {
+		String reasoner_report_file = outputFolder+"reasoner_report_all.txt";
+		FileWriter  reasoner_report = new FileWriter(reasoner_report_file, true);
+		Set<OWLNamedIndividual> individuals = gocam.getIndividualsInSignature();
+		for (OWLNamedIndividual individual : individuals) {
+			//what kind of individual - mapped or created.  mapped have xrefs, created do not. 
+			String xref = "none";
+			for(OWLAnnotation anno : EntitySearcher.getAnnotations(individual, gocam)){
+				if(anno.getProperty().getIRI().toString().equals("http://www.geneontology.org/formats/oboInOwl#hasDbXref")) {
+					xref = anno.getValue().asLiteral().get().getLiteral();
+				}
+			}
+
+			Collection<OWLClassExpression> asserted_ce = EntitySearcher.getTypes(individual, gocam);
+			Set<OWLClass> asserted = new HashSet<OWLClass>();
+			for(OWLClassExpression ce : asserted_ce) {
+				if(!ce.isAnonymous()) {
+					OWLClass a = ce.asOWLClass();
+					if(a.isBuiltIn() == false) {
+						asserted.add(a);
+					}
+				}
+			}
+			Set<OWLClass> inferred_direct = new HashSet<>();						
+			Set<OWLClass> flattened = ip.getTypes(individual);
+			for (OWLClass cls : flattened) {
+				if (cls.isBuiltIn() == false) {
+					inferred_direct.add(cls);
+				}
+			}
+			inferred_direct.removeAll(asserted);
+			reasoner_report.write(title+"\t"+individual.getIRI()+"\t"+xref+"\t"+asserted+"\t"+inferred_direct+"\n");
+			if(asserted!=null) {
+				for(OWLClass go : asserted) {
+					if(xref.equals("none")) {
+						Integer n = report.term_asserted_instances_created.get(go.toString());
+						if(n==null) {
+							n = 0;
+						}
+						n = n+1;
+						report.term_asserted_instances_created.put(go.toString(), n);
+
+						if(inferred_direct!=null&&inferred_direct.size()>0) {
+							Integer deepened = report.term_deepened_instances_created.get(go.toString());
+							if(deepened==null) {
+								deepened = 0;
+							}
+							deepened = deepened+1;
+							report.term_deepened_instances_created.put(go.toString(), deepened);
+						}
+					}else {
+						Integer n = report.term_asserted_instances_mapped.get(go.toString());
+						if(n==null) {
+							n = 0;
+						}
+						n = n+1;
+						report.term_asserted_instances_mapped.put(go.toString(), n);
+
+						if(inferred_direct!=null&&inferred_direct.size()>0) {
+							Integer deepened = report.term_deepened_instances_mapped.get(go.toString());
+							if(deepened==null) {
+								deepened = 0;
+							}
+							deepened = deepened+1;
+							report.term_deepened_instances_mapped.put(go.toString(), deepened);
+						}
+					}
+				}
+			}
+		}
+		reasoner_report.close();	
+		return report;
+	}
+
+	private static void summarizeReasonerReport(String outputFolder, ReasonerReport report) {
+		String reasoner_report_summary_file = outputFolder+"reasoner_report_summary.txt";
+		FileWriter reasoner_report_summary;
+		try {
+			reasoner_report_summary = new FileWriter(reasoner_report_summary_file, false);
+			reasoner_report_summary.write("asserted GO term\tmapped individual count\tmapped N deepened\tcreated individual count\tcreated N deepened\n");			
+			Set<String> terms = new HashSet<String>();
+			terms.addAll(report.term_asserted_instances_mapped.keySet());
+			terms.addAll(report.term_asserted_instances_created.keySet());
+			for(String goterm : terms) {
+				int n_deepened_mapped = 0; int n_mapped = 0;
+				if(report.term_asserted_instances_mapped.containsKey(goterm)) {
+					n_mapped = report.term_asserted_instances_mapped.get(goterm);
+				}
+
+				if(report.term_deepened_instances_mapped.get(goterm)!=null) {
+					n_deepened_mapped = report.term_deepened_instances_mapped.get(goterm);
+				}			
+				int n_deepened_created = 0; int n_created = 0;
+				if(report.term_asserted_instances_created.containsKey(goterm)) {
+					n_created = report.term_asserted_instances_created.get(goterm);
+				}				
+				if(report.term_deepened_instances_created.get(goterm)!=null) {
+					n_deepened_created = report.term_deepened_instances_created.get(goterm);
+				}				
+				reasoner_report_summary.write(goterm+"\t"+n_mapped+"\t"+n_deepened_mapped+"\t"+n_created+"\t"+n_deepened_created+"\n");
+			}
+			reasoner_report_summary.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 
 	private static String makeColSafe(String text) {
 		text = text.replaceAll("\n", " ");
@@ -1217,8 +1333,8 @@ public class CommandLineInterface {
 			}
 		}
 	}
-	
-	
+
+
 	public static void printVersion() throws Exception {
 		printManifestEntry("git-revision-sha1", "UNKNOWN");
 		printManifestEntry("git-revision-url", "UNKNOWN");

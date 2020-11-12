@@ -9,8 +9,6 @@ Prefix: rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 Ontology: <http://model.geneontology.org/5437882f00000024>
 
-Import: <http://purl.obolibrary.org/obo/go/extensions/go-lego.owl>
-
 Annotations: 
     dc:date "2014-10-23"^^xsd:string,
     dc:title "PMID:18567582"^^xsd:string,

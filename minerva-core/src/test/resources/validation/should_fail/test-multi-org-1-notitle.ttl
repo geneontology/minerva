@@ -8,7 +8,7 @@
 
 <http://model.geneontology.org/5d29221b00001265> rdf:type owl:Ontology ;
                                                   owl:versionIRI <http://model.geneontology.org/5d29221b00001265> ;
-                                                  owl:imports <http://purl.obolibrary.org/obo/go/extensions/go-lego.owl> ;
+                                                  
                                                   <http://geneontology.org/lego/modelstate> "development"^^xsd:string ;
                                                   <http://purl.org/dc/elements/1.1/date> "2019-08-20"^^xsd:string ;
                                                   <http://purl.org/pav/providedBy> "http://www.igs.umaryland.edu"^^xsd:string ;

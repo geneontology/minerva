@@ -510,6 +510,8 @@ abstract class OperationsImpl extends ModelCreator {
 			boolean drop_cached = true;
 			//load will reload from db if override 
 			m3.loadModel(model_iri, drop_cached);
+			//ensure the change queue is gone to avoid downstream confusion.
+			m3.clearUndoHistory(model_iri);
 			//reset model values
 			values.model = checkModelId(null, request);
 			values.renderBulk = true;
@@ -521,15 +523,23 @@ abstract class OperationsImpl extends ModelCreator {
 			IRI model_iri = values.model.getModelId();
 			//run diff
 			OWLOntologyManager man1 = OWLManager.createOWLOntologyManager();
+			//do we have an ontology in the datastore with that id?
+			OWLOntology stored_ontology = null;
+			if(m3.getStoredModelIds().contains(model_iri)) {
+				stored_ontology = m3.loadModelABox(model_iri);
+			}else {
+				//could error out here, but maybe this is more useful
+				stored_ontology = man1.createOntology();
+			}
 			OWLOntology active_ontology = man1.copyOntology(values.model.getAboxOntology(), OntologyCopy.DEEP);			
-			OWLOntology stored_ontology = m3.loadModelABox(model_iri);
+			
 			//TODO refine representation of diff result..
 			StringWriter writer = new StringWriter();
 		   // boolean actual = DiffOperation.compare(active_ontology, stored_ontology, writer);
 			Map<String, String> options = new HashMap<>();
 		    options.put("labels", "true");
-		    options.put("format", "html");
-		    DiffOperation.compare(active_ontology, stored_ontology, new IOHelper(), writer, options);
+		    options.put("format", "pretty"); //plain, pretty, html, markdown
+		    DiffOperation.compare(stored_ontology, active_ontology, new IOHelper(), writer, options);
 			values.diffResult = writer.toString();
 			writer.close();
 			values.renderBulk = true;

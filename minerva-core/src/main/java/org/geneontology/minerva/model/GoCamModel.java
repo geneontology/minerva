@@ -95,7 +95,9 @@ public class GoCamModel extends ProvenanceAnnotated{
 			//convert to root types 
 			Set<String> roots = new HashSet<String>();
 			for(String type : types) {
-				roots.addAll(type_roots.get(type));
+				if(type_roots.get(type)!=null) {
+					roots.addAll(type_roots.get(type));
+				}
 			}
 			ind_types.put(ind, roots);
 		}
