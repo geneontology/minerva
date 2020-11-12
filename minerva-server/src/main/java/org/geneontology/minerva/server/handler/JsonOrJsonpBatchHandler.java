@@ -40,7 +40,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 			InferenceProviderCreator inferenceProviderCreator,
 			Set<OWLObjectProperty> importantRelations,
 			ExternalLookupService externalLookupService) {
-		super(models, importantRelations, externalLookupService, defaultModelState);
+		super(models, importantRelations, defaultModelState);
 		this.inferenceProviderCreator = inferenceProviderCreator;
 	}
 
