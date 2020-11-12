@@ -21,6 +21,7 @@ import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.log4j.Logger;
+import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.explanation.ExplanationRule;
 import org.geneontology.minerva.explanation.ExplanationTerm;
 import org.geneontology.minerva.explanation.ExplanationTriple;
@@ -55,7 +56,7 @@ public class ExportExplanation {
 		}
 	}
 
-	public static String exportExplanation(WorkingMemory wm, ExternalLookupService lookup, Map<IRI, String> labelMap) {
+	public static String exportExplanation(WorkingMemory wm, BlazegraphOntologyManager go_lego, Map<IRI, String> labelMap) {
 		Set<Triple> triples = new HashSet<>();
 		Model model = ModelFactory.createDefaultModel();
 		model.add(toJava(wm.facts()).stream().map(t -> model.asStatement(Bridge.jenaFromTriple(t))).collect(Collectors.toList()));
@@ -99,7 +100,7 @@ public class ExportExplanation {
 		allTerms.addAll(subjects.collect(Collectors.toSet()));
 		allTerms.addAll(predicates.collect(Collectors.toSet()));
 		allTerms.addAll(objects.collect(Collectors.toSet()));
-		Map<URI, String> labels = findLabels(allTerms, asserted, lookup, labelMap);		
+		Map<URI, String> labels = findLabels(allTerms, asserted, go_lego, labelMap);		
 		int currentBlankNode = 0;
 		Map<Triple, ExplanationTriple> assertedForJSON = new HashMap<>();
 		for (Triple t : asserted) {
@@ -172,18 +173,18 @@ public class ExportExplanation {
 		}
 	}
 
-	private static Map<URI, String> findLabels(Set<URI> uris, Set<Triple> assertions, ExternalLookupService lookup, Map<IRI, String> labelMap) {
+	private static Map<URI, String> findLabels(Set<URI> uris, Set<Triple> assertions, BlazegraphOntologyManager go_lego, Map<IRI, String> labelMap) {
 		final URI rdfType = new URI("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
 		Map<URI, String> labels = new HashMap<>();
 		labels.put(rdfType, "type");
 		for (URI uri : uris) {
-			Optional<String> possibleLabel = lookup(uri, lookup, labelMap, labels);
+			Optional<String> possibleLabel = lookup(uri, go_lego, labelMap, labels);
 			if (possibleLabel.isPresent()) {
 				labels.put(uri, possibleLabel.get());
 			} else {
 				Optional<URI> type = assertions.stream().filter(t -> t.s().equals(uri) && t.p().equals(rdfType)).map(t -> (URI)(t.o())).findAny();
 				if (type.isPresent()) {
-					Optional<String> possibleTypeLabel = lookup(type.get(), lookup, labelMap, labels);
+					Optional<String> possibleTypeLabel = lookup(type.get(), go_lego, labelMap, labels);
 					if (possibleTypeLabel.isPresent()) {
 						labels.put(uri, possibleTypeLabel.get() + "#" + uri.uri().substring(uri.uri().lastIndexOf("/") + 1));
 					} else {
@@ -196,17 +197,23 @@ public class ExportExplanation {
 		return labels;
 	}
 
-	private static Optional<String> lookup(URI uri, ExternalLookupService lookup, Map<IRI, String> labelMap, Map<URI, String> previous) {
+	private static Optional<String> lookup(URI uri, BlazegraphOntologyManager go_lego, Map<IRI, String> labelMap, Map<URI, String> previous) {
 		if (previous.containsKey(uri)) {
 			return Optional.of(previous.get(uri));
 		} else if (labelMap.containsKey(IRI.create(uri.uri()))) {
 			return Optional.of(labelMap.get(IRI.create(uri.uri())));
 		} else {
-			List<LookupEntry> lookups = lookup.lookup(IRI.create(uri.uri()));
-			if (null == lookups || lookups.isEmpty()) {
+			String label = null;
+			try {
+				label = go_lego.getLabel(uri.uri());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			if (null == label) {
 				return Optional.empty();
 			} else {
-				return Optional.ofNullable(lookups.get(0).label);
+				return Optional.ofNullable(label);
 			}
 		}
 	}

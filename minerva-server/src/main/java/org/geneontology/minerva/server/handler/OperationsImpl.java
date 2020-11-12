@@ -15,8 +15,6 @@ import org.geneontology.minerva.UndoAwareMolecularModelManager.UndoMetadata;
 import org.geneontology.minerva.json.*;
 import org.geneontology.minerva.legacy.sparql.ExportExplanation;
 import org.geneontology.minerva.legacy.sparql.GPADSPARQLExport;
-import org.geneontology.minerva.lookup.ExternalLookupService;
-import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.MetaResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
@@ -56,7 +54,6 @@ abstract class OperationsImpl extends ModelCreator {
 
 	final Set<OWLObjectProperty> importantRelations;
 	final BeforeSaveModelValidator beforeSaveValidator;
-	final ExternalLookupService externalLookupService;
 	private final OWLAnnotationProperty contributor = OWLManager.getOWLDataFactory().getOWLAnnotationProperty(IRI.create("http://purl.org/dc/elements/1.1/contributor"));
 
 	private static final Logger LOG = Logger.getLogger(OperationsImpl.class);
@@ -64,11 +61,9 @@ abstract class OperationsImpl extends ModelCreator {
 
 	OperationsImpl(UndoAwareMolecularModelManager models,
 			Set<OWLObjectProperty> importantRelations,
-			ExternalLookupService externalLookupService,
 			String defaultModelState) {
 		super(models, defaultModelState);
 		this.importantRelations = importantRelations;
-		this.externalLookupService = externalLookupService;
 		this.beforeSaveValidator = new BeforeSaveModelValidator();
 	}
 
@@ -302,10 +297,11 @@ abstract class OperationsImpl extends ModelCreator {
 		}
 	}
 
+	//TODO likely dead code here.
 	private OWLClassExpression parseM3Expression(JsonOwlObject expression, BatchHandlerValues values)
 			throws MissingParameterException, UnknownIdentifierException, OWLException {
 		M3ExpressionParser p = new M3ExpressionParser(checkLiteralIdentifiers(), curieHandler);
-		return p.parse(values.model, expression, externalLookupService);
+		return p.parse(values.model, expression, null);
 	}
 
 	private OWLObjectProperty getProperty(String id, BatchHandlerValues values) throws UnknownIdentifierException {
@@ -737,7 +733,7 @@ abstract class OperationsImpl extends ModelCreator {
 			}
 		} else if ("explanations".equals(format)) {
 			initMetaResponse(response);
-			response.data.exportModel = ExportExplanation.exportExplanation(m3.createInferredModel(model.getModelId()), externalLookupService, m3.getLegacyRelationShorthandIndex());
+			response.data.exportModel = ExportExplanation.exportExplanation(m3.createInferredModel(model.getModelId()), m3.getGolego_repo(), m3.getLegacyRelationShorthandIndex());
 		} else {
 			//			final GafExportTool exportTool = GafExportTool.getInstance();
 			//			if (format == null) {
