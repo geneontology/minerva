@@ -457,7 +457,7 @@ public class CommandLineInterface {
 			System.exit(-1);
 			return;
 		}
-
+		int total_files = 0;
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 		String modelIdPrefix = "http://model.geneontology.org/"; // this will not be used for anything
 		CurieHandler curieHandler = new MappedCurieHandler();
@@ -465,30 +465,44 @@ public class CommandLineInterface {
 		//in case of update rather than whole new journal
 		Set<IRI> stored = new HashSet<IRI>(m3.getStoredModelIds());
 		LOGGER.info("loading gocams from "+inputFolder);
-		for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
-			if(!file.getName().endsWith("ttl")){
-				LOGGER.info("Ignored for not ending with .ttl" + file);
-				continue;
-			}
-			java.util.Optional<String> irio = m3.scanForOntologyIRI(file);
-			IRI iri = null;
-			if(irio.isPresent()) {
-				iri = IRI.create(irio.get());
-			}
-			//is it in there already?
-			if(stored.contains(iri)) {
-				LOGGER.error("Attempted to load gocam ttl file into database but gocam with that iri already exists, skipping "+ file+" "+iri);
-			}else {
-				stored.add(iri);
-				try {
-					m3.importModelToDatabase(file, true); 
-				}catch(RDFParseException e) {
-					LOGGER.error("Failed to parse and load RDF go-cam file: "+file );
-				}
-			}
-		}
+		//for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {	
+		File i = new File(inputFolder);
+		if(i.exists()) {
+			if(i.isDirectory()) {
+				total_files = i.listFiles().length;
+				FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
+					if(file.getName().endsWith("ttl")){
+						java.util.Optional<String> irio;
+						try {
+							irio = m3.scanForOntologyIRI(file);
+							IRI iri = null;
+							if(irio.isPresent()) {
+								iri = IRI.create(irio.get());
+							}
+							//is it in there already?
+							if(stored.contains(iri)) {
+								LOGGER.error("Attempted to load gocam ttl file into database but gocam with that iri already exists, skipping "+ file+" "+iri);
+							}else {
+								stored.add(iri);
+								m3.importModelToDatabase(file, true); 
+							}
+						} catch (RDFParseException | RDFHandlerException | IOException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						} catch (OWLOntologyCreationException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (RepositoryException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}else {
+						LOGGER.info("Ignored for not ending with .ttl" + file);
+					}
+				});
+			}}
 		m3.dispose();
-		LOGGER.info("done loading gocams");
+		LOGGER.info("done loading gocams, loaded: "+stored.size()+" out of: "+total_files+" files");
 	}
 
 	/**
