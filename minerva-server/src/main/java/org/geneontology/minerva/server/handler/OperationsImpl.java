@@ -497,6 +497,16 @@ abstract class OperationsImpl extends ModelCreator {
 			m3.saveModel(values.model, annotations, token);
 			values.renderBulk = true;
 		}
+		else if (Operation.storedModel == operation) {
+			values.nonMeta = true;
+			requireNotNull(request.arguments, "request.arguments");
+			values.model = checkModelId(null, request);
+			IRI modelIri = values.model.getModelId();
+			OWLOntology storedOntology = m3.loadModelABox(modelIri);
+			ModelContainer mc = new ModelContainer(modelIri, null, storedOntology);
+			values.model = mc;
+			values.renderBulk = true;
+		}
 		else if (Operation.resetModel == operation) {
 			values.nonMeta = true;
 			requireNotNull(request.arguments, "request.arguments");
