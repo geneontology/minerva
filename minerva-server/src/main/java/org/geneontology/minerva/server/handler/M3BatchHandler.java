@@ -64,8 +64,8 @@ public interface M3BatchHandler {
 		@SerializedName("reset")
 		resetModel,
 		
-		@SerializedName("stored-model")
-		storedModel,
+		@SerializedName("get-stored-model")
+		getStoredModel,
 		
 		@SerializedName("diff")
 		diffModel,

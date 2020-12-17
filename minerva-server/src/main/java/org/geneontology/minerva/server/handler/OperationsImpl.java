@@ -497,12 +497,12 @@ abstract class OperationsImpl extends ModelCreator {
 			m3.saveModel(values.model, annotations, token);
 			values.renderBulk = true;
 		}
-		else if (Operation.storedModel == operation) {
+		else if (Operation.getStoredModel == operation) {
 			values.nonMeta = true;
 			requireNotNull(request.arguments, "request.arguments");
-			values.model = checkModelId(null, request);
-			IRI modelIri = values.model.getModelId();
-			OWLOntology storedOntology = m3.loadModelABox(modelIri);
+			String currentModelId = request.arguments.modelId;
+			IRI modelIri = curieHandler.getIRI(currentModelId);
+			OWLOntology storedOntology = m3.loadModelABox(modelIri, OWLManager.createOWLOntologyManager());
 			ModelContainer mc = new ModelContainer(modelIri, null, storedOntology);
 			values.model = mc;
 			values.renderBulk = true;
