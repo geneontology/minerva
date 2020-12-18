@@ -216,10 +216,27 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		//working towards zero use of external look up service.. which is both slow and confusing.  
 		final MolecularModelJsonRenderer renderer = createModelRenderer(values.model, m3.getGolego_repo(), inferenceProvider, curieHandler);
 		if (values.renderBulk) {
+			System.out.println("before memory abox"+values.model.getAboxOntology().getIndividualsInSignature());
+			
+			if(values.storedModel!=null) {
+				System.out.println("before stored abox"+values.storedModel.getAboxOntology().getIndividualsInSignature());			
+			}
 			// render complete model
 			JsonModel jsonModel = renderer.renderModel();
+			//System.out.println("--" + values.model.getAboxOntology().getABoxAxioms(null));
+			
 			initResponseData(jsonModel, response.data);
-			response.signal = M3BatchResponse.SIGNAL_REBUILD;
+			
+			if(values.storedModel!=null) {
+				final MolecularModelJsonRenderer storedRenderer = createModelRenderer(values.storedModel, m3.getGolego_repo(), inferenceProvider, curieHandler);
+				JsonModel jsonStoredModel = storedRenderer.renderModel();
+				//System.out.println("++"+  values.storedModel.getAboxOntology().getABoxAxioms(null));
+				
+				response.data.storedModel = jsonStoredModel;	
+				//System.out.println(values.storedModel.getAboxOntology().getIndividualsInSignature() == values.model.getAboxOntology().getIndividualsInSignature());
+			}
+			
+			response.signal = M3BatchResponse.SIGNAL_REBUILD;	
 		}
 		else {
 			response.signal = M3BatchResponse.SIGNAL_MERGE;
@@ -246,6 +263,11 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
 		response.messageType = M3BatchResponse.MESSAGE_TYPE_SUCCESS;
 		if( response.message == null ){
 			response.message = "success";
+		}
+		
+		System.out.println("Memory -"+  response.data.individuals.length);
+		if(response.data.storedModel!=null) {
+			System.out.println("Stored -"+  response.data.storedModel.individuals.length);
 		}
 		return response;
 	}

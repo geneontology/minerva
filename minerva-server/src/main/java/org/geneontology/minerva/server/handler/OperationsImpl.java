@@ -76,6 +76,7 @@ abstract class OperationsImpl extends ModelCreator {
 		final Set<OWLNamedIndividual> relevantIndividuals = new HashSet<>();
 		boolean renderBulk = false;
 		boolean nonMeta = false;
+		ModelContainer storedModel = null;
 		ModelContainer model = null;
 		Map<String, OWLNamedIndividual> individualVariable = new HashMap<>();
 		String diffResult = null;
@@ -498,13 +499,16 @@ abstract class OperationsImpl extends ModelCreator {
 			values.renderBulk = true;
 		}
 		else if (Operation.getStoredModel == operation) {
-			values.nonMeta = true;
+			values.nonMeta = true;	
 			requireNotNull(request.arguments, "request.arguments");
+			values.model = checkModelId(values.model, request);	
 			String currentModelId = request.arguments.modelId;
 			IRI modelIri = curieHandler.getIRI(currentModelId);
 			OWLOntology storedOntology = m3.loadModelABox(modelIri, OWLManager.createOWLOntologyManager());
+			System.out.print(storedOntology.getABoxAxioms(null));
 			ModelContainer mc = new ModelContainer(modelIri, null, storedOntology);
-			values.model = mc;
+					
+			values.storedModel = mc;
 			values.renderBulk = true;
 		}
 		else if (Operation.resetModel == operation) {

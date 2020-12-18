@@ -125,6 +125,9 @@ public interface M3BatchHandler {
 			@SerializedName("diff-result")
 			public String diffResult;
 			
+			@SerializedName("stored-model")
+			public JsonModel storedModel;
+			
 			public Object undo;
 			public Object redo;
 			
