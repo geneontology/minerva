@@ -551,9 +551,12 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 		}
 	}
 
-
 	@Override
 	public OWLOntology loadModelABox(IRI modelId) throws OWLOntologyCreationException {
+		return loadModelABox(modelId, null);
+	}
+	@Override
+	public OWLOntology loadModelABox(IRI modelId, OWLOntologyManager manager) throws OWLOntologyCreationException {
 		LOG.info("Load model abox: " + modelId + " from database");
 		try {
 			BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
@@ -568,7 +571,13 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 						connection.getStatements(null, null, null, false, new URIImpl(modelId.toString()));
 				//setting minimal to true will give an OWL abox with triples that won't be connected to the tbox, hence e.g. object properties might not be recognized.  
 				boolean minimal = true;
-				OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), minimal);
+				OWLOntology abox;
+				if(manager ==null) {
+					abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), minimal);
+				} else {
+					abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), minimal, manager);
+				}
+			
 				statements.close();
 				abox = postLoadFileFilter(abox);
 				return abox;
