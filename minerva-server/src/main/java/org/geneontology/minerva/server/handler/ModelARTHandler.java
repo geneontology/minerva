@@ -79,7 +79,7 @@ public class ModelARTHandler {
 		this.ipc = ipc;
 	}
 
-	public class ModelArtResult {
+	public class ModelARTResult {
 		private String id;
 		private JsonModel storedModel;
 		private JsonModel activeModel;
@@ -97,7 +97,7 @@ public class ModelARTHandler {
 			this.storedModel = storedModel;
 		}
 		
-		public JsonModel getStroredModel() {
+		public JsonModel getStoredModel() {
 			return this.storedModel;
 		}
 		
@@ -113,16 +113,16 @@ public class ModelARTHandler {
 
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
-	public ModelArtResult storedGet(
+	public ModelARTResult storedGet(
 			@QueryParam("id") Set<String> id
 			) throws Exception{
-		ModelArtResult result = new ModelArtResult();
+		ModelARTResult result = new ModelARTResult();
 		result = stored(id);
 		return result;
 	}
 
-	public ModelArtResult stored(Set<String> ids) throws Exception {
-		ModelArtResult result = new ModelArtResult();
+	public ModelARTResult stored(Set<String> ids) throws Exception {
+		ModelARTResult result = new ModelARTResult();
 		
 		for(String mid : ids) {
 			addToModel(mid, result);
@@ -131,7 +131,7 @@ public class ModelARTHandler {
 		return result;
 	}
 	
-	private void addToModel(String modelId, ModelArtResult result) throws Exception {
+	private void addToModel(String modelId, ModelARTResult result) throws Exception {
 		
 		IRI modelIri = curieHandler.getIRI(modelId);
 		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
