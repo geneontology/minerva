@@ -15,6 +15,7 @@ import java.net.URL;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -42,6 +43,7 @@ import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
+import org.geneontology.minerva.json.JsonModel;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.GsonMessageBodyHandler;
 import org.geneontology.minerva.server.RequireJsonpFilter;
@@ -202,48 +204,145 @@ public class ARTHandlerTest {
 	}
 	
 	@Test
-	public final void testStoredModel() throws URISyntaxException, IOException, OWLOntologyStorageException, OWLOntologyCreationException, RepositoryException, UnknownIdentifierException {
+	public final void testGetModel() throws URISyntaxException, IOException, OWLOntologyStorageException, OWLOntologyCreationException, RepositoryException, UnknownIdentifierException {
+		//get a hold of a test model
+		String mid = "5fbeae9c00000008";
+		final String modelId = "http://model.geneontology.org/"+mid;						
+		M3BatchResponse response = BatchTestTools.getModel(handler, modelId, false);
+		
+		ModelARTResult result = getStoredModel(mid);	
+		//Repeat it after
+		response = BatchTestTools.getModel(handler, modelId, false);	
+		
+		assertFalse("Model should not be modified", response.data.modifiedFlag);				
+		assertTrue("Active Model should be the same as stored model", equalJsonSize(result.getActiveModel(), result.getStoredModel())); 	
+			
+		//Set up m3Batch response to compare active models
+		JsonModel m3JsonModel = m3ResponseToJsonModel(response);		
+		assertTrue("Active Model should be the same as m3Batch active model", equalJsonSize(result.getActiveModel(), m3JsonModel)); 	
+		}
+	
+	@Test
+	public final void testStoredModelModified() throws URISyntaxException, IOException, OWLOntologyStorageException, OWLOntologyCreationException, RepositoryException, UnknownIdentifierException {
 		//get a hold of a test model
 		String mid = "5fbeae9c00000008";
 		final String modelId = "http://model.geneontology.org/"+mid;
 		
-		//save it to the database using the m3 api
 		M3Request r = BatchTestTools.addIndividual(modelId, "GO:0003674");
 		List<M3Request> batch = Collections.singletonList(r);
 		M3BatchResponse response = handler.m3Batch("test-user", Collections.emptySet(), "test-intention", "foo-packet-id",
 				batch.toArray(new M3Request[batch.size()]), false, true);
+		
+		//Get the model	
+		response = BatchTestTools.getModel(handler, modelId, false);	
+		ModelARTResult result = getStoredModel(mid);
+		//Repeat
+		response = BatchTestTools.getModel(handler, modelId, false);
+		
+		int activeIndividualCount = result.getActiveModel().individuals.length;
+		int storedIndividualCount = result.getStoredModel().individuals.length;
 				
-		r = new M3Request();
+		assertTrue("Model should be modified", response.data.modifiedFlag);	
+		assertFalse("Active model should not be the same as stored model", equalJsonSize(result.getActiveModel(), result.getStoredModel())); 	
+		
+		//Since we added one individual
+		assertTrue("Active individuals should be one more stored individual count", activeIndividualCount==storedIndividualCount+1); 	
+				
+		//Set up m3Batch response to compare active models
+		JsonModel m3JsonModel = m3ResponseToJsonModel(response);		
+		assertTrue("Active Model should be the same as m3Batch active model", equalJsonSize(result.getActiveModel(), m3JsonModel)); 	
+		
+		//Store the model
+		response = storeModel(modelId);	
+		result = getStoredModel(mid);
+		
+		assertFalse("Model should not be modified", response.data.modifiedFlag);	
+		assertTrue("Active model should be the same as stored model", equalJsonSize(result.getActiveModel(), result.getStoredModel())); 	
+		
+		//Set up m3Batch response to compare active models
+		m3JsonModel = m3ResponseToJsonModel(response);		
+		assertTrue("Active Model should be the same as m3Batch active model", equalJsonSize(result.getActiveModel(), m3JsonModel)); 	
+		
+		//After store active should be equal to stored
+		storedIndividualCount = result.getStoredModel().individuals.length;
+		assertTrue("Active individuals should be one more stored individual count", activeIndividualCount==storedIndividualCount); 	
+		
+		
+		//Get the model
+		response = BatchTestTools.getModel(handler, modelId, false);	
+						
+		assertFalse("Model should not be modified", response.data.modifiedFlag);	
+		
+		//Set up m3Batch response to compare active models
+		m3JsonModel = m3ResponseToJsonModel(response);		
+		assertTrue("Active Model should be the same as m3Batch active model", equalJsonSize(result.getActiveModel(), m3JsonModel)); 	
+						
+	}
+	
+	@Test
+	public final void testStoredModelReset() throws URISyntaxException, IOException, OWLOntologyStorageException, OWLOntologyCreationException, RepositoryException, UnknownIdentifierException {
+		//get a hold of a test model
+		String mid = "5fbeae9c00000008";
+		final String modelId = "http://model.geneontology.org/"+mid;
+		
+		M3Request r = BatchTestTools.addIndividual(modelId, "GO:0003674");
+		List<M3Request> batch = Collections.singletonList(r);
+		M3BatchResponse response = handler.m3Batch("test-user", Collections.emptySet(), "test-intention", "foo-packet-id",
+				batch.toArray(new M3Request[batch.size()]), false, true);
+		//Reset the model
+		response = resetModel(modelId); 
+		
+		//Get the model
+		response = BatchTestTools.getModel(handler, modelId, false);		
+		ModelARTResult result = getStoredModel(mid);
+		
+		assertFalse("Model should not be modified", response.data.modifiedFlag);	
+		assertTrue("Active Model should be the same as stored model", equalJsonSize(result.getActiveModel(), result.getStoredModel())); 	
+		
+		//Set up m3Batch response to compare active models
+		JsonModel m3JsonModel = m3ResponseToJsonModel(response);		
+		assertTrue("Active Model should be the same as m3Batch active model", equalJsonSize(result.getActiveModel(), m3JsonModel)); 	
+				
+	}
+		
+	
+	public static ModelARTResult getStoredModel(String modelId) throws URISyntaxException, IOException {
+		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/stored");
+		builder.addParameter("id", "gomodel:"+modelId);
+		URI artUrl = builder.build();
+		String json_result = getJsonStringFromUri(artUrl);
+		Gson g = new Gson();
+		ModelARTResult result = g.fromJson(json_result, ModelARTResult.class);
+						
+		LOGGER.info("Model Stored Model "+json_result);	
+		
+		return result;
+	}
+	
+	private static M3BatchResponse storeModel(String modelId) {
+		M3Request r = new M3Request();
 		r.entity = Entity.model;
 		r.operation = Operation.storeModel;
 		r.arguments = new M3Argument();
 		r.arguments.modelId = modelId;
-		batch = Collections.singletonList(r);
-		response = handler.m3Batch("test-user", Collections.emptySet(), "test-intention", "foo-packet-id",
+		List<M3Request> batch = Collections.singletonList(r);
+		M3BatchResponse response  = handler.m3Batch("test-user", Collections.emptySet(), "test-intention", "foo-packet-id",
 		batch.toArray(new M3Request[batch.size()]), false, true);
-			
 		
-		//run a art query, show that the model found has not been modified
-		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/stored");
-		builder.addParameter("id", "gomodel:"+mid);
-		URI arturi = builder.build();
-		String json_result = getJsonStringFromUri(arturi);
-		Gson g = new Gson();
-		ModelARTResult result = g.fromJson(json_result, ModelARTResult.class);
+		return response;
+	}
+	
+	private static M3BatchResponse resetModel(String modelId) {
+		M3Request r = new M3Request();
+		r.entity = Entity.model;
+		r.operation = Operation.resetModel;
+		r.arguments = new M3Argument();
+		r.arguments.modelId = modelId;
+		List<M3Request> batch = Collections.singletonList(r);
+		M3BatchResponse response  = handler.m3Batch("test-user", Collections.emptySet(), "test-intention", "foo-packet-id",
+		batch.toArray(new M3Request[batch.size()]), false, true);
 		
-		//test if stored ontology = active ontology
-				
-		// check that response indicates modified
-		LOGGER.info("Model Stored Model "+json_result);
-		LOGGER.info("Model Active Model "+result.getActiveModel().toString());
-		LOGGER.info("Model Stored Model "+result.getStoredModel().toString());
-		//assertTrue(result.getActiveModel().equals(result.getStoredModel())); 
-
-		
-		// check that response now indicates not modified
-		assertFalse(response.data.modifiedFlag);		
-				
-		//don't need to undo changes as the database is rebuilt each time from files and never flushed to file here.
+		return response;
 	}
 
 
@@ -304,6 +403,31 @@ public class ARTHandlerTest {
 		String json = EntityUtils.toString(response.getEntity());
 
 		return json;
+	}
+	
+	private static JsonModel m3ResponseToJsonModel(M3BatchResponse response) {
+		JsonModel jsonModel = new JsonModel();
+		jsonModel.annotations = response.data.annotations;
+		jsonModel.individuals = response.data.individuals;
+		jsonModel.facts = response.data.facts;
+		
+		return jsonModel;
+	}
+	
+	private static boolean equalJsonSize(JsonModel a, JsonModel b) {
+		
+		if (a.facts.length  != b.facts.length) {
+			return false;
+		}
+		
+		if (a.individuals.length  != b.individuals.length) {
+			return false;
+		}
+		
+		if (a.annotations.length  != b.annotations.length) {
+			return false;
+		}
+		return true;
 	}
 
 }
