@@ -43,7 +43,9 @@ import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
+import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.json.JsonModel;
+import org.geneontology.minerva.json.JsonOwlIndividual;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.GsonMessageBodyHandler;
 import org.geneontology.minerva.server.RequireJsonpFilter;
@@ -95,9 +97,7 @@ public class ARTHandlerTest {
 	static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 	static final String valid_model_folder = "src/test/resources/models/art-simple/";
 	static final String model_save =         "src/test/resources/models/tmp/";	
-	static final String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
-	static final String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
-		
+	
 	static OWLOntology tbox_ontology;
 	static CurieHandler curieHandler;	
 	static UndoAwareMolecularModelManager models;
@@ -113,12 +113,8 @@ public class ARTHandlerTest {
 	public static void setUpBeforeClass() throws Exception {			
 				
 		LOGGER.info("Setup shex.");
-		URL shex_schema_url = new URL(shexFileUrl);
 		File shex_schema_file = new File("src/test/resources/validate.shex"); 
-		org.apache.commons.io.FileUtils.copyURLToFile(shex_schema_url, shex_schema_file);	
-		URL shex_map_url = new URL(goshapemapFileUrl);
 		File shex_map_file = new File("src/test/resources/validate.shapemap");
-		org.apache.commons.io.FileUtils.copyURLToFile(shex_map_url, shex_map_file);
 		
 		LOGGER.info("Set up molecular model manager - loading files into a journal");
 		// set curie handler	
@@ -151,8 +147,7 @@ public class ARTHandlerTest {
 		//set up a handler for testing with M3BatchRequest service
 		handler = new JsonOrJsonpBatchHandler(models, "development", ipc,
 						Collections.<OWLObjectProperty>emptySet(), (ExternalLookupService) null);
-		
-		
+				
 		resourceConfig = resourceConfig.registerInstances(artHandler);
 
 		// setup jetty server port, buffers and context path
@@ -304,7 +299,7 @@ public class ARTHandlerTest {
 		assertTrue("Active Model should be the same as m3Batch active model", equalJsonSize(result.getActiveModel(), m3JsonModel)); 	
 				
 	}
-		
+	
 	
 	public static ModelARTResult getStoredModel(String modelId) throws URISyntaxException, IOException {
 		URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/stored");
@@ -410,24 +405,25 @@ public class ARTHandlerTest {
 		jsonModel.annotations = response.data.annotations;
 		jsonModel.individuals = response.data.individuals;
 		jsonModel.facts = response.data.facts;
-		
+				
 		return jsonModel;
+	}
+	
+	/*
+	 * Removes Inferred Types from JsonModel
+	 */
+	private static void cleanJsonModel(JsonModel dirty) {				
+		for (JsonOwlIndividual annotation : dirty.individuals) {
+			annotation.inferredType = null;
+		}
 	}
 	
 	private static boolean equalJsonSize(JsonModel a, JsonModel b) {
 		
-		if (a.facts.length  != b.facts.length) {
-			return false;
-		}
-		
-		if (a.individuals.length  != b.individuals.length) {
-			return false;
-		}
-		
-		if (a.annotations.length  != b.annotations.length) {
-			return false;
-		}
-		return true;
+		cleanJsonModel(a);
+		cleanJsonModel(b);
+				
+		return a.equals(b);
 	}
 
 }
