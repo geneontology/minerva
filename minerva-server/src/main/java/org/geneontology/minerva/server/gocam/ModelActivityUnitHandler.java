@@ -1,9 +1,7 @@
 /**
  * 
  */
-package org.geneontology.minerva.server.handler;
-
-import static org.geneontology.minerva.server.handler.OperationsTools.createModelRenderer;
+package org.geneontology.minerva.server.gocam;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -39,6 +37,7 @@ import org.geneontology.minerva.json.JsonOwlIndividual;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.ResponseData;
+import org.geneontology.minerva.server.handler.OperationsTools;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.openrdf.query.Binding;
@@ -130,7 +129,7 @@ public class ModelActivityUnitHandler {
 
 		ModelContainer activeMC = new ModelContainer(modelIri, null, currentOntology);
 		InferenceProvider inferenceProvider = ipc.create(activeMC);
-		final MolecularModelJsonRenderer renderer = createModelRenderer(activeMC, go_lego, inferenceProvider,
+		final MolecularModelJsonRenderer renderer = OperationsTools.createModelRenderer(activeMC, go_lego, inferenceProvider,
 				curieHandler);
 		JsonModel jsonBaseModel = renderer.renderModel();
 
@@ -140,31 +139,14 @@ public class ModelActivityUnitHandler {
 	}
 
 	private GOCam getActivityModel(JsonModel baseModel) {
-		String id = "";
-		String title = "";
-		Set<Contributor> contributors = new HashSet<Contributor>();
-		Set<Group> groups = new HashSet<Group>();
+		GOCam goCam = new GOCam(baseModel.modelId);
 
-		for (JsonAnnotation annotation : baseModel.annotations) {
-			if (AnnotationShorthand.contributor.name().equals(annotation.key)) {
-				contributors.add(new Contributor(annotation.value));
-			}
-			
-			if (AnnotationShorthand.providedBy.name().equals(annotation.key)) {
-				groups.add(new Group(annotation.value));
-			}
-
-			if (AnnotationShorthand.title.name().equals(annotation.key)) {
-				title = annotation.value;
-			}
-		}
-		GOCam goCam = new GOCam(id, title);
-		goCam.setContributors(contributors);
-		goCam.setGroups(groups);
+		goCam.addAnnotations(baseModel.annotations);	
+		
+		
 		
 		return goCam;
 	}
-
 }
 
 enum ActivityType {
@@ -227,8 +209,29 @@ class Group {
 
 }
 
-class Activity {
+class Taxon {
+	private String name;
+	private String label;
+	
+	public Taxon(String name) {
+		this.name = name;
+	}
+	
+	public String getName() {
+		return name;
+	}
+		
+	public String getLabel() {
+		return label;
+	}
+	
+	public void setLabel(String label) {
+		this.label = label;
+	}	
+	
+}
 
+class Activity {
 	private ActivityType type;
 	private String activityId;
 	private String activityLabel;
@@ -268,14 +271,28 @@ class GOCam {
 
 	private String id;
 	private String title;
+	private String state;
 	private Set<Contributor> contributors;
 	private Set<Group> groups;
-
-	public GOCam(String id, String title) {
+	private Set<Taxon> taxons;
+	
+	public GOCam(String id) {
 		this.id = id;
-		this.title = title;
 		this.contributors = new HashSet<Contributor>();
 		this.groups = new HashSet<Group>();
+		this.taxons = new HashSet<Taxon>();
+	}	
+
+	public boolean addContributor(Contributor contributor) {
+		 return contributors.add(contributor);
+	}
+
+	public boolean addGroup(Group group) {
+		 return groups.add(group);
+	}
+
+	public boolean addTaxon(Taxon taxon) {
+		 return taxons.add(taxon);
 	}
 
 	public String getId() {
@@ -292,6 +309,22 @@ class GOCam {
 
 	public void setTitle(String title) {
 		this.title = title;
+	}	
+
+	public String getState() {
+		return state;
+	}
+
+	public void setState(String state) {
+		this.state = state;
+	}
+
+	public Set<Taxon> getTaxons() {
+		return taxons;
+	}
+
+	public void setTaxons(Set<Taxon> taxons) {
+		this.taxons = taxons;
 	}
 
 	public Set<Contributor> getContributors() {
@@ -308,6 +341,30 @@ class GOCam {
 
 	public void setGroups(Set<Group> groups) {
 		this.groups = groups;
+	}
+	
+	public void addAnnotations(JsonAnnotation[] annotations) {
+		for (JsonAnnotation annotation : annotations) {
+			if (AnnotationShorthand.contributor.name().equals(annotation.key)) {
+				addContributor(new Contributor(annotation.value));
+			}
+			
+			if (AnnotationShorthand.providedBy.name().equals(annotation.key)) {
+				addGroup(new Group(annotation.value));
+			}
+
+			if (AnnotationShorthand.title.name().equals(annotation.key)) {
+				setTitle(annotation.value);
+			}
+			
+			if (AnnotationShorthand.modelstate.name().equals(annotation.key)) {
+				setState(annotation.value);
+			}
+			
+			if (AnnotationShorthand.taxon.name().equals(annotation.key)) {
+				addTaxon(new Taxon(annotation.value));
+			}
+		}
 	}
 
 }

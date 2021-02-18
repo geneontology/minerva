@@ -30,8 +30,8 @@ public enum AnnotationShorthand {
 	title(IRI.create("http://purl.org/dc/elements/1.1/title")), // title (of the model)
 	deprecated(OWLRDFVocabulary.OWL_DEPRECATED.getIRI()), // model annotation to indicate deprecated models
 	templatestate(IRI.create("http://geneontology.org/lego/templatestate"), "template"), // designate a model as a template
-	modelstate(IRI.create("http://geneontology.org/lego/modelstate"), "state");
-	
+	modelstate(IRI.create("http://geneontology.org/lego/modelstate"), "state"),
+	taxon(IRI.create("https://w3id.org/biolink/vocab/in_taxon"), "taxon");
 	
 	private final IRI annotationProperty;
 	private final String othername;
