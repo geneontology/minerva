@@ -452,13 +452,14 @@ public class StartUpTool {
 	//	SPARQLHandler sparqlHandler = new SPARQLHandler(models, conf.sparqlEndpointTimeout);
 		ModelSearchHandler searchHandler = new ModelSearchHandler(models);
 		ModelARTHandler artHandler = new ModelARTHandler(models, ipc);
+		ModelActivityUnitHandler activityUnitHandler = new ModelActivityUnitHandler(models, ipc);
 
 		LocalDate d = LocalDate.now();
 		LocalTime t = LocalTime.now(); 
 		String startup = d.toString()+" "+t.toString();
 		StatusHandler statusHandler = new StatusHandler(conf, ont_annos, startup); 
 		TaxonHandler taxonHandler = new TaxonHandler(models);
-		resourceConfig = resourceConfig.registerInstances(batchHandler, searchHandler,artHandler, statusHandler, taxonHandler);
+		resourceConfig = resourceConfig.registerInstances(batchHandler, searchHandler,artHandler, activityUnitHandler, statusHandler, taxonHandler);
 
 		// setup jetty server port, buffers and context path
 		Server server = new Server();
