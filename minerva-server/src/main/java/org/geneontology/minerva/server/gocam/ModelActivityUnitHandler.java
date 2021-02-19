@@ -157,8 +157,7 @@ public class ModelActivityUnitHandler {
 					Term term = new Term(individual.id, typeObj, individual.annotations);
 					Activity activity = new Activity(term);
 					activity.traverse(baseModel.individuals, baseModel.facts);
-					activities.add(activity);
-	
+					activities.add(activity);	
 				}
 			}
 		}

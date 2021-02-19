@@ -1,5 +1,8 @@
 package org.geneontology.minerva.server.gocam.entities;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.geneontology.minerva.json.JsonOwlFact;
 import org.geneontology.minerva.json.JsonOwlIndividual;
 import org.geneontology.minerva.json.JsonOwlObject;
@@ -15,6 +18,10 @@ public class Activity {
 	private Term mf;
 	private Term bp;
 	private Term cc;
+	private Set<Term> terms;
+	private Set<Relation> relations;
+	private Set<TermAssociation> termAssociations;
+	
 
 	public Activity(Term rootTerm) {
 		this.type = ActivityType.ACTIVITY_UNIT;
@@ -23,6 +30,10 @@ public class Activity {
 
 		this.rootTerm = rootTerm;
 		this.mf = rootTerm;
+		
+		terms = new HashSet<Term>();
+		relations = new HashSet<Relation>();
+		termAssociations = new HashSet<TermAssociation>();
 	}
 
 	public ActivityType getType() {
@@ -56,7 +67,7 @@ public class Activity {
 	public void setRootTerm(Term rootTerm) {
 		this.rootTerm = rootTerm;
 	}
-	
+
 	public Term getGP() {
 		return gp;
 	}
@@ -87,12 +98,21 @@ public class Activity {
 
 	public void setCC(Term cc) {
 		this.cc = cc;
+	}	
+	
+	public boolean addTerm(Term term) {
+		return this.terms.add(term);
 	}
+
+	public Set<Term> getTerms() {
+		return terms;
+	}
+	
 
 	public void traverse(JsonOwlIndividual[] individuals, JsonOwlFact[] facts) {
 		for (JsonOwlFact fact : facts) {
-
-			if (fact.property == RelationType.ENABLED_BY.id && fact.subject == mf.getUuid()) {
+			
+			if (fact.property.equals(RelationType.ENABLED_BY.id) && fact.subject.equals(mf.getUuid())) {
 
 				JsonOwlIndividual individual = GOCamTools.getNode(individuals, fact.object);
 				if (individual != null) {
@@ -103,7 +123,27 @@ public class Activity {
 						this.setGP(term);
 					}
 				}
+				
+				traverseDFS(individuals, GOCamTools.getFactsBySubject(facts, fact.subject), fact.subject);
 			}
+		}
+	}
+	
+	private void traverseDFS(JsonOwlIndividual[] individuals, JsonOwlFact[] facts, String subject) {
+		for (JsonOwlFact fact : facts) {
+			
+			//if (fact.property.equals(RelationType.ENABLED_BY.id) && fact.subject.equals(mf.getUuid())) {
+
+				JsonOwlIndividual individual = GOCamTools.getNode(individuals, fact.object);
+				if (individual != null) {
+					JsonOwlObject[] types = individual.type;
+					if (types.length > 0) {
+						JsonOwlObject typeObj = types[0];
+						Term term = new Term(individual.id, typeObj, individual.annotations);
+						this.addTerm(term);
+					}
+				}
+			//}
 		}
 	}
 
