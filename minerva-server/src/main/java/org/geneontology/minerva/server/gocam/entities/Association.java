@@ -9,22 +9,30 @@ import org.geneontology.minerva.json.JsonOwlIndividual;
 import org.geneontology.minerva.server.gocam.GOCamTools;
 import org.geneontology.minerva.util.AnnotationShorthand;
 
-
-public class TermAssociation extends Entity{
+public class Association extends Entity {
+	private String sourceId;
+	private String targetId;
 	private Set<Evidence> evidences;
 	private Set<Contributor> contributors;
 	private Set<Group> groups;
 	private String date;
-	
-	public TermAssociation(String id, String label) {
-		super(null, id, label, EntityType.RELATION);
-		evidences = new HashSet<Evidence>();
-	}
 
-	public TermAssociation(JsonOwlFact fact) {
-		this( fact.property, fact.propertyLabel);
+	// if full object is specified otherwise these will be null
+	private Term source;
+	private Term target;
+	
+	public Association(String sourceId, String targetId, String id, String label) {
+		super(null, id, label, EntityType.TERM_ASSOCIATION);
+		this.sourceId = sourceId;
+		this.targetId = targetId;
+		this.evidences = new HashSet<Evidence>();
+		this.contributors = new HashSet<Contributor>();
+		this.groups = new HashSet<Group>();
 	}
 	
+	public Association(JsonOwlFact fact) {
+		this(fact.subject, fact.object, fact.property, fact.propertyLabel);
+	}	
 	
 	public boolean addContributor(Contributor contributor) {
 		return contributors.add(contributor);
@@ -63,9 +71,24 @@ public class TermAssociation extends Entity{
 			}			
 		}
 	}
-	
+
+
 	//Getters and Setters
-	
+	public String getSourceId() {
+		return sourceId;
+	}
+
+	public void setSourceId(String sourceId) {
+		this.sourceId = sourceId;
+	}
+
+	public String getTargetId() {
+		return targetId;
+	}
+
+	public void setTargetId(String targetId) {
+		this.targetId = targetId;
+	}
 
 	public Set<Evidence> getEvidences() {
 		return evidences;
@@ -78,6 +101,8 @@ public class TermAssociation extends Entity{
 	public Set<Contributor> getContributors() {
 		return contributors;
 	}
+
+
 
 	public void setContributors(Set<Contributor> contributors) {
 		this.contributors = contributors;
@@ -97,6 +122,22 @@ public class TermAssociation extends Entity{
 
 	public void setDate(String date) {
 		this.date = date;
-	}	
-	
+	}
+
+	public Term getSource() {
+		return source;
+	}
+
+	public void setSource(Term source) {
+		this.source = source;
+	}
+
+	public Term getTarget() {
+		return target;
+	}
+
+	public void setTarget(Term target) {
+		this.target = target;
+	}
+		
 }

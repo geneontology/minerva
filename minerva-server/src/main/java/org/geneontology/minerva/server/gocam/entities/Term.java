@@ -29,17 +29,34 @@ public class Term extends Entity {
 		this(uuid, type.id, type.label);
 		this.addAnnotations(annotations);
 	}
-
-	public String getAspect() {
-		return aspect;
-	}
-
+	
 	public boolean addContributor(Contributor contributor) {
 		return contributors.add(contributor);
 	}
 
 	public boolean addGroup(Group group) {
 		return groups.add(group);
+	}
+
+	
+	public void addAnnotations(JsonAnnotation[] annotations) {
+		for (JsonAnnotation annotation : annotations) {
+			if (AnnotationShorthand.contributor.name().equals(annotation.key)) {
+				addContributor(new Contributor(annotation.value));
+			}
+
+			if (AnnotationShorthand.providedBy.name().equals(annotation.key)) {
+				addGroup(new Group(annotation.value));
+			}
+
+			if (AnnotationShorthand.modelstate.name().equals(annotation.key)) {
+				setDate(annotation.value);
+			}
+		}
+	}
+
+    public String getAspect() {
+		return aspect;
 	}
 
 	public void setAspect(String aspect) {
@@ -86,20 +103,5 @@ public class Term extends Entity {
 		this.date = date;
 	}
 
-	public void addAnnotations(JsonAnnotation[] annotations) {
-		for (JsonAnnotation annotation : annotations) {
-			if (AnnotationShorthand.contributor.name().equals(annotation.key)) {
-				addContributor(new Contributor(annotation.value));
-			}
-
-			if (AnnotationShorthand.providedBy.name().equals(annotation.key)) {
-				addGroup(new Group(annotation.value));
-			}
-
-			if (AnnotationShorthand.modelstate.name().equals(annotation.key)) {
-				setDate(annotation.value);
-			}
-		}
-	}
 }
 

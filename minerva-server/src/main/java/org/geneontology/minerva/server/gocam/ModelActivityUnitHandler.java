@@ -145,7 +145,7 @@ public class ModelActivityUnitHandler {
 		GOCam goCam = new GOCam(baseModel.modelId);
 		Set<Activity> activities = new HashSet<Activity>();
 
-		goCam.addAnnotations(baseModel.annotations);
+		goCam.addAnnotations(baseModel.annotations); 
 
 		for (JsonOwlIndividual individual : baseModel.individuals) {
 			JsonOwlObject[] rootTypes = individual.rootType;
@@ -156,13 +156,14 @@ public class ModelActivityUnitHandler {
 					JsonOwlObject typeObj = types[0];
 					Term term = new Term(individual.id, typeObj, individual.annotations);
 					Activity activity = new Activity(term);
-					activity.traverse(baseModel.individuals, baseModel.facts);
+					activity.parse(baseModel.individuals, baseModel.facts);
 					activities.add(activity);	
 				}
 			}
 		}
 
 		goCam.setActivities(activities);
+		goCam.parse(baseModel.individuals, baseModel.facts);
 		return goCam;
 	}
 }

@@ -2,9 +2,9 @@ package org.geneontology.minerva.server.gocam.entities;
 
 import org.geneontology.minerva.json.JsonOwlFact;
 
-public class TermAssociation extends Association {	
+public class ActivityAssociation extends Association {	
 		
-	public TermAssociation(JsonOwlFact fact) {
+	public ActivityAssociation(JsonOwlFact fact) {
 		super(fact);
 	}		
 		

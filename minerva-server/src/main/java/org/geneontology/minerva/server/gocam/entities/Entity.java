@@ -13,6 +13,9 @@ public class Entity {
 		this.entityType = entityType;
 	}
 
+    
+    //Getters and Setters
+
 	public String getUuid() {
 		return uuid;
 	}

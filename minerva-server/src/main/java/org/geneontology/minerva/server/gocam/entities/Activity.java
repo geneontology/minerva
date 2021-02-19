@@ -19,9 +19,8 @@ public class Activity {
 	private Term bp;
 	private Term cc;
 	private Set<Term> terms;
-	private Set<Relation> relations;
+	private Set<Evidence> evidences;
 	private Set<TermAssociation> termAssociations;
-	
 
 	public Activity(Term rootTerm) {
 		this.type = ActivityType.ACTIVITY_UNIT;
@@ -30,12 +29,75 @@ public class Activity {
 
 		this.rootTerm = rootTerm;
 		this.mf = rootTerm;
-		
+
 		terms = new HashSet<Term>();
-		relations = new HashSet<Relation>();
+		evidences = new HashSet<Evidence>();
 		termAssociations = new HashSet<TermAssociation>();
+
+		addTerm(mf);
 	}
 
+	public boolean addTerm(Term term) {
+		return this.terms.add(term);
+	}
+
+	public boolean addEvidence(Evidence evidence) {
+		return this.evidences.add(evidence);
+	}
+
+	public boolean addTermAssociation(TermAssociation termAssociation) {
+		return this.termAssociations.add(termAssociation);
+	}
+
+	public void addTermAssociation(JsonOwlIndividual[] individuals, JsonOwlFact fact) {
+		TermAssociation termAssociation = GOCamTools.getTermAssociationFromFact(individuals, fact);
+
+		for (Evidence evidence : termAssociation.getEvidences()) {
+			addEvidence(evidence);
+		}
+
+		addTermAssociation(termAssociation);
+	}
+
+	public void parse(JsonOwlIndividual[] individuals, JsonOwlFact[] facts) {
+		for (JsonOwlFact fact : facts) {
+
+			if (fact.property.equals(RelationType.ENABLED_BY.id) && fact.subject.equals(mf.getUuid())) {
+
+				Term term = GOCamTools.getTermFromId(individuals, fact.object);
+
+				if (term != null) {
+					setGP(term);
+					addTerm(term);
+				}
+
+				addTermAssociation(individuals, fact);
+
+				parseDFS(individuals, GOCamTools.getFactsBySubject(facts, fact.subject), fact.subject);
+			}
+		}
+	}
+
+	private void parseDFS(JsonOwlIndividual[] individuals, JsonOwlFact[] facts, String subject) {
+		for (JsonOwlFact fact : facts) {
+
+			// Do until the next causal edge with an enabled by unfinished
+			if (!fact.property.equals(RelationType.ENABLED_BY.id)) {
+
+				Term term = GOCamTools.getTermFromId(individuals, fact.object);
+
+				if (term != null) {
+					this.setGP(term);
+					addTerm(term);
+				}
+				addTermAssociation(individuals, fact);
+
+				parseDFS(individuals, GOCamTools.getFactsBySubject(facts, fact.object), fact.object);
+			}
+		}
+	}
+
+	// Getter and Setters
 	public ActivityType getType() {
 		return type;
 	}
@@ -98,53 +160,30 @@ public class Activity {
 
 	public void setCC(Term cc) {
 		this.cc = cc;
-	}	
-	
-	public boolean addTerm(Term term) {
-		return this.terms.add(term);
+	}
+
+	public Set<Evidence> getEvidences() {
+		return evidences;
+	}
+
+	public void setEvidences(Set<Evidence> evidences) {
+		this.evidences = evidences;
 	}
 
 	public Set<Term> getTerms() {
 		return terms;
 	}
-	
 
-	public void traverse(JsonOwlIndividual[] individuals, JsonOwlFact[] facts) {
-		for (JsonOwlFact fact : facts) {
-			
-			if (fact.property.equals(RelationType.ENABLED_BY.id) && fact.subject.equals(mf.getUuid())) {
-
-				JsonOwlIndividual individual = GOCamTools.getNode(individuals, fact.object);
-				if (individual != null) {
-					JsonOwlObject[] types = individual.type;
-					if (types.length > 0) {
-						JsonOwlObject typeObj = types[0];
-						Term term = new Term(individual.id, typeObj, individual.annotations);
-						this.setGP(term);
-					}
-				}
-				
-				traverseDFS(individuals, GOCamTools.getFactsBySubject(facts, fact.subject), fact.subject);
-			}
-		}
+	public void setTerms(Set<Term> terms) {
+		this.terms = terms;
 	}
-	
-	private void traverseDFS(JsonOwlIndividual[] individuals, JsonOwlFact[] facts, String subject) {
-		for (JsonOwlFact fact : facts) {
-			
-			//if (fact.property.equals(RelationType.ENABLED_BY.id) && fact.subject.equals(mf.getUuid())) {
 
-				JsonOwlIndividual individual = GOCamTools.getNode(individuals, fact.object);
-				if (individual != null) {
-					JsonOwlObject[] types = individual.type;
-					if (types.length > 0) {
-						JsonOwlObject typeObj = types[0];
-						Term term = new Term(individual.id, typeObj, individual.annotations);
-						this.addTerm(term);
-					}
-				}
-			//}
-		}
+	public Set<TermAssociation> getTermAssociations() {
+		return termAssociations;
+	}
+
+	public void setTermAssociations(Set<TermAssociation> termAssociations) {
+		this.termAssociations = termAssociations;
 	}
 
 }
