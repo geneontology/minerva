@@ -1,19 +1,8 @@
-/**
- * 
- */
 package org.geneontology.minerva.server.handler;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.FormParam;
@@ -99,7 +88,7 @@ public class ModelSearchHandler {
 
 	}
 
-	public class ModelMeta{
+	static public class ModelMeta{
 		private String id;
 		private String date;
 		private String title;
@@ -300,14 +289,14 @@ public class ModelSearchHandler {
 		for(String type_uri : gene_type_uris) {
 			n++;
 			ind_return.put("?ind"+n, type_uri);
-			ind_return_list = ind_return_list+" ?ind"+n;
+			ind_return_list = ind_return_list +" (MIN(?ind" + n + ") AS ?minind" + n + ")";
 			types = types+"?ind"+n+" rdf:type <"+type_uri+"> . \n";
 		}
 		if(expand!=null) {
 			for(String go_type_uri : go_type_uris) {
 				n++;
 				ind_return.put("?ind"+n, go_type_uri);
-				ind_return_list = ind_return_list+" ?ind"+n;
+				ind_return_list = ind_return_list +" (MIN(?ind" + n + ") AS ?minind" + n + ")";
 				String expansion = "VALUES ?term"+n+" { ";
 				try {
 					Set<String> subclasses = go_lego.getAllSubClasses(go_type_uri);
@@ -325,7 +314,7 @@ public class ModelSearchHandler {
 			for(String go_type_uri : go_type_uris) {
 				n++;
 				ind_return.put("?ind"+n, go_type_uri);
-				ind_return_list = ind_return_list+" ?ind"+n;
+				ind_return_list = ind_return_list +" (MIN(?ind" + n + ") AS ?minind" + n + ")";
 				types = types+"?ind"+n+" rdf:type <"+go_type_uri+"> . \n";
 			}
 		}
@@ -470,10 +459,10 @@ public class ModelSearchHandler {
 			limit_constraint = "LIMIT 1000\n";
 		}
 		//default group by
-		String group_by_constraint = "GROUP BY ?id ?date ?title ?state <ind_return_list> ";
+		String group_by_constraint = "GROUP BY ?id";
 		//default return block
 		//TODO investigate need to add DISTINCT to GROUP_CONCAT here
-		String return_block = "?id ?date ?title ?state <ind_return_list> (GROUP_CONCAT(DISTINCT ?contributor;separator=\";\") AS ?contributors) (GROUP_CONCAT(DISTINCT ?group;separator=\";\") AS ?groups)";
+		String return_block = "?id (MIN(?date) AS ?mindate) (MIN(?title) AS ?mintitle) (MIN(?state) AS ?minstate) <ind_return_list> (GROUP_CONCAT(DISTINCT ?contributor;separator=\";\") AS ?contributors) (GROUP_CONCAT(DISTINCT ?group;separator=\";\") AS ?groups)";
 		if(count!=null) {
 			return_block = "(count(distinct ?id) as ?count)";
 			limit_constraint = "";
@@ -535,11 +524,11 @@ public class ModelSearchHandler {
 						e.printStackTrace();
 						return r;
 					}
-					String date = bs.getBinding("date").getValue().stringValue();
-					String title = bs.getBinding("title").getValue().stringValue();
+					String date = bs.getBinding("mindate").getValue().stringValue();
+					String title = bs.getBinding("mintitle").getValue().stringValue();
 					String contribs = bs.getBinding("contributors").getValue().stringValue();
 					//optional values (some are empty)
-					Binding state_binding = bs.getBinding("state");
+					Binding state_binding = bs.getBinding("minstate");
 					String state = "";
 					if(state_binding!=null) {
 						state = state_binding.getValue().stringValue();
@@ -548,18 +537,11 @@ public class ModelSearchHandler {
 					String groups_ = "";
 					if(group_binding!=null) {
 						groups_ = group_binding.getValue().stringValue();
-					}							
-					Set<String> contributors = new HashSet<String>();
-					if(contributors!=null) {
-						for(String c : contribs.split(";")) {
-							contributors.add(c);
-						}
 					}
+					Set<String> contributors = new HashSet<String>(Arrays.asList(contribs.split(";")));
 					Set<String> groups = new HashSet<String>();
 					if(groups_!=null) {
-						for(String c : groups_.split(";")) {
-							groups.add(c);
-						}
+						groups.addAll(Arrays.asList(groups_.split(";")));
 					}
 					ModelMeta mm = id_model.get(model_curie);
 					if(mm==null) {
@@ -569,7 +551,8 @@ public class ModelSearchHandler {
 					}
 					//matching     		
 					for(String ind : ind_return.keySet()) {
-						String ind_class_match = bs.getBinding(ind.replace("?", "")).getValue().stringValue();
+						String bindingName = "min" + ind.replace("?", "");
+						String ind_class_match = bs.getBinding(bindingName).getValue().stringValue();
 						Set<String> matching_inds = mm.query_match.get(ind_return.get(ind));
 						if(matching_inds==null) {
 							matching_inds = new HashSet<String>();
