@@ -345,7 +345,7 @@ public class ModelSearchHandler {
 			for(String pmid : pmids) {
 				n++;
 				ind_return.put("?ind"+n, pmid);
-				ind_return_list = ind_return_list+" ?ind"+n;
+				ind_return_list = ind_return_list +" (MIN(?ind" + n + ") AS ?minind" + n + ")";
 				pmid_constraints = pmid_constraints+"?ind"+n+" <http://purl.org/dc/elements/1.1/source> ?pmid FILTER (?pmid=\""+pmid+"\"^^xsd:string) .\n";  		
 			}
 		}
