@@ -11,6 +11,7 @@
 	- [Running Tests](#running-tests)
 		- [Failing Tests](#failing-tests)
 		- [Quick Test via `curl`](#quick-test-via-curl)
+		- [Sonarqube](#Sonarqube)
 	- [Obtaining `owl-models` and `go-lego.owl`](#obtaining-owl-models-and-go-legoowl)
 		- [Useful source files for learning](#useful-source-files-for-learning)
 	- [Using the Blazegraph model store](#using-the-blazegraph-model-store)
@@ -108,6 +109,32 @@ This assumes you are in the `minerva/` directory, which is the parent of `minerv
 
 ```
 curl localhost:6800/`cat minerva-server/src/test/resources/server-test/long-get.txt`
+```
+
+### Sonarqube
+
+Run sonarqube server locally using docker and ensure it is up and running by visiting [http://localhost:9000](http://localhost:9000)
+
+```
+docker run -d --rm --name sonarqube -p 9000:9000 sonarqube:7.9.6-community
+```
+
+For static analysis:
+
+```
+mvn clean package sonar:sonar -DskipTests
+```
+
+For static analysis and code coverage:
+
+```
+mvn clean package sonar:sonar 
+```
+
+Stopping sonarqube docker container. This would automatically remove the container since the <i>--rm</i> option was used above.
+
+```
+docker stop sonarqube
 ```
 
 ## Obtaining `owl-models` and `go-lego.owl`

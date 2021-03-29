@@ -9,6 +9,24 @@
 	<artifactId>minerva-converter</artifactId>
 	<name>Minerva-Converter</name>
 
+        <build>
+                <plugins>
+                        <plugin>
+                                <groupId>org.apache.maven.plugins</groupId>
+                                <artifactId>maven-surefire-plugin</artifactId>
+                                <configuration>
+                                        <excludes>
+                                                <exclude>**/FooTest.java</exclude>
+                                        </excludes>
+                                </configuration>
+                        </plugin>
+                        <plugin>
+                                <groupId>org.jacoco</groupId>
+                                <artifactId>jacoco-maven-plugin</artifactId>
+                        </plugin>
+                </plugins>
+        </build>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.geneontology</groupId>
