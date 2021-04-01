@@ -289,14 +289,14 @@ public class ModelSearchHandler {
 		for(String type_uri : gene_type_uris) {
 			n++;
 			ind_return.put("?ind"+n, type_uri);
-			ind_return_list = ind_return_list +" (MIN(?ind" + n + ") AS ?minind" + n + ")";
+			ind_return_list = ind_return_list +" (GROUP_CONCAT(?ind" + n + " ; separator=\" \") AS ?inds" + n + ")";
 			types = types+"?ind"+n+" rdf:type <"+type_uri+"> . \n";
 		}
 		if(expand!=null) {
 			for(String go_type_uri : go_type_uris) {
 				n++;
 				ind_return.put("?ind"+n, go_type_uri);
-				ind_return_list = ind_return_list +" (MIN(?ind" + n + ") AS ?minind" + n + ")";
+				ind_return_list = ind_return_list +" (GROUP_CONCAT(?ind" + n + " ; separator=\" \") AS ?inds" + n + ")";
 				String expansion = "VALUES ?term"+n+" { ";
 				try {
 					Set<String> subclasses = go_lego.getAllSubClasses(go_type_uri);
@@ -314,7 +314,7 @@ public class ModelSearchHandler {
 			for(String go_type_uri : go_type_uris) {
 				n++;
 				ind_return.put("?ind"+n, go_type_uri);
-				ind_return_list = ind_return_list +" (MIN(?ind" + n + ") AS ?minind" + n + ")";
+				ind_return_list = ind_return_list +" (GROUP_CONCAT(?ind" + n + " ; separator=\" \") AS ?inds" + n + ")";
 				types = types+"?ind"+n+" rdf:type <"+go_type_uri+"> . \n";
 			}
 		}
@@ -345,8 +345,8 @@ public class ModelSearchHandler {
 			for(String pmid : pmids) {
 				n++;
 				ind_return.put("?ind"+n, pmid);
-				ind_return_list = ind_return_list +" (MIN(?ind" + n + ") AS ?minind" + n + ")";
-				pmid_constraints = pmid_constraints+"?ind"+n+" <http://purl.org/dc/elements/1.1/source> ?pmid FILTER (?pmid=\""+pmid+"\"^^xsd:string) .\n";  		
+				ind_return_list = ind_return_list +" (GROUP_CONCAT(?ind" + n + " ; separator=\" \") AS ?inds" + n + ")";
+				pmid_constraints = pmid_constraints+"?ind"+n+" <http://purl.org/dc/elements/1.1/source> ?pmid FILTER (?pmid=\""+pmid+"\"^^xsd:string) .\n";
 			}
 		}
 		String taxa_constraint = "";
@@ -551,14 +551,16 @@ public class ModelSearchHandler {
 					}
 					//matching     		
 					for(String ind : ind_return.keySet()) {
-						String bindingName = "min" + ind.replace("?", "");
-						String ind_class_match = bs.getBinding(bindingName).getValue().stringValue();
-						Set<String> matching_inds = mm.query_match.get(ind_return.get(ind));
-						if(matching_inds==null) {
-							matching_inds = new HashSet<String>();
+						String bindingName = ind.replace("?ind", "inds");
+						String[] ind_class_matches = bs.getBinding(bindingName).getValue().stringValue().split(" ", -1);
+						for (String ind_class_match : ind_class_matches) {
+							Set<String> matching_inds = mm.query_match.get(ind_return.get(ind));
+							if(matching_inds==null) {
+								matching_inds = new HashSet<String>();
+							}
+							matching_inds.add(ind_class_match);
+							mm.query_match.put(ind_return.get(ind), matching_inds);
 						}
-						matching_inds.add(ind_class_match);
-						mm.query_match.put(ind_return.get(ind), matching_inds);
 					}
 					id_model.put(model_curie, mm);
 				}
