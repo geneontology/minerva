@@ -842,8 +842,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 			tempFile = File.createTempFile(prefix, ".ttl");
 			try {
 				BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
+				OutputStream out = new FileOutputStream(tempFile);
 				try {
-					OutputStream out = new FileOutputStream(tempFile);
 					// Workaround for order dependence of RDF reading by OWL API
 					// Need to output ontology triple first until this bug is fixed:
 					// https://github.com/owlcs/owlapi/issues/574
@@ -856,6 +856,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 					// copy temp file to the finalFile
 					FileUtils.copyFile(tempFile, targetFile);
 				}  finally {
+					out.close();
 					connection.close();
 				}
 			} catch (RepositoryException e) {
