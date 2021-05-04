@@ -25,8 +25,8 @@ PREFIX BFO: <http://purl.obolibrary.org/obo/BFO_>
 PREFIX CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
 PREFIX PR: <http://purl.obolibrary.org/obo/PR_>
 PREFIX molecular_function: <http://purl.obolibrary.org/obo/GO_0003674>
-PREFIX is_active_in: <http://purl.obolibrary.org/obo/RO_0002432>
 PREFIX located_in: <http://purl.obolibrary.org/obo/RO_0001025>
+PREFIX is_active_in: <http://purl.obolibrary.org/obo/RO_0002432>
 
 SELECT DISTINCT ?pr ?pr_type ?rel ?target ?blank_comp ?target_type
 WHERE {
