@@ -55,6 +55,8 @@ WHERE {
         acts_upstream_of_or_within_positive_effect: 
         acts_upstream_of_or_within_negative_effect: 
         contributes_to:
+	located_in:
+	is_active_in:
 	}
 	
 	# the value of ?pr_type should be IRI.
