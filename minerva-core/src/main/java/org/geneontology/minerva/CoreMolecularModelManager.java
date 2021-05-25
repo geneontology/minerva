@@ -840,6 +840,14 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 * @throws OWLOntologyCreationException
 	 */
 	protected abstract OWLOntology loadModelABox(IRI modelId) throws OWLOntologyCreationException;
+	
+	/**
+	 * @param modelId
+	 * @param manager
+	 * @return ontology
+	 * @throws OWLOntologyCreationException
+	 */
+	protected abstract OWLOntology loadModelABox(IRI modelId, OWLOntologyManager manager) throws OWLOntologyCreationException;
 
 	/**
 	 * @param id

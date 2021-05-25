@@ -33,7 +33,7 @@ WHERE {
     }
   } 
   <group_by_constraint>
-  ORDER BY desc(?date) desc(?id)   
+  ORDER BY desc(?mindate) desc(?id)   
 <limit_constraint>
 <offset_constraint>
  

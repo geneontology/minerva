@@ -451,12 +451,14 @@ public class StartUpTool {
 		//		JsonOrJsonpSeedHandler seedHandler = new JsonOrJsonpSeedHandler(models, conf.defaultModelState, conf.golrSeedUrl, ecoMapper );
 	//	SPARQLHandler sparqlHandler = new SPARQLHandler(models, conf.sparqlEndpointTimeout);
 		ModelSearchHandler searchHandler = new ModelSearchHandler(models);
+		ModelARTHandler artHandler = new ModelARTHandler(models, ipc);
+
 		LocalDate d = LocalDate.now();
 		LocalTime t = LocalTime.now(); 
 		String startup = d.toString()+" "+t.toString();
 		StatusHandler statusHandler = new StatusHandler(conf, ont_annos, startup); 
 		TaxonHandler taxonHandler = new TaxonHandler(models);
-		resourceConfig = resourceConfig.registerInstances(batchHandler, searchHandler, statusHandler, taxonHandler);
+		resourceConfig = resourceConfig.registerInstances(batchHandler, searchHandler,artHandler, statusHandler, taxonHandler);
 
 		// setup jetty server port, buffers and context path
 		Server server = new Server();
