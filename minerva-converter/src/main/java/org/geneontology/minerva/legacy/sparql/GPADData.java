@@ -45,7 +45,7 @@ public interface GPADData {
 	public Optional<IRI> getInteractingTaxonID();
 	
 	@Nonnull
-	public String getDate();
+	public String getModificationDate();
 
 	@Nonnull
 	public String getAssignedBy();
