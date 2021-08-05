@@ -54,6 +54,8 @@ public class GPADSPARQLExport {
 	private static final String BP = "http://purl.obolibrary.org/obo/GO_0008150";
 	private static final String CC = "http://purl.obolibrary.org/obo/GO_0005575";
 	private static final Set<String> rootTerms = new HashSet<>(Arrays.asList(MF, BP, CC));
+	private static final String EMAPA_NAMESPACE = "http://purl.obolibrary.org/obo/EMAPA_";
+	private static final String UBERON_NAMESPACE = "http://purl.obolibrary.org/obo/UBERON_";
 	private static final String inconsistentQuery = 
 			"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>" + 
 					"PREFIX owl: <http://www.w3.org/2002/07/owl#>" +
@@ -171,6 +173,9 @@ public class GPADSPARQLExport {
 								}
 							}
 						}
+						// Handle special case of EMAPA; don't include Uberon extensions
+						final boolean isMouseExtension = goodExtensions.stream().anyMatch(e -> e.getFiller().toString().startsWith(EMAPA_NAMESPACE));
+						if (isMouseExtension) goodExtensions.removeIf(e -> e.getFiller().toString().startsWith(UBERON_NAMESPACE));
 						final boolean rootViolation;
 						if (rootTerms.contains(annotation.getOntologyClass().toString())) {
 							rootViolation = !ND.equals(currentEvidence.getEvidence().toString());
