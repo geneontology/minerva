@@ -64,6 +64,22 @@ public class GPADSPARQLTest {
 		Assert.assertTrue("Should produce annotations", lines > 2);
 	}
 
+
+	/**
+	 * This test needs improvements; the current background axioms used in the tests are resulting in the Uberon inference we're trying to avoid
+	 * @throws Exception
+	 */
+	@Test
+	public void testSuppressUberonExtensionsWhenEMAPA() throws Exception {
+		Model model = ModelFactory.createDefaultModel();
+		model.read(this.getClass().getResourceAsStream("/no_uberon_with_emapa.ttl"), "", "ttl");
+		Set<Triple> triples = model.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
+		WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
+		Set<GPADData> annotations = exporter.getGPAD(mem, IRI.create("http://test.org"));
+		Assert.assertTrue(annotations.stream().anyMatch(a -> a.getAnnotationExtensions().stream().anyMatch(e -> e.getFiller().toString().startsWith("http://purl.obolibrary.org/obo/EMAPA_"))));
+		Assert.assertTrue(annotations.stream().noneMatch(a -> a.getAnnotationExtensions().stream().anyMatch(e -> e.getFiller().toString().startsWith("http://purl.obolibrary.org/obo/UBERON_"))));
+	}
+
 	/**
 	 * Test whether the GPAD output contains all required entries and rows without any spurious results.
 	 * Example Input file: the owl dump from http://noctua-dev.berkeleybop.org/editor/graph/gomodel:59d1072300000074
