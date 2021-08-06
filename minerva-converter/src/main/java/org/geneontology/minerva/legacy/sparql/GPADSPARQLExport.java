@@ -26,6 +26,7 @@ import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
+import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
@@ -33,7 +34,6 @@ import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingFactory;
 import org.apache.jena.sparql.engine.binding.BindingMap;
-import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -182,7 +182,8 @@ public class GPADSPARQLExport {
 
 						if (!rootViolation && !doNotAnnotateViolation) {
 							DefaultGPADData defaultGPADData = new DefaultGPADData(annotation.getObject(), annotation.getQualifier(), annotation.getOntologyClass(), goodExtensions, 
-									reference, currentEvidence.getEvidence(), currentEvidence.getWithOrFrom(), Optional.empty(), currentEvidence.getDate(), currentEvidence.getAssignedBy(), currentEvidence.getAnnotations());
+									reference, currentEvidence.getEvidence(), currentEvidence.getWithOrFrom(), Optional.empty(), currentEvidence.getModificationDate(),
+									currentEvidence.getAssignedBy(), currentEvidence.getAnnotations());
 							defaultGPADData.setOperator(annotation.getOperator());
 							annotations.add(defaultGPADData);
 						}
@@ -246,11 +247,15 @@ public class GPADSPARQLExport {
 			if (eqs.get("evidence_type") != null) {
 				Triple statement = Triple.create(eqs.getResource("subject").asNode(), eqs.getResource("predicate").asNode(), eqs.getResource("object").asNode());
 				IRI evidenceType = IRI.create(eqs.getResource("evidence_type").getURI());
-				Optional<String> with = Optional.ofNullable(eqs.getLiteral("with")).map(l -> l.getLexicalForm());
+				Optional<String> with = Optional.ofNullable(eqs.getLiteral("with")).map(Literal::getLexicalForm);
 				Set<Pair<String, String>> annotationAnnotations = new HashSet<>();
 				annotationAnnotations.add(Pair.of("noctua-model-id", modelID));
 				annotationAnnotations.addAll(getContributors(eqs).stream().map(c -> Pair.of("contributor", c)).collect(Collectors.toSet()));
-				String date = eqs.getLiteral("date").getLexicalForm();
+				String modificationDate = eqs.getLiteral("modification_date").getLexicalForm();
+				Optional<String> creationDate = Optional.ofNullable(eqs.getLiteral("creation_date")).map(Literal::getLexicalForm);
+				creationDate.ifPresent(date -> annotationAnnotations.add(Pair.of("creation-date", date)));
+				Optional<String> importDate = Optional.ofNullable(eqs.getLiteral("import_date")).map(Literal::getLexicalForm);
+				importDate.ifPresent(date -> annotationAnnotations.add(Pair.of("import-date", date)));
 				String reference = eqs.getLiteral("source").getLexicalForm();
 				final String usableAssignedBy;
 				Optional<String> assignedByIRIOpt = getAnnotationAssignedBy(eqs);
@@ -264,7 +269,7 @@ public class GPADSPARQLExport {
 				if (modelLevelAnnotations.containsKey("model-state")) {
 					annotationAnnotations.add(Pair.of("model-state", modelLevelAnnotations.get("model-state")));
 				}
-				allEvidences.get(statement).add(new GPADEvidence(evidenceType, reference, with, date, usableAssignedBy, annotationAnnotations, Optional.empty()));
+				allEvidences.get(statement).add(new GPADEvidence(evidenceType, reference, with, modificationDate, usableAssignedBy, annotationAnnotations, Optional.empty()));
 			}
 		}
 		evidenceExecution.close();

@@ -43,7 +43,7 @@ public class GPADEvidence {
 		return interactingTaxon;
 	}
 
-	public String getDate() {
+	public String getModificationDate() {
 		return this.date;
 	}
 
@@ -65,7 +65,7 @@ public class GPADEvidence {
 					&& this.getEvidence().equals(otherEvidence.getEvidence())
 					&& this.getWithOrFrom().equals(otherEvidence.getWithOrFrom())
 					&& this.getInteractingTaxonID().equals(otherEvidence.getInteractingTaxonID())
-					&& this.getDate().equals(otherEvidence.getDate())
+					&& this.getModificationDate().equals(otherEvidence.getModificationDate())
 					&& this.getAssignedBy().equals(otherEvidence.getAssignedBy())
 					&& this.getAnnotations().equals(otherEvidence.getAnnotations());
 		}
@@ -79,7 +79,7 @@ public class GPADEvidence {
 		result = 37 * result + this.getReference().hashCode();
 		result = 37 * result + this.getWithOrFrom().hashCode();
 		result = 37 * result + this.getInteractingTaxonID().hashCode();
-		result = 37 * result + this.getDate().hashCode();
+		result = 37 * result + this.getModificationDate().hashCode();
 		result = 37 * result + this.getAssignedBy().hashCode();
 		result = 37 * result + this.getAnnotations().hashCode();
 		return result;
