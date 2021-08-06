@@ -17,13 +17,13 @@ public class DefaultGPADData implements GPADData {
 	private final IRI evidence;
 	private final Optional<String> withOrFrom;
 	private final Optional<IRI> interactingTaxon;
-	private final String date;
+	private final String modificationDate;
 	private final String assignedBy;
 	private final Set<Pair<String, String>> annotations;
 
-	public DefaultGPADData(IRI object, IRI qualifier, IRI ontologyClass, Set<ConjunctiveExpression> annotationExtensions, 
-			String reference, IRI evidence, Optional<String> withOrFrom, Optional<IRI> interactingTaxon, 
-			String date, String assignedBy, Set<Pair<String, String>> annotations) {
+	public DefaultGPADData(IRI object, IRI qualifier, IRI ontologyClass, Set<ConjunctiveExpression> annotationExtensions,
+						   String reference, IRI evidence, Optional<String> withOrFrom, Optional<IRI> interactingTaxon,
+						   String modificationDate, String assignedBy, Set<Pair<String, String>> annotations) {
 		this.object = object;
 		this.qualifier = qualifier;
 		this.ontologyClass = ontologyClass;
@@ -32,7 +32,7 @@ public class DefaultGPADData implements GPADData {
 		this.evidence = evidence;
 		this.withOrFrom = withOrFrom;
 		this.interactingTaxon = interactingTaxon;
-		this.date = date;
+		this.modificationDate = modificationDate;
 		this.assignedBy = assignedBy;
 		this.annotations = annotations;
 	}
@@ -88,8 +88,8 @@ public class DefaultGPADData implements GPADData {
 	}
 
 	@Override
-	public String getDate() {
-		return this.date;
+	public String getModificationDate() {
+		return this.modificationDate;
 	}
 
 	@Override
@@ -117,7 +117,7 @@ public class DefaultGPADData implements GPADData {
 					&& this.getEvidence().equals(otherData.getEvidence())
 					&& this.getWithOrFrom().equals(otherData.getWithOrFrom())
 					&& this.getInteractingTaxonID().equals(otherData.getInteractingTaxonID())
-					&& this.getDate().equals(otherData.getDate())
+					&& this.getModificationDate().equals(otherData.getModificationDate())
 					&& this.getAssignedBy().equals(otherData.getAssignedBy())
 					&& this.getAnnotations().equals(otherData.getAnnotations());
 		}
@@ -136,7 +136,7 @@ public class DefaultGPADData implements GPADData {
 		result = 37 * result + this.getReference().hashCode();
 		result = 37 * result + this.getWithOrFrom().hashCode();
 		result = 37 * result + this.getInteractingTaxonID().hashCode();
-		result = 37 * result + this.getDate().hashCode();
+		result = 37 * result + this.getModificationDate().hashCode();
 		result = 37 * result + this.getAssignedBy().hashCode();
 		result = 37 * result + this.getAnnotations().hashCode();
 		return result;
