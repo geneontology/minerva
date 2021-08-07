@@ -109,7 +109,7 @@ public class GPADSPARQLExport {
 		Set<GPADData> annotations = getGPAD(wm, modelIRI);
 		return new GPADRenderer(curieHandler, relationShorthandIndex).renderAll(annotations);
 	}
-	
+
 	/* This is a bit convoluted in order to minimize redundant queries, for performance reasons. */
 	public Set<GPADData> getGPAD(WorkingMemory wm, IRI modelIRI) throws InconsistentOntologyException {
 		Model model = ModelFactory.createDefaultModel();
@@ -123,25 +123,25 @@ public class GPADSPARQLExport {
 		//String modelID = model.listResourcesWithProperty(RDF.type, OWL.Ontology).mapWith(r -> curieHandler.getCuri(IRI.create(r.getURI()))).next();
 		String modelID = curieHandler.getCuri(modelIRI);
 		ResultSet results = qe.execSelect();
-		Set<BasicGPADData> basicAnnotations = new HashSet<>();		
+		Set<BasicGPADData> basicAnnotations = new HashSet<>();
 		while (results.hasNext()) {
 			QuerySolution qs = results.next();
-			BasicGPADData basicGPADData = new BasicGPADData(qs.getResource("pr").asNode(), IRI.create(qs.getResource("pr_type").getURI()), IRI.create(qs.getResource("rel").getURI()), qs.getResource("target").asNode(), IRI.create(qs.getResource("target_type").getURI()));			
+			BasicGPADData basicGPADData = new BasicGPADData(qs.getResource("pr").asNode(), IRI.create(qs.getResource("pr_type").getURI()), IRI.create(qs.getResource("rel").getURI()), qs.getResource("target").asNode(), IRI.create(qs.getResource("target_type").getURI()));
 
-			/* See whether the query answer contains not-null blank nodes, which are only set if the matching subgraph 
-			 * contains the property ComplementOf.  If we see such cases, we set the operator field as NOT so that NOT value 
-			 * can be printed in GPAD. */ 
+			/* See whether the query answer contains not-null blank nodes, which are only set if the matching subgraph
+			 * contains the property ComplementOf.  If we see such cases, we set the operator field as NOT so that NOT value
+			 * can be printed in GPAD. */
 			if (qs.getResource("blank_comp") != null) basicGPADData.setOperator(GPADOperatorStatus.NOT);
 			basicAnnotations.add(basicGPADData);
 		}
 		qe.close();
 
-		/* The bindings of ?pr_type, ?rel, ?target_type are candidate mappings or values for the final GPAD records 
+		/* The bindings of ?pr_type, ?rel, ?target_type are candidate mappings or values for the final GPAD records
 		 * (i.e. not every mapping is used for building the final records of GPAD file; many of them are filtered out later).
-		 * The mappings are 
-		 * 		?pr_type: DB Object ID (2nd in GPAD), ?rel: Qualifier(3rd), ?target_type: GO ID(4th) 
+		 * The mappings are
+		 * 		?pr_type: DB Object ID (2nd in GPAD), ?rel: Qualifier(3rd), ?target_type: GO ID(4th)
 		 * The rest of fields in GPAD are then constructed by joining the candidate mappings with mappings describing evidences and so on.
-		 * If the output of this exporter (i.e. GPAD files) does not contain the values you expect, 
+		 * If the output of this exporter (i.e. GPAD files) does not contain the values you expect,
 		 * dump the above "QuerySolution qs" variable and see whether they are included in the dump. */
 		Set<AnnotationExtension> possibleExtensions = possibleExtensions(basicAnnotations, model);
 		Set<Triple> statementsToExplain = new HashSet<>();
@@ -165,7 +165,7 @@ public class GPADSPARQLExport {
 						for (AnnotationExtension extension : possibleExtensions) {
 							if (extension.getTriple().getSubject().equals(annotation.getOntologyClassNode()) && !(extension.getTriple().getObject().equals(annotation.getObjectNode()))) {
 								for (Explanation expl : allExplanations.get(extension.getTriple())) {
-									boolean allFactsOfExplanationHaveRefMatchingAnnotation = toJava(expl.facts()).stream().map(fact -> allEvidences.getOrDefault(Bridge.jenaFromTriple(fact), Collections.emptySet())).allMatch(evidenceSet -> 
+									boolean allFactsOfExplanationHaveRefMatchingAnnotation = toJava(expl.facts()).stream().map(fact -> allEvidences.getOrDefault(Bridge.jenaFromTriple(fact), Collections.emptySet())).allMatch(evidenceSet ->
 									evidenceSet.stream().anyMatch(ev -> ev.getReference().equals(reference)));
 									if (allFactsOfExplanationHaveRefMatchingAnnotation) {
 										goodExtensions.add(new DefaultConjunctiveExpression(IRI.create(extension.getTriple().getPredicate().getURI()), extension.getValueType()));
@@ -196,7 +196,15 @@ public class GPADSPARQLExport {
 				}
 			}
 		}
-		return annotations;
+		Set<IRI> gpsWithRootBPAnnotation = annotations.stream()
+				.filter(a -> a.getOntologyClass().toString().equals(BP))
+				.map(GPADData::getObject)
+				.collect(Collectors.toSet());
+		// Don't output root MF annotations if there is also a root BP annotation
+		Set<GPADData> filteredAnnotations = annotations.stream()
+                .filter(a -> !(a.getOntologyClass().toString().equals(MF) && gpsWithRootBPAnnotation.contains(a.getObject())))
+                .collect(Collectors.toSet());
+		return filteredAnnotations;
 	}
 
 	private Map<String, String> getModelAnnotations(Model model) {
@@ -219,17 +227,17 @@ public class GPADSPARQLExport {
 	}
 
 	/**
-	 * Given a set of triples extracted/generated from the result/answer of query gpad-basic.rq, we find matching evidence subgraphs. 
+	 * Given a set of triples extracted/generated from the result/answer of query gpad-basic.rq, we find matching evidence subgraphs.
 	 * In other words, if there are no matching evidence (i.e. no bindings for evidence_type), we discard (basic) GPAD instance.
-	 * 
-	 * The parameter "facts" consists of triples <?subject, ?predicate, ?object> constructed from a binding of ?pr, ?rel, ?target in gpad_basic.rq. 
+	 *
+	 * The parameter "facts" consists of triples <?subject, ?predicate, ?object> constructed from a binding of ?pr, ?rel, ?target in gpad_basic.rq.
 	 * (The codes that constructing these triples are executed right before this method is called).
-	 * 
+	 *
 	 * These triples are then decomposed into values used as the parameters/bindings for objects of the following patterns.
-	 * 		?axiom owl:annotatedSource   ?subject (i.e. ?pr in gpad_basic.rq) 
-	 * 		?axiom owl:annotatedProperty ?predicate (i.e., ?rel in gpad_basic.rq, which denotes qualifier in GPAD) 
+	 * 		?axiom owl:annotatedSource   ?subject (i.e. ?pr in gpad_basic.rq)
+	 * 		?axiom owl:annotatedProperty ?predicate (i.e., ?rel in gpad_basic.rq, which denotes qualifier in GPAD)
 	 * 		?axiom owl:annotatedTarget    ?object (i.e., ?target in gpad_basic.rq)
-	 * 
+	 *
 	 * If we find the bindings of ?axioms and the values of these bindings have some rdf:type triples, we proceed. (If not, we discard).
 	 * The bindings of the query gpad-relation-evidence-multiple.rq are then used for filling up fields in GPAD records/tuples.
 	 */
@@ -339,11 +347,11 @@ public class GPADSPARQLExport {
 			ResultSet result = qe.execSelect();
 			while (result.hasNext()) {
 				QuerySolution qs = result.next();
-				Resource bad = qs.getResource("s");		
+				Resource bad = qs.getResource("s");
 				LOG.info("owl nothing instance: "+bad.getURI());
 			}
 		}
-		
+
 		return !inconsistent;
 	}
 
