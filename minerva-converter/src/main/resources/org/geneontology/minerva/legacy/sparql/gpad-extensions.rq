@@ -34,6 +34,8 @@ VALUES ?extension_rel {
 <http://purl.obolibrary.org/obo/GOREL_0002007>
 <http://purl.obolibrary.org/obo/GOREL_0002008>
 <http://purl.obolibrary.org/obo/GOREL_0012006>
+<http://purl.obolibrary.org/obo/RO_0002490>
+<http://purl.obolibrary.org/obo/RO_0002491>
 <http://purl.obolibrary.org/obo/RO_0000053>
 <http://purl.obolibrary.org/obo/RO_0000057>
 <http://purl.obolibrary.org/obo/RO_0000087>
