@@ -150,6 +150,7 @@ public class GPADSPARQLExport {
 		Map<Triple, Set<Explanation>> allExplanations = statementsToExplain.stream().collect(Collectors.toMap(Function.identity(), s -> toJava(wm.explain(Bridge.tripleFromJena(s)))));
 
 		Map<Triple, Set<GPADEvidence>> allEvidences = evidencesForFacts(allExplanations.values().stream().flatMap(es -> es.stream()).flatMap(e -> toJava(e.facts()).stream().map(t -> Bridge.jenaFromTriple(t))).collect(Collectors.toSet()), model, modelID, modelLevelAnnotations);
+		Set<Node> gpNodesWithOtherThanRootMF = basicAnnotations.stream().filter(a -> !a.getOntologyClass().toString().equals(MF)).map(a -> a.getObjectNode()).collect(Collectors.toSet());
 		for (BasicGPADData annotation : basicAnnotations) {
 			for (Explanation explanation : allExplanations.get(Triple.create(annotation.getObjectNode(), NodeFactory.createURI(annotation.getQualifier().toString()), annotation.getOntologyClassNode()))) {
 				Set<Triple> requiredFacts = toJava(explanation.facts()).stream().map(t -> Bridge.jenaFromTriple(t)).collect(Collectors.toSet());
@@ -184,8 +185,8 @@ public class GPADSPARQLExport {
 						if (doNotAnnotateSubset.contains(annotation.getOntologyClass())) {
 							doNotAnnotateViolation = true;
 						} else { doNotAnnotateViolation = false; }
-
-						if (!rootViolation && !doNotAnnotateViolation) {
+						final boolean rootMFWithBP = annotation.getOntologyClass().toString().equals(MF) && gpNodesWithOtherThanRootMF.contains(annotation.getObjectNode());
+						if (!rootViolation && !doNotAnnotateViolation && !rootMFWithBP) {
 							DefaultGPADData defaultGPADData = new DefaultGPADData(annotation.getObject(), annotation.getQualifier(), annotation.getOntologyClass(), goodExtensions, 
 									reference, currentEvidence.getEvidence(), currentEvidence.getWithOrFrom(), Optional.empty(), currentEvidence.getModificationDate(),
 									currentEvidence.getAssignedBy(), currentEvidence.getAnnotations());
@@ -196,15 +197,7 @@ public class GPADSPARQLExport {
 				}
 			}
 		}
-		Set<IRI> gpsWithRootBPAnnotation = annotations.stream()
-				.filter(a -> a.getOntologyClass().toString().equals(BP))
-				.map(GPADData::getObject)
-				.collect(Collectors.toSet());
-		// Don't output root MF annotations if there is also a root BP annotation
-		Set<GPADData> filteredAnnotations = annotations.stream()
-                .filter(a -> !(a.getOntologyClass().toString().equals(MF) && gpsWithRootBPAnnotation.contains(a.getObject())))
-                .collect(Collectors.toSet());
-		return filteredAnnotations;
+		return annotations;
 	}
 
 	private Map<String, String> getModelAnnotations(Model model) {
