@@ -22,6 +22,7 @@ import org.geneontology.minerva.lookup.CachingExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.GolrExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.semanticweb.owlapi.model.IRI;
 
@@ -112,7 +113,7 @@ public class GolrExternalLookupServiceTest {
 		assertEquals(1, lookup.size());
 		e = lookup.get(0);
 		assertEquals("PHO85 Scer", e.label);
-		assertEquals(15, e.isa_closure.size());
+		assertTrue(e.isa_closure.size() >= 15);
 		assertTrue(e.isa_closure.contains("CHEBI:33695"));
 //		
 //		//example non-gene obo:ComplexPortal_CPX-900  http://purl.obolibrary.org/obo/ComplexPortal_CPX-900
