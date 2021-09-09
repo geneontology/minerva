@@ -7,6 +7,8 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.reasoner.rulesys.Rule;
 import org.apache.jena.system.JenaSystem;
 import org.geneontology.jena.OWLtoRules;
+import org.geneontology.minerva.MolecularModelManager;
+import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.rules.engine.RuleEngine;
 import org.geneontology.rules.engine.Triple;
@@ -16,10 +18,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.model.parameters.Imports;
 import scala.collection.JavaConverters;
 
@@ -136,7 +135,17 @@ public class GPADSPARQLTest {
 		Set<GPADData> annotations = exporter.getGPAD(mem, IRI.create("http://test.org"));
 		IRI gene = IRI.create("http://identifiers.org/mgi/MGI:2153470");
 		IRI rootMF = IRI.create("http://purl.obolibrary.org/obo/GO_0003674");
+		IRI rootBP = IRI.create("http://purl.obolibrary.org/obo/GO_0008150");
 		Assert.assertTrue(annotations.stream().noneMatch(a -> a.getObject().equals(gene) && a.getOntologyClass().equals(rootMF)));
+
+		Model model2 = ModelFactory.createDefaultModel();
+		model2.read(this.getClass().getResourceAsStream("/test_root_mf_filter2.ttl"), "", "ttl");
+		Set<Triple> triples2 = model2.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
+		WorkingMemory mem2 = arachne.processTriples(JavaConverters.asScalaSetConverter(triples2).asScala());
+		Set<GPADData> annotations2 = exporter.getGPAD(mem2, IRI.create("http://test.org"));
+		IRI gene2 = IRI.create("http://identifiers.org/mgi/MGI:98392");
+		Assert.assertTrue(annotations2.stream().anyMatch(a -> a.getObject().equals(gene2) && a.getOntologyClass().equals(rootMF)));
+		Assert.assertTrue(annotations2.stream().anyMatch(a -> a.getObject().equals(gene2) && a.getOntologyClass().equals(rootBP)));
 	}
 
 }
