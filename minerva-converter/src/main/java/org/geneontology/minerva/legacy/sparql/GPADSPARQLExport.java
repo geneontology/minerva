@@ -96,13 +96,11 @@ public class GPADSPARQLExport {
 	private final CurieHandler curieHandler;
 	private final Map<IRI, String> relationShorthandIndex;
 	private final Map<IRI, String> tboxShorthandIndex;
-	private final Set<IRI> doNotAnnotateSubset;
 
-	public GPADSPARQLExport(CurieHandler handler, Map<IRI, String> shorthandIndex, Map<IRI, String> tboxShorthandIndex, Set<IRI> doNotAnnotateSubset) {
+	public GPADSPARQLExport(CurieHandler handler, Map<IRI, String> shorthandIndex, Map<IRI, String> tboxShorthandIndex) {
 		this.curieHandler = handler;
 		this.relationShorthandIndex = shorthandIndex;
 		this.tboxShorthandIndex = tboxShorthandIndex;
-		this.doNotAnnotateSubset = doNotAnnotateSubset;
 	}
 
 	public String exportGPAD(WorkingMemory wm, IRI modelIRI) throws InconsistentOntologyException {
@@ -181,12 +179,8 @@ public class GPADSPARQLExport {
 						if (rootTerms.contains(annotation.getOntologyClass().toString())) {
 							rootViolation = !ND.equals(currentEvidence.getEvidence().toString());
 						} else { rootViolation = false; }
-						final boolean doNotAnnotateViolation;
-						if (doNotAnnotateSubset.contains(annotation.getOntologyClass())) {
-							doNotAnnotateViolation = true;
-						} else { doNotAnnotateViolation = false; }
 						final boolean rootMFWithBP = annotation.getOntologyClass().toString().equals(MF) && gpNodesWithOtherThanRootMF.contains(annotation.getObjectNode());
-						if (!rootViolation && !doNotAnnotateViolation && !rootMFWithBP) {
+						if (!rootViolation && !rootMFWithBP) {
 							DefaultGPADData defaultGPADData = new DefaultGPADData(annotation.getObject(), annotation.getQualifier(), annotation.getOntologyClass(), goodExtensions, 
 									reference, currentEvidence.getEvidence(), currentEvidence.getWithOrFrom(), Optional.empty(), currentEvidence.getModificationDate(),
 									currentEvidence.getAssignedBy(), currentEvidence.getAnnotations());
