@@ -920,13 +920,13 @@ public class CommandLineInterface {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}  
+		
 		if(checkShex) {
-			if(checkShex) {
-				shex.setActive(true);
-			}else {
-				shex.setActive(false);
-			}
+			shex.setActive(true);
+		}else {
+			shex.setActive(false);
 		}
+		
 		//shex validator is ready, now build the inference provider (which provides access to the shex validator and provides inferences useful for shex)
 		String reasonerOpt = "arachne"; 
 		LOGGER.info("Building OWL inference provider: "+reasonerOpt);
