@@ -254,8 +254,6 @@ public class GPADSPARQLExport {
 				String modificationDate = eqs.getLiteral("modification_date").getLexicalForm();
 				Optional<String> creationDate = Optional.ofNullable(eqs.getLiteral("creation_date")).map(Literal::getLexicalForm);
 				creationDate.ifPresent(date -> annotationAnnotations.add(Pair.of("creation-date", date)));
-				Optional<String> importDate = Optional.ofNullable(eqs.getLiteral("import_date")).map(Literal::getLexicalForm);
-				importDate.ifPresent(date -> annotationAnnotations.add(Pair.of("import-date", date)));
 				String reference = eqs.getLiteral("source").getLexicalForm();
 				final String usableAssignedBy;
 				Optional<String> assignedByIRIOpt = getAnnotationAssignedBy(eqs);

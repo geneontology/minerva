@@ -7,8 +7,6 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.reasoner.rulesys.Rule;
 import org.apache.jena.system.JenaSystem;
 import org.geneontology.jena.OWLtoRules;
-import org.geneontology.minerva.MolecularModelManager;
-import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.rules.engine.RuleEngine;
 import org.geneontology.rules.engine.Triple;
@@ -18,12 +16,18 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLOntology;
+import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.parameters.Imports;
 import scala.collection.JavaConverters;
 
 import java.io.File;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class GPADSPARQLTest {
@@ -122,8 +126,7 @@ public class GPADSPARQLTest {
 		Set<GPADData> annotations = exporter.getGPAD(mem, IRI.create("http://test.org"));
 		IRI gene = IRI.create("http://identifiers.org/mgi/MGI:1922815");
 		Pair<String, String> creationDate = Pair.of("creation-date", "2012-09-17");
-		Pair<String, String> importDate = Pair.of("import-date", "2021-08-09");
-		Assert.assertTrue(annotations.stream().anyMatch(a -> a.getObject().equals(gene) && a.getAnnotations().contains(creationDate) && a.getAnnotations().contains(importDate)));
+		Assert.assertTrue(annotations.stream().anyMatch(a -> a.getObject().equals(gene) && a.getAnnotations().contains(creationDate)));
 	}
 
 	@Test
