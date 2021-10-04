@@ -1,0 +1,16 @@
+# This query generates a table of all "regulation" GO terms paired with the GO terms they regulate.
+# It precomputes the closure "down" for regulation terms and "up" for regulated terms.
+# The query assumes the ontology has been through `robot reason relax`.
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX regulates: <http://purl.obolibrary.org/obo/RO_0002211>
+SELECT DISTINCT ?subjectDown ?fillerUp
+WHERE {
+    ?regulates rdfs:subPropertyOf* regulates: .
+    ?exp owl:onProperty ?regulates .
+    ?exp owl:someValuesFrom ?filler .
+    ?filler rdfs:subClassOf* ?fillerUp .
+    ?subjectDown rdfs:subClassOf+ ?exp .
+    FILTER(isIRI(?fillerUp))
+    FILTER(isIRI(?subjectDown))
+}
