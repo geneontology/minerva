@@ -52,7 +52,7 @@ public class GPADRenderer {
 			columns.add(curieHandler.getCuri(data.getEvidence()));
 			columns.add(data.getWithOrFrom().orElse(""));
 			columns.add(""); // not using interacting taxon in LEGO models
-			columns.add(formatDate(data.getDate()));
+			columns.add(formatDate(data.getModificationDate()));
 			columns.add(data.getAssignedBy());
 			columns.add(formatAnnotationExtensions(data.getAnnotationExtensions()));
 			columns.add(data.getAnnotations().stream()

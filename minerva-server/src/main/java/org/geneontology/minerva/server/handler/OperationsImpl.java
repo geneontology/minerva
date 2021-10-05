@@ -722,7 +722,7 @@ abstract class OperationsImpl extends ModelCreator {
 		if ("gpad".equals(format)) {
 			initMetaResponse(response);
 			try {
-				GPADSPARQLExport exporter = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset());
+				GPADSPARQLExport exporter = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex());
 				WorkingMemory wm = m3.createCanonicalInferredModel(model.getModelId());
 				response.data.exportModel = exporter.exportGPAD(wm, model.getModelId());				
 		//		response.data.exportModel = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getDoNotAnnotateSubset()).exportGPAD(

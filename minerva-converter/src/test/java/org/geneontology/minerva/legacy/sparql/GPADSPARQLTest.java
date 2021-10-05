@@ -1,14 +1,7 @@
 package org.geneontology.minerva.legacy.sparql;
 
-import java.io.File;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.reasoner.rulesys.Rule;
@@ -28,8 +21,14 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.parameters.Imports;
-
 import scala.collection.JavaConverters;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class GPADSPARQLTest {
 	private static RuleEngine arachne;
@@ -48,7 +47,7 @@ public class GPADSPARQLTest {
 	@BeforeClass
 	public static void setupExporter() {
 		JenaSystem.init();
-		exporter = new GPADSPARQLExport(DefaultCurieHandler.getDefaultHandler(), new HashMap<IRI, String>(), new HashMap<IRI, String>(), Collections.emptySet());
+		exporter = new GPADSPARQLExport(DefaultCurieHandler.getDefaultHandler(), new HashMap<IRI, String>(), new HashMap<IRI, String>());
 	}
 
 	@Test
@@ -62,6 +61,22 @@ public class GPADSPARQLTest {
 		//TODO test contents of annotations; dumb test for now
 		Assert.assertTrue(gpad.contains("model-state=production"));
 		Assert.assertTrue("Should produce annotations", lines > 2);
+	}
+
+
+	/**
+	 * This test needs improvements; the current background axioms used in the tests are resulting in the Uberon inference we're trying to avoid
+	 * @throws Exception
+	 */
+	@Test
+	public void testSuppressUberonExtensionsWhenEMAPA() throws Exception {
+		Model model = ModelFactory.createDefaultModel();
+		model.read(this.getClass().getResourceAsStream("/no_uberon_with_emapa.ttl"), "", "ttl");
+		Set<Triple> triples = model.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
+		WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
+		Set<GPADData> annotations = exporter.getGPAD(mem, IRI.create("http://test.org"));
+		Assert.assertTrue(annotations.stream().anyMatch(a -> a.getAnnotationExtensions().stream().anyMatch(e -> e.getFiller().toString().startsWith("http://purl.obolibrary.org/obo/EMAPA_"))));
+		Assert.assertTrue(annotations.stream().noneMatch(a -> a.getAnnotationExtensions().stream().anyMatch(e -> e.getFiller().toString().startsWith("http://purl.obolibrary.org/obo/UBERON_"))));
 	}
 
 	/**
@@ -101,4 +116,39 @@ public class GPADSPARQLTest {
 			 }
 		 }
 	}
+
+	@Test
+	public void testGPADContainsAcceptedAndCreatedDates() throws Exception {
+		Model model = ModelFactory.createDefaultModel();
+		model.read(this.getClass().getResourceAsStream("/created-date-test.ttl"), "", "ttl");
+		Set<Triple> triples = model.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
+		WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
+		Set<GPADData> annotations = exporter.getGPAD(mem, IRI.create("http://test.org"));
+		IRI gene = IRI.create("http://identifiers.org/mgi/MGI:1922815");
+		Pair<String, String> creationDate = Pair.of("creation-date", "2012-09-17");
+		Assert.assertTrue(annotations.stream().anyMatch(a -> a.getObject().equals(gene) && a.getAnnotations().contains(creationDate)));
+	}
+
+	@Test
+	public void testFilterRootMFWhenRootBP() throws Exception {
+		Model model = ModelFactory.createDefaultModel();
+		model.read(this.getClass().getResourceAsStream("/test_root_mf_filter.ttl"), "", "ttl");
+		Set<Triple> triples = model.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
+		WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
+		Set<GPADData> annotations = exporter.getGPAD(mem, IRI.create("http://test.org"));
+		IRI gene = IRI.create("http://identifiers.org/mgi/MGI:2153470");
+		IRI rootMF = IRI.create("http://purl.obolibrary.org/obo/GO_0003674");
+		IRI rootBP = IRI.create("http://purl.obolibrary.org/obo/GO_0008150");
+		Assert.assertTrue(annotations.stream().noneMatch(a -> a.getObject().equals(gene) && a.getOntologyClass().equals(rootMF)));
+
+		Model model2 = ModelFactory.createDefaultModel();
+		model2.read(this.getClass().getResourceAsStream("/test_root_mf_filter2.ttl"), "", "ttl");
+		Set<Triple> triples2 = model2.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
+		WorkingMemory mem2 = arachne.processTriples(JavaConverters.asScalaSetConverter(triples2).asScala());
+		Set<GPADData> annotations2 = exporter.getGPAD(mem2, IRI.create("http://test.org"));
+		IRI gene2 = IRI.create("http://identifiers.org/mgi/MGI:98392");
+		Assert.assertTrue(annotations2.stream().anyMatch(a -> a.getObject().equals(gene2) && a.getOntologyClass().equals(rootMF)));
+		Assert.assertTrue(annotations2.stream().anyMatch(a -> a.getObject().equals(gene2) && a.getOntologyClass().equals(rootBP)));
+	}
+
 }
