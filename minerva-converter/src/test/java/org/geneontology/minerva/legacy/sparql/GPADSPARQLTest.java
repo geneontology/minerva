@@ -24,10 +24,7 @@ import org.semanticweb.owlapi.model.parameters.Imports;
 import scala.collection.JavaConverters;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class GPADSPARQLTest {
@@ -47,7 +44,7 @@ public class GPADSPARQLTest {
 	@BeforeClass
 	public static void setupExporter() {
 		JenaSystem.init();
-		exporter = new GPADSPARQLExport(DefaultCurieHandler.getDefaultHandler(), new HashMap<IRI, String>(), new HashMap<IRI, String>());
+		exporter = new GPADSPARQLExport(DefaultCurieHandler.getDefaultHandler(), new HashMap<IRI, String>(), new HashMap<IRI, String>(), new HashMap<>());
 	}
 
 	@Test
@@ -149,6 +146,23 @@ public class GPADSPARQLTest {
 		IRI gene2 = IRI.create("http://identifiers.org/mgi/MGI:98392");
 		Assert.assertTrue(annotations2.stream().anyMatch(a -> a.getObject().equals(gene2) && a.getOntologyClass().equals(rootMF)));
 		Assert.assertTrue(annotations2.stream().anyMatch(a -> a.getObject().equals(gene2) && a.getOntologyClass().equals(rootBP)));
+	}
+
+	@Test
+	public void testFilterAnnotationsToRegulatedProcess() throws Exception {
+		HashMap<IRI, Set<IRI>> regulators = new HashMap<>();
+		regulators.put(IRI.create("http://purl.obolibrary.org/obo/GO_0030511"), Collections.singleton(IRI.create("http://purl.obolibrary.org/obo/GO_0007179")));
+		GPADSPARQLExport exporter = new GPADSPARQLExport(DefaultCurieHandler.getDefaultHandler(), new HashMap<IRI, String>(), new HashMap<IRI, String>(), regulators);
+		Model model = ModelFactory.createDefaultModel();
+		model.read(this.getClass().getResourceAsStream("/test_filter_regulated_process.ttl"), "", "ttl");
+		Set<Triple> triples = model.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
+		WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
+		Set<GPADData> annotations = exporter.getGPAD(mem, IRI.create("http://test.org"));
+		IRI gene = IRI.create("http://identifiers.org/mgi/MGI:2148811");
+		IRI regulator = IRI.create("http://purl.obolibrary.org/obo/GO_0030511");
+		IRI regulated = IRI.create("http://purl.obolibrary.org/obo/GO_0007179");
+		Assert.assertTrue(annotations.stream().anyMatch(a -> a.getObject().equals(gene) && a.getOntologyClass().equals(regulator)));
+		Assert.assertTrue(annotations.stream().noneMatch(a -> a.getObject().equals(gene) && a.getOntologyClass().equals(regulated)));
 	}
 
 }

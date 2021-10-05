@@ -744,7 +744,7 @@ public class CommandLineInterface {
 		m3.getAvailableModelIds().stream().parallel().forEach(modelIRI -> {
 			try {
 				//TODO investigate whether changing to a neo-lite model has an impact on this - may need to make use of ontology journal
-				String gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex()).exportGPAD(m3.createInferredModel(modelIRI), modelIRI);
+				String gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getGolego_repo().regulatorsToRegulated).exportGPAD(m3.createInferredModel(modelIRI), modelIRI);
 				String fileName = StringUtils.replaceOnce(modelIRI.toString(), immutableModelIdPrefix, "") + ".gpad";
 				Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(immutableGpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
 				writer.write(gpad);
@@ -1038,7 +1038,7 @@ public class CommandLineInterface {
 				int n_rows_gpad = 0;
 				if(isConsistent) {
 					try {
-						Set<GPADData> gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex()).getGPAD(m3.createInferredModel(modelIRI), modelIRI);
+						Set<GPADData> gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getGolego_repo().regulatorsToRegulated).getGPAD(m3.createInferredModel(modelIRI), modelIRI);
 						if(gpad!=null) {
 							n_rows_gpad = gpad.size();
 						}
