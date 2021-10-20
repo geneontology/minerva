@@ -84,6 +84,8 @@ public class BlazegraphOntologyManager {
 		root_types.add("http://purl.obolibrary.org/obo/UBERON_0001062"); //anatomical entity
 		root_types.add("http://purl.obolibrary.org/obo/GO_0110165"); //cellular anatomical entity 
 		root_types.add("http://purl.obolibrary.org/obo/CARO_0000000"); // root root anatomical entity
+		root_types.add("http://purl.obolibrary.org/obo/UBERON_0000105"); // life cycle stage
+		root_types.add("http://purl.obolibrary.org/obo/PO_0009012"); // plant structure development stage
 		root_types.add("http://purl.obolibrary.org/obo/ECO_0000000"); //evidence root.  
 	}
 
