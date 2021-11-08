@@ -148,7 +148,7 @@ public class ShexValidator {
 
 	public ShexValidationReport runShapeMapValidation(Model test_model) {
 		boolean explain = true;
-		ShexValidationReport r = new ShexValidationReport(null, test_model);	
+		ShexValidationReport r = new ShexValidationReport();	
 		JenaRDF jr = new JenaRDF();
 		//this shex implementation likes to use the commons JenaRDF interface, nothing exciting here
 		JenaGraph shexy_graph = jr.asGraph(test_model);
@@ -282,7 +282,7 @@ public class ShexValidator {
 
 
 	public ShexValidationReport runShapeMapValidationWithRecursiveSingleNodeValidation(Model test_model, boolean stream_output) throws Exception {		
-		ShexValidationReport r = new ShexValidationReport(null, test_model);	
+		ShexValidationReport r = new ShexValidationReport();	
 		JenaRDF jr = new JenaRDF();
 		//this shex implementation likes to use the commons JenaRDF interface, nothing exciting here
 		JenaGraph shexy_graph = jr.asGraph(test_model);

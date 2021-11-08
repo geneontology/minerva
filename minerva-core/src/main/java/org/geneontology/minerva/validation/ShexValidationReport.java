@@ -36,8 +36,8 @@ public class ShexValidationReport extends ModelValidationReport{
 	/**
 	 * 
 	 */
-	public ShexValidationReport(String id, Model model) {
-		super(id, tracker, rulefile);
+	public ShexValidationReport() {
+		super(null, tracker, rulefile);
 	}
 
 	public String getAsText() {
