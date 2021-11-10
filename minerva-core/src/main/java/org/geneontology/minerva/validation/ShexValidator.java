@@ -589,9 +589,15 @@ public class ShexValidator {
 		String getOntTerms = 
 				"PREFIX owl: <http://www.w3.org/2002/07/owl#> "
 						+ "SELECT DISTINCT ?term " + 
-						"        WHERE { " + 
+						"        WHERE { " +
+						"        {     " +
 						"        ?ind a owl:NamedIndividual . " + 
-						"        ?ind a ?term . " + 
+						"        ?ind a ?term . " +
+						"        } " +
+						"        UNION" +
+						"        {" +
+						"        ?term a owl:Class ." +
+						"        }" +
 						"        FILTER(?term != owl:NamedIndividual)" + 
 						"        FILTER(isIRI(?term)) ." + 
 						"        }";
@@ -672,9 +678,11 @@ public class ShexValidator {
 		String getOntTerms = 
 				"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
 						+ "PREFIX owl: <http://www.w3.org/2002/07/owl#> "
-						+ "SELECT DISTINCT ?type " + 
-						"        WHERE { " + 
-						"<"+node_uri+"> rdf:type ?type . " + 
+						+ "SELECT DISTINCT ?type ?is_negated " +
+						"        WHERE { " +
+						"{ <"+node_uri+"> rdf:type ?type . FILTER(isIRI(?type)) VALUES ?is_negated { false } }" +
+						"UNION" +
+						"{ <"+node_uri+"> rdf:type ?blank . ?blank owl:complementOf ?type . FILTER(isBlank(?blank) && isIRI(?type)) VALUES ?is_negated { true } }" +
 						"FILTER(?type != owl:NamedIndividual)" + 
 						"        }";
 		Set<String> types = new HashSet<String>();
@@ -684,7 +692,11 @@ public class ShexValidator {
 			while (results.hasNext()) {
 				QuerySolution qs = results.next();
 				Resource type = qs.getResource("type");
-				types.add(getCurie(type.getURI()));
+				boolean isNegated = qs.getLiteral("is_negated").getBoolean();
+				String typeCurie = getCurie(type.getURI());
+				if (isNegated) {
+					types.add("NOT(" + typeCurie + ")");
+				} else types.add(typeCurie);
 				//				OWLClass t = tbox_reasoner.getRootOntology().getOWLOntologyManager().getOWLDataFactory().getOWLClass(IRI.create(type.getURI()));
 				//				for(OWLClass p : tbox_reasoner.getSuperClasses(t, false).getFlattened()) {
 				//					String type_curie = getCurie(p.getIRI().toString());
