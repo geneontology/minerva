@@ -57,6 +57,9 @@ public class GPADSPARQLExport {
 	private static final String BP = "http://purl.obolibrary.org/obo/GO_0008150";
 	private static final String CC = "http://purl.obolibrary.org/obo/GO_0005575";
 	private static final Set<String> rootTerms = new HashSet<>(Arrays.asList(MF, BP, CC));
+	private static final String ENABLES = "http://purl.obolibrary.org/obo/RO_0002327";
+	private static final String CONTRIBUTES_TO = "http://purl.obolibrary.org/obo/RO_0002326";
+	private static final Set<String> functionRelations = new HashSet<>(Arrays.asList(ENABLES, CONTRIBUTES_TO));
 	private static final String EMAPA_NAMESPACE = "http://purl.obolibrary.org/obo/EMAPA_";
 	private static final String UBERON_NAMESPACE = "http://purl.obolibrary.org/obo/UBERON_";
 	private static final String inconsistentQuery = 
@@ -153,7 +156,7 @@ public class GPADSPARQLExport {
 		Map<Triple, Set<Explanation>> allExplanations = statementsToExplain.stream().collect(Collectors.toMap(Function.identity(), s -> toJava(wm.explain(Bridge.tripleFromJena(s)))));
 
 		Map<Triple, Set<GPADEvidence>> allEvidences = evidencesForFacts(allExplanations.values().stream().flatMap(es -> es.stream()).flatMap(e -> toJava(e.facts()).stream().map(t -> Bridge.jenaFromTriple(t))).collect(toSet()), model, modelID, modelLevelAnnotations);
-		Set<Node> gpNodesWithOtherThanRootMF = basicAnnotations.stream().filter(a -> !a.getOntologyClass().toString().equals(MF)).map(a -> a.getObjectNode()).collect(toSet());
+		Set<IRI> gpsWithAnyMFNotRootMF = basicAnnotations.stream().filter(a -> functionRelations.contains(a.getQualifier().toString())).filter(a -> !a.getOntologyClass().toString().equals(MF)).map(a -> a.getObject()).collect(toSet());
 		Map<Node, Set<IRI>> nodesToOntologyClasses = basicAnnotations.stream().collect(Collectors.groupingBy(BasicGPADData::getObjectNode, mapping(BasicGPADData::getOntologyClass, toSet())));
 		for (BasicGPADData annotation : basicAnnotations) {
 			Set<IRI> termsRegulatedByAnnotationsForThisGPNode = nodesToOntologyClasses.get(annotation.getObjectNode()).stream().flatMap(term -> regulators.getOrDefault(term, Collections.emptySet()).stream()).collect(toSet());
@@ -188,8 +191,8 @@ public class GPADSPARQLExport {
 						if (rootTerms.contains(annotation.getOntologyClass().toString())) {
 							rootViolation = !ND.equals(currentEvidence.getEvidence().toString());
 						} else { rootViolation = false; }
-						final boolean rootMFWithBP = annotation.getOntologyClass().toString().equals(MF) && gpNodesWithOtherThanRootMF.contains(annotation.getObjectNode());
-						if (!rootViolation && !rootMFWithBP) {
+						final boolean rootMFWithOtherMF = annotation.getOntologyClass().toString().equals(MF) && gpsWithAnyMFNotRootMF.contains(annotation.getObject());
+						if (!rootViolation && !rootMFWithOtherMF) {
 							DefaultGPADData defaultGPADData = new DefaultGPADData(annotation.getObject(), annotation.getQualifier(), annotation.getOntologyClass(), goodExtensions, 
 									reference, currentEvidence.getEvidence(), currentEvidence.getWithOrFrom(), Optional.empty(), currentEvidence.getModificationDate(),
 									currentEvidence.getAssignedBy(), currentEvidence.getAnnotations());
