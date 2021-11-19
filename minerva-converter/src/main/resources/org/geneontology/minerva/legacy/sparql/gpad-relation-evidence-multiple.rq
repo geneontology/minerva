@@ -32,7 +32,7 @@ FILTER(?evidence_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO
 ?evidence dc:contributor ?contributor .
 ?evidence dc:date ?modification_date .
 ?evidence dc:source ?source_pub .
-OPTIONAL { ?axiom dct:created ?creation_date }
+OPTIONAL { ?evidence dct:created ?creation_date }
 OPTIONAL { ?axiom dct:dateAccepted ?import_date }
 OPTIONAL { ?evidence pav:providedBy ?provided_by . }
 OPTIONAL { ?evidence <http://geneontology.org/lego/evidence-with> ?with }
