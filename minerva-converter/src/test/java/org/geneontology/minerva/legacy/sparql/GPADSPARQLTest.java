@@ -121,8 +121,8 @@ public class GPADSPARQLTest {
 		Set<Triple> triples = model.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
 		WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
 		Set<GPADData> annotations = exporter.getGPAD(mem, IRI.create("http://test.org"));
-		IRI gene = IRI.create("http://identifiers.org/mgi/MGI:1922815");
-		Pair<String, String> creationDate = Pair.of("creation-date", "2012-09-17");
+		IRI gene = IRI.create("http://identifiers.org/wormbase/WBGene00001326");
+		Pair<String, String> creationDate = Pair.of("creation-date", "2021-05-13");
 		Assert.assertTrue(annotations.stream().anyMatch(a -> a.getObject().equals(gene) && a.getAnnotations().contains(creationDate)));
 	}
 
