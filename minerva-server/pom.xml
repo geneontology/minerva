@@ -117,22 +117,11 @@
 			<artifactId>minerva-converter</artifactId>
 			<version>${project.parent.version}</version>
 		</dependency>
-<!-- 	<dependency>
-			<groupId>org.bbop</groupId>
-			<artifactId>golr-client</artifactId>
+		<dependency>
+			<groupId>org.apache.ant</groupId>
+			<artifactId>ant</artifactId>
+			<version>1.10.11</version>
 		</dependency>
-
-  	<dependency>
-			<groupId>org.bbop</groupId>
-			<artifactId>OWLTools-Runner</artifactId>
-		</dependency>
--->
-		<!-- https://mvnrepository.com/artifact/org.apache.ant/ant -->
-<dependency>
-    <groupId>org.apache.ant</groupId>
-    <artifactId>ant</artifactId>
-    <version>1.9.14</version>
-</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-server</artifactId>
