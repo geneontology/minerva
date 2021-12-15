@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <Console name="STDOUT" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d %-5p (%c:%L) %m\n"/>
+        </Console>
+    </Appenders>
+    <Loggers>
+        <Logger name="org.apache.log4j.xml" level="info"/>
+        <Logger name="org.semanticweb.elk" level="error">
+            <AppenderRef ref="STDOUT"/>
+        </Logger>
+        <Logger name="org.obolibrary.obo2owl" level="off">
+            <AppenderRef ref="STDOUT"/>
+        </Logger>
+        <Logger name="org.semanticweb.owlapi" level="error">
+            <AppenderRef ref="STDOUT"/>
+        </Logger>
+        <Logger name="com.bigdata" level="warn">
+            <AppenderRef ref="STDOUT"/>
+        </Logger>
+        <Root level="info">
+            <AppenderRef ref="STDOUT"/>
+        </Root>
+    </Loggers>
+</Configuration>

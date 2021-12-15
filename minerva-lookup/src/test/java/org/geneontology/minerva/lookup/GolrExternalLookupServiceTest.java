@@ -121,7 +121,7 @@ public class GolrExternalLookupServiceTest {
 		lookup = s.lookup(gp_iri);
 		assertEquals(1, lookup.size());
 		e = lookup.get(0);
-		assertEquals("saga _human Hsap", e.label);
+		assertEquals("saga-kat2a_human Hsap", e.label);
 		assertEquals(15, e.isa_closure.size());
 		assertTrue(e.isa_closure.contains("CHEBI:33695"));
 	}

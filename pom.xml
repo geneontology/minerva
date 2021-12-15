@@ -19,6 +19,7 @@
 		<sesame.version>2.7.12</sesame.version> <!-- use same as Blazegraph  -->
 		<jetty.version>9.2.3.v20140905</jetty.version> <!--  needs to be exactly 9.2.3.v20140905 - older or newer version of jetty will not work with text search api-->
 		<jersey.version>2.29</jersey.version>
+		<log4j.version>2.16.0</log4j.version>
 	</properties>
 
 	<build>
@@ -119,14 +120,6 @@
 		</pluginManagement>
 	</build>
 
-	<repositories>
-		<repository>
-			<id>oss-sonatype-snapshot</id>
-			<name>OSS Sonatype Maven Repository - Releases</name>
-			<url>https://oss.sonatype.org/content/groups/public</url>
-		</repository>
-	</repositories>
-
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
@@ -222,6 +215,12 @@
     			<groupId>com.blazegraph</groupId>
     			<artifactId>bigdata-core</artifactId>
     			<version>2.1.4</version>
+				<exclusions>
+					<exclusion>
+					<groupId>log4j</groupId>
+					<artifactId>log4j</artifactId>
+				</exclusion>
+				</exclusions>
 			</dependency>
 			<!-- 2.1.5-wmf.6 -->
 			<!-- Blazegraph 2.1.4 requires this exact version of Sesame (2.7.12) -->
@@ -332,6 +331,33 @@
 				<groupId>net.sf.trove4j</groupId>
 				<artifactId>trove4j</artifactId>
 				<version>3.0.3</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j</artifactId>
+				<version>${log4j.version}</version>
+				<type>pom</type>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-core</artifactId>
+				<version>${log4j.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-1.2-api</artifactId>
+				<version>${log4j.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.obolibrary.robot</groupId>
+				<artifactId>robot-core</artifactId>
+				<version>1.7.1</version>
+				<exclusions>
+					<exclusion>
+						<groupId>log4j</groupId>
+						<artifactId>log4j</artifactId>
+					</exclusion>
+				</exclusions>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
