@@ -19,7 +19,7 @@
 		<sesame.version>2.7.12</sesame.version> <!-- use same as Blazegraph  -->
 		<jetty.version>9.2.3.v20140905</jetty.version> <!--  needs to be exactly 9.2.3.v20140905 - older or newer version of jetty will not work with text search api-->
 		<jersey.version>2.29</jersey.version>
-		<log4j.version>2.16.0</log4j.version>
+		<log4j.version>2.17.0</log4j.version>
 	</properties>
 
 	<build>
