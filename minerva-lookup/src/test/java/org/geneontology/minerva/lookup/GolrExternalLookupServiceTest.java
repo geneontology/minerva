@@ -105,7 +105,7 @@ public class GolrExternalLookupServiceTest {
 		assertEquals(1, lookup.size());
 		LookupEntry e = lookup.get(0);
 		assertEquals("VIPR1 Hsap", e.label);
-		assertEquals(23, e.isa_closure.size());
+		assertEquals(24, e.isa_closure.size());
 		assertTrue(e.isa_closure.contains("PR:000000001"));
 //		
 		gp_iri = handler.getIRI("SGD:S000005952");
@@ -122,7 +122,7 @@ public class GolrExternalLookupServiceTest {
 		assertEquals(1, lookup.size());
 		e = lookup.get(0);
 		assertEquals("saga-kat2a_human Hsap", e.label);
-		assertEquals(15, e.isa_closure.size());
+		assertEquals(16, e.isa_closure.size());
 		assertTrue(e.isa_closure.contains("CHEBI:33695"));
 	}
 
