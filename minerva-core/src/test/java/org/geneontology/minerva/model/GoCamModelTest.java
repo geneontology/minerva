@@ -47,7 +47,7 @@ public class GoCamModelTest {
 
     @Test
     public void testRootTypesForComplements() throws Exception {
-        String ontologyJournalFile = "/tmp/test-go-lego-blazegraph.jnl";
+        String ontologyJournalFile = "/tmp/test-go-lego-blazegraph-complements.jnl";
         OWLOntologyManager man = OWLManager.createOWLOntologyManager();
         OWLOntology tboxOntology = man.loadOntologyFromOntologyDocument(new File("src/test/resources/go-basic.obo"));
         CurieHandler curieHandler = new MappedCurieHandler();
