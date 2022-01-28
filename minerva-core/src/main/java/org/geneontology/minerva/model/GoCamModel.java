@@ -60,27 +60,28 @@ public class GoCamModel extends ProvenanceAnnotated{
 	}
 	
 	private void setIndTypesWithSparql(BlazegraphMolecularModelManager m3, String graph_id) throws MalformedQueryException, QueryEvaluationException, RepositoryException, IOException {
-		Map<OWLNamedIndividual, Set<String>> i_types = new HashMap<OWLNamedIndividual, Set<String>>();
+		Map<OWLNamedIndividual, Set<String>> iTypesAndComplementTypes = new HashMap<OWLNamedIndividual, Set<String>>();
 		Set<String> all_types = new HashSet<String>();
 		TupleQueryResult r = (TupleQueryResult) m3.executeSPARQLQuery(""
 				+ "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
 				+ "select ?instance ?type where {"
 				+ "GRAPH <"+graph_id+"> { "
 				+ "?instance rdf:type <http://www.w3.org/2002/07/owl#NamedIndividual> ."
-				+ "?instance rdf:type ?type ."
-				+ "filter (?type != <http://www.w3.org/2002/07/owl#NamedIndividual> ) "
+				+ "{ ?instance rdf:type ?type . } UNION { ?instance rdf:type ?complement . ?complement owl:complementOf ?type . }"
+				+ "FILTER (isIRI(?type)) "
+				+ "FILTER (?type != <http://www.w3.org/2002/07/owl#NamedIndividual> ) "
 				+ "}}", 100);
 		while(r.hasNext()) {
 			BindingSet bs = r.next();
 			String instance = bs.getBinding("instance").getValue().stringValue();
 			String type = bs.getBinding("type").getValue().stringValue();
 			OWLNamedIndividual i = ont.getOWLOntologyManager().getOWLDataFactory().getOWLNamedIndividual(IRI.create(instance));
-			Set<String> types = i_types.get(i);
-			if(types==null) {
-				types = new HashSet<String>();
+			if (!iTypesAndComplementTypes.containsKey(i)) {
+				iTypesAndComplementTypes.put(i, new HashSet<String>());
 			}
+			Set<String> types = iTypesAndComplementTypes.get(i);
 			types.add(type);
-			i_types.put(i, types);
+			iTypesAndComplementTypes.put(i, types);
 			all_types.add(type);
 		}
 		r.close();
@@ -89,9 +90,9 @@ public class GoCamModel extends ProvenanceAnnotated{
 		Map<String, Set<String>> type_roots = go_lego.getSuperCategoryMap(corrected_types);
 		//set global
 		ind_types = new HashMap<OWLNamedIndividual, Set<String>>();		
-		for(OWLNamedIndividual ind : i_types.keySet()) {
+		for(OWLNamedIndividual ind : iTypesAndComplementTypes.keySet()) {
 			//fix deprecated
-			Set<String> types = go_lego.replaceDeprecated(i_types.get(ind), old_new);
+			Set<String> types = go_lego.replaceDeprecated(iTypesAndComplementTypes.get(ind), old_new);
 			//convert to root types 
 			Set<String> roots = new HashSet<String>();
 			for(String type : types) {
