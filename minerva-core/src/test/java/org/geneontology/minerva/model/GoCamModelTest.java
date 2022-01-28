@@ -47,12 +47,13 @@ public class GoCamModelTest {
 
     @Test
     public void testRootTypesForComplements() throws Exception {
+        String ontologyJournalFile = "/tmp/test-go-lego-blazegraph.jnl";
         OWLOntologyManager man = OWLManager.createOWLOntologyManager();
-        OWLOntology tbox_ontology = man.loadOntologyFromOntologyDocument(new File("src/test/resources/go-basic.obo"));
+        OWLOntology tboxOntology = man.loadOntologyFromOntologyDocument(new File("src/test/resources/go-basic.obo"));
         CurieHandler curieHandler = new MappedCurieHandler();
-        String inputDB = "/tmp/test-blazegraph-models.jnl";
+        String inputDB = "/tmp/test-blazegraph-models-complements.jnl";
         UndoAwareMolecularModelManager m3 = null;
-        m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, "gomodel", inputDB, null, ontology_journal_file);
+        m3 = new UndoAwareMolecularModelManager(tboxOntology, curieHandler, "gomodel", inputDB, null, ontologyJournalFile);
         m3.importModelToDatabase(new File("src/test/resources/test-complement-roots.ttl"), true);
         ModelContainer mc = m3.getModel(IRI.create("http://model.geneontology.org/61f3310500000003"));
         OWLOntology gocam_via_mc = mc.getAboxOntology();
@@ -63,6 +64,7 @@ public class GoCamModelTest {
         assertTrue("Can get roots for classes and complements",
                 g.ind_types.get(man.getOWLDataFactory().getOWLNamedIndividual(IRI.create("http://model.geneontology.org/61f3310500000003/61f3310500000005")))
                         .contains("http://purl.obolibrary.org/obo/GO_0008150"));
+        m3.getGolego_repo().dispose();
     }
 
     @Test
