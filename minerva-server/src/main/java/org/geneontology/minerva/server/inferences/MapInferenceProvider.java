@@ -79,7 +79,7 @@ public class MapInferenceProvider implements InferenceProvider {
 			reasoner_validation.addViolation(i_v);
 		}
 		//shex
-		ShexValidationReport shex_validation = null;
+		ShexValidationReport shex_validation = new ShexValidationReport();
 		if(shex.isActive()) {
 			//generate an RDF model			
 			Model model = JenaOwlTool.getJenaModel(ont);	

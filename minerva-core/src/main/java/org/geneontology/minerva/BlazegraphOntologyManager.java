@@ -8,6 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,6 +17,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
@@ -65,6 +68,7 @@ public class BlazegraphOntologyManager {
 	public static String in_taxon_uri = "https://w3id.org/biolink/vocab/in_taxon";
 	public static OWLAnnotationProperty in_taxon;
 	private static final Set<String> root_types;
+	public final Map<IRI, Set<IRI>> regulatorsToRegulated;
 	public Map<String, Integer> class_depth;
 	static {
 		root_types =  new HashSet<String>();
@@ -80,6 +84,8 @@ public class BlazegraphOntologyManager {
 		root_types.add("http://purl.obolibrary.org/obo/UBERON_0001062"); //anatomical entity
 		root_types.add("http://purl.obolibrary.org/obo/GO_0110165"); //cellular anatomical entity 
 		root_types.add("http://purl.obolibrary.org/obo/CARO_0000000"); // root root anatomical entity
+		root_types.add("http://purl.obolibrary.org/obo/UBERON_0000105"); // life cycle stage
+		root_types.add("http://purl.obolibrary.org/obo/PO_0009012"); // plant structure development stage
 		root_types.add("http://purl.obolibrary.org/obo/ECO_0000000"); //evidence root.  
 	}
 
@@ -108,6 +114,7 @@ public class BlazegraphOntologyManager {
 		class_depth.put("http://purl.obolibrary.org/obo/GO_0003674", 0);
 		class_depth.put("http://purl.obolibrary.org/obo/GO_0005575", 0);
 		class_depth.put("http://purl.obolibrary.org/obo/go/extensions/reacto.owl#molecular_event", 0);
+		regulatorsToRegulated = buildRegulationMap();
 	}
 
 	public BigdataSailRepository getGo_lego_repo() {
@@ -334,6 +341,36 @@ public class BlazegraphOntologyManager {
 			throw new IOException(e);
 		}
 		return depth;
+	}
+
+	private Map<IRI, Set<IRI>> buildRegulationMap() throws IOException {
+		String regulationTargetsQuery = IOUtils.toString(BlazegraphOntologyManager.class.getResourceAsStream("regulation_targets.rq"), StandardCharsets.UTF_8);
+		try {
+			BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+			try {
+				TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, regulationTargetsQuery);
+				TupleQueryResult result = tupleQuery.evaluate();
+				Map<IRI, Set<IRI>> regulators = new HashMap<>();
+				while (result.hasNext()) {
+					BindingSet binding = result.next();
+					IRI regulator = IRI.create(binding.getValue("subjectDown").stringValue());
+					IRI regulated = IRI.create(binding.getValue("fillerUp").stringValue());
+					if (!regulators.containsKey(regulator)) {
+						regulators.put(regulator, new HashSet<>());
+					}
+					regulators.get(regulator).add(regulated);
+				}
+				return regulators;
+			} catch (MalformedQueryException e) {
+				throw new IOException(e);
+			} catch (QueryEvaluationException e) {
+				throw new IOException(e);
+			} finally {
+				connection.close();
+			}
+		} catch (RepositoryException e) {
+			throw new IOException(e);
+		}
 	}
 
 	public Map<OWLNamedIndividual, Set<String>> getSuperCategoryMapForIndividuals(Set<OWLNamedIndividual> inds, OWLOntology ont, boolean fix_deprecated) throws IOException{
