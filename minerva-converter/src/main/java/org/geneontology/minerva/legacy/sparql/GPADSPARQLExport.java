@@ -265,7 +265,8 @@ public class GPADSPARQLExport {
 				annotationAnnotations.addAll(getContributors(eqs).stream().map(c -> Pair.of("contributor", c)).collect(toSet()));
 				String modificationDate = eqs.getLiteral("modification_date").getLexicalForm();
 				Optional<String> creationDate = Optional.ofNullable(eqs.getLiteral("creation_date")).map(Literal::getLexicalForm);
-				creationDate.ifPresent(date -> annotationAnnotations.add(Pair.of("creation-date", date)));
+				// Add this back after announced to consortium; also re-enable tests
+				//creationDate.ifPresent(date -> annotationAnnotations.add(Pair.of("creation-date", date)));
 				String reference = eqs.getLiteral("source").getLexicalForm();
 				final String usableAssignedBy;
 				Optional<String> assignedByIRIOpt = getAnnotationAssignedBy(eqs);

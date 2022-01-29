@@ -14,6 +14,7 @@ import org.geneontology.rules.engine.WorkingMemory;
 import org.geneontology.rules.util.Bridge;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
@@ -115,6 +116,7 @@ public class GPADSPARQLTest {
 	}
 
 	@Test
+	@Ignore
 	public void testGPADContainsAcceptedAndCreatedDates() throws Exception {
 		Model model = ModelFactory.createDefaultModel();
 		model.read(this.getClass().getResourceAsStream("/created-date-test.ttl"), "", "ttl");
