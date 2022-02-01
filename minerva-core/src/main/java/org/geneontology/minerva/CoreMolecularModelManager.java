@@ -207,7 +207,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 	 * @throws OWLOntologyCreationException
 	 * @throws IOException 
 	 */
-	public CoreMolecularModelManager(OWLOntology tbox, String go_lego_repo_file) throws OWLOntologyCreationException, IOException {
+	public CoreMolecularModelManager(OWLOntology tbox, String go_lego_repo_file, boolean downloadOntologyJournal) throws OWLOntologyCreationException, IOException {
 		super();
 		this.tbox = tbox;
 		tboxIRI = getTboxIRI(tbox);
@@ -217,7 +217,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
 		initializeTboxShorthandIndex();
 		initializeDoNotAnnotateSubset();
 		if(go_lego_repo_file!=null) {
-			this.go_lego_repo = new BlazegraphOntologyManager(go_lego_repo_file);
+			this.go_lego_repo = new BlazegraphOntologyManager(go_lego_repo_file, downloadOntologyJournal);
 		}
 		init();
 	}
