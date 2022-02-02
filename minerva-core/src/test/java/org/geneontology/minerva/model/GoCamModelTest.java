@@ -60,7 +60,7 @@ public class GoCamModelTest {
 				bgdb.delete(); 
 			}
 			//set it up with empty db
-			m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, "gomodel", inputDB, null, ontology_journal_file);
+			m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, "gomodel", inputDB, null, ontology_journal_file, true);
 			onto_repo = m3.getGolego_repo(); 
 			//load the db
 			for(File file : f.listFiles()) {

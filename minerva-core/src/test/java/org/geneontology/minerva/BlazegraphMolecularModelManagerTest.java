@@ -307,7 +307,7 @@ public class BlazegraphMolecularModelManagerTest  {
 		prefixes.put("ex", "http://example.org/");
 		prefixes.put("GO", "http://purl.obolibrary.org/obo/GO_");
 		CurieHandler curieHandler = new MappedCurieHandler(prefixes);
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(tbox, curieHandler,"http://model.geneontology.org/", journalPath, tempRootPath, go_lego_journal_file);
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(tbox, curieHandler,"http://model.geneontology.org/", journalPath, tempRootPath, go_lego_journal_file, true);
 		return m3;
 	}
 

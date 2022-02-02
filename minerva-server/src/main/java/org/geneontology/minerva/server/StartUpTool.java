@@ -374,7 +374,7 @@ public class StartUpTool {
 		// create model manager
 		LOGGER.info("Start initializing Minerva");
 		UndoAwareMolecularModelManager models = new UndoAwareMolecularModelManager(graph.getSourceOntology(),
-				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder, conf.pathToOntologyJournal );
+				conf.curieHandler, conf.modelIdPrefix, conf.journalFile, conf.exportFolder, conf.pathToOntologyJournal, true);
 		// set pre and post file handlers
 		models.addPostLoadOntologyFilter(ModelReaderHelper.INSTANCE);
 	//	conf.shex.tbox_reasoner = models.getTbox_reasoner();

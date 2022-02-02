@@ -163,7 +163,7 @@ public class ValidationTest {
 	public static void validateGoCams(String input, boolean should_fail, boolean check_shex) throws Exception {
 
 		String blazegraph_journal = makeBlazegraphJournal(input);
-		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, blazegraph_journal, null, go_lego_journal_file);
+		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, blazegraph_journal, null, go_lego_journal_file, true);
 		try {
 			URL shex_schema_url = new URL(shexFileUrl);
 			File shex_schema_file = new File("src/test/resources/validate.shex"); //for some reason the temporary_model file won't parse..
@@ -232,7 +232,7 @@ public class ValidationTest {
 					bgdb.delete();
 				}		
 				OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
-				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
+				BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file, true);
 				Map<String, String> file_iri = new HashMap<String, String>();
 				Map<String, String> iri_file = new HashMap<String, String>();
 				Set<String> model_iris = new HashSet<String>();
@@ -284,7 +284,7 @@ public class ValidationTest {
 			}
 			//load everything into a bg journal
 			OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
-			BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
+			BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file, true);
 			if(i.isDirectory()) {
 				FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file-> {
 					if(file.getName().endsWith(".ttl")||file.getName().endsWith("owl")) {

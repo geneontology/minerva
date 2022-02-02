@@ -67,8 +67,8 @@ public class MolecularModelManager<METADATA> extends BlazegraphMolecularModelMan
 	 * @throws OWLOntologyCreationException
 	 * @throws IOException 
 	 */
-	public MolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder, String pathToOntologyJournal) throws OWLOntologyCreationException, IOException {
-		super(tbox, curieHandler, modelIdPrefix, pathToJournal, pathToExportFolder, pathToOntologyJournal);
+	public MolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder, String pathToOntologyJournal, boolean downloadOntologyJournal) throws OWLOntologyCreationException, IOException {
+		super(tbox, curieHandler, modelIdPrefix, pathToJournal, pathToExportFolder, pathToOntologyJournal, downloadOntologyJournal);
 	}
 
 	/**

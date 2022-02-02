@@ -53,7 +53,7 @@ public class ParallelModelReasonerTest {
 		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 		
-		models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null, go_lego_journal_file);
+		models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null, go_lego_journal_file, true);
 		ipc = new CountingCachingInferenceProvider(false);
 		handler = new JsonOrJsonpBatchHandler(models, "development", ipc ,
 				Collections.<OWLObjectProperty>emptySet(), (ExternalLookupService) null);

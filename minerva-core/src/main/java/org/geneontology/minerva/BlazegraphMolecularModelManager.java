@@ -108,9 +108,9 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 	 * @throws OWLOntologyCreationException
 	 * @throws IOException 
 	 */
-	public BlazegraphMolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder, String pathToOntologyJournal)
+	public BlazegraphMolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder, String pathToOntologyJournal, boolean downloadOntologyJournal)
 			throws OWLOntologyCreationException, IOException {		
-		super(tbox, pathToOntologyJournal);
+		super(tbox, pathToOntologyJournal, downloadOntologyJournal);
 		if(curieHandler==null) {
 			LOG.error("curie handler required for blazegraph model manager startup ");
 			System.exit(-1);
