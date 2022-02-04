@@ -35,18 +35,7 @@ import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
 import org.openrdf.rio.helpers.StatementCollector;
 import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLAnnotation;
-import org.semanticweb.owlapi.model.OWLAnnotationProperty;
-import org.semanticweb.owlapi.model.OWLAxiom;
-import org.semanticweb.owlapi.model.OWLClass;
-import org.semanticweb.owlapi.model.OWLClassExpression;
-import org.semanticweb.owlapi.model.OWLDataFactory;
-import org.semanticweb.owlapi.model.OWLNamedIndividual;
-import org.semanticweb.owlapi.model.OWLNamedObject;
-import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import org.semanticweb.owlapi.model.OWLOntologyManager;
+import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.rio.RioRenderer;
 import org.semanticweb.owlapi.search.EntitySearcher;
 import org.semarglproject.vocab.OWL;
@@ -397,14 +386,16 @@ public class BlazegraphOntologyManager {
 		Map<OWLNamedIndividual, Set<String>> ind_roots = new HashMap<OWLNamedIndividual, Set<String>>();
 		Set<String> all_types = new HashSet<String>();
 		Map<OWLNamedIndividual, Set<String>> ind_types = new HashMap<OWLNamedIndividual, Set<String>>();
-		for(OWLNamedIndividual ind : inds) {
+		for (OWLNamedIndividual ind : inds) {
 			Set<String> types = new HashSet<String>();
 			for(OWLClassExpression oc : EntitySearcher.getTypes(ind, ont)) {
-				if(!oc.isAnonymous()) {
+				if (oc.isNamed()) {
 					types.add(oc.asOWLClass().getIRI().toString());
-					all_types.addAll(types);
+				} else if (oc instanceof OWLObjectComplementOf) {
+					types.add(((OWLObjectComplementOf)oc).getOperand().asOWLClass().getIRI().toString());
 				}
 			}
+			all_types.addAll(types);
 			if(fix_deprecated) {
 				ind_types.put(ind, replaceDeprecated(types));	
 			}else {
