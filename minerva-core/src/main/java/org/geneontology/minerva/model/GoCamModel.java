@@ -81,7 +81,6 @@ public class GoCamModel extends ProvenanceAnnotated{
 			}
 			Set<String> types = iTypesAndComplementTypes.get(i);
 			types.add(type);
-			iTypesAndComplementTypes.put(i, types);
 			all_types.add(type);
 		}
 		r.close();
