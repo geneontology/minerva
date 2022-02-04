@@ -35,7 +35,7 @@ public class DataPropertyTest {
 	
 	private UndoAwareMolecularModelManager createM3(OWLOntology tbox) throws OWLOntologyCreationException, IOException {
 		UndoAwareMolecularModelManager mmm = new UndoAwareMolecularModelManager(tbox, curieHandler,
-				"http://model.geneontology.org/", folder.newFile().getAbsolutePath(), null, go_lego_journal_file);
+				"http://model.geneontology.org/", folder.newFile().getAbsolutePath(), null, go_lego_journal_file, true);
 		return mmm;
 	}
 

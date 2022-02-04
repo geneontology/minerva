@@ -14,6 +14,7 @@ import org.geneontology.rules.engine.WorkingMemory;
 import org.geneontology.rules.util.Bridge;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
@@ -24,10 +25,7 @@ import org.semanticweb.owlapi.model.parameters.Imports;
 import scala.collection.JavaConverters;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class GPADSPARQLTest {
@@ -47,7 +45,7 @@ public class GPADSPARQLTest {
 	@BeforeClass
 	public static void setupExporter() {
 		JenaSystem.init();
-		exporter = new GPADSPARQLExport(DefaultCurieHandler.getDefaultHandler(), new HashMap<IRI, String>(), new HashMap<IRI, String>());
+		exporter = new GPADSPARQLExport(DefaultCurieHandler.getDefaultHandler(), new HashMap<IRI, String>(), new HashMap<IRI, String>(), new HashMap<>());
 	}
 
 	@Test
@@ -118,27 +116,30 @@ public class GPADSPARQLTest {
 	}
 
 	@Test
+	@Ignore
 	public void testGPADContainsAcceptedAndCreatedDates() throws Exception {
 		Model model = ModelFactory.createDefaultModel();
 		model.read(this.getClass().getResourceAsStream("/created-date-test.ttl"), "", "ttl");
 		Set<Triple> triples = model.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
 		WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
 		Set<GPADData> annotations = exporter.getGPAD(mem, IRI.create("http://test.org"));
-		IRI gene = IRI.create("http://identifiers.org/mgi/MGI:1922815");
-		Pair<String, String> creationDate = Pair.of("creation-date", "2012-09-17");
+		IRI gene = IRI.create("http://identifiers.org/wormbase/WBGene00001326");
+		Pair<String, String> creationDate = Pair.of("creation-date", "2021-05-13");
 		Assert.assertTrue(annotations.stream().anyMatch(a -> a.getObject().equals(gene) && a.getAnnotations().contains(creationDate)));
 	}
 
 	@Test
-	public void testFilterRootMFWhenRootBP() throws Exception {
+	public void testFilterRootMFWhenOtherMF() throws Exception {
+		IRI rootMF = IRI.create("http://purl.obolibrary.org/obo/GO_0003674");
+		IRI rootBP = IRI.create("http://purl.obolibrary.org/obo/GO_0008150");
+		IRI rootCC = IRI.create("http://purl.obolibrary.org/obo/GO_0005575");
+
 		Model model = ModelFactory.createDefaultModel();
 		model.read(this.getClass().getResourceAsStream("/test_root_mf_filter.ttl"), "", "ttl");
 		Set<Triple> triples = model.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
 		WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
 		Set<GPADData> annotations = exporter.getGPAD(mem, IRI.create("http://test.org"));
 		IRI gene = IRI.create("http://identifiers.org/mgi/MGI:2153470");
-		IRI rootMF = IRI.create("http://purl.obolibrary.org/obo/GO_0003674");
-		IRI rootBP = IRI.create("http://purl.obolibrary.org/obo/GO_0008150");
 		Assert.assertTrue(annotations.stream().noneMatch(a -> a.getObject().equals(gene) && a.getOntologyClass().equals(rootMF)));
 
 		Model model2 = ModelFactory.createDefaultModel();
@@ -149,6 +150,33 @@ public class GPADSPARQLTest {
 		IRI gene2 = IRI.create("http://identifiers.org/mgi/MGI:98392");
 		Assert.assertTrue(annotations2.stream().anyMatch(a -> a.getObject().equals(gene2) && a.getOntologyClass().equals(rootMF)));
 		Assert.assertTrue(annotations2.stream().anyMatch(a -> a.getObject().equals(gene2) && a.getOntologyClass().equals(rootBP)));
+
+		Model model3 = ModelFactory.createDefaultModel();
+		model3.read(this.getClass().getResourceAsStream("/test_root_mf_filter3.ttl"), "", "ttl");
+		Set<Triple> triples3 = model3.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
+		WorkingMemory mem3 = arachne.processTriples(JavaConverters.asScalaSetConverter(triples3).asScala());
+		Set<GPADData> annotations3 = exporter.getGPAD(mem3, IRI.create("http://test.org"));
+		IRI gene3 = IRI.create("http://identifiers.org/sgd/S000002650");
+		Assert.assertTrue(annotations3.stream().anyMatch(a -> a.getObject().equals(gene3) && a.getOntologyClass().equals(rootMF)));
+		Assert.assertTrue(annotations3.stream().anyMatch(a -> a.getObject().equals(gene3) && a.getOntologyClass().equals(rootBP)));
+		Assert.assertTrue(annotations3.stream().anyMatch(a -> a.getObject().equals(gene3) && a.getOntologyClass().equals(rootCC)));
+	}
+
+	@Test
+	public void testFilterAnnotationsToRegulatedProcess() throws Exception {
+		HashMap<IRI, Set<IRI>> regulators = new HashMap<>();
+		regulators.put(IRI.create("http://purl.obolibrary.org/obo/GO_0030511"), Collections.singleton(IRI.create("http://purl.obolibrary.org/obo/GO_0007179")));
+		GPADSPARQLExport exporter = new GPADSPARQLExport(DefaultCurieHandler.getDefaultHandler(), new HashMap<IRI, String>(), new HashMap<IRI, String>(), regulators);
+		Model model = ModelFactory.createDefaultModel();
+		model.read(this.getClass().getResourceAsStream("/test_filter_regulated_process.ttl"), "", "ttl");
+		Set<Triple> triples = model.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
+		WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
+		Set<GPADData> annotations = exporter.getGPAD(mem, IRI.create("http://test.org"));
+		IRI gene = IRI.create("http://identifiers.org/mgi/MGI:2148811");
+		IRI regulator = IRI.create("http://purl.obolibrary.org/obo/GO_0030511");
+		IRI regulated = IRI.create("http://purl.obolibrary.org/obo/GO_0007179");
+		Assert.assertTrue(annotations.stream().anyMatch(a -> a.getObject().equals(gene) && a.getOntologyClass().equals(regulator)));
+		Assert.assertTrue(annotations.stream().noneMatch(a -> a.getObject().equals(gene) && a.getOntologyClass().equals(regulated)));
 	}
 
 }

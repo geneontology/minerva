@@ -315,6 +315,7 @@ public class CommandLineInterface {
 				gpad_options.addOption("cat", "catalog", true, "Catalog file for tbox ontology. " + 
 						"Use this to specify local copies of the ontology and or its imports to " + 
 						"speed and control the process. If not used, will download the tbox and all its imports.");
+				gpad_options.addOption("ontojournal", "ontojournal", true, "Specify a blazegraph journal file containing the merged, pre-reasoned tbox aka go-lego.owl");
 				cmd = parser.parse(gpad_options, args, false);
 				String inputDB = cmd.getOptionValue("input");
 				String gpadOutputFolder = cmd.getOptionValue("gpad-output");
@@ -322,7 +323,15 @@ public class CommandLineInterface {
 				String modelIdcurie = cmd.getOptionValue("model-id-curie");
 				String ontologyIRI = cmd.getOptionValue("ontology");
 				String catalog = cmd.getOptionValue("catalog");
-				legoToAnnotationsSPARQL(modelIdPrefix, modelIdcurie, inputDB, gpadOutputFolder, ontologyIRI, catalog);
+				String go_lego_journal_file = null;
+				if(cmd.hasOption("ontojournal")) {
+					go_lego_journal_file = cmd.getOptionValue("ontojournal");
+				}
+				if(go_lego_journal_file==null) {
+					System.err.println("Missing -- ontojournal .  Need to specify location for blazegraph journal file containing the merged go-lego tbox (neo, GO-plus, etc..). If a journal does not exist at that location, the tbox ontology will be used to initialize one.");
+					System.exit(-1);
+				}
+				legoToAnnotationsSPARQL(modelIdPrefix, modelIdcurie, inputDB, gpadOutputFolder, ontologyIRI, catalog, go_lego_journal_file);
 			}else if(cmd.hasOption("version")) {
 				printVersion();
 			}else if(cmd.hasOption("validate-go-cams")) {
@@ -433,7 +442,7 @@ public class CommandLineInterface {
 
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 		CurieHandler curieHandler = new MappedCurieHandler();
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, outputFolder, null);
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, outputFolder, null, false);
 		m3.dumpAllStoredModels();
 		m3.dispose();
 	}
@@ -461,7 +470,7 @@ public class CommandLineInterface {
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 		String modelIdPrefix = "http://model.geneontology.org/"; // this will not be used for anything
 		CurieHandler curieHandler = new MappedCurieHandler();
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null, null);
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null, null, false);
 		//in case of update rather than whole new journal
 		Set<IRI> stored = new HashSet<IRI>(m3.getStoredModelIds());
 		LOGGER.info("loading gocams from "+inputFolder);
@@ -584,7 +593,7 @@ public class CommandLineInterface {
 			return;
 		}
 
-		BlazegraphOntologyManager man = new BlazegraphOntologyManager(journalFilePath);
+		BlazegraphOntologyManager man = new BlazegraphOntologyManager(journalFilePath, false);
 		String iri_for_ontology_graph = "http://geneontology.org/go-lego-graph";
 		man.loadRepositoryFromOWLFile(new File(inputFile), iri_for_ontology_graph, reset);
 	}
@@ -711,7 +720,7 @@ public class CommandLineInterface {
 	 * @param ontologyIRI
 	 * @throws Exception
 	 */
-	public static void legoToAnnotationsSPARQL(String modelIdPrefix, String modelIdcurie, String inputDB, String gpadOutputFolder, String ontologyIRI, String catalog) throws Exception {
+	public static void legoToAnnotationsSPARQL(String modelIdPrefix, String modelIdcurie, String inputDB, String gpadOutputFolder, String ontologyIRI, String catalog, String go_lego_journal_file) throws Exception {
 		if(modelIdPrefix==null) {
 			modelIdPrefix = "http://model.geneontology.org/";
 		}
@@ -738,13 +747,17 @@ public class CommandLineInterface {
 		OWLOntology ontology = ontman.loadOntology(IRI.create(ontologyIRI));
 		CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
 		CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(ontology, curieHandler, modelIdPrefix, inputDB, null, null);
+		boolean loadTboxIntoOntJournal = (!(new File(go_lego_journal_file)).exists());
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file, false);
+		if (loadTboxIntoOntJournal) {
+			m3.getGolego_repo().loadRepositoryFromOntology(ontology, "http://example.org/", true);
+		}
 		final String immutableModelIdPrefix = modelIdPrefix;
 		final String immutableGpadOutputFolder = gpadOutputFolder;
 		m3.getAvailableModelIds().stream().parallel().forEach(modelIRI -> {
 			try {
 				//TODO investigate whether changing to a neo-lite model has an impact on this - may need to make use of ontology journal
-				String gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex()).exportGPAD(m3.createInferredModel(modelIRI), modelIRI);
+				String gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getGolego_repo().regulatorsToRegulated).exportGPAD(m3.createInferredModel(modelIRI), modelIRI);
 				String fileName = StringUtils.replaceOnce(modelIRI.toString(), immutableModelIdPrefix, "") + ".gpad";
 				Writer writer = new OutputStreamWriter(new FileOutputStream(Paths.get(immutableGpadOutputFolder, fileName).toFile()), StandardCharsets.UTF_8);
 				writer.write(gpad);
@@ -839,7 +852,7 @@ public class CommandLineInterface {
 		}
 		//make the manager
 		LOGGER.info("Setting up model manager and initializing rules for Arachne reasoner");
-		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file);
+		UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file, true);
 		//if provided a directory as input, load them ttl files into the manager
 		File i = new File(input);
 		if(i.exists()&&!input.endsWith(".jnl")) {
@@ -920,13 +933,13 @@ public class CommandLineInterface {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}  
+		
 		if(checkShex) {
-			if(checkShex) {
-				shex.setActive(true);
-			}else {
-				shex.setActive(false);
-			}
+			shex.setActive(true);
+		}else {
+			shex.setActive(false);
 		}
+		
 		//shex validator is ready, now build the inference provider (which provides access to the shex validator and provides inferences useful for shex)
 		String reasonerOpt = "arachne"; 
 		LOGGER.info("Building OWL inference provider: "+reasonerOpt);
@@ -1038,7 +1051,7 @@ public class CommandLineInterface {
 				int n_rows_gpad = 0;
 				if(isConsistent) {
 					try {
-						Set<GPADData> gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex()).getGPAD(m3.createInferredModel(modelIRI), modelIRI);
+						Set<GPADData> gpad = new GPADSPARQLExport(curieHandler, m3.getLegacyRelationShorthandIndex(), m3.getTboxShorthandIndex(), m3.getGolego_repo().regulatorsToRegulated).getGPAD(m3.createInferredModel(modelIRI), modelIRI);
 						if(gpad!=null) {
 							n_rows_gpad = gpad.size();
 						}
@@ -1308,9 +1321,8 @@ public class CommandLineInterface {
 		String modelIdPrefix = "http://model.geneontology.org/";
 		OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
 		CurieHandler curieHandler = new MappedCurieHandler();
-		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, go_cam_journal, null, go_lego_journal_file);					
+		BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, go_cam_journal, null, go_lego_journal_file, true);
 		m3.addTaxonMetadata();
-		return;
 	}
 
 	public static void cleanGoCams(String input_dir, String output_dir) {

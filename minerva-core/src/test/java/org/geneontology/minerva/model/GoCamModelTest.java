@@ -1,10 +1,5 @@
 package org.geneontology.minerva.model;
 
-import static org.junit.Assert.*;
-
-import java.io.File;
-import java.io.IOException;
-
 import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
@@ -13,20 +8,15 @@ import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openrdf.query.BindingSet;
-import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryEvaluationException;
-import org.openrdf.query.QueryResult;
-import org.openrdf.query.TupleQueryResult;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.RDFParseException;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
-import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
+
+import java.io.File;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class GoCamModelTest {
     static final String ontology_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
@@ -53,7 +43,7 @@ public class GoCamModelTest {
         CurieHandler curieHandler = new MappedCurieHandler();
         String inputDB = "/tmp/test-blazegraph-models-complements.jnl";
         UndoAwareMolecularModelManager m3 = null;
-        m3 = new UndoAwareMolecularModelManager(tboxOntology, curieHandler, "gomodel", inputDB, null, ontologyJournalFile);
+        m3 = new UndoAwareMolecularModelManager(tboxOntology, curieHandler, "gomodel", inputDB, null, ontologyJournalFile, true);
         m3.importModelToDatabase(new File("src/test/resources/test-complement-roots.ttl"), true);
         ModelContainer mc = m3.getModel(IRI.create("http://model.geneontology.org/61f3310500000003"));
         OWLOntology gocam_via_mc = mc.getAboxOntology();
@@ -83,7 +73,7 @@ public class GoCamModelTest {
                 bgdb.delete();
             }
             //set it up with empty db
-            m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, "gomodel", inputDB, null, ontology_journal_file);
+            m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, "gomodel", inputDB, null, ontology_journal_file, true);
             onto_repo = m3.getGolego_repo();
             //load the db
             for (File file : f.listFiles()) {

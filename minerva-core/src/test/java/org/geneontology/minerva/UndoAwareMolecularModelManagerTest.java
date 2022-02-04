@@ -40,7 +40,7 @@ public class UndoAwareMolecularModelManagerTest  {
 	@Test
 	public void testUndoRedo() throws Exception {
 		OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
-		m3 = new UndoAwareMolecularModelManager(tbox, curieHandler, "http://testmodel.geneontology.org/", folder.newFile().getAbsolutePath(), null, go_lego_journal_file);
+		m3 = new UndoAwareMolecularModelManager(tbox, curieHandler, "http://testmodel.geneontology.org/", folder.newFile().getAbsolutePath(), null, go_lego_journal_file, true);
 		
 		String userId = "test-user-id";
 		ModelContainer model = m3.generateBlankModel(null);

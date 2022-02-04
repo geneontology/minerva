@@ -46,6 +46,9 @@ import org.semanticweb.owlapi.reasoner.InconsistentOntologyException;
 
 import scala.collection.JavaConverters;
 
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toSet;
+
 /* 	 Note: the example GPAD files are available at this link: http://www.informatics.jax.org/downloads/reports/mgi.gpa.gz */
 public class GPADSPARQLExport {
 	private static final Logger LOG = Logger.getLogger(GPADSPARQLExport.class);
@@ -54,6 +57,9 @@ public class GPADSPARQLExport {
 	private static final String BP = "http://purl.obolibrary.org/obo/GO_0008150";
 	private static final String CC = "http://purl.obolibrary.org/obo/GO_0005575";
 	private static final Set<String> rootTerms = new HashSet<>(Arrays.asList(MF, BP, CC));
+	private static final String ENABLES = "http://purl.obolibrary.org/obo/RO_0002327";
+	private static final String CONTRIBUTES_TO = "http://purl.obolibrary.org/obo/RO_0002326";
+	private static final Set<String> functionRelations = new HashSet<>(Arrays.asList(ENABLES, CONTRIBUTES_TO));
 	private static final String EMAPA_NAMESPACE = "http://purl.obolibrary.org/obo/EMAPA_";
 	private static final String UBERON_NAMESPACE = "http://purl.obolibrary.org/obo/UBERON_";
 	private static final String inconsistentQuery = 
@@ -96,11 +102,13 @@ public class GPADSPARQLExport {
 	private final CurieHandler curieHandler;
 	private final Map<IRI, String> relationShorthandIndex;
 	private final Map<IRI, String> tboxShorthandIndex;
+	private final Map<IRI, Set<IRI>> regulators;
 
-	public GPADSPARQLExport(CurieHandler handler, Map<IRI, String> shorthandIndex, Map<IRI, String> tboxShorthandIndex) {
+	public GPADSPARQLExport(CurieHandler handler, Map<IRI, String> shorthandIndex, Map<IRI, String> tboxShorthandIndex, Map<IRI, Set<IRI>> regulators) {
 		this.curieHandler = handler;
 		this.relationShorthandIndex = shorthandIndex;
 		this.tboxShorthandIndex = tboxShorthandIndex;
+		this.regulators = regulators;
 	}
 
 	public String exportGPAD(WorkingMemory wm, IRI modelIRI) throws InconsistentOntologyException {
@@ -147,11 +155,15 @@ public class GPADSPARQLExport {
 		possibleExtensions.forEach(ae -> statementsToExplain.add(ae.getTriple()));
 		Map<Triple, Set<Explanation>> allExplanations = statementsToExplain.stream().collect(Collectors.toMap(Function.identity(), s -> toJava(wm.explain(Bridge.tripleFromJena(s)))));
 
-		Map<Triple, Set<GPADEvidence>> allEvidences = evidencesForFacts(allExplanations.values().stream().flatMap(es -> es.stream()).flatMap(e -> toJava(e.facts()).stream().map(t -> Bridge.jenaFromTriple(t))).collect(Collectors.toSet()), model, modelID, modelLevelAnnotations);
-		Set<Node> gpNodesWithOtherThanRootMF = basicAnnotations.stream().filter(a -> !a.getOntologyClass().toString().equals(MF)).map(a -> a.getObjectNode()).collect(Collectors.toSet());
+		Map<Triple, Set<GPADEvidence>> allEvidences = evidencesForFacts(allExplanations.values().stream().flatMap(es -> es.stream()).flatMap(e -> toJava(e.facts()).stream().map(t -> Bridge.jenaFromTriple(t))).collect(toSet()), model, modelID, modelLevelAnnotations);
+		Set<IRI> gpsWithAnyMFNotRootMF = basicAnnotations.stream().filter(a -> functionRelations.contains(a.getQualifier().toString())).filter(a -> !a.getOntologyClass().toString().equals(MF)).map(a -> a.getObject()).collect(toSet());
+		Map<Node, Set<IRI>> nodesToOntologyClasses = basicAnnotations.stream().collect(Collectors.groupingBy(BasicGPADData::getObjectNode, mapping(BasicGPADData::getOntologyClass, toSet())));
 		for (BasicGPADData annotation : basicAnnotations) {
+			Set<IRI> termsRegulatedByAnnotationsForThisGPNode = nodesToOntologyClasses.get(annotation.getObjectNode()).stream().flatMap(term -> regulators.getOrDefault(term, Collections.emptySet()).stream()).collect(toSet());
+			boolean regulationViolation = termsRegulatedByAnnotationsForThisGPNode.contains(annotation.getOntologyClass());
+			if (regulationViolation) continue;
 			for (Explanation explanation : allExplanations.get(Triple.create(annotation.getObjectNode(), NodeFactory.createURI(annotation.getQualifier().toString()), annotation.getOntologyClassNode()))) {
-				Set<Triple> requiredFacts = toJava(explanation.facts()).stream().map(t -> Bridge.jenaFromTriple(t)).collect(Collectors.toSet());
+				Set<Triple> requiredFacts = toJava(explanation.facts()).stream().map(t -> Bridge.jenaFromTriple(t)).collect(toSet());
 				// Every statement in the explanation must have at least one evidence, unless the statement is a class assertion
 				if (requiredFacts.stream().filter(t -> !t.getPredicate().getURI().equals(RDF.type.getURI())).allMatch(f -> !(allEvidences.get(f).isEmpty()))) {
 					// The evidence used for the annotation must be on an edge to or from the target node
@@ -179,8 +191,8 @@ public class GPADSPARQLExport {
 						if (rootTerms.contains(annotation.getOntologyClass().toString())) {
 							rootViolation = !ND.equals(currentEvidence.getEvidence().toString());
 						} else { rootViolation = false; }
-						final boolean rootMFWithBP = annotation.getOntologyClass().toString().equals(MF) && gpNodesWithOtherThanRootMF.contains(annotation.getObjectNode());
-						if (!rootViolation && !rootMFWithBP) {
+						final boolean rootMFWithOtherMF = annotation.getOntologyClass().toString().equals(MF) && gpsWithAnyMFNotRootMF.contains(annotation.getObject());
+						if (!rootViolation && !rootMFWithOtherMF) {
 							DefaultGPADData defaultGPADData = new DefaultGPADData(annotation.getObject(), annotation.getQualifier(), annotation.getOntologyClass(), goodExtensions, 
 									reference, currentEvidence.getEvidence(), currentEvidence.getWithOrFrom(), Optional.empty(), currentEvidence.getModificationDate(),
 									currentEvidence.getAssignedBy(), currentEvidence.getAnnotations());
@@ -250,10 +262,11 @@ public class GPADSPARQLExport {
 				Optional<String> with = Optional.ofNullable(eqs.getLiteral("with")).map(Literal::getLexicalForm);
 				Set<Pair<String, String>> annotationAnnotations = new HashSet<>();
 				annotationAnnotations.add(Pair.of("noctua-model-id", modelID));
-				annotationAnnotations.addAll(getContributors(eqs).stream().map(c -> Pair.of("contributor", c)).collect(Collectors.toSet()));
+				annotationAnnotations.addAll(getContributors(eqs).stream().map(c -> Pair.of("contributor", c)).collect(toSet()));
 				String modificationDate = eqs.getLiteral("modification_date").getLexicalForm();
 				Optional<String> creationDate = Optional.ofNullable(eqs.getLiteral("creation_date")).map(Literal::getLexicalForm);
-				creationDate.ifPresent(date -> annotationAnnotations.add(Pair.of("creation-date", date)));
+				// Add this back after announced to consortium; also re-enable tests
+				//creationDate.ifPresent(date -> annotationAnnotations.add(Pair.of("creation-date", date)));
 				String reference = eqs.getLiteral("source").getLexicalForm();
 				final String usableAssignedBy;
 				Optional<String> assignedByIRIOpt = getAnnotationAssignedBy(eqs);

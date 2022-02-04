@@ -36,7 +36,7 @@ public class MolecularModelManagerTest {
 	}
 	
 	private MolecularModelManager<Void> createM3(OWLOntology tbox, File journal) throws OWLOntologyCreationException, IOException {
-		return new MolecularModelManager<Void>(tbox, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), null, go_lego_journal_file);
+		return new MolecularModelManager<Void>(tbox, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), null, go_lego_journal_file, true);
 	}
 
 	@Test
