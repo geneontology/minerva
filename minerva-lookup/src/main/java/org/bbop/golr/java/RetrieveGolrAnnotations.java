@@ -1,55 +1,46 @@
 package org.bbop.golr.java;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import org.bbop.golr.java.RetrieveGolrAnnotations.GolrAnnotationExtension.GolrAnnotationExtensionEntry.GolrAnnotationExtensionRelation;
+
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import org.bbop.golr.java.RetrieveGolrAnnotations.GolrAnnotationExtension.GolrAnnotationExtensionEntry.GolrAnnotationExtensionRelation;
+public class RetrieveGolrAnnotations extends AbstractRetrieveGolr {
 
-//import owltools.gaf.Bioentity;
-//import owltools.gaf.ExtensionExpression;
-//import owltools.gaf.GafDocument;
-//import owltools.gaf.GeneAnnotation;
+    static boolean JSON_INDENT_FLAG = false;
+    static int PAGINATION_CHUNK_SIZE = 100;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonSyntaxException;
+    private static final Gson GSON = new GsonBuilder().create();
 
-public class RetrieveGolrAnnotations extends AbstractRetrieveGolr{
-	
-	static boolean JSON_INDENT_FLAG = false;
-	static int PAGINATION_CHUNK_SIZE = 100;
-	
-	private static final Gson GSON = new GsonBuilder().create();
-	
-	/*
-	 * This flag indicates that missing c16 data, due to malformed JSON is acceptable. 
-	 */
-	private final boolean ignoreC16ParseErrors;
+    /*
+     * This flag indicates that missing c16 data, due to malformed JSON is acceptable.
+     */
+    private final boolean ignoreC16ParseErrors;
 
-	public RetrieveGolrAnnotations(String server) {
-		this(server, 3, false);
-	}
-	
-	public RetrieveGolrAnnotations(String server, int retryCount, boolean ignoreC16ParseErrors) {
-		super(server, retryCount);
-		this.ignoreC16ParseErrors = ignoreC16ParseErrors;
-	}
-	
-	@Override
-	protected boolean isIndentJson() {
-		return JSON_INDENT_FLAG;
-	}
+    public RetrieveGolrAnnotations(String server) {
+        this(server, 3, false);
+    }
 
-	@Override
-	protected List<String> getRelevantFields() {
-		return GolrAnnotationDocument.getRelevantFields();
-	}
+    public RetrieveGolrAnnotations(String server, int retryCount, boolean ignoreC16ParseErrors) {
+        super(server, retryCount);
+        this.ignoreC16ParseErrors = ignoreC16ParseErrors;
+    }
+
+    @Override
+    protected boolean isIndentJson() {
+        return JSON_INDENT_FLAG;
+    }
+
+    @Override
+    protected List<String> getRelevantFields() {
+        return GolrAnnotationDocument.getRelevantFields();
+    }
 
 //	public GafDocument convert(List<GolrAnnotationDocument> golrAnnotationDocuments) throws IOException {
 //		Map<String, Bioentity> entities = new HashMap<String, Bioentity>();
@@ -142,178 +133,178 @@ public class RetrieveGolrAnnotations extends AbstractRetrieveGolr{
 //			annotation.setExtensionExpressions(expressions);
 //		};
 //	}
-	
-	private String extractRelation(GolrAnnotationExtension extension) {
-		StringBuilder sb = new StringBuilder();
-		for(GolrAnnotationExtensionRelation rel : extension.relationship.relation) {
-			if (sb.length() > 0) {
-				sb.append(" o ");
-			}
-			sb.append(rel.id);
-		}
-		if (sb.length() > 0) {
-			return sb.toString();
-		}
-		return null;
-	}
-	
-	public List<GolrAnnotationDocument> getGolrAnnotationsForGenes(List<String> ids) throws IOException {
-		return getGolrAnnotationsForGenes(ids, false);
-	}
-	
-	public List<GolrAnnotationDocument> getGolrAnnotationsForGenes(List<String> ids, boolean noIEAs) throws IOException {
-		List<String[]> tagvalues = new ArrayList<String[]>();
-		String [] tagvalue = new String[ids.size() + 1];
-		tagvalue[0] = "bioentity";
-		for (int i = 0; i < ids.size(); i++) {
-			tagvalue[i+1] = ids.get(i);
-		}
-		tagvalues.add(tagvalue);
-		if (noIEAs) {
-			// add negative filter for IEAs
-			tagvalues.add(new String[]{"-evidence_type", "IEA"});
-		}
-		final List<GolrAnnotationDocument> documents = getGolrAnnotations(tagvalues);
-		return documents;
-	}
 
-	public List<GolrAnnotationDocument> getGolrAnnotationsForGene(String id) throws IOException {
-		List<String[]> tagvalues = new ArrayList<String[]>();
-		String [] tagvalue = new String[2];
-		tagvalue[0] = "bioentity";
-		tagvalue[1] = id;
-		tagvalues.add(tagvalue);
-		final List<GolrAnnotationDocument> documents = getGolrAnnotations(tagvalues);
-		return documents;
-	}
-	
-	public List<GolrAnnotationDocument> getGolrAnnotationsForSynonym(String source, String synonym) throws IOException {
-		return getGolrAnnotationsForSynonym(source, Collections.singletonList(synonym));
-	}
-	
-	public List<GolrAnnotationDocument> getGolrAnnotationsForSynonym(String source, List<String> synonyms) throws IOException {
-		return getGolrAnnotationsForSynonym(source, synonyms, false);
-	}
-	
-	public List<GolrAnnotationDocument> getGolrAnnotationsForSynonym(String source, List<String> synonyms, boolean noIEAs) throws IOException {
-		List<String[]> tagvalues = new ArrayList<String[]>();
-		String [] param1 = new String[2];
-		param1[0] = "source";
-		param1[1] = source;
-		tagvalues.add(param1);
-		String [] param2 = new String[synonyms.size() + 1];
-		param2[0] = "synonym";
-		for (int i = 0; i < synonyms.size(); i++) {
-			param2[i+1] = synonyms.get(i);
-		}
-		tagvalues.add(param2);
-		if (noIEAs) {
-			// add negative filter for IEAs
-			tagvalues.add(new String[]{"-evidence_type", "IEA"});
-		}
-		final List<GolrAnnotationDocument> documents = getGolrAnnotations(tagvalues);
+    private String extractRelation(GolrAnnotationExtension extension) {
+        StringBuilder sb = new StringBuilder();
+        for (GolrAnnotationExtensionRelation rel : extension.relationship.relation) {
+            if (sb.length() > 0) {
+                sb.append(" o ");
+            }
+            sb.append(rel.id);
+        }
+        if (sb.length() > 0) {
+            return sb.toString();
+        }
+        return null;
+    }
 
-		return documents;
-	}
-	
-	public List<GolrAnnotationDocument> getGolrAnnotations(List<String []> tagvalues) throws IOException {
-		JSON_INDENT_FLAG = true;
-		final URI uri = createGolrRequest(tagvalues, "annotation", 0, PAGINATION_CHUNK_SIZE);
-		final String jsonString = getJsonStringFromUri(uri);
-		final GolrResponse<GolrAnnotationDocument> response = parseGolrResponse(jsonString);
-		final List<GolrAnnotationDocument> documents = new ArrayList<GolrAnnotationDocument>(response.numFound);
-		documents.addAll(Arrays.asList(response.docs));
-		if (response.numFound > PAGINATION_CHUNK_SIZE) {
-			// fetch remaining documents
-			int start = PAGINATION_CHUNK_SIZE;
-			int end = response.numFound / PAGINATION_CHUNK_SIZE;
-			if (response.numFound % PAGINATION_CHUNK_SIZE != 0) {
-				end += 1;
-			}
-			end = end * PAGINATION_CHUNK_SIZE;
-			while (start <= end) {
-				URI uriPagination = createGolrRequest(tagvalues, "annotation", start, PAGINATION_CHUNK_SIZE);
-				String jsonStringPagination = getJsonStringFromUri(uriPagination);
-				GolrResponse<GolrAnnotationDocument> responsePagination = parseGolrResponse(jsonStringPagination);
-				documents.addAll(Arrays.asList(responsePagination.docs));
-				start += PAGINATION_CHUNK_SIZE;
-			}
-		}
-		return documents;
-	}
-	
-	private static class GolrAnnotationResponse extends GolrEnvelope<GolrAnnotationDocument> {
-		// empty
-	}
-	
-	public static class GolrAnnotationDocument {
-		String source;
-		String bioentity;
-		String bioentity_internal_id;
-		String bioentity_label;
-		String bioentity_name;
-		String annotation_class;
-		String annotation_class_label;
-		String evidence_type;
-		String aspect;
-		String type;
-		String taxon;
-		String taxon_label;
-		String date;
-		String assigned_by;
-		String bioentity_isoform;
-		String panther_family;
-		String panther_family_label;
-		List<String> annotation_extension_json;
-		List<String> synonym;
-		List<String> evidence_with;
-		List<String> reference;
-		List<String> qualifier;
-		
-		static List<String> getRelevantFields() {
-			// explicit list of fields, avoid "*" retrieval of unused fields
-			return Arrays.asList("source",
-					"qualifier",
-					"bioentity",
-					"bioentity_internal_id",
-					"bioentity_label",
-					"bioentity_name",
-					"annotation_class",
-					"annotation_class_label",
-					"evidence_type",
-					"aspect",
-					"type",
-					"taxon",
-					"taxon_label",
-					"date",
-					"assigned_by",
-					"bioentity_isoform",
-					"panther_family",
-					"panther_family_label",
-					"annotation_extension_json",
-					"synonym",
-					"evidence_with",
-					"reference");
-		}
-	}
+    public List<GolrAnnotationDocument> getGolrAnnotationsForGenes(List<String> ids) throws IOException {
+        return getGolrAnnotationsForGenes(ids, false);
+    }
 
-	public static class GolrAnnotationExtension {
-		
-		GolrAnnotationExtensionEntry relationship;
-		
-		public static class GolrAnnotationExtensionEntry {
-			List<GolrAnnotationExtensionRelation> relation; // list represents a property chain
-			String id;
-			String label;
-			
-			public static class GolrAnnotationExtensionRelation {
-				String id;
-				String label;
-			}
-		}
-	}
+    public List<GolrAnnotationDocument> getGolrAnnotationsForGenes(List<String> ids, boolean noIEAs) throws IOException {
+        List<String[]> tagvalues = new ArrayList<String[]>();
+        String[] tagvalue = new String[ids.size() + 1];
+        tagvalue[0] = "bioentity";
+        for (int i = 0; i < ids.size(); i++) {
+            tagvalue[i + 1] = ids.get(i);
+        }
+        tagvalues.add(tagvalue);
+        if (noIEAs) {
+            // add negative filter for IEAs
+            tagvalues.add(new String[]{"-evidence_type", "IEA"});
+        }
+        final List<GolrAnnotationDocument> documents = getGolrAnnotations(tagvalues);
+        return documents;
+    }
 
-	private GolrResponse<GolrAnnotationDocument> parseGolrResponse(String jsonString) throws IOException {
-		return parseGolrResponse(jsonString, GolrAnnotationResponse.class).response;
-	}
+    public List<GolrAnnotationDocument> getGolrAnnotationsForGene(String id) throws IOException {
+        List<String[]> tagvalues = new ArrayList<String[]>();
+        String[] tagvalue = new String[2];
+        tagvalue[0] = "bioentity";
+        tagvalue[1] = id;
+        tagvalues.add(tagvalue);
+        final List<GolrAnnotationDocument> documents = getGolrAnnotations(tagvalues);
+        return documents;
+    }
+
+    public List<GolrAnnotationDocument> getGolrAnnotationsForSynonym(String source, String synonym) throws IOException {
+        return getGolrAnnotationsForSynonym(source, Collections.singletonList(synonym));
+    }
+
+    public List<GolrAnnotationDocument> getGolrAnnotationsForSynonym(String source, List<String> synonyms) throws IOException {
+        return getGolrAnnotationsForSynonym(source, synonyms, false);
+    }
+
+    public List<GolrAnnotationDocument> getGolrAnnotationsForSynonym(String source, List<String> synonyms, boolean noIEAs) throws IOException {
+        List<String[]> tagvalues = new ArrayList<String[]>();
+        String[] param1 = new String[2];
+        param1[0] = "source";
+        param1[1] = source;
+        tagvalues.add(param1);
+        String[] param2 = new String[synonyms.size() + 1];
+        param2[0] = "synonym";
+        for (int i = 0; i < synonyms.size(); i++) {
+            param2[i + 1] = synonyms.get(i);
+        }
+        tagvalues.add(param2);
+        if (noIEAs) {
+            // add negative filter for IEAs
+            tagvalues.add(new String[]{"-evidence_type", "IEA"});
+        }
+        final List<GolrAnnotationDocument> documents = getGolrAnnotations(tagvalues);
+
+        return documents;
+    }
+
+    public List<GolrAnnotationDocument> getGolrAnnotations(List<String[]> tagvalues) throws IOException {
+        JSON_INDENT_FLAG = true;
+        final URI uri = createGolrRequest(tagvalues, "annotation", 0, PAGINATION_CHUNK_SIZE);
+        final String jsonString = getJsonStringFromUri(uri);
+        final GolrResponse<GolrAnnotationDocument> response = parseGolrResponse(jsonString);
+        final List<GolrAnnotationDocument> documents = new ArrayList<GolrAnnotationDocument>(response.numFound);
+        documents.addAll(Arrays.asList(response.docs));
+        if (response.numFound > PAGINATION_CHUNK_SIZE) {
+            // fetch remaining documents
+            int start = PAGINATION_CHUNK_SIZE;
+            int end = response.numFound / PAGINATION_CHUNK_SIZE;
+            if (response.numFound % PAGINATION_CHUNK_SIZE != 0) {
+                end += 1;
+            }
+            end = end * PAGINATION_CHUNK_SIZE;
+            while (start <= end) {
+                URI uriPagination = createGolrRequest(tagvalues, "annotation", start, PAGINATION_CHUNK_SIZE);
+                String jsonStringPagination = getJsonStringFromUri(uriPagination);
+                GolrResponse<GolrAnnotationDocument> responsePagination = parseGolrResponse(jsonStringPagination);
+                documents.addAll(Arrays.asList(responsePagination.docs));
+                start += PAGINATION_CHUNK_SIZE;
+            }
+        }
+        return documents;
+    }
+
+    private static class GolrAnnotationResponse extends GolrEnvelope<GolrAnnotationDocument> {
+        // empty
+    }
+
+    public static class GolrAnnotationDocument {
+        String source;
+        String bioentity;
+        String bioentity_internal_id;
+        String bioentity_label;
+        String bioentity_name;
+        String annotation_class;
+        String annotation_class_label;
+        String evidence_type;
+        String aspect;
+        String type;
+        String taxon;
+        String taxon_label;
+        String date;
+        String assigned_by;
+        String bioentity_isoform;
+        String panther_family;
+        String panther_family_label;
+        List<String> annotation_extension_json;
+        List<String> synonym;
+        List<String> evidence_with;
+        List<String> reference;
+        List<String> qualifier;
+
+        static List<String> getRelevantFields() {
+            // explicit list of fields, avoid "*" retrieval of unused fields
+            return Arrays.asList("source",
+                    "qualifier",
+                    "bioentity",
+                    "bioentity_internal_id",
+                    "bioentity_label",
+                    "bioentity_name",
+                    "annotation_class",
+                    "annotation_class_label",
+                    "evidence_type",
+                    "aspect",
+                    "type",
+                    "taxon",
+                    "taxon_label",
+                    "date",
+                    "assigned_by",
+                    "bioentity_isoform",
+                    "panther_family",
+                    "panther_family_label",
+                    "annotation_extension_json",
+                    "synonym",
+                    "evidence_with",
+                    "reference");
+        }
+    }
+
+    public static class GolrAnnotationExtension {
+
+        GolrAnnotationExtensionEntry relationship;
+
+        public static class GolrAnnotationExtensionEntry {
+            List<GolrAnnotationExtensionRelation> relation; // list represents a property chain
+            String id;
+            String label;
+
+            public static class GolrAnnotationExtensionRelation {
+                String id;
+                String label;
+            }
+        }
+    }
+
+    private GolrResponse<GolrAnnotationDocument> parseGolrResponse(String jsonString) throws IOException {
+        return parseGolrResponse(jsonString, GolrAnnotationResponse.class).response;
+    }
 }

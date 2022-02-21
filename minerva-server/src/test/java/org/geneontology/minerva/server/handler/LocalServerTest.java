@@ -33,108 +33,108 @@ import static org.junit.Assert.assertEquals;
 
 public class LocalServerTest {
 
-	@ClassRule
-	public static TemporaryFolder folder = new TemporaryFolder();
+    @ClassRule
+    public static TemporaryFolder folder = new TemporaryFolder();
 
-	private static CurieHandler curieHandler = null;
-	private static UndoAwareMolecularModelManager models = null;
-	private static Server server = null;
-	private static String urlPrefix;
-	static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
+    private static CurieHandler curieHandler = null;
+    private static UndoAwareMolecularModelManager models = null;
+    private static Server server = null;
+    private static String urlPrefix;
+    static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 
 
-	@BeforeClass
-	public static void setUpBeforeClass() throws Exception {
-		init(new ParserWrapper());
-	}
-	
-	@AfterClass
-	public static void afterClass() throws Exception {
-		models.dispose();
-		server.stop();
-		server.destroy();
-	}
-	
-	@After
-	public void after() {
-	}
-	
-	static void init(ParserWrapper pw) throws Exception {
-		final OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(new File("src/test/resources/go-lego-minimal.owl")));
-		// curie handler
-		final String modelIdcurie = "gomodel";
-		final String modelIdPrefix = "http://model.geneontology.org/";
-		final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
-		curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-		models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null, go_lego_journal_file, true);
-		
-		MinervaStartUpConfig conf = new MinervaStartUpConfig();
-		conf.reasonerOpt = "elk";
-		conf.useRequestLogging = true;
-		conf.checkLiteralIds = false;
-		conf.lookupService = null;
-		conf.importantRelations = null;
-		conf.port = 6800;
-		conf.contextString = "/";
-		server = StartUpTool.startUp(models, conf, null);
-		urlPrefix = "http://localhost:"+conf.port+conf.contextString;
-	}
-	
-	@Test
-	public void testLongGet() throws Exception {
-		String longGetSuffix = FileUtils.readFileToString(new File("src/test/resources/server-test/long-get.txt"));
-		String urlString = urlPrefix + longGetSuffix;
-		URL url = new URL(urlString);
-		String responseString = IOUtils.toString(url.openStream());
-		M3BatchResponse response = parseResponse(responseString);
-		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
-	}
-	
-	@Test
-	public void testPost() throws Exception {
-		String urlString = urlPrefix + "m3Batch";
-		final URL url = new URL(urlString); 
-	
-		final Map<String,String> params = new LinkedHashMap<>();
-		params.put("uid", "uid-1");
-		params.put("intention", "query");
-		params.put("requests", createMetaGetRequest());
+    @BeforeClass
+    public static void setUpBeforeClass() throws Exception {
+        init(new ParserWrapper());
+    }
 
-		StringBuilder postData = new StringBuilder();
-		for (Map.Entry<String,String> param : params.entrySet()) {
-			if (postData.length() != 0) postData.append('&');
-			postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
-			postData.append('=');
-			postData.append(URLEncoder.encode(param.getValue(), "UTF-8"));
-		}
-		byte[] postDataBytes = postData.toString().getBytes("UTF-8");
-		
-		HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-		conn.setRequestMethod("POST");
-		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-		conn.setRequestProperty("Content-Length", String.valueOf(postDataBytes.length));
-		conn.setDoOutput(true);
-		conn.getOutputStream().write(postDataBytes);
+    @AfterClass
+    public static void afterClass() throws Exception {
+        models.dispose();
+        server.stop();
+        server.destroy();
+    }
 
-		String responseString = IOUtils.toString(conn.getInputStream(), "UTF-8");
-		M3BatchResponse response = parseResponse(responseString);
-		assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
-		
-	}
-	
-	private M3BatchResponse parseResponse(String responseString) {
-		Gson gson = new GsonBuilder().create();
-		M3BatchResponse response = gson.fromJson(responseString, M3BatchResponse.class);
-		return response;
-	}
-	
-	private String createMetaGetRequest() {
-		M3Request r = new M3Request();
-		r.entity = Entity.meta;
-		r.operation = Operation.get;
-		r.arguments = new M3Argument();
-		String json = MolecularModelJsonRenderer.renderToJson(new M3Request[]{r}, false);
-		return json;
-		
-	}
+    @After
+    public void after() {
+    }
+
+    static void init(ParserWrapper pw) throws Exception {
+        final OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(new File("src/test/resources/go-lego-minimal.owl")));
+        // curie handler
+        final String modelIdcurie = "gomodel";
+        final String modelIdPrefix = "http://model.geneontology.org/";
+        final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
+        curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
+        models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null, go_lego_journal_file, true);
+
+        MinervaStartUpConfig conf = new MinervaStartUpConfig();
+        conf.reasonerOpt = "elk";
+        conf.useRequestLogging = true;
+        conf.checkLiteralIds = false;
+        conf.lookupService = null;
+        conf.importantRelations = null;
+        conf.port = 6800;
+        conf.contextString = "/";
+        server = StartUpTool.startUp(models, conf, null);
+        urlPrefix = "http://localhost:" + conf.port + conf.contextString;
+    }
+
+    @Test
+    public void testLongGet() throws Exception {
+        String longGetSuffix = FileUtils.readFileToString(new File("src/test/resources/server-test/long-get.txt"));
+        String urlString = urlPrefix + longGetSuffix;
+        URL url = new URL(urlString);
+        String responseString = IOUtils.toString(url.openStream());
+        M3BatchResponse response = parseResponse(responseString);
+        assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
+    }
+
+    @Test
+    public void testPost() throws Exception {
+        String urlString = urlPrefix + "m3Batch";
+        final URL url = new URL(urlString);
+
+        final Map<String, String> params = new LinkedHashMap<>();
+        params.put("uid", "uid-1");
+        params.put("intention", "query");
+        params.put("requests", createMetaGetRequest());
+
+        StringBuilder postData = new StringBuilder();
+        for (Map.Entry<String, String> param : params.entrySet()) {
+            if (postData.length() != 0) postData.append('&');
+            postData.append(URLEncoder.encode(param.getKey(), "UTF-8"));
+            postData.append('=');
+            postData.append(URLEncoder.encode(param.getValue(), "UTF-8"));
+        }
+        byte[] postDataBytes = postData.toString().getBytes("UTF-8");
+
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+        conn.setRequestProperty("Content-Length", String.valueOf(postDataBytes.length));
+        conn.setDoOutput(true);
+        conn.getOutputStream().write(postDataBytes);
+
+        String responseString = IOUtils.toString(conn.getInputStream(), "UTF-8");
+        M3BatchResponse response = parseResponse(responseString);
+        assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
+
+    }
+
+    private M3BatchResponse parseResponse(String responseString) {
+        Gson gson = new GsonBuilder().create();
+        M3BatchResponse response = gson.fromJson(responseString, M3BatchResponse.class);
+        return response;
+    }
+
+    private String createMetaGetRequest() {
+        M3Request r = new M3Request();
+        r.entity = Entity.meta;
+        r.operation = Operation.get;
+        r.arguments = new M3Argument();
+        String json = MolecularModelJsonRenderer.renderToJson(new M3Request[]{r}, false);
+        return json;
+
+    }
 }
