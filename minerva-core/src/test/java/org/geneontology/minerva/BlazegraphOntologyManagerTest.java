@@ -256,26 +256,19 @@ public class BlazegraphOntologyManagerTest {
 		assertTrue("WBGene00000275 not subclass of CHEBI_24431 chemical entity", supers.contains("http://purl.obolibrary.org/obo/CHEBI_24431"));
 	}
 	
-	@Test	
+	@Test
 	public void testGetComplexPortalTypes() throws IOException {
 		//make sure its possible to get from leaf to root for the key classes
 		Set<String> uris = new HashSet<String>();
-		String cp1 = "http://purl.obolibrary.org/obo/ComplexPortal_CPX-9";
-		String cp2 = "http://purl.obolibrary.org/obo/ComplexPortal_CPX-4082";
-//this doesn't work now.  It should work while the ones above do not.  this is problem with the neo ontology.  
-//		String cp3 = "https://www.ebi.ac.uk/complexportal/complex/CPX-9";
+		String cp1 = "https://www.ebi.ac.uk/complexportal/complex/CPX-9";
+		String cp2 = "https://www.ebi.ac.uk/complexportal/complex/CPX-4082";
 		uris.add(cp1);
 		uris.add(cp2);
-//		uris.add(cp3);
-		
 		Map<String, Set<String>> uri_roots = onto_repo.getSuperCategoryMap(uris);
 		Set<String> supers = uri_roots.get(cp1);
-		assertTrue("ComplexPortal_CPX-9 not an information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
+		assertTrue("ComplexPortal_CPX-9 should be a protein-containing complex", supers.contains("http://purl.obolibrary.org/obo/GO_0032991"));
 		supers = uri_roots.get(cp2);
-		assertTrue("ComplexPortal_CPX-4082 not an information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
-//		supers = uri_roots.get(cp3);
-//		assertTrue("ComplexPortal_CPX-9 as https://www.ebi.ac.uk/complexportal/complex/CPX-9 is not an information biomacromolecule", supers.contains("http://purl.obolibrary.org/obo/CHEBI_33695"));
-		
-
+		assertTrue("ComplexPortal_CPX-4082 should be a protein-containing complex", supers.contains("http://purl.obolibrary.org/obo/GO_0032991"));
 	}
+	
 }
