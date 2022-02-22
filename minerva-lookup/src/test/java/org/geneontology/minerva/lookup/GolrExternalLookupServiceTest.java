@@ -116,14 +116,14 @@ public class GolrExternalLookupServiceTest {
 		assertTrue(e.isa_closure.size() >= 15);
 		assertTrue(e.isa_closure.contains("CHEBI:33695"));
 //		
-//		//example non-gene obo:ComplexPortal_CPX-900  http://purl.obolibrary.org/obo/ComplexPortal_CPX-900
+//		//example non-gene obo:ComplexPortal_CPX-900  https://www.ebi.ac.uk/complexportal/complex/CPX-900
 		gp_iri = handler.getIRI("ComplexPortal:CPX-900");
 		lookup = s.lookup(gp_iri);
 		assertEquals(1, lookup.size());
 		e = lookup.get(0);
 		assertEquals("saga-kat2a_human Hsap", e.label);
-		assertEquals(16, e.isa_closure.size());
-		assertTrue(e.isa_closure.contains("CHEBI:33695"));
+		assertEquals(7, e.isa_closure.size());
+		assertTrue(e.isa_closure.contains("GO:0032991"));
 	}
 
 	@Test
