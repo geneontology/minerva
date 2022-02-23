@@ -1,86 +1,86 @@
 /**
- * 
+ *
  */
 package org.geneontology.minerva.validation;
 
+import com.google.gson.annotations.SerializedName;
+
 import java.util.HashSet;
 import java.util.Set;
-
-import com.google.gson.annotations.SerializedName;
 
 /**
  * @author bgood
  *
  */
 public class ModelValidationReport {
-	final String id;
-	
-	@SerializedName("is-conformant")
-	boolean conformant;
-	final String tracker;
-	
-	@SerializedName("rule-file")
-	final String rulefile;
-	Set<Violation> violations;
-	@SerializedName("error-message")
-	String error_message;
+    final String id;
 
-	/**
-	 * 
-	 */
-	public ModelValidationReport(String id, String tracker, String rulefile) {
-		this.id = id;
-		this.tracker = tracker;
-		this.rulefile = rulefile;
-	}
+    @SerializedName("is-conformant")
+    boolean conformant;
+    final String tracker;
 
-	public String getId() {
-		return id;
-	}
+    @SerializedName("rule-file")
+    final String rulefile;
+    Set<Violation> violations;
+    @SerializedName("error-message")
+    String error_message;
 
-	public Set<Violation> getViolations() {
-		return violations;
-	}
+    /**
+     *
+     */
+    public ModelValidationReport(String id, String tracker, String rulefile) {
+        this.id = id;
+        this.tracker = tracker;
+        this.rulefile = rulefile;
+    }
 
-	public void setViolations(Set<Violation> violations) {
-		this.violations = violations;
-	}
-	
-	public void addViolation(Violation violation) {
-		if(this.violations==null) {
-			this.violations = new HashSet<Violation>();
-		}
-		this.violations.add(violation);
-	}
+    public String getId() {
+        return id;
+    }
 
-	public boolean isConformant() {
-		return conformant;
-	}
+    public Set<Violation> getViolations() {
+        return violations;
+    }
 
-	public void setConformant(boolean conformant) {
-		this.conformant = conformant;
-	}
+    public void setViolations(Set<Violation> violations) {
+        this.violations = violations;
+    }
 
-	public String getTracker() {
-		return tracker;
-	}
+    public void addViolation(Violation violation) {
+        if (this.violations == null) {
+            this.violations = new HashSet<Violation>();
+        }
+        this.violations.add(violation);
+    }
 
-	public String getRulefile() {
-		return rulefile;
-	}
-	
-	public String getError_message() {
-		return error_message;
-	}
+    public boolean isConformant() {
+        return conformant;
+    }
 
-	public void setError_message(String error_message) {
-		this.error_message = error_message;
-	}
-	
-	public void addViolations(Set<ShexViolation> violations) {
-		if(this.violations==null) {
-			this.violations = new HashSet<Violation>();
-		}
-		this.violations.addAll(violations);
-	}
+    public void setConformant(boolean conformant) {
+        this.conformant = conformant;
+    }
+
+    public String getTracker() {
+        return tracker;
+    }
+
+    public String getRulefile() {
+        return rulefile;
+    }
+
+    public String getError_message() {
+        return error_message;
+    }
+
+    public void setError_message(String error_message) {
+        this.error_message = error_message;
+    }
+
+    public void addViolations(Set<ShexViolation> violations) {
+        if (this.violations == null) {
+            this.violations = new HashSet<Violation>();
+        }
+        this.violations.addAll(violations);
+    }
 }

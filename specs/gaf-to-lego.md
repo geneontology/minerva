@@ -1,9 +1,10 @@
-Given a set of gene associations, this procedure will generate LEGO models. The procedure can be reversed for a lossy LEGO->GAF conversion.
+Given a set of gene associations, this procedure will generate LEGO models. The procedure can be reversed for a lossy
+LEGO->GAF conversion.
 
 The set of associations can be specified by a user query. Includes:
 
- * grepping a GAF and feeding results
- * selecting all associations for all genes that are involved with some process
+* grepping a GAF and feeding results
+* selecting all associations for all genes that are involved with some process
 
 ## STEP 0 - map GeneAssociation in GAF model
 
@@ -27,8 +28,7 @@ IF <EXT>
  ELSE let <CE> = <C>
 ```
 
-(note this may require further transformation, if EXT contains
-references to gene products)
+(note this may require further transformation, if EXT contains references to gene products)
 
 TODO: specify behavior for all-individual model
 
@@ -89,15 +89,15 @@ TODO: specify behavior for all-individual model
 
 (optional)
 
-keep a map of Refs -> generated Ids 
+keep a map of Refs -> generated Ids
 
-when performing `<generateId>`, first check map. If an individual Id has already been generated for this <Ref>, then re-use the existing id from the map.
+when performing `<generateId>`, first check map. If an individual Id has already been generated for this <Ref>, then
+re-use the existing id from the map.
 
 Note this may result in multiple classification of individuals (MCI). The user can rectify these in Protege.
 
-One variant of this strategy may be to retain the original Id,
-generate new Ids for the collapsed aggregate MF individual, and
-include evidence links back to the atomic MF individuals.
+One variant of this strategy may be to retain the original Id, generate new Ids for the collapsed aggregate MF
+individual, and include evidence links back to the atomic MF individuals.
 
 ## Evidence
 

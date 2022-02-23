@@ -20,8 +20,8 @@ import java.util.List;
 
 /**
  * Convenience class wrapping org.oboformat that abstracts away underlying details of ontology format or location
- * @author cjm
  *
+ * @author cjm
  */
 public class ParserWrapper {
 
@@ -43,14 +43,14 @@ public class ParserWrapper {
             public void startedLoadingOntology(LoadingStartedEvent event) {
                 IRI id = event.getOntologyID().getOntologyIRI().orNull();
                 IRI source = event.getDocumentIRI();
-                LOG.info("Start loading ontology: "+id+" from: "+source);
+                LOG.info("Start loading ontology: " + id + " from: " + source);
             }
 
             @Override
             public void finishedLoadingOntology(LoadingFinishedEvent event) {
                 IRI id = event.getOntologyID().getOntologyIRI().orNull();
                 IRI source = event.getDocumentIRI();
-                LOG.info("Finished loading ontology: "+id+" from: "+source);
+                LOG.info("Finished loading ontology: " + id + " from: " + source);
             }
         };
         manager.addOntologyLoaderListener(listener);
@@ -59,6 +59,7 @@ public class ParserWrapper {
     public OWLOntologyManager getManager() {
         return manager;
     }
+
     public void setManager(OWLOntologyManager manager) {
         this.manager = manager;
     }
@@ -75,13 +76,16 @@ public class ParserWrapper {
         manager.getIRIMappers().add(mapper);
         mappers.add(0, mapper);
     }
+
     public void removeIRIMapper(OWLOntologyIRIMapper mapper) {
         manager.getIRIMappers().remove(mapper);
         mappers.remove(mapper);
     }
+
     public List<OWLOntologyIRIMapper> getIRIMappers() {
         return Collections.unmodifiableList(mappers);
     }
+
     public void addIRIMappers(List<OWLOntologyIRIMapper> mappers) {
         List<OWLOntologyIRIMapper> reverse = new ArrayList<OWLOntologyIRIMapper>(mappers);
         Collections.reverse(reverse);
@@ -91,7 +95,7 @@ public class ParserWrapper {
     }
 
     public MinervaOWLGraphWrapper parseToOWLGraph(String iriString) throws OWLOntologyCreationException, IOException {
-        return new MinervaOWLGraphWrapper(parse(iriString));		
+        return new MinervaOWLGraphWrapper(parse(iriString));
     }
 
     public OWLOntology parse(String iriString) throws OWLOntologyCreationException, IOException {
@@ -105,12 +109,11 @@ public class ParserWrapper {
     public OWLOntology parseOWL(String iriString) throws OWLOntologyCreationException {
         IRI iri;
         if (LOG.isDebugEnabled()) {
-            LOG.debug("parsing: "+iriString);
+            LOG.debug("parsing: " + iriString);
         }
         if (isIRI(iriString)) {
             iri = IRI.create(iriString);
-        }
-        else {
+        } else {
             iri = IRI.create(new File(iriString));
         }
         return parseOWL(iri);
@@ -122,7 +125,7 @@ public class ParserWrapper {
 
     public OWLOntology parseOWL(IRI iri) throws OWLOntologyCreationException {
         if (LOG.isDebugEnabled()) {
-            LOG.debug("parsing: "+iri.toString()+" using "+manager);
+            LOG.debug("parsing: " + iri.toString() + " using " + manager);
         }
         OWLOntology ont;
         try {
@@ -136,16 +139,16 @@ public class ParserWrapper {
                 // never return null ontology
                 throw e;
             }
-            LOG.info("Skip already loaded ontology: "+iri);
+            LOG.info("Skip already loaded ontology: " + iri);
         } catch (OWLOntologyDocumentAlreadyExistsException e) {
             // Trying to recover from exception
             IRI duplicate = e.getOntologyDocumentIRI();
             ont = manager.getOntology(duplicate);
             if (ont == null) {
-                for(OWLOntology managed : manager.getOntologies()) {
+                for (OWLOntology managed : manager.getOntologies()) {
                     Optional<IRI> managedIRI = managed.getOntologyID().getOntologyIRI();
-                    if(managedIRI.isPresent() && duplicate.equals(managedIRI.get())) {
-                        LOG.info("Skip already loaded ontology: "+iri);
+                    if (managedIRI.isPresent() && duplicate.equals(managedIRI.get())) {
+                        LOG.info("Skip already loaded ontology: " + iri);
                         ont = managed;
                         break;
                     }
@@ -263,9 +266,9 @@ public class ParserWrapper {
     /**
      * Provide names for the {@link OBOFormatWriter} using an
      * {@link MinervaOWLGraphWrapper}.
-     * 
+     *
      * @see OboAndOwlNameProvider use the {@link OboAndOwlNameProvider}, the
-     *      pure OWL lookup is problematic for relations.
+     * pure OWL lookup is problematic for relations.
      */
     public static class OWLGraphWrapperNameProvider implements NameProvider {
         private final MinervaOWLGraphWrapper graph;
@@ -294,9 +297,7 @@ public class ParserWrapper {
 
         /**
          * @param graph
-         * @param oboDoc
-         * 
-         * If an {@link OBODoc} is available use {@link OboAndOwlNameProvider}.
+         * @param oboDoc If an {@link OBODoc} is available use {@link OboAndOwlNameProvider}.
          */
         @Deprecated
         public OWLGraphWrapperNameProvider(MinervaOWLGraphWrapper graph, OBODoc oboDoc) {
