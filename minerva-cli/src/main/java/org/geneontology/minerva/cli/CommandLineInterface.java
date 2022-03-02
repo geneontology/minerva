@@ -78,7 +78,6 @@ public class CommandLineInterface {
                 .hasArg(false)
                 .build();
         methods.addOption(dump);
-
         Option merge_ontologies = Option.builder()
                 .longOpt("merge-ontologies")
                 .desc("Merge owl ontologies")
@@ -97,27 +96,30 @@ public class CommandLineInterface {
                 .hasArg(false)
                 .build();
         methods.addOption(import_tbox_ontologies);
-
         Option add_taxon_metadata = Option.builder()
                 .longOpt("add-taxon-metadata")
                 .desc("add taxon associated with genes in each model as an annotation on the model")
                 .hasArg(false)
                 .build();
         methods.addOption(add_taxon_metadata);
-
         Option clean_gocams = Option.builder()
                 .longOpt("clean-gocams")
                 .desc("remove import statements, add property declarations, remove json-model annotation")
                 .hasArg(false)
                 .build();
         methods.addOption(clean_gocams);
-
         Option sparql = Option.builder()
                 .longOpt("sparql-update")
                 .desc("update the blazegraph journal with the given sparql statement")
                 .hasArg(false)
                 .build();
         methods.addOption(sparql);
+        Option replaceObsolete = Option.builder()
+                .longOpt("replace-obsolete")
+                .desc("replace references to obsolete terms with their replaced_by values")
+                .hasArg(false)
+                .build();
+        methods.addOption(replaceObsolete);
         Option json = Option.builder()
                 .longOpt("owl-lego-to-json")
                 .desc("Given a GO-CAM OWL file, make its minerva json represention")
@@ -220,6 +222,19 @@ public class CommandLineInterface {
                 String journalFilePath = cmd.getOptionValue("j"); //--journal
                 String file = cmd.getOptionValue("f");
                 sparqlUpdate(journalFilePath, file);
+            } else if (cmd.hasOption("replace-obsolete")) {
+                Options replaceOptions = new Options();
+                replaceOptions.addOption(replaceObsolete);
+                replaceOptions.addOption("j", "journal", true, "Sets the Blazegraph journal file for the database");
+                replaceOptions.addOption("ont", "ontology", true, "IRI of tbox ontology for classification - usually default go-lego.owl");
+                replaceOptions.addOption("cat", "catalog", true, "Catalog file for tbox ontology. " +
+                        "Use this to specify local copies of the ontology and or its imports to " +
+                        "speed and control the process. If not used, will download the tbox and all its imports.");
+                cmd = parser.parse(replaceOptions, args, false);
+                String journalFilePath = cmd.getOptionValue("j");
+                String ontologyIRI = cmd.getOptionValue("ontology");
+                String catalogPath = cmd.getOptionValue("catalog");
+                ReplaceObsoleteReferencesCommand.run(ontologyIRI, catalogPath, journalFilePath);
             } else if (cmd.hasOption("owl-lego-to-json")) {
                 Options json_options = new Options();
                 json_options.addOption(json);
