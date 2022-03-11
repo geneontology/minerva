@@ -6,6 +6,7 @@ PREFIX dc: <http://purl.org/dc/elements/1.1/>
 
 DELETE {
   GRAPH ?model {
+    ?model dc:date ?model_date .
     ?x a ?obsolete .
     ?x dc:date ?old_date .
     ?axiom owl:annotatedTarget ?obsolete .
@@ -14,6 +15,8 @@ DELETE {
 }
 INSERT {
   GRAPH ?model {
+    ?model dc:date ?new_date .
+    ?model rdfs:comment ?comment .
     ?replacement a owl:Class .
     ?x a ?replacement .
     ?x dc:date ?new_date .
@@ -42,6 +45,9 @@ WHERE {
     }
     OPTIONAL {
       ?x dc:date ?old_date .
+    }
+    OPTIONAL {
+      ?model dc:date ?model_date .
     }
     BIND(NOW() AS ?now)
     BIND(YEAR(?now) AS ?year_int)
