@@ -213,6 +213,8 @@ modified date updated, and an `rdfs:comment` will be added to the node, describi
 java -jar minerva-cli.jar --replace-obsolete -j blazegraph.jnl --ontology file:go-lego-reacto.owl
 ```
 
+The model ontology node will also receive the updated date and the change comment.
+
 ## SPARQL endpoint service
 
 Minerva provides a read-only SPARQL query service at the `/sparql` path. Using GET, a URL-encoded query can be submitted
