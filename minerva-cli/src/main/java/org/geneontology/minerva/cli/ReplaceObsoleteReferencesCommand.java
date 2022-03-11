@@ -1,5 +1,6 @@
 package org.geneontology.minerva.cli;
 
+import com.bigdata.rdf.changesets.IChangeLog;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailRepository;
 import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
@@ -43,45 +44,38 @@ public class ReplaceObsoleteReferencesCommand {
         try {
             updateTemplate = IOUtils.toString(Objects.requireNonNull(ReplaceObsoleteReferencesCommand.class.getResourceAsStream("obsolete-replacement.ru")), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            LOGGER.fatal("Could not load SPARQL update from jar", e);
-            System.exit(-1);
+            throw new RuntimeException(new FatalReplaceObsoleteReferencesError("Could not load SPARQL update from jar", e));
         }
     }
 
     private static final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 
-    public static void run(String ontologyIRI, String catalogPath, String journalFilePath) {
+    public static void run(String ontologyIRI, String catalogPath, String journalFilePath) throws FatalReplaceObsoleteReferencesError {
         if (journalFilePath == null) {
-            LOGGER.fatal("No journal file was configured.");
-            System.exit(-1);
+            throw new FatalReplaceObsoleteReferencesError("No journal file was configured.");
         }
         if (ontologyIRI == null) {
-            LOGGER.fatal("No ontology IRI was configured.");
-            System.exit(-1);
+            throw new FatalReplaceObsoleteReferencesError("No ontology IRI was configured.");
         }
         final OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
         if (catalogPath != null) {
             try {
                 manager.getIRIMappers().set(new CatalogXmlIRIMapper(catalogPath));
             } catch (IOException e) {
-                LOGGER.fatal("Could not load catalog file from " + catalogPath, e);
-                System.exit(1);
+                throw new FatalReplaceObsoleteReferencesError("Could not load catalog file from " + catalogPath, e);
             }
         }
         final OWLOntology tbox;
         try {
             tbox = manager.loadOntology(IRI.create(ontologyIRI));
         } catch (OWLOntologyCreationException e) {
-            LOGGER.fatal("Could not load tbox ontology from " + ontologyIRI, e);
-            System.exit(1);
-            return;
+            throw new FatalReplaceObsoleteReferencesError("Could not load tbox ontology from " + ontologyIRI, e);
         }
         Properties properties = new Properties();
         try {
             properties.load(CommandLineInterface.class.getResourceAsStream("/org/geneontology/minerva/blazegraph.properties"));
         } catch (IOException e) {
-            LOGGER.fatal("Could not read blazegraph properties resource from jar file.");
-            System.exit(1);
+            throw new FatalReplaceObsoleteReferencesError("Could not read blazegraph properties resource from jar file.");
         }
         properties.setProperty(com.bigdata.journal.Options.FILE, journalFilePath);
         BigdataSail sail = new BigdataSail(properties);
@@ -89,44 +83,47 @@ public class ReplaceObsoleteReferencesCommand {
         try {
             repository.initialize();
         } catch (RepositoryException e) {
-            LOGGER.fatal("Could not initialize SAIL repository for database.", e);
-            System.exit(1);
-        }
-        BigdataSailRepositoryConnection connection = null;
-        try {
-            connection = repository.getUnisolatedConnection();
-        } catch (RepositoryException e) {
-            LOGGER.fatal("Failed to open connection to database.", e);
-            System.exit(1);
+            throw new FatalReplaceObsoleteReferencesError("Could not initialize SAIL repository for database.", e);
         }
         BlazegraphMutationCounter counter = new BlazegraphMutationCounter();
-        connection.addChangeLog(counter);
         String sparqlUpdate = createSPARQLUpdate(tbox);
         LOGGER.debug("Will apply SPARQL update:\n" + sparqlUpdate);
         try {
+            applySPARQLUpdate(repository, sparqlUpdate, Optional.of(counter));
+            int changes = counter.mutationCount();
+            LOGGER.info("Successfully applied database updates to replace obsolete terms: " + changes + " changes");
+        } catch (RepositoryException | UpdateExecutionException | MalformedQueryException e) {
+            throw new FatalReplaceObsoleteReferencesError("Failed to apply SPARQL update.", e);
+        }
+    }
+
+    private static void applySPARQLUpdate(BigdataSailRepository repository, String update, Optional<IChangeLog> changeLog) throws RepositoryException, UpdateExecutionException, MalformedQueryException {
+        BigdataSailRepositoryConnection connection = repository.getUnisolatedConnection();
+        changeLog.ifPresent(connection::addChangeLog);
+        try {
             connection.begin();
             try {
-                connection.prepareUpdate(QueryLanguage.SPARQL, sparqlUpdate).execute();
-                int changes = counter.mutationCount();
-                LOGGER.info("Successfully applied database updates to replace obsolete terms: " + changes + " changes");
-            } catch (UpdateExecutionException | RepositoryException e) {
+                connection.prepareUpdate(QueryLanguage.SPARQL, update).execute();
+            } catch (UpdateExecutionException | RepositoryException | MalformedQueryException e) {
                 connection.rollback();
-                LOGGER.fatal("Failed to apply SPARQL update.", e);
-            } catch (MalformedQueryException e) {
-                LOGGER.fatal("Tried to apply malformed SPARQL update. This may indicate a bug in Minerva or an unexpected identifier in the tbox ontology:\n" + sparqlUpdate, e);
+                throw e;
             }
-            connection.removeChangeLog(counter);
-        } catch (RepositoryException e) {
-            LOGGER.fatal("Failed to begin transaction to make database changes.", e);
-            System.exit(1);
         } finally {
-            try {
-                connection.close();
-            } catch (RepositoryException e) {
-                LOGGER.error("Failed to close database connection.", e);
-                System.exit(1);
-            }
+            connection.close();
         }
+        changeLog.ifPresent(connection::removeChangeLog);
+    }
+
+    public static class FatalReplaceObsoleteReferencesError extends Exception {
+
+        public FatalReplaceObsoleteReferencesError(String message) {
+            super(message);
+        }
+
+        public FatalReplaceObsoleteReferencesError(String message, Exception cause) {
+            super(message, cause);
+        }
+
     }
 
     private static String createSPARQLUpdate(OWLOntology ontology) {
