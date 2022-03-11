@@ -8,9 +8,8 @@ DELETE {
   GRAPH ?model {
     ?obsolete a owl:Class .
     ?model dc:date ?model_date .
-    ?x a ?obsolete .
+    ?complement owl:complementOf ?obsolete .
     ?x dc:date ?old_date .
-    ?axiom owl:annotatedTarget ?obsolete .
     ?axiom dc:date ?axiom_date .
   }
 }
@@ -19,10 +18,9 @@ INSERT {
     ?replacement a owl:Class .
     ?model dc:date ?new_date .
     ?model rdfs:comment ?comment .
-    ?x a ?replacement .
+    ?complement owl:complementOf ?replacement .
     ?x dc:date ?new_date .
     ?x rdfs:comment ?comment .
-    ?axiom owl:annotatedTarget ?replacement .
     ?axiom dc:date ?new_date .
     ?axiom rdfs:comment ?comment .
   }
@@ -32,14 +30,15 @@ WHERE {
   GRAPH ?model {
     VALUES (?obsolete ?replacement) { %%%values%%% }
     ?x a owl:NamedIndividual .
-    ?x a ?obsolete .
-    FILTER(?obsolete != owl:NamedIndividual)
+    ?x a ?complement .
+    ?complement owl:complementOf ?obsolete .
+    FILTER(?complement != owl:NamedIndividual)
     OPTIONAL {
       # For completeness, but currently rdf:type axioms do not have axiom annotations in Noctua models
       ?axiom a owl:Axiom ;
-             owl:annotatedSource ?x ;
-             owl:annotatedProperty rdf:type ;
-             owl:annotatedTarget ?obsolete .
+      owl:annotatedSource ?x ;
+      owl:annotatedProperty rdf:type ;
+      owl:annotatedTarget ?complement .
       OPTIONAL {
         ?axiom dc:date ?axiom_date .
       }

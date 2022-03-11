@@ -48,6 +48,15 @@ public class ReplaceObsoleteReferencesCommand {
         }
     }
 
+    private static String complementsUpdateTemplate;
+    static {
+        try {
+            complementsUpdateTemplate = IOUtils.toString(Objects.requireNonNull(ReplaceObsoleteReferencesCommand.class.getResourceAsStream("obsolete-replacement-complements.ru")), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new RuntimeException(new FatalReplaceObsoleteReferencesError("Could not load SPARQL update from jar", e));
+        }
+    }
+
     private static final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 
     public static void run(String ontologyIRI, String catalogPath, String journalFilePath) throws FatalReplaceObsoleteReferencesError {
@@ -86,10 +95,13 @@ public class ReplaceObsoleteReferencesCommand {
             throw new FatalReplaceObsoleteReferencesError("Could not initialize SAIL repository for database.", e);
         }
         BlazegraphMutationCounter counter = new BlazegraphMutationCounter();
-        String sparqlUpdate = createSPARQLUpdate(tbox);
+        String replacements = createReplacementsValuesList(tbox);
+        String sparqlUpdate = updateTemplate.replace("%%%values%%%", replacements);
+        String complementsSparqlUpdate = complementsUpdateTemplate.replace("%%%values%%%", replacements);
         LOGGER.debug("Will apply SPARQL update:\n" + sparqlUpdate);
         try {
             applySPARQLUpdate(repository, sparqlUpdate, Optional.of(counter));
+            applySPARQLUpdate(repository, complementsSparqlUpdate, Optional.of(counter));
             int changes = counter.mutationCount();
             LOGGER.info("Successfully applied database updates to replace obsolete terms: " + changes + " changes");
         } catch (RepositoryException | UpdateExecutionException | MalformedQueryException e) {
@@ -126,7 +138,7 @@ public class ReplaceObsoleteReferencesCommand {
 
     }
 
-    private static String createSPARQLUpdate(OWLOntology ontology) {
+    private static String createReplacementsValuesList(OWLOntology ontology) {
         Set<OWLAnnotationSubject> deprecatedEntities = ontology.getAxioms(AxiomType.ANNOTATION_ASSERTION, Imports.INCLUDED).stream()
                 .filter(ax -> ax.getProperty().equals(owlDeprecated))
                 .filter(ax -> ax.getValue().isLiteral() && ax.getValue().asLiteral().or(literalFalse).equals(literalTrue))
@@ -138,7 +150,7 @@ public class ReplaceObsoleteReferencesCommand {
                 .filter(ax -> deprecatedEntities.contains(ax.getSubject()))
                 .map(ReplaceObsoleteReferencesCommand::annotationToSPARQLValuesPair)
                 .collect(Collectors.joining(" "));
-        return updateTemplate.replace("%%%values%%%", replacements);
+        return replacements;
     }
 
     private static String annotationToSPARQLValuesPair(OWLAnnotationAssertionAxiom axiom) {
