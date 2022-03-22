@@ -99,7 +99,7 @@ public class MolecularModelJsonRenderer {
 
         if (go_lego_repo != null) {
             try {
-                type_roots = go_lego_repo.getSuperCategoryMapForIndividuals(individuals, ont, true);
+                type_roots = go_lego_repo.getSuperCategoryMapForIndividuals(individuals, ont);
             } catch (IOException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -180,7 +180,7 @@ public class MolecularModelJsonRenderer {
                 if (type_roots == null) {
                     type_roots = new HashMap<OWLNamedIndividual, Set<String>>();
                 }
-                Map<OWLNamedIndividual, Set<String>> t_r = go_lego_repo.getSuperCategoryMapForIndividuals(new HashSet<OWLNamedIndividual>(individuals), ont, true);
+                Map<OWLNamedIndividual, Set<String>> t_r = go_lego_repo.getSuperCategoryMapForIndividuals(new HashSet<OWLNamedIndividual>(individuals), ont);
                 if (t_r != null) {
                     type_roots.putAll(t_r);
                 }

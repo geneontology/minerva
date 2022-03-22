@@ -40,18 +40,6 @@ public class GoCamModelStats {
                     if (model.go_lego.class_depth != null) {
                         if (model.go_lego.class_depth.get(oc.getIRI().toString()) != null) {
                             depth = model.go_lego.class_depth.get(oc.getIRI().toString());
-                        } else {
-                            //the class is probably deprecated
-                            try {
-                                Set<String> prob = new HashSet<String>();
-                                prob.add(oc.getIRI().toString());
-                                Set<String> fixed = model.go_lego.replaceDeprecated(prob);
-                                if (fixed != prob && fixed.size() == 1) {
-                                    depth = model.go_lego.class_depth.get(fixed.iterator().next());
-                                }
-                            } catch (Exception e) {
-                                System.err.println("problem calculating depth for " + oc);
-                            }
                         }
                     } else {
                         depth = model.go_lego.getClassDepth(oc.getIRI().toString(), "http://purl.obolibrary.org/obo/GO_0003674");
