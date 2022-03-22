@@ -203,6 +203,18 @@ WHERE {
 } 
 ```
 
+### Migrate obsolete class assertions via term_replaced_by
+
+This command will update all class assertions which reference an obsolete term, whenever there is a `term_replaced_by`
+annotation found in the ontology. The database is directly modified via a SPARQL Update. The instance node will have its
+modified date updated, and an `rdfs:comment` will be added to the node, describing the change.
+
+```bash
+java -jar minerva-cli.jar --replace-obsolete -j blazegraph.jnl --ontology file:go-lego-reacto.owl
+```
+
+The model ontology node will also receive the updated date and the change comment.
+
 ## SPARQL endpoint service
 
 Minerva provides a read-only SPARQL query service at the `/sparql` path. Using GET, a URL-encoded query can be submitted
