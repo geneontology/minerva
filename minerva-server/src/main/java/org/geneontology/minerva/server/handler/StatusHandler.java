@@ -9,6 +9,7 @@ import org.semanticweb.owlapi.model.OWLObjectProperty;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 
@@ -24,6 +25,7 @@ public class StatusHandler {
 
     public class Status {
         public String startup_date = started_at;
+        public String gitRevision;
         // data configuration
         public String ontology;
         public String catalog;
@@ -80,8 +82,13 @@ public class StatusHandler {
             this.sparqlEndpointTimeout = conf.sparqlEndpointTimeout;
             this.shexFileUrl = conf.shexFileUrl;
             this.goshapemapFileUrl = conf.goshapemapFileUrl;
-
+            this.gitRevision = getManifestVersionEntry("git-revision-sha1").orElse("UNKNOWN");
         }
+    }
+
+    private static Optional<String> getManifestVersionEntry(String key) {
+        String value = owltools.version.VersionInfo.getManifestVersion(key);
+        return Optional.ofNullable(value);
     }
 
     /**

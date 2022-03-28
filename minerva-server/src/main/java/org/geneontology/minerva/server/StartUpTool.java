@@ -21,7 +21,9 @@ import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
 import owltools.cli.Opts;
 import owltools.gaf.eco.EcoMapperFactory;
 import owltools.gaf.eco.SimpleEcoMapper;
@@ -303,8 +305,13 @@ public class StartUpTool {
 
         //grab ontology metadata and store for status service
         Map<IRI, Set<OWLAnnotation>> ont_annos = new HashMap<IRI, Set<OWLAnnotation>>();
+        OWLDataFactory factory = OWLManager.getOWLDataFactory();
+        OWLAnnotationProperty versionIRI = factory.getOWLAnnotationProperty(OWLRDFVocabulary.OWL_VERSION_IRI.getIRI());
         for (OWLOntology ont : graph.getAllOntologies()) {
-            ont_annos.put(ont.getOWLOntologyManager().getOntologyDocumentIRI(ont), ont.getAnnotations());
+            Set<OWLAnnotation> maybeVersionAnnotation = ont.getOntologyID().getVersionIRI().transform(iri -> factory.getOWLAnnotation(versionIRI, iri)).asSet();
+            Set<OWLAnnotation> annotations = ont.getAnnotations();
+            annotations.addAll(maybeVersionAnnotation);
+            ont_annos.put(ont.getOWLOntologyManager().getOntologyDocumentIRI(ont), annotations);
         }
 
         OWLOntology full_tbox = forceMergeImports(graph.getSourceOntology(), graph.getAllOntologies());
