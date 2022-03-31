@@ -74,14 +74,7 @@ public class GoCamEntity extends ProvenanceAnnotated {
                 if (label != null) {
                     c += label + " ";
                 } else {
-                    //it could be deprecated
-                    Set<String> c1 = new HashSet<String>();
-                    c1.add(type.getIRI().toString());
-                    Set<String> fixed = in_model.go_lego.replaceDeprecated(c1);
-                    if (fixed != c1 && fixed.size() == 1) {
-                        label = in_model.go_lego.getLabel(fixed.iterator().next());
-                        c += label + " (replacing deprecated " + type.getIRI() + ")";
-                    }
+                    c += type.getIRI().toString() + " ";
                 }
             } catch (IOException e) {
                 // TODO Auto-generated catch block

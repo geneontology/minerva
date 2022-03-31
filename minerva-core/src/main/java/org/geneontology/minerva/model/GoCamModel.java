@@ -80,14 +80,12 @@ public class GoCamModel extends ProvenanceAnnotated {
             all_types.add(type);
         }
         r.close();
-        Map<String, String> old_new = go_lego.mapDeprecated(all_types);
-        Set<String> corrected_types = go_lego.replaceDeprecated(all_types, old_new);
-        Map<String, Set<String>> type_roots = go_lego.getSuperCategoryMap(corrected_types);
+        Map<String, Set<String>> type_roots = go_lego.getSuperCategoryMap(all_types);
         //set global
         ind_types = new HashMap<OWLNamedIndividual, Set<String>>();
         for (OWLNamedIndividual ind : iTypesAndComplementTypes.keySet()) {
             //fix deprecated
-            Set<String> types = go_lego.replaceDeprecated(iTypesAndComplementTypes.get(ind), old_new);
+            Set<String> types = iTypesAndComplementTypes.get(ind);
             //convert to root types
             Set<String> roots = new HashSet<String>();
             for (String type : types) {
@@ -100,9 +98,8 @@ public class GoCamModel extends ProvenanceAnnotated {
     }
 
     private void setIndTypesWithOwl() throws IOException {
-        boolean fix_deprecated = true;
         Set<OWLNamedIndividual> inds = ont.getIndividualsInSignature();
-        ind_types = go_lego.getSuperCategoryMapForIndividuals(inds, ont, fix_deprecated);
+        ind_types = go_lego.getSuperCategoryMapForIndividuals(inds, ont);
     }
 
     private void addActivities() throws IOException {

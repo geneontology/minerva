@@ -371,7 +371,7 @@ public class BlazegraphOntologyManager {
         }
     }
 
-    public Map<OWLNamedIndividual, Set<String>> getSuperCategoryMapForIndividuals(Set<OWLNamedIndividual> inds, OWLOntology ont, boolean fix_deprecated) throws IOException {
+    public Map<OWLNamedIndividual, Set<String>> getSuperCategoryMapForIndividuals(Set<OWLNamedIndividual> inds, OWLOntology ont) throws IOException {
         Map<OWLNamedIndividual, Set<String>> ind_roots = new HashMap<OWLNamedIndividual, Set<String>>();
         Set<String> all_types = new HashSet<String>();
         Map<OWLNamedIndividual, Set<String>> ind_types = new HashMap<OWLNamedIndividual, Set<String>>();
@@ -385,14 +385,7 @@ public class BlazegraphOntologyManager {
                 }
             }
             all_types.addAll(types);
-            if (fix_deprecated) {
-                ind_types.put(ind, replaceDeprecated(types));
-            } else {
-                ind_types.put(ind, types);
-            }
-        }
-        if (fix_deprecated) {
-            all_types = replaceDeprecated(all_types);
+            ind_types.put(ind, types);
         }
         //just one query..
         Map<String, Set<String>> type_roots = getSuperCategoryMap(all_types);
@@ -404,74 +397,6 @@ public class BlazegraphOntologyManager {
             }
         }
         return ind_roots;
-    }
-
-    public Set<String> replaceDeprecated(Set<String> uris) {
-        Set<String> fixed = new HashSet<String>();
-        Map<String, String> old_new = mapDeprecated(uris);
-        for (String t : uris) {
-            if (old_new.get(t) != null) {
-                fixed.add(old_new.get(t));
-            } else {
-                fixed.add(t);
-            }
-        }
-        return fixed;
-    }
-
-    public Set<String> replaceDeprecated(Set<String> uris, Map<String, String> old_new) {
-        Set<String> fixed = new HashSet<String>();
-        for (String t : uris) {
-            if (old_new.get(t) != null) {
-                fixed.add(old_new.get(t));
-            } else {
-                fixed.add(t);
-            }
-        }
-        return fixed;
-    }
-
-    public Map<String, String> mapDeprecated(Set<String> uris) {
-        Map<String, String> old_new = new HashMap<String, String>();
-        BigdataSailRepositoryConnection connection;
-        try {
-            connection = go_lego_repo.getReadOnlyConnection();
-            try {
-                String q = "VALUES ?c {";
-                for (String uri : uris) {
-                    if (uri.startsWith("http")) {
-                        q += "<" + uri + "> \n";
-                    }
-                }
-                q += "} . ";
-
-                String query =
-                        "SELECT ?c ?replacement " +
-                                "WHERE { " + q
-                                + "?c <http://purl.obolibrary.org/obo/IAO_0100001> ?replacement . " +
-                                "} ";
-                TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
-                TupleQueryResult result = tupleQuery.evaluate();
-                while (result.hasNext()) {
-                    BindingSet binding = result.next();
-                    Value c = binding.getValue("c");
-                    Value replacement = binding.getValue("replacement");
-                    old_new.put(c.stringValue(), replacement.stringValue());
-                }
-            } catch (MalformedQueryException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } catch (QueryEvaluationException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } finally {
-                connection.close();
-            }
-        } catch (RepositoryException e1) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace();
-        }
-        return old_new;
     }
 
     public Map<String, Set<String>> getSuperCategoryMap(Set<String> uris) throws IOException {
