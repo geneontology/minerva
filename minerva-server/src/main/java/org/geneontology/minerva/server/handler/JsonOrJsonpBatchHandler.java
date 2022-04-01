@@ -212,7 +212,7 @@ public class JsonOrJsonpBatchHandler extends OperationsImpl implements M3BatchHa
         response.data = new ResponseData();
         //final MolecularModelJsonRenderer renderer = createModelRenderer(values.model, externalLookupService, inferenceProvider, curieHandler);
         //working towards zero use of external look up service.. which is both slow and confusing.
-        final MolecularModelJsonRenderer renderer = createModelRenderer(values.model, m3.getGolego_repo(), inferenceProvider, curieHandler);
+        final MolecularModelJsonRenderer renderer = createModelRenderer(values.model, m3.getGolego_repo(), inferenceProvider, curieHandler, m3.getTboxLabelIndex());
         if (values.renderBulk) {
             // render complete model
             JsonModel jsonModel = renderer.renderModel();

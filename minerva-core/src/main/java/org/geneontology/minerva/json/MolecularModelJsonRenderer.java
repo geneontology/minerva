@@ -42,6 +42,7 @@ public class MolecularModelJsonRenderer {
     private BlazegraphOntologyManager go_lego_repo;
     private Map<OWLNamedIndividual, Set<String>> type_roots;
     private Map<String, String> class_label;
+    private Map<IRI, String> tboxLabelMap = new HashMap<>();
 
     public static final ThreadLocal<DateFormat> AnnotationTypeDateFormat = new ThreadLocal<DateFormat>() {
 
@@ -76,14 +77,25 @@ public class MolecularModelJsonRenderer {
         this.curieHandler = curieHandler;
     }
 
+    /**
+     *
+     * @param modelId
+     * @param ont
+     * @param go_lego_repo
+     * @param inferenceProvider
+     * @param curieHandler
+     * @param labelMap Map of IRIs to term names. This map is expected to be built from the core tbox loaded into memory,
+     *                 not necessarily the full set of classes including gene products.
+     */
     public MolecularModelJsonRenderer(String modelId, OWLOntology ont, BlazegraphOntologyManager go_lego_repo,
-                                      InferenceProvider inferenceProvider, CurieHandler curieHandler) {
+                                      InferenceProvider inferenceProvider, CurieHandler curieHandler, Map<IRI, String> labelMap) {
         super();
         this.modelId = modelId;
         this.ont = ont;
         this.go_lego_repo = go_lego_repo;
         this.inferenceProvider = inferenceProvider;
         this.curieHandler = curieHandler;
+        this.tboxLabelMap = labelMap;
     }
 
     /**
@@ -96,7 +108,6 @@ public class MolecularModelJsonRenderer {
         //TODO this loop is the slowest part of the service response time.
         List<JsonOwlIndividual> iObjs = new ArrayList<JsonOwlIndividual>();
         Set<OWLNamedIndividual> individuals = ont.getIndividualsInSignature();
-
         if (go_lego_repo != null) {
             try {
                 type_roots = go_lego_repo.getSuperCategoryMapForIndividuals(individuals, ont);
@@ -138,13 +149,12 @@ public class MolecularModelJsonRenderer {
         }
         json.individuals = iObjs.toArray(new JsonOwlIndividual[iObjs.size()]);
         // per-Assertion
-        Set<OWLObjectProperty> usedProps = new HashSet<OWLObjectProperty>();
         List<JsonOwlFact> aObjs = new ArrayList<JsonOwlFact>();
-        for (OWLObjectPropertyAssertionAxiom opa : ont.getAxioms(AxiomType.OBJECT_PROPERTY_ASSERTION)) {
-            JsonOwlFact fact = renderObject(opa);
+        Set<OWLObjectPropertyAssertionAxiom> opas = ont.getAxioms(AxiomType.OBJECT_PROPERTY_ASSERTION);
+        for (OWLObjectPropertyAssertionAxiom opa : opas) {
+            JsonOwlFact fact = renderObject(opa, tboxLabelMap);
             if (fact != null) {
                 aObjs.add(fact);
-                usedProps.addAll(opa.getObjectPropertiesInSignature());
             }
         }
         json.facts = aObjs.toArray(new JsonOwlFact[aObjs.size()]);
@@ -213,7 +223,7 @@ public class MolecularModelJsonRenderer {
         }
         List<JsonOwlFact> aObjs = new ArrayList<JsonOwlFact>();
         for (OWLObjectPropertyAssertionAxiom opa : opAxioms) {
-            JsonOwlFact fact = renderObject(opa);
+            JsonOwlFact fact = renderObject(opa, tboxLabelMap);
             if (fact != null) {
                 aObjs.add(fact);
             }
@@ -312,37 +322,20 @@ public class MolecularModelJsonRenderer {
      * @param opa
      * @return Map to be passed to Gson
      */
-    public JsonOwlFact renderObject(OWLObjectPropertyAssertionAxiom opa) {
-        OWLNamedIndividual subject;
-        OWLObjectProperty property;
-        OWLNamedIndividual object;
-
+    public JsonOwlFact renderObject(OWLObjectPropertyAssertionAxiom opa, Map<IRI, String> labelIndex) {
         JsonOwlFact fact = null;
-        if (opa.getSubject().isNamed() && opa.getObject().isNamed() && opa.getProperty().isAnonymous() == false) {
-            subject = opa.getSubject().asOWLNamedIndividual();
-            property = opa.getProperty().asOWLObjectProperty();
-            object = opa.getObject().asOWLNamedIndividual();
-
+        if (opa.getSubject().isNamed() && opa.getObject().isNamed() && opa.getProperty().isNamed()) {
+            OWLNamedIndividual subject = opa.getSubject().asOWLNamedIndividual();
+            OWLObjectProperty property = opa.getProperty().asOWLObjectProperty();
+            OWLNamedIndividual object = opa.getObject().asOWLNamedIndividual();
             fact = new JsonOwlFact();
             fact.subject = curieHandler.getCuri(subject);
-            fact.property = curieHandler.getCuri(property);
-            if (graph == null && go_lego_repo != null) {
-                try {
-                    fact.propertyLabel = go_lego_repo.getLabel(property);
-                } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-            } else {
-                fact.propertyLabel = graph.getLabel(property);
-            }
-            if (fact.propertyLabel == null) {
-                fact.propertyLabel = curieHandler.getCuri(property);
-            }
+            String propertyIDCurie = curieHandler.getCuri(property);
+            fact.property = propertyIDCurie;
+            fact.propertyLabel = labelIndex.getOrDefault(property.getIRI(), propertyIDCurie);
             fact.object = curieHandler.getCuri(object);
-
             JsonAnnotation[] anObjs = renderAnnotations(opa.getAnnotations(), curieHandler);
-            if (anObjs != null && anObjs.length > 0) {
+            if (anObjs.length > 0) {
                 fact.annotations = anObjs;
             }
         }

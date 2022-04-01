@@ -8,10 +8,12 @@ import org.geneontology.minerva.json.InferenceProvider;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.lookup.ExternalLookupService.LookupEntry;
+import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLNamedObject;
 import org.semanticweb.owlapi.model.OWLOntology;
 
 import java.util.List;
+import java.util.Map;
 
 public class OperationsTools {
 
@@ -111,10 +113,11 @@ public class OperationsTools {
             final ModelContainer model,
             final BlazegraphOntologyManager go_lego_repo,
             final InferenceProvider inferenceProvider,
-            final CurieHandler curieHandler) {
+            final CurieHandler curieHandler,
+            final Map<IRI, String> tboxLabels) {
 
         MolecularModelJsonRenderer renderer = new MolecularModelJsonRenderer(curieHandler.getCuri(model.getModelId()), model.getAboxOntology(),
-                go_lego_repo, inferenceProvider, curieHandler);
+                go_lego_repo, inferenceProvider, curieHandler, tboxLabels);
 
         return renderer;
     }
