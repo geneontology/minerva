@@ -110,12 +110,12 @@ public class ModelARTHandler {
 
         //OWLOntology stored_ontology = man1.copyOntology(storedOntology, OntologyCopy.DEEP);
         ModelContainer storedMC = new ModelContainer(modelIri, null, storedOntology);
-        final MolecularModelJsonRenderer storedRenderer = createModelRenderer(storedMC, go_lego, null, curieHandler);
+        final MolecularModelJsonRenderer storedRenderer = createModelRenderer(storedMC, go_lego, null, curieHandler, m3.getTboxLabelIndex());
         JsonModel jsonStoredModel = storedRenderer.renderModel();
 
         ModelContainer activeMC = new ModelContainer(modelIri, null, currentOntology);
         InferenceProvider inferenceProvider = ipc.create(activeMC);
-        final MolecularModelJsonRenderer renderer = createModelRenderer(activeMC, go_lego, inferenceProvider, curieHandler);
+        final MolecularModelJsonRenderer renderer = createModelRenderer(activeMC, go_lego, inferenceProvider, curieHandler, m3.getTboxLabelIndex());
         JsonModel jsonActiveModel = renderer.renderModel();
 
         result.storedModel = jsonStoredModel;
