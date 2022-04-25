@@ -120,6 +120,12 @@ public class CommandLineInterface {
                 .hasArg(false)
                 .build();
         methods.addOption(replaceObsolete);
+        Option replaceTerms = Option.builder()
+                .longOpt("replace-terms")
+                .desc("replace specified term usages with replacement values")
+                .hasArg(false)
+                .build();
+        methods.addOption(replaceTerms);
         Option json = Option.builder()
                 .longOpt("owl-lego-to-json")
                 .desc("Given a GO-CAM OWL file, make its minerva json represention")
@@ -235,6 +241,17 @@ public class CommandLineInterface {
                 String ontologyIRI = cmd.getOptionValue("ontology");
                 String catalogPath = cmd.getOptionValue("catalog");
                 ReplaceObsoleteReferencesCommand.run(ontologyIRI, catalogPath, journalFilePath);
+            } else if (cmd.hasOption("replace-terms")) {
+                Options replaceTermsOptions = new Options();
+                replaceTermsOptions.addOption(replaceTerms);
+                replaceTermsOptions.addOption("j", "journal", true, "Sets the Blazegraph journal file for the database");
+                replaceTermsOptions.addOption("c", "replacement-classes", true, "TSV containing replacement class mappings");
+                replaceTermsOptions.addOption("p", "replacement-properties", true, "TSV containing replacement object property mappings");
+                cmd = parser.parse(replaceTermsOptions, args, false);
+                String journalFilePath = cmd.getOptionValue("j");
+                String replacementClassesPath = cmd.getOptionValue("replacement-classes");
+                String replacementObjectPropertiesPath = cmd.getOptionValue("replacement-properties");
+                ReplaceTermsCommand.run(journalFilePath, replacementClassesPath, replacementObjectPropertiesPath);
             } else if (cmd.hasOption("owl-lego-to-json")) {
                 Options json_options = new Options();
                 json_options.addOption(json);

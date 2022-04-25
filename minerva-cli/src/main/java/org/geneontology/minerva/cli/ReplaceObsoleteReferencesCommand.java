@@ -1,10 +1,7 @@
 package org.geneontology.minerva.cli;
 
-import com.bigdata.rdf.changesets.IChangeLog;
 import com.bigdata.rdf.sail.BigdataSail;
 import com.bigdata.rdf.sail.BigdataSailRepository;
-import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
-import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.MolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -12,7 +9,6 @@ import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.util.BlazegraphMutationCounter;
 import org.obolibrary.robot.CatalogXmlIRIMapper;
 import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryException;
 import org.semanticweb.owlapi.apibinding.OWLManager;
@@ -20,12 +16,13 @@ import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.model.parameters.Imports;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.geneontology.minerva.cli.ReplaceTermsCommand.classReplacementUpdateTemplate;
+import static org.geneontology.minerva.cli.ReplaceTermsCommand.complementsUpdateTemplate;
 
 public class ReplaceObsoleteReferencesCommand {
 
@@ -37,25 +34,6 @@ public class ReplaceObsoleteReferencesCommand {
     private static final OWLAnnotationProperty owlDeprecated = OWLManager.getOWLDataFactory().getOWLDeprecated();
     private static final OWLLiteral literalTrue = OWLManager.getOWLDataFactory().getOWLLiteral(true);
     private static final OWLLiteral literalFalse = OWLManager.getOWLDataFactory().getOWLLiteral(false);
-
-    private static String updateTemplate;
-
-    static {
-        try {
-            updateTemplate = IOUtils.toString(Objects.requireNonNull(ReplaceObsoleteReferencesCommand.class.getResourceAsStream("obsolete-replacement.ru")), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new RuntimeException(new FatalReplaceObsoleteReferencesError("Could not load SPARQL update from jar", e));
-        }
-    }
-
-    private static String complementsUpdateTemplate;
-    static {
-        try {
-            complementsUpdateTemplate = IOUtils.toString(Objects.requireNonNull(ReplaceObsoleteReferencesCommand.class.getResourceAsStream("obsolete-replacement-complements.ru")), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new RuntimeException(new FatalReplaceObsoleteReferencesError("Could not load SPARQL update from jar", e));
-        }
-    }
 
     private static final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
 
@@ -96,34 +74,18 @@ public class ReplaceObsoleteReferencesCommand {
         }
         BlazegraphMutationCounter counter = new BlazegraphMutationCounter();
         String replacements = createReplacementsValuesList(tbox);
-        String sparqlUpdate = updateTemplate.replace("%%%values%%%", replacements);
+        String sparqlUpdate = classReplacementUpdateTemplate.replace("%%%values%%%", replacements);
         String complementsSparqlUpdate = complementsUpdateTemplate.replace("%%%values%%%", replacements);
-        LOGGER.debug("Will apply SPARQL update:\n" + sparqlUpdate);
         try {
-            applySPARQLUpdate(repository, sparqlUpdate, Optional.of(counter));
-            applySPARQLUpdate(repository, complementsSparqlUpdate, Optional.of(counter));
+            LOGGER.debug("Will apply SPARQL update:\n" + sparqlUpdate);
+            ReplaceTermsCommand.applySPARQLUpdate(repository, sparqlUpdate, Optional.of(counter));
+            LOGGER.debug("Will apply SPARQL update:\n" + complementsSparqlUpdate);
+            ReplaceTermsCommand.applySPARQLUpdate(repository, complementsSparqlUpdate, Optional.of(counter));
             int changes = counter.mutationCount();
             LOGGER.info("Successfully applied database updates to replace obsolete terms: " + changes + " changes");
         } catch (RepositoryException | UpdateExecutionException | MalformedQueryException e) {
             throw new FatalReplaceObsoleteReferencesError("Failed to apply SPARQL update.", e);
         }
-    }
-
-    private static void applySPARQLUpdate(BigdataSailRepository repository, String update, Optional<IChangeLog> changeLog) throws RepositoryException, UpdateExecutionException, MalformedQueryException {
-        BigdataSailRepositoryConnection connection = repository.getUnisolatedConnection();
-        changeLog.ifPresent(connection::addChangeLog);
-        try {
-            connection.begin();
-            try {
-                connection.prepareUpdate(QueryLanguage.SPARQL, update).execute();
-            } catch (UpdateExecutionException | RepositoryException | MalformedQueryException e) {
-                connection.rollback();
-                throw e;
-            }
-        } finally {
-            connection.close();
-        }
-        changeLog.ifPresent(connection::removeChangeLog);
     }
 
     public static class FatalReplaceObsoleteReferencesError extends Exception {
@@ -155,8 +117,9 @@ public class ReplaceObsoleteReferencesCommand {
 
     private static String annotationToSPARQLValuesPair(OWLAnnotationAssertionAxiom axiom) {
         String subjectIRI = subjectToIRI(axiom.getSubject());
+        String subjectCURIE = curieHandler.getCuri(IRI.create(subjectIRI));
         Optional<String> valueIRI = valueToIRI(axiom.getValue());
-        return valueIRI.map(v -> "(<" + subjectIRI + "> <" + v + ">)").orElse("");
+        return valueIRI.map(v -> "(<" + subjectIRI + "> " + "\"" + subjectCURIE + "\"" + " <" + v + "> " + "\"" + curieHandler.getCuri(IRI.create(v)) + "\"" + ")").orElse("");
     }
 
     private static String subjectToIRI(OWLAnnotationSubject subject) {

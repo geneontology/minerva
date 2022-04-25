@@ -26,9 +26,9 @@ INSERT {
   }
 }
 WHERE {
-  VALUES (?obsolete ?replacement) { %%%values%%% }
+  VALUES (?obsolete ?obsolete_curie ?replacement ?replacement_curie) { %%%values%%% }
   GRAPH ?model {
-    VALUES (?obsolete ?replacement) { %%%values%%% }
+    VALUES (?obsolete ?obsolete_curie ?replacement ?replacement_curie) { %%%values%%% }
     ?x a owl:NamedIndividual .
     ?x a ?complement .
     ?complement owl:complementOf ?obsolete .
@@ -57,8 +57,6 @@ WHERE {
     BIND(IF(?month_int < 10, CONCAT("0", STR(?month_int)), STR(?month_int)) AS ?month)
     BIND(IF(?day_int < 10, CONCAT("0", STR(?day_int)), STR(?day_int)) AS ?day)
     BIND(STRDT(CONCAT(?year, "-", ?month, "-", ?day), xsd:string) AS ?new_date)
-    BIND(STR(?obsolete) AS ?obsolete_str)
-    BIND(STR(?replacement) AS ?replacement_str)
-    BIND(CONCAT("Automated change ", ?new_date, ": <", ?obsolete_str, "> replaced_by <", ?replacement_str, ">") AS ?comment)
+    BIND(CONCAT("Automated change ", ?new_date, ": ", ?obsolete_curie, " replaced_by ", ?replacement_curie) AS ?comment)
   }
 }
