@@ -13,6 +13,8 @@ Noctua. It communicates with Noctua via Barista. It gains its knowledge of the w
 
 For specifications, see [specs/](specs)
 
+Request API: https://github.com/berkeleybop/bbop-manager-minerva/wiki/MinervaRequestAPI
+
 ## Code
 
 * minerva-core : core logic
