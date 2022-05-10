@@ -395,6 +395,12 @@ abstract class OperationsImpl extends ModelCreator {
             requireNotNull(request.arguments, "request.arguments");
             values.model = checkModelId(values.model, request);
             values.renderBulk = true;
+        } else if (Operation.copy == operation) {
+            values.nonMeta = true;
+            requireNotNull(request.arguments, "request.arguments");
+            values.model = checkModelId(values.model, request);
+            values.renderBulk = true;
+            values.model = copyModel(values.model.getModelId(), userId, providerGroups, token, values, request.arguments.values);
         } else if (Operation.updateImports == operation) {
             values.nonMeta = true;
             requireNotNull(request.arguments, "request.arguments");

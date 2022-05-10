@@ -14,6 +14,15 @@ import static org.junit.Assert.assertNotNull;
 
 public class BatchTestTools {
 
+    static M3Request copyModel(String modelId) {
+        M3Request r = new M3Request();
+        r.entity = Entity.model;
+        r.operation = Operation.copy;
+        r.arguments = new M3Argument();
+        r.arguments.modelId = modelId;
+        return r;
+    }
+
     static M3Request addIndividual(String modelId, String cls, JsonOwlObject... expressions) {
         M3Request r = new M3Request();
         r.entity = Entity.individual;

@@ -615,6 +615,48 @@ public class BatchModelHandlerTest {
     }
 
     @Test
+    public void testModelCopy() {
+        final List<M3Request> batch1 = new ArrayList<M3Request>();
+        final String sourceModelId = generateBlankModel();
+        // evidence1
+        M3Request r = BatchTestTools.addIndividual(sourceModelId, "ECO:0000000"); // evidence from ECO
+        r.arguments.assignToVariable = "evidence-var1";
+        r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.source, "PMID:000000");
+        batch1.add(r);
+        // evidence2
+        r = BatchTestTools.addIndividual(sourceModelId, "ECO:0000001"); // evidence from ECO
+        r.arguments.assignToVariable = "evidence-var2";
+        r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.source, "PMID:000001");
+        batch1.add(r);
+        // evidence3
+        r = BatchTestTools.addIndividual(sourceModelId, "ECO:0000002"); // evidence from ECO
+        r.arguments.assignToVariable = "evidence-var3";
+        r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.source, "PMID:000002");
+        batch1.add(r);
+        r = BatchTestTools.addIndividual(sourceModelId, "GO:0003674"); // molecular function
+        r.arguments.assignToVariable = "mf";
+        r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.evidence, "evidence-var1");
+        batch1.add(r);
+        r = BatchTestTools.addIndividual(sourceModelId, "GO:0008150"); // biological process
+        r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.evidence, "evidence-var3");
+        r.arguments.assignToVariable = "bp";
+        batch1.add(r);
+        // activity -> process
+        r = BatchTestTools.addEdge(sourceModelId, "mf", "BFO:0000050", "bp"); // part_of
+        r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.evidence, "evidence-var2");
+        batch1.add(r); // part_of
+        final M3BatchResponse response1 = executeBatch(batch1, false);
+        System.err.println(response1.message);
+        Arrays.stream(response1.data.individuals).forEach(i -> System.err.println(i.id));
+
+        M3Request r2 = BatchTestTools.copyModel(sourceModelId);
+        M3BatchResponse response2 = execute(r2, false);
+        Arrays.stream(response2.data.individuals).forEach(i -> System.err.println(i.id));
+        Arrays.stream(response2.data.facts).forEach(f -> System.err.println(f.subject + " " + f.property + " " + f.object));
+        Arrays.stream(response2.data.annotations).forEach(a -> System.err.println(a.key + " " + a.value));
+    }
+
+    @Test
     public void testDeleteEvidenceIndividuals() throws Exception {
         //models.dispose();
         final String modelId = generateBlankModel();

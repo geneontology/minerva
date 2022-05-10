@@ -75,7 +75,10 @@ public interface M3BatchHandler {
         @SerializedName("get-undo-redo")
         getUndoRedo, // get a list of all currently available undo and redo for a model
 
-        sparql
+        sparql,
+
+        // available for models
+        copy
 
     }
 
