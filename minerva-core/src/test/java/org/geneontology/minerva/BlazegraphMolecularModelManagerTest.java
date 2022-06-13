@@ -118,7 +118,7 @@ public class BlazegraphMolecularModelManagerTest {
             OWLNamedIndividual i4 = m3.createIndividualWithIRI(model2, curieHandler.getIRI("GO:0000002"), null, null);
             m3.addFact(model2, partOf, i3, i4, Collections.<OWLAnnotation>emptySet(), null);
             m3.addModelAnnotations(model2, Collections.singleton(df.getOWLAnnotation(modelState, df.getOWLLiteral("delete"))), null);
-            m3.saveAllModels(null, null);
+            m3.saveAllModels();
 
             File dir = folder.newFolder();
             m3.dumpStoredModel(model1.getModelId(), dir);
@@ -182,7 +182,7 @@ public class BlazegraphMolecularModelManagerTest {
         OWLNamedIndividual i2 = m3.createIndividualWithIRI(model, curieHandler.getIRI("GO:0000002"), null, null);
 
         m3.addFact(model, partOf, i1, i2, Collections.<OWLAnnotation>emptySet(), null);
-        m3.saveModel(model, null, null);
+        m3.saveModel(model);
         m3.unlinkModel(modelID);
 
         /* getModel internally calls the loadModel method */
@@ -210,26 +210,26 @@ public class BlazegraphMolecularModelManagerTest {
         /* Add four individuals */
         m3.addFact(model, partOf, i1, i2, Collections.<OWLAnnotation>emptySet(), null);
         m3.addFact(model, partOf, i3, i4, Collections.<OWLAnnotation>emptySet(), null);
-        m3.saveModel(model, null, null);
+        m3.saveModel(model);
         Collection<OWLNamedIndividual> loaded = m3.getIndividuals(model.getModelId());
         assertTrue(loaded.contains(i1) && loaded.contains(i2) && loaded.contains(i3) && loaded.contains(i4));
 
         /* Remove the partOf triple that connects i1 and i2 */
         m3.removeFact(model, partOf, i1, i2, null);
-        m3.saveModel(model, null, null);
+        m3.saveModel(model);
         loaded = m3.getIndividuals(model.getModelId());
         assertTrue(loaded.contains(i1) && loaded.contains(i2) && loaded.contains(i3) && loaded.contains(i4));
 
         /* Remove the i1 and i2 */
         m3.deleteIndividual(model, i1, null);
         m3.deleteIndividual(model, i2, null);
-        m3.saveModel(model, null, null);
+        m3.saveModel(model);
         loaded = m3.getIndividuals(model.getModelId());
         assertTrue(!loaded.contains(i1) && !loaded.contains(i2) && loaded.contains(i3) && loaded.contains(i4));
 
         /* Trying to remove the fact that is already removed */
         m3.deleteIndividual(model, i1, null);
-        m3.saveModel(model, null, null);
+        m3.saveModel(model);
         loaded = m3.getIndividuals(model.getModelId());
         assertTrue(!loaded.contains(i1) && !loaded.contains(i2) && loaded.contains(i3) && loaded.contains(i4));
 
@@ -238,7 +238,7 @@ public class BlazegraphMolecularModelManagerTest {
                 null, null);
         loaded = m3.getIndividuals(model.getModelId());
         assertTrue(loaded.contains(i1) && !loaded.contains(i2) && loaded.contains(i3) && loaded.contains(i4));
-        m3.saveModel(model, null, null);
+        m3.saveModel(model);
         assertEquals(m3.getModelIds().size(), 1);
 
         m3.unlinkModel(model.getModelId());
@@ -246,7 +246,7 @@ public class BlazegraphMolecularModelManagerTest {
         /* i5 should not be added; createIndividualWithIRI should throw java.lang.IllegalStateException */
         try {
             OWLNamedIndividual i5 = m3.createIndividualWithIRI(model, curieHandler.getIRI("GO:0000005"), null, null);
-            m3.saveModel(model, null, null);
+            m3.saveModel(model);
             fail("Creating individual after disposing the model manager should not be allowed.");
         } catch (IllegalStateException e) {
         }

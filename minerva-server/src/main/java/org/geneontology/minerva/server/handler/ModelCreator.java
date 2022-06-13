@@ -10,10 +10,12 @@ import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.json.JsonTools;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.util.AnnotationShorthand;
+import org.openrdf.repository.RepositoryException;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.model.parameters.Imports;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -69,7 +71,7 @@ abstract class ModelCreator {
         return model;
     }
 
-    ModelContainer copyModel(IRI sourceModelId, String userId, Set<String> providerGroups, UndoMetadata token, VariableResolver resolver, JsonAnnotation[] annotationValues) throws UnknownIdentifierException, OWLOntologyCreationException {
+    ModelContainer copyModel(IRI sourceModelId, String userId, Set<String> providerGroups, UndoMetadata token, VariableResolver resolver, JsonAnnotation[] annotationValues) throws UnknownIdentifierException, OWLOntologyCreationException, RepositoryException, IOException, OWLOntologyStorageException {
         OWLDataFactory df = OWLManager.getOWLDataFactory();
         ModelContainer sourceModel = m3.getModel(sourceModelId);
         Set<OWLAnnotation> copyModelTitles = sourceModel.getAboxOntology().getAnnotations().stream()
@@ -110,6 +112,7 @@ abstract class ModelCreator {
         updateModelAnnotations(model, userId, providerGroups, token, m3);
         // Disallow undo of initial annotations
         m3.clearUndoHistory(model.getModelId());
+        m3.saveModel(model);
         return model;
     }
 

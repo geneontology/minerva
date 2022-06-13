@@ -487,7 +487,7 @@ abstract class OperationsImpl extends ModelCreator {
                     return "Save model failed: validation error(s) before save";
                 }
             }
-            m3.saveModel(values.model, annotations, token);
+            m3.saveModel(values.model);
             values.renderBulk = true;
         } else if (Operation.resetModel == operation) {
             values.nonMeta = true;
