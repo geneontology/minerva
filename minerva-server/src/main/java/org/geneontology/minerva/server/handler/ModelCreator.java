@@ -71,17 +71,21 @@ abstract class ModelCreator {
         return model;
     }
 
-    ModelContainer copyModel(IRI sourceModelId, String userId, Set<String> providerGroups, UndoMetadata token, VariableResolver resolver, JsonAnnotation[] annotationValues) throws UnknownIdentifierException, OWLOntologyCreationException, RepositoryException, IOException, OWLOntologyStorageException {
+    ModelContainer copyModel(IRI sourceModelId, String userId, Set<String> providerGroups, UndoMetadata token, VariableResolver resolver, JsonAnnotation[] annotationValues, Optional<String> maybeNewTitle) throws UnknownIdentifierException, OWLOntologyCreationException, RepositoryException, IOException, OWLOntologyStorageException {
         OWLDataFactory df = OWLManager.getOWLDataFactory();
         ModelContainer sourceModel = m3.getModel(sourceModelId);
-        Set<OWLAnnotation> copyModelTitles = sourceModel.getAboxOntology().getAnnotations().stream()
-                .filter(ann -> ann.getProperty().getIRI().equals(AnnotationShorthand.title.getAnnotationProperty()))
-                .filter(ann -> ann.getValue().isLiteral())
-                .map(ann -> ann.getValue().asLiteral().get())
-                .map(lit -> lit.getLiteral())
-                .map(title -> "Copy of " + title)
-                .map(newTitle -> df.getOWLAnnotation(df.getOWLAnnotationProperty(AnnotationShorthand.title.getAnnotationProperty()), df.getOWLLiteral(newTitle)))
-                .collect(Collectors.toSet());
+        final String newTitle;
+        if (maybeNewTitle.isPresent()) {
+            newTitle = maybeNewTitle.get();
+        } else {
+            Optional<String> copyModelTitle = sourceModel.getAboxOntology().getAnnotations().stream()
+                    .filter(ann -> ann.getProperty().getIRI().equals(AnnotationShorthand.title.getAnnotationProperty()))
+                    .filter(ann -> ann.getValue().isLiteral())
+                    .map(ann -> ann.getValue().asLiteral().get())
+                    .map(OWLLiteral::getLiteral)
+                    .map(title -> "Copy of " + title).min(String::compareTo);
+            newTitle = copyModelTitle.orElse("Copy of " + sourceModelId.toString());
+        }
         ModelContainer model = m3.generateBlankModel(token);
         final Set<OWLAnnotation> generatedAnnotations = createGeneratedAnnotations(model, userId, providerGroups);
         addDateAnnotation(generatedAnnotations, model.getOWLDataFactory());
@@ -107,7 +111,7 @@ abstract class ModelCreator {
                 .forEach(opa -> m3.addFact(model, opa.getProperty(), oldToNew.get(opa.getSubject().asOWLNamedIndividual()), oldToNew.get(opa.getObject().asOWLNamedIndividual()), generatedAnnotations, token));
         final Set<OWLAnnotation> annotationsWithModelState = addDefaultModelState(generatedAnnotations, model.getOWLDataFactory());
         annotationsWithModelState.add(df.getOWLAnnotation(df.getOWLAnnotationProperty(AnnotationShorthand.wasDerivedFrom.getAnnotationProperty()), sourceModelId));
-        annotationsWithModelState.addAll(copyModelTitles);
+        annotationsWithModelState.add(df.getOWLAnnotation(df.getOWLAnnotationProperty(AnnotationShorthand.title.getAnnotationProperty()), df.getOWLLiteral(newTitle)));
         m3.addModelAnnotations(model, annotationsWithModelState, token);
         updateModelAnnotations(model, userId, providerGroups, token, m3);
         // Disallow undo of initial annotations

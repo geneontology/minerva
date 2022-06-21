@@ -398,9 +398,10 @@ abstract class OperationsImpl extends ModelCreator {
         } else if (Operation.copy == operation) {
             values.nonMeta = true;
             requireNotNull(request.arguments, "request.arguments");
+            Optional<String> newTitle = Optional.ofNullable(request.arguments.title);
             values.model = checkModelId(values.model, request);
             values.renderBulk = true;
-            values.model = copyModel(values.model.getModelId(), userId, providerGroups, token, values, request.arguments.values);
+            values.model = copyModel(values.model.getModelId(), userId, providerGroups, token, values, request.arguments.values, newTitle);
         } else if (Operation.updateImports == operation) {
             values.nonMeta = true;
             requireNotNull(request.arguments, "request.arguments");
