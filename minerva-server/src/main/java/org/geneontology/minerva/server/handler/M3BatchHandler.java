@@ -90,7 +90,6 @@ public interface M3BatchHandler {
         String object;
         String predicate;
         String individual;
-        String title;
 
         @SerializedName("individual-iri")
         String individualIRI;
