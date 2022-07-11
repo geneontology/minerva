@@ -119,7 +119,7 @@ public class ModelEditTest {
         final String modelId = "http://model.geneontology.org/5437882f00000024";
         M3Request r;
 
-        models.saveModel(models.getModel(IRI.create(modelId)), Collections.emptySet(), null);
+        models.saveModel(models.getModel(IRI.create(modelId)));
         //cache a version of the initial model.
         OWLOntologyManager man1 = OWLManager.createOWLOntologyManager();
         OWLOntology startModel = man1.copyOntology(models.getModelAbox(IRI.create(modelId)), OntologyCopy.DEEP);
@@ -186,7 +186,7 @@ public class ModelEditTest {
         final String curie = curieHandler.getCuri(IRI.create(modelId));
         M3Request r;
 
-        models.saveModel(models.getModel(IRI.create(modelId)), Collections.emptySet(), null);
+        models.saveModel(models.getModel(IRI.create(modelId)));
 
         // get meta, check that the model shows up as not modified
         MetaResponse meta1 = BatchTestTools.getMeta(handler);

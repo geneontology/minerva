@@ -17,10 +17,7 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.*;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.util.AnnotationShorthand;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
@@ -612,6 +609,50 @@ public class BatchModelHandlerTest {
         assertEquals(M3BatchResponse.SIGNAL_MERGE, response2.signal);
         JsonOwlIndividual[] iObjs2 = BatchTestTools.responseIndividuals(response2);
         assertEquals(2, iObjs2.length);
+    }
+
+    @Test
+    public void testModelCopy() {
+        final List<M3Request> batch1 = new ArrayList<M3Request>();
+        final String sourceModelId = generateBlankModel();
+        // evidence1
+        M3Request r = BatchTestTools.addIndividual(sourceModelId, "ECO:0000000"); // evidence from ECO
+        r.arguments.assignToVariable = "evidence-var1";
+        r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.source, "PMID:000000");
+        batch1.add(r);
+        // evidence2
+        r = BatchTestTools.addIndividual(sourceModelId, "ECO:0000001"); // evidence from ECO
+        r.arguments.assignToVariable = "evidence-var2";
+        r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.source, "PMID:000001");
+        batch1.add(r);
+        // evidence3
+        r = BatchTestTools.addIndividual(sourceModelId, "ECO:0000002"); // evidence from ECO
+        r.arguments.assignToVariable = "evidence-var3";
+        r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.source, "PMID:000002");
+        batch1.add(r);
+        r = BatchTestTools.addIndividual(sourceModelId, "GO:0003674"); // molecular function
+        r.arguments.assignToVariable = "mf";
+        r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.evidence, "evidence-var1");
+        batch1.add(r);
+        r = BatchTestTools.addIndividual(sourceModelId, "GO:0008150"); // biological process
+        r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.evidence, "evidence-var3");
+        r.arguments.assignToVariable = "bp";
+        batch1.add(r);
+        // activity -> process
+        r = BatchTestTools.addEdge(sourceModelId, "mf", "BFO:0000050", "bp"); // part_of
+        r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.evidence, "evidence-var2");
+        batch1.add(r); // part_of
+        final M3BatchResponse response1 = executeBatch(batch1, false);
+
+        String newModelTitle = "new model title";
+        M3Request r2 = BatchTestTools.copyModel(sourceModelId, newModelTitle);
+        M3BatchResponse response2 = execute(r2, false);
+        Assert.assertEquals(5, response1.data.individuals.length);
+        Assert.assertEquals(2, response2.data.individuals.length);
+        JsonAnnotation providedByValue = Arrays.stream(response2.data.annotations).filter(a -> a.key.equals("wasDerivedFrom")).findAny().get();
+        Assert.assertEquals(response1.data.modelId, providedByValue.value);
+        JsonAnnotation titleValue = Arrays.stream(response2.data.annotations).filter(a -> a.key.equals("title")).findAny().get();
+        Assert.assertEquals(newModelTitle, titleValue.value);
     }
 
     @Test

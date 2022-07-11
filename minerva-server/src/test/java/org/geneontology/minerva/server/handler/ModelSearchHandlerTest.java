@@ -166,7 +166,7 @@ public class ModelSearchHandlerTest {
         //get a hold of a test model
         String mid = "5d29221b00001265";
         final String modelId = "http://model.geneontology.org/" + mid;
-        models.saveModel(models.getModel(IRI.create(modelId)), Collections.emptySet(), null);
+        models.saveModel(models.getModel(IRI.create(modelId)));
         // get model via standard Noctua request (non-search), check that the model indicated as not modified
         M3BatchResponse resp1 = BatchTestTools.getModel(handler, modelId, false);
         assertFalse(resp1.data.modifiedFlag);
