@@ -17,10 +17,7 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.*;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.util.AnnotationShorthand;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
@@ -646,14 +643,16 @@ public class BatchModelHandlerTest {
         r.arguments.values = BatchTestTools.singleAnnotation(AnnotationShorthand.evidence, "evidence-var2");
         batch1.add(r); // part_of
         final M3BatchResponse response1 = executeBatch(batch1, false);
-        System.err.println(response1.message);
-        Arrays.stream(response1.data.individuals).forEach(i -> System.err.println(i.id));
 
-        M3Request r2 = BatchTestTools.copyModel(sourceModelId);
+        String newModelTitle = "new model title";
+        M3Request r2 = BatchTestTools.copyModel(sourceModelId, newModelTitle);
         M3BatchResponse response2 = execute(r2, false);
-        Arrays.stream(response2.data.individuals).forEach(i -> System.err.println(i.id));
-        Arrays.stream(response2.data.facts).forEach(f -> System.err.println(f.subject + " " + f.property + " " + f.object));
-        Arrays.stream(response2.data.annotations).forEach(a -> System.err.println(a.key + " " + a.value));
+        Assert.assertEquals(5, response1.data.individuals.length);
+        Assert.assertEquals(2, response2.data.individuals.length);
+        JsonAnnotation providedByValue = Arrays.stream(response2.data.annotations).filter(a -> a.key.equals("wasDerivedFrom")).findAny().get();
+        Assert.assertEquals(response1.data.modelId, providedByValue.value);
+        JsonAnnotation titleValue = Arrays.stream(response2.data.annotations).filter(a -> a.key.equals("title")).findAny().get();
+        Assert.assertEquals(newModelTitle, titleValue.value);
     }
 
     @Test
