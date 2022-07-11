@@ -133,7 +133,7 @@ public class MolecularModelManagerTest {
         addPartOf(model, i1, i2, mmm);
 
         // save
-        mmm.saveModel(model, null, null);
+        mmm.saveModel(model);
 
         // add an additional individual to model after export
         final OWLNamedIndividual i3 = mmm.createIndividual(model.getModelId(), "GO:0008233", null, null);

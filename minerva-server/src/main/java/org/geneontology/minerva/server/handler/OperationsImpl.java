@@ -395,6 +395,13 @@ abstract class OperationsImpl extends ModelCreator {
             requireNotNull(request.arguments, "request.arguments");
             values.model = checkModelId(values.model, request);
             values.renderBulk = true;
+        } else if (Operation.copy == operation) {
+            values.nonMeta = true;
+            requireNotNull(request.arguments, "request.arguments");
+            values.model = checkModelId(values.model, request);
+            Set<OWLAnnotation> modelAnnotations = extract(request.arguments.values, userId, providerGroups, values, values.model);
+            values.renderBulk = true;
+            values.model = copyModel(values.model.getModelId(), userId, providerGroups, token, modelAnnotations);
         } else if (Operation.updateImports == operation) {
             values.nonMeta = true;
             requireNotNull(request.arguments, "request.arguments");
@@ -481,7 +488,7 @@ abstract class OperationsImpl extends ModelCreator {
                     return "Save model failed: validation error(s) before save";
                 }
             }
-            m3.saveModel(values.model, annotations, token);
+            m3.saveModel(values.model);
             values.renderBulk = true;
         } else if (Operation.resetModel == operation) {
             values.nonMeta = true;
