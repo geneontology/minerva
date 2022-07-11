@@ -6,45 +6,37 @@ PREFIX dc: <http://purl.org/dc/elements/1.1/>
 
 DELETE {
   GRAPH ?model {
-    ?obsolete a owl:Class .
+    ?replaced a owl:ObjectProperty .
     ?model dc:date ?model_date .
-    ?complement owl:complementOf ?obsolete .
-    ?x dc:date ?old_date .
+    ?s ?replaced ?o .
+    ?axiom owl:annotatedProperty ?replaced .
     ?axiom dc:date ?axiom_date .
   }
 }
 INSERT {
   GRAPH ?model {
-    ?replacement a owl:Class .
+    ?replacement a owl:ObjectProperty .
     ?model dc:date ?new_date .
     ?model rdfs:comment ?comment .
-    ?complement owl:complementOf ?replacement .
-    ?x dc:date ?new_date .
-    ?x rdfs:comment ?comment .
+    ?s ?replacement ?o .
+    ?axiom owl:annotatedProperty ?replacement .
     ?axiom dc:date ?new_date .
     ?axiom rdfs:comment ?comment .
   }
 }
 WHERE {
-  VALUES (?obsolete ?replacement) { %%%values%%% }
+  VALUES (?replaced ?replaced_curie ?replacement ?replacement_curie) { %%%values%%% }
   GRAPH ?model {
-    VALUES (?obsolete ?replacement) { %%%values%%% }
-    ?x a owl:NamedIndividual .
-    ?x a ?complement .
-    ?complement owl:complementOf ?obsolete .
-    FILTER(?complement != owl:NamedIndividual)
+    VALUES (?replaced ?replaced_curie ?replacement ?replacement_curie) { %%%values%%% }
+    ?s ?replaced ?o .
     OPTIONAL {
-      # For completeness, but currently rdf:type axioms do not have axiom annotations in Noctua models
       ?axiom a owl:Axiom ;
-      owl:annotatedSource ?x ;
-      owl:annotatedProperty rdf:type ;
-      owl:annotatedTarget ?complement .
+      owl:annotatedSource ?s ;
+      owl:annotatedProperty ?replaced ;
+      owl:annotatedTarget ?o .
       OPTIONAL {
         ?axiom dc:date ?axiom_date .
       }
-    }
-    OPTIONAL {
-      ?x dc:date ?old_date .
     }
     OPTIONAL {
       ?model dc:date ?model_date .
@@ -57,8 +49,6 @@ WHERE {
     BIND(IF(?month_int < 10, CONCAT("0", STR(?month_int)), STR(?month_int)) AS ?month)
     BIND(IF(?day_int < 10, CONCAT("0", STR(?day_int)), STR(?day_int)) AS ?day)
     BIND(STRDT(CONCAT(?year, "-", ?month, "-", ?day), xsd:string) AS ?new_date)
-    BIND(STR(?obsolete) AS ?obsolete_str)
-    BIND(STR(?replacement) AS ?replacement_str)
-    BIND(CONCAT("Automated change ", ?new_date, ": <", ?obsolete_str, "> replaced_by <", ?replacement_str, ">") AS ?comment)
+    BIND(CONCAT("Automated change ", ?new_date, ": ", ?replaced_curie, " replaced by ", ?replacement_curie) AS ?comment)
   }
 }
