@@ -10,10 +10,14 @@ import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.json.JsonTools;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.util.AnnotationShorthand;
+import org.openrdf.repository.RepositoryException;
+import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.model.parameters.Imports;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Methods for creating a new model. This handles also all the default
@@ -60,12 +64,64 @@ abstract class ModelCreator {
         ModelContainer model = m3.generateBlankModel(token);
         Set<OWLAnnotation> annotations = extract(annotationValues, userId, providerGroups, resolver, model);
         annotations = addDefaultModelState(annotations, model.getOWLDataFactory());
-        if (annotations != null) {
-            m3.addModelAnnotations(model, annotations, token);
-        }
+        m3.addModelAnnotations(model, annotations, token);
         updateModelAnnotations(model, userId, providerGroups, token, m3);
         // Disallow undo of initial annotations
         m3.clearUndoHistory(model.getModelId());
+        return model;
+    }
+
+    ModelContainer copyModel(IRI sourceModelId, String userId, Set<String> providerGroups, UndoMetadata token, Set<OWLAnnotation> modelAnnotations) throws UnknownIdentifierException, OWLOntologyCreationException, RepositoryException, IOException, OWLOntologyStorageException {
+        OWLDataFactory df = OWLManager.getOWLDataFactory();
+        ModelContainer sourceModel = m3.getModel(sourceModelId);
+        boolean titleIsProvided = modelAnnotations.stream()
+                .anyMatch(ann -> ann.getProperty().getIRI().equals(AnnotationShorthand.title.getAnnotationProperty()));
+        Optional<OWLAnnotation> maybeNewTitle;
+        if (titleIsProvided) {
+            maybeNewTitle = Optional.empty();
+        } else {
+            Optional<String> copyModelTitle = sourceModel.getAboxOntology().getAnnotations().stream()
+                    .filter(ann -> ann.getProperty().getIRI().equals(AnnotationShorthand.title.getAnnotationProperty()))
+                    .filter(ann -> ann.getValue().isLiteral())
+                    .map(ann -> ann.getValue().asLiteral().get())
+                    .map(OWLLiteral::getLiteral)
+                    .map(title -> "Copy of " + title).min(String::compareTo);
+            String newTitle = copyModelTitle.orElse("Copy of " + sourceModelId.toString());
+            maybeNewTitle = Optional.of(df.getOWLAnnotation(df.getOWLAnnotationProperty(AnnotationShorthand.title.getAnnotationProperty()), df.getOWLLiteral(newTitle)));
+        }
+        ModelContainer model = m3.generateBlankModel(token);
+        OWLAnnotation dateAnnotation = createDateAnnotation(model.getOWLDataFactory());
+        modelAnnotations.add(dateAnnotation);
+        final Set<OWLAnnotation> generatedAnnotations = createGeneratedAnnotations(model, userId, providerGroups);
+        generatedAnnotations.add(dateAnnotation);
+        final Set<IRI> axiomEvidenceNodeIRIs = sourceModel.getAboxOntology().getAxioms().stream()
+                .flatMap(ax -> ax.getAnnotations(df.getOWLAnnotationProperty(AnnotationShorthand.evidence.getAnnotationProperty())).stream())
+                .filter(ann -> ann.getValue().isIRI())
+                .map(ann -> ann.getValue().asIRI().get())
+                .collect(Collectors.toSet());
+        final Set<IRI> evidenceNodeIRIs = sourceModel.getAboxOntology().getAxioms(AxiomType.ANNOTATION_ASSERTION).stream()
+                .filter(aa -> aa.getProperty().getIRI().equals(AnnotationShorthand.evidence.getAnnotationProperty()))
+                .filter(aa -> aa.getValue().isIRI())
+                .map(aa -> aa.getValue().asIRI().get())
+                .collect(Collectors.toSet());
+        evidenceNodeIRIs.addAll(axiomEvidenceNodeIRIs);
+        Map<OWLNamedIndividual, OWLNamedIndividual> oldToNew = m3.getIndividuals(sourceModelId).stream()
+                .filter(i -> !evidenceNodeIRIs.contains(i.getIRI()))
+                .collect(Collectors.toMap(sourceIndividual -> sourceIndividual, sourceIndividual -> m3.createIndividualNonReasoning(model, generatedAnnotations, token)));
+        sourceModel.getAboxOntology().getAxioms(AxiomType.CLASS_ASSERTION, Imports.EXCLUDED).stream()
+                .filter(ca -> !evidenceNodeIRIs.contains(ca.getIndividual().asOWLNamedIndividual().getIRI()))
+                .forEach(ca -> m3.addType(model, oldToNew.get(ca.getIndividual().asOWLNamedIndividual()), ca.getClassExpression(), token));
+        sourceModel.getAboxOntology().getAxioms(AxiomType.OBJECT_PROPERTY_ASSERTION, Imports.EXCLUDED).stream()
+                .filter(opa -> !evidenceNodeIRIs.contains(opa.getSubject().asOWLNamedIndividual().getIRI()) && !evidenceNodeIRIs.contains(opa.getObject().asOWLNamedIndividual().getIRI()))
+                .forEach(opa -> m3.addFact(model, opa.getProperty(), oldToNew.get(opa.getSubject().asOWLNamedIndividual()), oldToNew.get(opa.getObject().asOWLNamedIndividual()), generatedAnnotations, token));
+        final Set<OWLAnnotation> modelAnnotationsWithState = addDefaultModelState(modelAnnotations, model.getOWLDataFactory());
+        modelAnnotationsWithState.add(df.getOWLAnnotation(df.getOWLAnnotationProperty(AnnotationShorthand.wasDerivedFrom.getAnnotationProperty()), sourceModelId));
+        maybeNewTitle.ifPresent(modelAnnotationsWithState::add);
+        m3.addModelAnnotations(model, modelAnnotationsWithState, token);
+        updateModelAnnotations(model, userId, providerGroups, token, m3);
+        // Disallow undo of initial annotations
+        m3.clearUndoHistory(model.getModelId());
+        m3.saveModel(model);
         return model;
     }
 

@@ -215,6 +215,17 @@ java -jar minerva-cli.jar --replace-obsolete -j blazegraph.jnl --ontology file:g
 
 The model ontology node will also receive the updated date and the change comment.
 
+### Migrate class and object property assertions via TSV
+
+This command will migrate class assertions and object property assertions from one term to another according to provide TSV mappings.
+The database is directly modified via a SPARQL Update. As for obsoletions, the relevant axiom and model nodes will receive 
+updated dates and a comment describing the change. The input files should have a header row, and at least two columns, 
+where the replaced term is the first column and the replacement term is the second column.
+
+```bash
+java -jar minerva-cli.jar --replace-terms -j blazegraph.jnl --replacement-classes class-replacements.tsv --replacement-properties property-replacements.tsv
+```
+
 ## SPARQL endpoint service
 
 Minerva provides a read-only SPARQL query service at the `/sparql` path. Using GET, a URL-encoded query can be submitted

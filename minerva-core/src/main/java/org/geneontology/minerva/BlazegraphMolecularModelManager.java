@@ -153,22 +153,19 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
     }
 
     /**
-     * Save all models to disk. The optional annotations may be used to set
-     * saved_by and other meta data.
+     * Save all models to disk.
      *
-     * @param annotations
-     * @param metadata
      * @throws OWLOntologyStorageException
      * @throws OWLOntologyCreationException
      * @throws IOException
      * @throws RepositoryException
      * @throws UnknownIdentifierException
      */
-    public void saveAllModels(Set<OWLAnnotation> annotations, METADATA metadata)
+    public void saveAllModels()
             throws OWLOntologyStorageException, OWLOntologyCreationException,
             IOException, RepositoryException, UnknownIdentifierException {
         for (Entry<IRI, ModelContainer> entry : modelMap.entrySet()) {
-            saveModel(entry.getValue(), annotations, metadata);
+            saveModel(entry.getValue());
         }
     }
 
@@ -176,16 +173,13 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
      * Save a model to the database.
      *
      * @param m
-     * @param annotations
-     * @param metadata
      * @throws OWLOntologyStorageException
      * @throws OWLOntologyCreationException
      * @throws IOException
      * @throws RepositoryException
      * @throws UnknownIdentifierException
      */
-    public void saveModel(ModelContainer m,
-                          Set<OWLAnnotation> annotations, METADATA metadata)
+    public void saveModel(ModelContainer m)
             throws OWLOntologyStorageException, OWLOntologyCreationException,
             IOException, RepositoryException, UnknownIdentifierException {
         IRI modelId = m.getModelId();

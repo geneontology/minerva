@@ -8,9 +8,8 @@ DELETE {
   GRAPH ?model {
     ?obsolete a owl:Class .
     ?model dc:date ?model_date .
-    ?x a ?obsolete .
+    ?complement owl:complementOf ?obsolete .
     ?x dc:date ?old_date .
-    ?axiom owl:annotatedTarget ?obsolete .
     ?axiom dc:date ?axiom_date .
   }
 }
@@ -19,27 +18,27 @@ INSERT {
     ?replacement a owl:Class .
     ?model dc:date ?new_date .
     ?model rdfs:comment ?comment .
-    ?x a ?replacement .
+    ?complement owl:complementOf ?replacement .
     ?x dc:date ?new_date .
     ?x rdfs:comment ?comment .
-    ?axiom owl:annotatedTarget ?replacement .
     ?axiom dc:date ?new_date .
     ?axiom rdfs:comment ?comment .
   }
 }
 WHERE {
-  VALUES (?obsolete ?replacement) { %%%values%%% }
+  VALUES (?obsolete ?obsolete_curie ?replacement ?replacement_curie) { %%%values%%% }
   GRAPH ?model {
-    VALUES (?obsolete ?replacement) { %%%values%%% }
+    VALUES (?obsolete ?obsolete_curie ?replacement ?replacement_curie) { %%%values%%% }
     ?x a owl:NamedIndividual .
-    ?x a ?obsolete .
-    FILTER(?obsolete != owl:NamedIndividual)
+    ?x a ?complement .
+    ?complement owl:complementOf ?obsolete .
+    FILTER(?complement != owl:NamedIndividual)
     OPTIONAL {
       # For completeness, but currently rdf:type axioms do not have axiom annotations in Noctua models
       ?axiom a owl:Axiom ;
-             owl:annotatedSource ?x ;
-             owl:annotatedProperty rdf:type ;
-             owl:annotatedTarget ?obsolete .
+      owl:annotatedSource ?x ;
+      owl:annotatedProperty rdf:type ;
+      owl:annotatedTarget ?complement .
       OPTIONAL {
         ?axiom dc:date ?axiom_date .
       }
@@ -58,8 +57,6 @@ WHERE {
     BIND(IF(?month_int < 10, CONCAT("0", STR(?month_int)), STR(?month_int)) AS ?month)
     BIND(IF(?day_int < 10, CONCAT("0", STR(?day_int)), STR(?day_int)) AS ?day)
     BIND(STRDT(CONCAT(?year, "-", ?month, "-", ?day), xsd:string) AS ?new_date)
-    BIND(STR(?obsolete) AS ?obsolete_str)
-    BIND(STR(?replacement) AS ?replacement_str)
-    BIND(CONCAT("Automated change ", ?new_date, ": <", ?obsolete_str, "> replaced_by <", ?replacement_str, ">") AS ?comment)
+    BIND(CONCAT("Automated change ", ?new_date, ": ", ?obsolete_curie, " replaced by ", ?replacement_curie) AS ?comment)
   }
 }
