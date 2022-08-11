@@ -230,12 +230,14 @@ public class CommandLineInterface {
                 jsonDumpOptions.addOption("ontojournal", "ontojournal", true, "Specify a blazegraph journal file containing the merged, pre-reasoned tbox aka go-lego.owl");
                 jsonDumpOptions.addOption("f", "folder", true, "Sets the output folder the GO-CAM model files");
                 jsonDumpOptions.addOption("p", "model-id-prefix", true, "prefix for GO-CAM model ids");
+                jsonDumpOptions.addOption("prefixes", "prefixes", true, "Prefix mappings file");
                 cmd = parser.parse(jsonDumpOptions, args, false);
                 String journalFilePath = cmd.getOptionValue("j"); //--journal
                 String ontojournalFilePath = cmd.getOptionValue("ontojournal");
                 String outputFolder = cmd.getOptionValue("f"); //--folder
                 String modelIdPrefix = cmd.getOptionValue("p"); //--prefix
-                modelsToJSON(journalFilePath, ontojournalFilePath, outputFolder, modelIdPrefix);
+                String prefixMappingsFileLoc = cmd.getOptionValue("prefixes");
+                modelsToJSON(journalFilePath, ontojournalFilePath, outputFolder, modelIdPrefix, prefixMappingsFileLoc);
             } else if (cmd.hasOption("import-owl-models")) {
                 Options import_options = new Options();
                 import_options.addOption(import_owl);
@@ -458,7 +460,7 @@ public class CommandLineInterface {
      * @param modelIdPrefix
      * @throws Exception
      */
-    public static void modelsToJSON(String journalFilePath, String ontojournalFilePath, String outputFolder, String modelIdPrefix) throws Exception {
+    public static void modelsToJSON(String journalFilePath, String ontojournalFilePath, String outputFolder, String modelIdPrefix, String prefixMappingsFilePath) throws Exception {
         final String idPrefix;
         if (modelIdPrefix == null) {
             idPrefix = "http://model.geneontology.org/";
@@ -481,9 +483,16 @@ public class CommandLineInterface {
             System.exit(-1);
             return;
         }
+        final CurieMappings mappings;
+        if (prefixMappingsFilePath != null) {
+            mappings = DefaultCurieHandler.loadMappingsFromFile(new File(prefixMappingsFilePath));
+        } else {
+            mappings = DefaultCurieHandler.loadDefaultMappings();
+        }
+        CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap("gomodel", idPrefix));
+        CurieHandler curieHandler = new MappedCurieHandler(mappings, localMappings);
         OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
-        CurieHandler curieHandler = new MappedCurieHandler();
-        BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, outputFolder, ontojournalFilePath, true);
+        BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, idPrefix, journalFilePath, outputFolder, ontojournalFilePath, true);
         InferenceProvider inferenceProvider = null;
         Gson gson = new Gson();
         FileUtils.forceMkdir(new File(outputFolder));
