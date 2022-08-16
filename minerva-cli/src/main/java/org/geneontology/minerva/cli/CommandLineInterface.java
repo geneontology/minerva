@@ -496,17 +496,17 @@ public class CommandLineInterface {
         InferenceProvider inferenceProvider = null;
         Gson gson = new Gson();
         FileUtils.forceMkdir(new File(outputFolder));
-        m3.getStoredModelIds().stream().parallel().forEach(iri -> {
+        m3.getStoredModelIds().forEach(iri -> {
             ModelContainer mc = m3.getModel(iri);
             final MolecularModelJsonRenderer renderer = OperationsTools.createModelRenderer(mc, m3.getGolego_repo(), inferenceProvider, curieHandler, m3.getTboxLabelIndex());
             JsonModel jsonModel = renderer.renderModel();
             String fileName = StringUtils.replaceOnce(iri.toString(), idPrefix, "") + ".json";
             File targetFile = new File(outputFolder, fileName).getAbsoluteFile();
             if (targetFile.exists()) {
-                if (targetFile.isFile() == false) {
+                if (!targetFile.isFile()) {
                     throw new RuntimeException(new IOException("For modelId: '" + iri + "', the resulting path is not a file: " + targetFile.getAbsolutePath()));
                 }
-                if (targetFile.canWrite() == false) {
+                if (!targetFile.canWrite()) {
                     throw new RuntimeException(new IOException("For modelId: '" + iri + "', Cannot write to the file: " + targetFile.getAbsolutePath()));
                 }
             }
