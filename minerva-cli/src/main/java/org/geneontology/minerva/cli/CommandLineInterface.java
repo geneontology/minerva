@@ -28,6 +28,7 @@ import org.geneontology.minerva.model.ActivityUnit;
 import org.geneontology.minerva.model.GoCamModel;
 import org.geneontology.minerva.model.GoCamModelStats;
 import org.geneontology.minerva.server.StartUpTool;
+import org.geneontology.minerva.server.handler.OperationsTools;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.server.validation.MinervaShexValidator;
 import org.geneontology.minerva.util.BlazegraphMutationCounter;
@@ -37,12 +38,16 @@ import org.geneontology.minerva.validation.Violation;
 import org.geneontology.minerva.validation.pipeline.BatchPipelineValidationReport;
 import org.geneontology.minerva.validation.pipeline.ErrorMessage;
 import org.obolibrary.robot.CatalogXmlIRIMapper;
+import org.openrdf.model.Statement;
+import org.openrdf.model.ValueFactory;
+import org.openrdf.model.impl.URIImpl;
+import org.openrdf.model.vocabulary.OWL;
+import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.RDFParseException;
+import org.openrdf.rio.*;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
 import org.semanticweb.owlapi.io.IRIDocumentSource;
@@ -62,6 +67,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.*;
 
+import static org.geneontology.minerva.server.handler.OperationsTools.createModelRenderer;
+
 
 public class CommandLineInterface {
     private static final Logger LOGGER = Logger.getLogger(CommandLineInterface.class);
@@ -72,6 +79,12 @@ public class CommandLineInterface {
         Options main_options = new Options();
         OptionGroup methods = new OptionGroup();
         methods.setRequired(true);
+        Option dumpJSON = Option.builder()
+                .longOpt("dump-owl-json")
+                .desc("export JSON format GO-CAM models from journal")
+                .hasArg(false)
+                .build();
+        methods.addOption(dumpJSON);
         Option dump = Option.builder()
                 .longOpt("dump-owl-models")
                 .desc("export OWL GO-CAM models from journal")
@@ -210,6 +223,21 @@ public class CommandLineInterface {
                 String outputFolder = cmd.getOptionValue("f"); //--folder
                 String modelIdPrefix = cmd.getOptionValue("p"); //--prefix
                 modelsToOWL(journalFilePath, outputFolder, modelIdPrefix);
+            } else if (cmd.hasOption("dump-owl-json")) {
+                Options jsonDumpOptions = new Options();
+                jsonDumpOptions.addOption(dumpJSON);
+                jsonDumpOptions.addOption("j", "journal", true, "Sets the Blazegraph journal file for the database");
+                jsonDumpOptions.addOption("ontojournal", "ontojournal", true, "Specify a blazegraph journal file containing the merged, pre-reasoned tbox aka go-lego.owl");
+                jsonDumpOptions.addOption("f", "folder", true, "Sets the output folder the GO-CAM model files");
+                jsonDumpOptions.addOption("p", "model-id-prefix", true, "prefix for GO-CAM model ids");
+                jsonDumpOptions.addOption("prefixes", "prefixes", true, "Prefix mappings file");
+                cmd = parser.parse(jsonDumpOptions, args, false);
+                String journalFilePath = cmd.getOptionValue("j"); //--journal
+                String ontojournalFilePath = cmd.getOptionValue("ontojournal");
+                String outputFolder = cmd.getOptionValue("f"); //--folder
+                String modelIdPrefix = cmd.getOptionValue("p"); //--prefix
+                String prefixMappingsFileLoc = cmd.getOptionValue("prefixes");
+                modelsToJSON(journalFilePath, ontojournalFilePath, outputFolder, modelIdPrefix, prefixMappingsFileLoc);
             } else if (cmd.hasOption("import-owl-models")) {
                 Options import_options = new Options();
                 import_options.addOption(import_owl);
@@ -420,6 +448,85 @@ public class CommandLineInterface {
         CurieHandler curieHandler = new MappedCurieHandler();
         BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, outputFolder, null, false);
         m3.dumpAllStoredModels();
+        m3.dispose();
+    }
+
+    /**
+     * Given a blazegraph journal with go-cams in it, write them all out as JSON files.
+     * cli --dump-owl-json
+     *
+     * @param journalFilePath
+     * @param outputFolder
+     * @param modelIdPrefix
+     * @throws Exception
+     */
+    public static void modelsToJSON(String journalFilePath, String ontojournalFilePath, String outputFolder, String modelIdPrefix, String prefixMappingsFilePath) throws Exception {
+        final String idPrefix;
+        if (modelIdPrefix == null) {
+            idPrefix = "http://model.geneontology.org/";
+        } else {
+            idPrefix = modelIdPrefix;
+        }
+        // minimal inputs
+        if (journalFilePath == null) {
+            System.err.println("No journal file was configured.");
+            System.exit(-1);
+            return;
+        }
+        if (ontojournalFilePath == null) {
+            System.err.println("No ontology journal file was configured.");
+            System.exit(-1);
+            return;
+        }
+        if (outputFolder == null) {
+            System.err.println("No output folder was configured.");
+            System.exit(-1);
+            return;
+        }
+        final CurieMappings mappings;
+        if (prefixMappingsFilePath != null) {
+            mappings = DefaultCurieHandler.loadMappingsFromFile(new File(prefixMappingsFilePath));
+        } else {
+            mappings = DefaultCurieHandler.loadDefaultMappings();
+        }
+        CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap("gomodel", idPrefix));
+        CurieHandler curieHandler = new MappedCurieHandler(mappings, localMappings);
+        OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
+        BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, idPrefix, journalFilePath, outputFolder, ontojournalFilePath, true);
+        InferenceProvider inferenceProvider = null;
+        Gson gson = new Gson();
+        FileUtils.forceMkdir(new File(outputFolder));
+        m3.getStoredModelIds().forEach(iri -> {
+            ModelContainer mc = m3.getModel(iri);
+            final MolecularModelJsonRenderer renderer = OperationsTools.createModelRenderer(mc, m3.getGolego_repo(), inferenceProvider, curieHandler, m3.getTboxLabelIndex());
+            JsonModel jsonModel = renderer.renderModel();
+            String fileName = StringUtils.replaceOnce(iri.toString(), idPrefix, "") + ".json";
+            File targetFile = new File(outputFolder, fileName).getAbsoluteFile();
+            if (targetFile.exists()) {
+                if (!targetFile.isFile()) {
+                    throw new RuntimeException(new IOException("For modelId: '" + iri + "', the resulting path is not a file: " + targetFile.getAbsolutePath()));
+                }
+                if (!targetFile.canWrite()) {
+                    throw new RuntimeException(new IOException("For modelId: '" + iri + "', Cannot write to the file: " + targetFile.getAbsolutePath()));
+                }
+            }
+            File tempFile = null;
+            try {
+                // create tempFile
+                String prefix = iri.toString(); // TODO escape
+                tempFile = File.createTempFile(prefix, ".json");
+                try (FileWriter writer = new FileWriter(tempFile)) {
+                    gson.toJson(jsonModel, writer);
+                }
+                FileUtils.copyFile(tempFile, targetFile);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } finally {
+                // delete temp file
+                FileUtils.deleteQuietly(tempFile);
+            }
+            m3.unlinkModel(iri);
+        });
         m3.dispose();
     }
 
@@ -852,7 +959,7 @@ public class CommandLineInterface {
                                 modelid_filename.put(modeluri, file.getName());
                             }
                         } catch (OWLOntologyCreationException | RepositoryException | RDFParseException
-                                | RDFHandlerException | IOException e) {
+                                 | RDFHandlerException | IOException e) {
                             // TODO Auto-generated catch block
                             e.printStackTrace();
                         }
@@ -863,7 +970,7 @@ public class CommandLineInterface {
                 try {
                     m3.importModelToDatabase(i, true);
                 } catch (OWLOntologyCreationException | RepositoryException | RDFParseException
-                        | RDFHandlerException | IOException e) {
+                         | RDFHandlerException | IOException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }

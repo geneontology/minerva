@@ -109,7 +109,7 @@ public class OperationsTools {
     }
 
     //BlazegraphOntologyManager
-    static MolecularModelJsonRenderer createModelRenderer(
+    public static MolecularModelJsonRenderer createModelRenderer(
             final ModelContainer model,
             final BlazegraphOntologyManager go_lego_repo,
             final InferenceProvider inferenceProvider,
