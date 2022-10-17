@@ -80,7 +80,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
         this.curieHandler = curieHandler;
         this.pathToOWLStore = pathToJournal;
         this.pathToExportFolder = pathToExportFolder;
-        this.addPreFileSaveHandler(new ModelTaxonSaveHandler());
         this.repo = initializeRepository(this.pathToOWLStore);
     }
 
@@ -187,8 +186,11 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
         IRI modelId = m.getModelId();
         final OWLOntology ont = m.getAboxOntology();
         final OWLOntologyManager manager = ont.getOWLOntologyManager();
-        List<OWLOntologyChange> changes = preSaveFileHandler(ont);
         synchronized (ont) {
+            // This handler is not in the preSaveFileHandler list, because changes by those
+            // handlers are rolled back after save.
+            new ModelTaxonSaveHandler().handle(ont);
+            List<OWLOntologyChange> changes = preSaveFileHandler(ont);
             try {
                 this.writeModelToDatabase(ont, modelId);
                 // reset modified flag for abox after successful save
