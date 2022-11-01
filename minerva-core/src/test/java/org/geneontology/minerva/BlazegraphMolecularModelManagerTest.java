@@ -47,12 +47,11 @@ public class BlazegraphMolecularModelManagerTest {
         BlazegraphMolecularModelManager<Void> m3 = createBlazegraphMolecularModelManager();
 
         /* Import the test turtle file */
-        m3.importModelToDatabase(new File(sourceModelPath), false);
+        String modelId = m3.importModelToDatabase(new File(sourceModelPath), false);
         /* Dump back triples in the model to temporary files */
-        for (IRI modelId : m3.getStoredModelIds())
-            m3.dumpStoredModel(modelId, folder.getRoot());
-
-        compareDumpUsingJena(new File(sourceModelPath), folder.getRoot(), null);
+        m3.dumpStoredModel(IRI.create(modelId), folder.getRoot());
+        File dumpedModel = folder.getRoot().toPath().resolve(modelId.toString().replace("http://model.geneontology.org/", "") + ".ttl").toFile();
+        compareDumpUsingJena(new File(sourceModelPath), dumpedModel, null);
         m3.dispose();
     }
 
