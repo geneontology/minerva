@@ -49,12 +49,11 @@ public class BlazegraphMolecularModelManagerTest {
         BlazegraphMolecularModelManager<Void> m3 = createBlazegraphMolecularModelManager();
 
         /* Import the test turtle file */
-        m3.importModelToDatabase(new File(sourceModelPath), false);
+        String modelId = m3.importModelToDatabase(new File(sourceModelPath), false);
         /* Dump back triples in the model to temporary files */
-        for (IRI modelId : m3.getStoredModelIds())
-            m3.dumpStoredModel(modelId, folder.getRoot());
-
-        compareDumpUsingJena(new File(sourceModelPath), folder.getRoot(), null);
+        m3.dumpStoredModel(IRI.create(modelId), folder.getRoot());
+        File dumpedModel = folder.getRoot().toPath().resolve(modelId.toString().replace("http://model.geneontology.org/", "") + ".ttl").toFile();
+        compareDumpUsingJena(new File(sourceModelPath), dumpedModel, null);
         m3.dispose();
     }
 
@@ -279,7 +278,7 @@ public class BlazegraphMolecularModelManagerTest {
     }
 
     /**
-     * Dump stored model and and read back the dumped ttl files; check whether the model is properly reconstructed
+     * Dump stored model and read back the dumped ttl files; check whether the model is properly reconstructed
      * from ttl files. Double-check whether the model is properly dumped using Jena.
      *
      * @param m3
@@ -311,7 +310,8 @@ public class BlazegraphMolecularModelManagerTest {
         }
 
         /* Compare the model constructed from dump files with the model constructed using pre-dumped files */
-        compareDumpUsingJena(new File("src/test/resources/mmg/basic-fullcycle-dump.ttl"), folder.getRoot(), modelId.toString());
+        File dumpedModel = folder.getRoot().toPath().resolve(modelId.toString().replace("http://model.geneontology.org/", "") + ".ttl").toFile();
+        compareDumpUsingJena(new File("src/test/resources/mmg/basic-fullcycle-dump.ttl"), dumpedModel, modelId.toString());
         m3.dispose();
     }
 
@@ -356,9 +356,7 @@ public class BlazegraphMolecularModelManagerTest {
         String[] extensions = new String[]{"ttl"};
         Model targetModel = ModelFactory.createDefaultModel();
         extensions = new String[]{"ttl"};
-        List<File> files = (List<File>) FileUtils.listFiles(targetFile, extensions, true);
-        for (File file : files)
-            targetModel.read(file.getCanonicalPath());
+        targetModel.read(targetFile.getCanonicalPath());
 
         /*
          * The modelId is randomly generated for every time we create a new model and the modelId
