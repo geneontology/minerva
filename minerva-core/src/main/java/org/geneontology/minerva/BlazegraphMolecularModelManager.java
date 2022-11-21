@@ -30,6 +30,7 @@ import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.rio.RioMemoryTripleSource;
 import org.semanticweb.owlapi.rio.RioRenderer;
 
+import javax.annotation.Nonnull;
 import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
@@ -63,7 +64,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
      * @throws OWLOntologyCreationException
      * @throws IOException
      */
-    public BlazegraphMolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder, String pathToOntologyJournal, boolean downloadOntologyJournal)
+    public BlazegraphMolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, @Nonnull String pathToJournal, String pathToExportFolder, String pathToOntologyJournal, boolean downloadOntologyJournal)
             throws OWLOntologyCreationException, IOException {
         super(tbox, pathToOntologyJournal, downloadOntologyJournal);
         if (curieHandler == null) {
@@ -199,8 +200,10 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
                 // reset modified flag for abox after successful save
                 m.setAboxModified(false);
                 // dump stored model to export file
-                File folder = new File(this.pathToExportFolder);
-                dumpStoredModel(modelId, folder);
+                if (this.pathToExportFolder != null) {
+                    File folder = new File(this.pathToExportFolder);
+                    dumpStoredModel(modelId, folder);
+                }
             } finally {
                 if (changes != null) {
                     List<OWLOntologyChange> invertedChanges = ReverseChangeGenerator
