@@ -14,12 +14,13 @@ import static org.junit.Assert.assertNotNull;
 
 public class BatchTestTools {
 
-    static M3Request copyModel(String modelId, String title) {
+    static M3Request copyModel(String modelId, String title, boolean preserveEvidence) {
         M3Request r = new M3Request();
         r.entity = Entity.model;
         r.operation = Operation.copy;
         r.arguments = new M3Argument();
         r.arguments.modelId = modelId;
+        r.arguments.preserveEvidence = preserveEvidence;
         r.arguments.values = new JsonAnnotation[]{JsonTools.create(AnnotationShorthand.title, title, null)};
         return r;
     }
