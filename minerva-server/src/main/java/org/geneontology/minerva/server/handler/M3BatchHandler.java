@@ -107,6 +107,9 @@ public interface M3BatchHandler {
         JsonOwlObject[] expressions;
         JsonAnnotation[] values;
 
+        @SerializedName("preserve-evidence")
+        Boolean preserveEvidence;
+
         String query;
     }
 

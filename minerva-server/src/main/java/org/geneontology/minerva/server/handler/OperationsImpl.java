@@ -399,9 +399,11 @@ abstract class OperationsImpl extends ModelCreator {
             values.nonMeta = true;
             requireNotNull(request.arguments, "request.arguments");
             values.model = checkModelId(values.model, request);
+            boolean preserveEvidence = false;
+            if (request.arguments.preserveEvidence != null) preserveEvidence = request.arguments.preserveEvidence;
             Set<OWLAnnotation> modelAnnotations = extract(request.arguments.values, userId, providerGroups, values, values.model);
             values.renderBulk = true;
-            values.model = copyModel(values.model.getModelId(), userId, providerGroups, token, modelAnnotations);
+            values.model = copyModel(values.model.getModelId(), userId, providerGroups, token, modelAnnotations, preserveEvidence);
         } else if (Operation.updateImports == operation) {
             values.nonMeta = true;
             requireNotNull(request.arguments, "request.arguments");
