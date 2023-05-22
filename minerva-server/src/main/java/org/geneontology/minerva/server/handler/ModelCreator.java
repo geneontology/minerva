@@ -122,7 +122,16 @@ abstract class ModelCreator {
                 .forEach(ca -> m3.addType(model, oldToNew.get(ca.getIndividual().asOWLNamedIndividual()), ca.getClassExpression(), token));
         sourceModel.getAboxOntology().getAxioms(AxiomType.OBJECT_PROPERTY_ASSERTION, Imports.EXCLUDED).stream()
                 .filter(opa -> !excludeNodes.contains(opa.getSubject().asOWLNamedIndividual().getIRI()) && !excludeNodes.contains(opa.getObject().asOWLNamedIndividual().getIRI()))
-                .forEach(opa -> m3.addFact(model, opa.getProperty(), oldToNew.get(opa.getSubject().asOWLNamedIndividual()), oldToNew.get(opa.getObject().asOWLNamedIndividual()), generatedAnnotations, token));
+                .forEach(opa -> {
+                    final Set<OWLAnnotation> axiomAnnotations = new HashSet<>(generatedAnnotations);
+                    if (preserveEvidence) axiomAnnotations.addAll(
+                            opa.getAnnotations(df.getOWLAnnotationProperty(AnnotationShorthand.evidence.getAnnotationProperty())).stream()
+                                    .filter(ann -> ann.getValue().isIRI())
+                                    .map(ann -> df.getOWLAnnotation(ann.getProperty(), oldToNew.get(df.getOWLNamedIndividual(ann.getValue().asIRI().get())).getIRI()))
+                                    .collect(Collectors.toSet())
+                    );
+                    m3.addFact(model, opa.getProperty(), oldToNew.get(opa.getSubject().asOWLNamedIndividual()), oldToNew.get(opa.getObject().asOWLNamedIndividual()), axiomAnnotations, token);
+                });
         if (preserveEvidence) {
             // copy annotation assertions for evidence nodes
             sourceModel.getAboxOntology().getAxioms(AxiomType.ANNOTATION_ASSERTION, Imports.EXCLUDED).stream()
