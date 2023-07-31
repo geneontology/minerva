@@ -161,7 +161,7 @@ public class BlazegraphOntologyManagerTest {
         //GO native cell - used a lot in shex
         assertTrue("WBbt_0005753 not subclass of CL_0000003", supers.contains("http://purl.obolibrary.org/obo/CL_0000003"));
         //anatomy - also used a lot in shex
-        assertTrue("WBbt_0005753 not subclass of CARO_0000000", supers.contains("http://purl.obolibrary.org/obo/CARO_0000000"));
+        assertTrue("WBbt_0005753 not subclass of UBERON_0001062", supers.contains("http://purl.obolibrary.org/obo/UBERON_0001062"));
         //Cell component
         uri = "http://purl.obolibrary.org/obo/GO_0000776";
         supers = onto_repo.getAllSuperClasses(uri);
@@ -227,7 +227,7 @@ public class BlazegraphOntologyManagerTest {
         //GO native cell - used a lot in shex
         //assertTrue("WBbt_0005753 not subclass of CL_0000003", supers.contains("http://purl.obolibrary.org/obo/CL_0000003"));
         //anatomy - also used a lot in shex
-        assertTrue("WBbt_0005753 not subclass of CARO_0000000", supers.contains("http://purl.obolibrary.org/obo/CARO_0000000"));
+        assertTrue("WBbt_0005753 not subclass of UBERON_0001062", supers.contains("http://purl.obolibrary.org/obo/UBERON_0001062"));
         //Cell component
         supers = uri_roots.get(cc);
         assertTrue("GO_0000776 not subclass of GO_0110165 'cellular anatomical entity'", supers.contains("http://purl.obolibrary.org/obo/GO_0110165"));
