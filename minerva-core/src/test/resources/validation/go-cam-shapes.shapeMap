@@ -1,4 +1,6 @@
 SPARQL 'SELECT ?x WHERE { ?x a <http://www.w3.org/2002/07/owl#Ontology> }' @ <http://purl.obolibrary.org/obo/go/shapes/GoCamModel>,
+SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/CHEBI_33695> }' @ <http://purl.obolibrary.org/obo/go/shapes/InformationBiomacromolecule>,
+SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/NCBITaxon_1> }' @ <http://purl.obolibrary.org/obo/go/shapes/Organism>,
 SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/GO_0003674> }' @ <http://purl.obolibrary.org/obo/go/shapes/MolecularFunction>,
 SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/GO_0005215> }' @ <http://purl.obolibrary.org/obo/go/shapes/TransporterActivity>,
 SPARQL 'SELECT ?x WHERE { ?x a/<http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://purl.obolibrary.org/obo/GO_0008150> }' @ <http://purl.obolibrary.org/obo/go/shapes/BiologicalProcess>,
