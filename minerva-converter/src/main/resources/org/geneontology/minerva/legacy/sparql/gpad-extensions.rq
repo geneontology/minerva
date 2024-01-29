@@ -95,6 +95,8 @@ VALUES ?extension_rel {
 <http://purl.obolibrary.org/obo/RO_0002578>
 <http://purl.obolibrary.org/obo/RO_0002629>
 <http://purl.obolibrary.org/obo/RO_0002630>
+<http://purl.obolibrary.org/obo/RO_0004008>
+<http://purl.obolibrary.org/obo/RO_0004009>
 }
 
 ?target ?extension_rel ?extension . 
