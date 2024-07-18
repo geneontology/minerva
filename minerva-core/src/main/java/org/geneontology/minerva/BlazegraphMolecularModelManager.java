@@ -7,8 +7,6 @@ import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 import info.aduna.iteration.Iterations;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.rdf.jena.JenaGraph;
-import org.apache.commons.rdf.jena.JenaRDF;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.shex.ShapeMap;
 import org.apache.jena.shex.ShexReport;
@@ -243,14 +241,10 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
     }
 
     private List<OWLOntologyChange> preSaveFileHandler(OWLOntology model) throws UnknownIdentifierException {
-        List<OWLOntologyChange> allChanges = null;
+        List<OWLOntologyChange> allChanges = new ArrayList<>();
         for (PreFileSaveHandler handler : preFileSaveHandlers) {
             List<OWLOntologyChange> changes = handler.handle(model);
             if (changes != null && !changes.isEmpty()) {
-                if (allChanges == null) {
-                    allChanges = new ArrayList<OWLOntologyChange>(
-                            changes.size());
-                }
                 allChanges.addAll(changes);
             }
         }
