@@ -226,18 +226,20 @@ public class CommandLineInterface {
             } else if (cmd.hasOption("dump-owl-json")) {
                 Options jsonDumpOptions = new Options();
                 jsonDumpOptions.addOption(dumpJSON);
+                jsonDumpOptions.addOption("g", "ontology", true, "Specify ontology file URL");
                 jsonDumpOptions.addOption("j", "journal", true, "Sets the Blazegraph journal file for the database");
                 jsonDumpOptions.addOption("ontojournal", "ontojournal", true, "Specify a blazegraph journal file containing the merged, pre-reasoned tbox aka go-lego.owl");
                 jsonDumpOptions.addOption("f", "folder", true, "Sets the output folder the GO-CAM model files");
                 jsonDumpOptions.addOption("p", "model-id-prefix", true, "prefix for GO-CAM model ids");
                 jsonDumpOptions.addOption("prefixes", "prefixes", true, "Prefix mappings file");
                 cmd = parser.parse(jsonDumpOptions, args, false);
+                String ontologyFileURL = cmd.getOptionValue("g");
                 String journalFilePath = cmd.getOptionValue("j"); //--journal
                 String ontojournalFilePath = cmd.getOptionValue("ontojournal");
                 String outputFolder = cmd.getOptionValue("f"); //--folder
                 String modelIdPrefix = cmd.getOptionValue("p"); //--prefix
                 String prefixMappingsFileLoc = cmd.getOptionValue("prefixes");
-                modelsToJSON(journalFilePath, ontojournalFilePath, outputFolder, modelIdPrefix, prefixMappingsFileLoc);
+                modelsToJSON(ontologyFileURL, journalFilePath, ontojournalFilePath, outputFolder, modelIdPrefix, prefixMappingsFileLoc);
             } else if (cmd.hasOption("import-owl-models")) {
                 Options import_options = new Options();
                 import_options.addOption(import_owl);
@@ -358,6 +360,7 @@ public class CommandLineInterface {
                 validate_options.addOption("s", "shexpath", true, "Specify a shex schema file.  Otherwise will download from go_shapes repo.");
                 validate_options.addOption("ontojournal", "ontojournal", true, "Specify a blazegraph journal file containing the merged, pre-reasoned tbox aka go-lego.owl");
                 validate_options.addOption("reasoner_report", "reasoner_report", false, "Add a report with reasoning results to the output of the validation. ");
+                validate_options.addOption("graph", "check-graph-type", false, "Run the checks agains a GO graphstore journal; check only graphs with graphType noctuaCam.");
 
 
                 cmd = parser.parse(validate_options, args, false);
@@ -403,7 +406,11 @@ public class CommandLineInterface {
                 if (cmd.hasOption("reasoner_report")) {
                     run_reasoner_report = true;
                 }
-                validateGoCams(input, outputFolder, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, go_lego_journal_file, run_reasoner_report);
+                boolean checkGraphType = false;
+                if (cmd.hasOption("check-graph-type")) {
+                    checkGraphType = true;
+                }
+                validateGoCams(input, outputFolder, ontologyIRI, catalog, modelIdPrefix, modelIdcurie, shexpath, shapemappath, travisMode, shouldFail, checkShex, go_lego_journal_file, run_reasoner_report, checkGraphType);
             }
         } catch (ParseException exp) {
             System.out.println("Parameter parse exception.  Note that the first parameter must be one of: "
@@ -460,7 +467,7 @@ public class CommandLineInterface {
      * @param modelIdPrefix
      * @throws Exception
      */
-    public static void modelsToJSON(String journalFilePath, String ontojournalFilePath, String outputFolder, String modelIdPrefix, String prefixMappingsFilePath) throws Exception {
+    public static void modelsToJSON(String ontologyFileURL, String journalFilePath, String ontojournalFilePath, String outputFolder, String modelIdPrefix, String prefixMappingsFilePath) throws Exception {
         final String idPrefix;
         if (modelIdPrefix == null) {
             idPrefix = "http://model.geneontology.org/";
@@ -491,8 +498,13 @@ public class CommandLineInterface {
         }
         CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap("gomodel", idPrefix));
         CurieHandler curieHandler = new MappedCurieHandler(mappings, localMappings);
-        OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
-        BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, idPrefix, journalFilePath, outputFolder, ontojournalFilePath, true);
+        final OWLOntology ontology;
+        if (ontologyFileURL == null) {
+            ontology = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
+        } else {
+            ontology = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(ontologyFileURL));
+        }
+        BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(ontology, curieHandler, idPrefix, journalFilePath, outputFolder, ontojournalFilePath, true);
         InferenceProvider inferenceProvider = null;
         Gson gson = new Gson();
         FileUtils.forceMkdir(new File(outputFolder));
@@ -881,7 +893,7 @@ public class CommandLineInterface {
     public static void validateGoCams(String input, String outputFolder,
                                       String ontologyIRI, String catalog, String modelIdPrefix, String modelIdcurie,
                                       String shexpath, String shapemappath, boolean travisMode, boolean shouldFail, boolean checkShex,
-                                      String go_lego_journal_file, boolean run_reasoner_report) throws OWLOntologyCreationException, IOException {
+                                      String go_lego_journal_file, boolean run_reasoner_report, boolean checkGraphType) throws OWLOntologyCreationException, IOException {
         LOGGER.setLevel(Level.INFO);
         String inputDB = "blazegraph.jnl";
         String shexFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shex";
@@ -1092,6 +1104,17 @@ public class CommandLineInterface {
                 //this is where everything actually happens
                 ModelContainer mc = m3.getModel(modelIRI);
                 OWLOntology gocam = mc.getAboxOntology();
+                final IRI graphType = IRI.create("http://model.geneontology.org/graphType");
+                final IRI noctuaCam = IRI.create("http://model.geneontology.org/noctuaCam");
+                if (checkGraphType) {
+                    if (gocam.getAnnotations().stream().noneMatch(annotation ->
+                            annotation.getProperty().getIRI().equals(graphType)
+                                    && annotation.getValue().isIRI()
+                                    && annotation.getValue().equals(noctuaCam))) {
+                        System.out.println("SKIPPING: " + modelIRI);
+                        continue;
+                    }
+                }
                 try {
                     //if a model does not have an import statement that links in an ontology that defines all of its classes and object properties
                     //or if the model does not define the classes and object properties itself, parsing problems will prevail

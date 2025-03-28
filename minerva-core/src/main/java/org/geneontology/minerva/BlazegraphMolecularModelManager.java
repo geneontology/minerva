@@ -66,7 +66,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
      * @throws OWLOntologyCreationException
      * @throws IOException
      */
-    public BlazegraphMolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, String pathToJournal, String pathToExportFolder, String pathToOntologyJournal, boolean downloadOntologyJournal)
+    public BlazegraphMolecularModelManager(OWLOntology tbox, CurieHandler curieHandler, String modelIdPrefix, @Nonnull String pathToJournal, String pathToExportFolder, String pathToOntologyJournal, boolean downloadOntologyJournal)
             throws OWLOntologyCreationException, IOException {
         super(tbox, pathToOntologyJournal, downloadOntologyJournal);
         if (curieHandler == null) {
@@ -195,6 +195,11 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
                 this.writeModelToDatabase(ont, modelId);
                 // reset modified flag for abox after successful save
                 m.setAboxModified(false);
+                // dump stored model to export file
+                if (this.pathToExportFolder != null) {
+                    File folder = new File(this.pathToExportFolder);
+                    dumpStoredModel(modelId, folder);
+                }
             } finally {
                 if (changes != null) {
                     List<OWLOntologyChange> invertedChanges = ReverseChangeGenerator
@@ -206,7 +211,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
             }
         }
     }
-
 
     private void writeModelToDatabase(OWLOntology model, IRI modelId) throws RepositoryException, IOException {
         // Only one thread at a time can use the unisolated connection.

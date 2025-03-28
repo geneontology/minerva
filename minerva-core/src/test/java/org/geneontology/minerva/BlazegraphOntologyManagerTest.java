@@ -108,10 +108,10 @@ public class BlazegraphOntologyManagerTest {
         assertTrue("ECO_0000314 not subclass of ECO_0000000", subs.contains("http://purl.obolibrary.org/obo/ECO_0000314"));
         //Anatomy
         //worm anatomy - note that it needs parts of the cl ontology in there
-        uri = "http://purl.obolibrary.org/obo/CL_0000003";
+        uri = "http://purl.obolibrary.org/obo/CL_0000000";
         subs = onto_repo.getAllSubClasses(uri);
-        //GO native cell - used a lot in shex
-        assertTrue("WBbt_0005753 not subclass of CL_0000003", subs.contains("http://purl.obolibrary.org/obo/WBbt_0005753"));
+        //GO cell - used a lot in shex
+        assertTrue("WBbt_0005753 not subclass of CL_0000000", subs.contains("http://purl.obolibrary.org/obo/WBbt_0005753"));
         //Cell component
         uri = "http://purl.obolibrary.org/obo/GO_0110165";
         subs = onto_repo.getAllSubClasses(uri);
@@ -159,9 +159,9 @@ public class BlazegraphOntologyManagerTest {
         uri = "http://purl.obolibrary.org/obo/WBbt_0005753";
         supers = onto_repo.getAllSuperClasses(uri);
         //GO native cell - used a lot in shex
-        assertTrue("WBbt_0005753 not subclass of CL_0000003", supers.contains("http://purl.obolibrary.org/obo/CL_0000003"));
+        assertTrue("WBbt_0005753 not subclass of CL_0000000", supers.contains("http://purl.obolibrary.org/obo/CL_0000000"));
         //anatomy - also used a lot in shex
-        assertTrue("WBbt_0005753 not subclass of CARO_0000000", supers.contains("http://purl.obolibrary.org/obo/CARO_0000000"));
+        assertTrue("WBbt_0005753 not subclass of UBERON_0001062", supers.contains("http://purl.obolibrary.org/obo/UBERON_0001062"));
         //Cell component
         uri = "http://purl.obolibrary.org/obo/GO_0000776";
         supers = onto_repo.getAllSuperClasses(uri);
@@ -227,7 +227,7 @@ public class BlazegraphOntologyManagerTest {
         //GO native cell - used a lot in shex
         //assertTrue("WBbt_0005753 not subclass of CL_0000003", supers.contains("http://purl.obolibrary.org/obo/CL_0000003"));
         //anatomy - also used a lot in shex
-        assertTrue("WBbt_0005753 not subclass of CARO_0000000", supers.contains("http://purl.obolibrary.org/obo/CARO_0000000"));
+        assertTrue("WBbt_0005753 not subclass of UBERON_0001062", supers.contains("http://purl.obolibrary.org/obo/UBERON_0001062"));
         //Cell component
         supers = uri_roots.get(cc);
         assertTrue("GO_0000776 not subclass of GO_0110165 'cellular anatomical entity'", supers.contains("http://purl.obolibrary.org/obo/GO_0110165"));

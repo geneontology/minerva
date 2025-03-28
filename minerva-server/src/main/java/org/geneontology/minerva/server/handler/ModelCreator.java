@@ -71,8 +71,11 @@ abstract class ModelCreator {
         return model;
     }
 
-    ModelContainer copyModel(IRI sourceModelId, String userId, Set<String> providerGroups, UndoMetadata token, Set<OWLAnnotation> modelAnnotations) throws UnknownIdentifierException, OWLOntologyCreationException, RepositoryException, IOException, OWLOntologyStorageException {
+    ModelContainer copyModel(IRI sourceModelId, String userId, Set<String> providerGroups, UndoMetadata token, Set<OWLAnnotation> modelAnnotations, boolean preserveEvidence) throws UnknownIdentifierException, OWLOntologyCreationException, RepositoryException, IOException, OWLOntologyStorageException {
         OWLDataFactory df = OWLManager.getOWLDataFactory();
+        Set<OWLAnnotationProperty> evidenceProperties = new HashSet<>();
+        evidenceProperties.add(df.getOWLAnnotationProperty(AnnotationShorthand.with.getAnnotationProperty()));
+        evidenceProperties.add(df.getOWLAnnotationProperty(AnnotationShorthand.source.getAnnotationProperty()));
         ModelContainer sourceModel = m3.getModel(sourceModelId);
         boolean titleIsProvided = modelAnnotations.stream()
                 .anyMatch(ann -> ann.getProperty().getIRI().equals(AnnotationShorthand.title.getAnnotationProperty()));
@@ -105,15 +108,37 @@ abstract class ModelCreator {
                 .map(aa -> aa.getValue().asIRI().get())
                 .collect(Collectors.toSet());
         evidenceNodeIRIs.addAll(axiomEvidenceNodeIRIs);
+        Set<IRI> excludeNodes;
+        if (preserveEvidence) {
+            excludeNodes = new HashSet<>();
+        } else {
+            excludeNodes = evidenceNodeIRIs;
+        }
         Map<OWLNamedIndividual, OWLNamedIndividual> oldToNew = m3.getIndividuals(sourceModelId).stream()
-                .filter(i -> !evidenceNodeIRIs.contains(i.getIRI()))
+                .filter(i -> !excludeNodes.contains(i.getIRI()))
                 .collect(Collectors.toMap(sourceIndividual -> sourceIndividual, sourceIndividual -> m3.createIndividualNonReasoning(model, generatedAnnotations, token)));
         sourceModel.getAboxOntology().getAxioms(AxiomType.CLASS_ASSERTION, Imports.EXCLUDED).stream()
-                .filter(ca -> !evidenceNodeIRIs.contains(ca.getIndividual().asOWLNamedIndividual().getIRI()))
+                .filter(ca -> !excludeNodes.contains(ca.getIndividual().asOWLNamedIndividual().getIRI()))
                 .forEach(ca -> m3.addType(model, oldToNew.get(ca.getIndividual().asOWLNamedIndividual()), ca.getClassExpression(), token));
         sourceModel.getAboxOntology().getAxioms(AxiomType.OBJECT_PROPERTY_ASSERTION, Imports.EXCLUDED).stream()
-                .filter(opa -> !evidenceNodeIRIs.contains(opa.getSubject().asOWLNamedIndividual().getIRI()) && !evidenceNodeIRIs.contains(opa.getObject().asOWLNamedIndividual().getIRI()))
-                .forEach(opa -> m3.addFact(model, opa.getProperty(), oldToNew.get(opa.getSubject().asOWLNamedIndividual()), oldToNew.get(opa.getObject().asOWLNamedIndividual()), generatedAnnotations, token));
+                .filter(opa -> !excludeNodes.contains(opa.getSubject().asOWLNamedIndividual().getIRI()) && !excludeNodes.contains(opa.getObject().asOWLNamedIndividual().getIRI()))
+                .forEach(opa -> {
+                    final Set<OWLAnnotation> axiomAnnotations = new HashSet<>(generatedAnnotations);
+                    if (preserveEvidence) axiomAnnotations.addAll(
+                            opa.getAnnotations(df.getOWLAnnotationProperty(AnnotationShorthand.evidence.getAnnotationProperty())).stream()
+                                    .filter(ann -> ann.getValue().isIRI())
+                                    .map(ann -> df.getOWLAnnotation(ann.getProperty(), oldToNew.get(df.getOWLNamedIndividual(ann.getValue().asIRI().get())).getIRI()))
+                                    .collect(Collectors.toSet())
+                    );
+                    m3.addFact(model, opa.getProperty(), oldToNew.get(opa.getSubject().asOWLNamedIndividual()), oldToNew.get(opa.getObject().asOWLNamedIndividual()), axiomAnnotations, token);
+                });
+        if (preserveEvidence) {
+            // copy annotation assertions for evidence nodes
+            sourceModel.getAboxOntology().getAxioms(AxiomType.ANNOTATION_ASSERTION, Imports.EXCLUDED).stream()
+                    .filter(aa -> aa.getSubject().isIRI() && evidenceNodeIRIs.contains((IRI) aa.getSubject()))
+                    .filter(aa -> evidenceProperties.contains(aa.getProperty()))
+                    .forEach(aa -> m3.addAxiom(model, df.getOWLAnnotationAssertionAxiom(aa.getProperty(), oldToNew.get(df.getOWLNamedIndividual((IRI) aa.getSubject())).getIRI(), aa.getValue()), token));
+        }
         final Set<OWLAnnotation> modelAnnotationsWithState = addDefaultModelState(modelAnnotations, model.getOWLDataFactory());
         modelAnnotationsWithState.add(df.getOWLAnnotation(df.getOWLAnnotationProperty(AnnotationShorthand.wasDerivedFrom.getAnnotationProperty()), sourceModelId));
         maybeNewTitle.ifPresent(modelAnnotationsWithState::add);
