@@ -134,8 +134,8 @@ owl:versionInfo rdf:type owl:AnnotationProperty .
 <http://identifiers.org/sgd/S000000632> rdf:type owl:Class .
 
 
-###  http://identifiers.org/uniprot/P15822-3
-<http://identifiers.org/uniprot/P15822-3> rdf:type owl:Class .
+###  http://identifiers.org/uniprot/P15822
+<http://identifiers.org/uniprot/P15822> rdf:type owl:Class .
 
 
 ###  http://purl.obolibrary.org/obo/ECO_0000314
@@ -262,7 +262,7 @@ owl:versionInfo rdf:type owl:AnnotationProperty .
 
 ###  http://model.geneontology.org/5d29221b00001265/5d29221b00001273
 <http://model.geneontology.org/5d29221b00001265/5d29221b00001273> rdf:type owl:NamedIndividual ,
-                                                                           <http://identifiers.org/uniprot/P15822-3> ;
+                                                                           <http://identifiers.org/uniprot/P15822> ;
                                                                   <http://purl.org/dc/elements/1.1/contributor> "http://orcid.org/0000-0003-3643-281X"^^xsd:string ;
                                                                   <http://purl.org/dc/elements/1.1/date> "2019-08-20"^^xsd:string ;
                                                                   <http://purl.org/pav/providedBy> "http://www.igs.umaryland.edu"^^xsd:string .
