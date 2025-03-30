@@ -130,7 +130,7 @@
 
 ###  http://model.geneontology.org/5d29221b00001265/5d29221b00001273
 <http://model.geneontology.org/5d29221b00001265/5d29221b00001273> rdf:type owl:NamedIndividual ,
-                                                                           <http://identifiers.org/uniprot/P15822-3> ;
+                                                                           <http://identifiers.org/uniprot/P15822> ;
                                                                   <http://purl.org/dc/elements/1.1/contributor> "http://orcid.org/0000-0003-3643-281X"^^xsd:string ;
                                                                   <http://purl.org/dc/elements/1.1/date> "2019-08-20"^^xsd:string ;
                                                                   <http://purl.org/pav/providedBy> "http://www.igs.umaryland.edu"^^xsd:string .

@@ -266,7 +266,7 @@ public class ModelSearchHandlerTest {
     public final void testSearchGetByGene() throws URISyntaxException, IOException {
         //make the request
         URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
-        builder.addParameter("gp", "http://identifiers.org/uniprot/P15822-3");
+        builder.addParameter("gp", "http://identifiers.org/uniprot/P15822");
         URI searchuri = builder.build();
         String json_result = getJsonStringFromUri(searchuri);
         Gson g = new Gson();
