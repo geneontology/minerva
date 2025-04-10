@@ -34,7 +34,7 @@
     "ENSEMBL_GeneID" : "http://www.ensembl.org/id/",
     "ENZYME" : "http://www.expasy.ch/cgi-bin/nicezyme.pl?",
     "EchoBASE" : "http://www.biolws1.york.ac.uk/echobase/Gene.cfm?recordID=",
-    "EcoCyc" : "http://biocyc.org/ECOLI/NEW-IMAGE?type=PATHWAY&object=",
+    "EcoCyc" : "https://ecocyc.org/gene?id=",
     "EcoCyc_REF" : "http://biocyc.org/ECOLI/reference.html?type=CITATION-FRAME&object=",
     "FB" : "http://flybase.org/reports/",
     "GDB" : "http://www.gdb.org/gdb-bin/genera/accno?accessionNum=GDB:",
