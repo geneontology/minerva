@@ -1,6 +1,7 @@
 package org.geneontology.minerva.server.handler;
 
 import org.apache.commons.io.IOUtils;
+import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -23,7 +24,9 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
+import static org.geneontology.minerva.BlazegraphOntologyManager.in_taxon;
 import static org.junit.Assert.*;
 
 public class ModelEditTest {
@@ -71,6 +74,9 @@ public class ModelEditTest {
         StringWriter writer = new StringWriter();
         IOUtils.copy(this.getClass().getResourceAsStream("/edit-test/5437882f00000024"), writer, "utf-8");
         models.importModel(writer.toString());
+        StringWriter writer2 = new StringWriter();
+        IOUtils.copy(this.getClass().getResourceAsStream("/edit-test/test-model-taxon-annotations.ttl"), writer2, "utf-8");
+        models.importModel(writer2.toString());
     }
 
     @Test
@@ -112,6 +118,34 @@ public class ModelEditTest {
         executeBatch(batch);
     }
 
+    @Test
+    public void testTaxonAnnotationMaintenance() throws Exception {
+        List<M3Request> batch = new ArrayList<>();
+        M3Request r;
+        IRI human = IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_9606");
+        IRI boar = IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_9823");
+        IRI modelIRI = IRI.create("http://model.geneontology.org/62183af000000536");
+        final ModelContainer model = models.getModel(modelIRI);
+        assertNotNull(model);
+        Set<IRI> previousTaxonIRIs = model.getAboxOntology().getAnnotations().stream()
+                .filter(a -> a.getProperty().equals(in_taxon))
+                .map(a -> a.getValue().asIRI().get())
+                .collect(Collectors.toSet());
+        assertTrue(previousTaxonIRIs.contains(human));
+        // there is a model annotation but no data about boar in the model
+        assertTrue(previousTaxonIRIs.contains(boar));
+        // make any sort of change: create new individual
+        r = BatchTestTools.addIndividual(modelIRI.toString(), "GO:0003674");
+        r.arguments.assignToVariable = "VAR1";
+        batch.add(r);
+        executeBatch(batch);
+        Set<IRI> newTaxonIRIs = model.getAboxOntology().getAnnotations().stream()
+                .filter(a -> a.getProperty().equals(in_taxon))
+                .map(a -> a.getValue().asIRI().get())
+                .collect(Collectors.toSet());
+        assertTrue(newTaxonIRIs.contains(human));
+        assertFalse(newTaxonIRIs.contains(boar));
+    }
 
     @Test
     public void testModelReset() throws Exception {

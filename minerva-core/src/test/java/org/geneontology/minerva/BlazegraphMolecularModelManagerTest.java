@@ -58,34 +58,6 @@ public class BlazegraphMolecularModelManagerTest {
     }
 
     @Test
-    public void testTaxonAnnotationMaintenance() throws Exception {
-        IRI human = IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_9606");
-        IRI boar = IRI.create("http://purl.obolibrary.org/obo/NCBITaxon_9823");
-        String sourceModelPath = "src/test/resources/test-model-taxon-annotations.ttl";
-        IRI modelIRI = IRI.create("http://model.geneontology.org/62183af000000536");
-        BlazegraphMolecularModelManager<Void> m3 = createBlazegraphMolecularModelManager();
-        try {
-            m3.importModelToDatabase(new File(sourceModelPath), false);
-            ModelContainer model = m3.getModel(modelIRI);
-            Set<IRI> previousTaxonIRIs = model.getAboxOntology().getAnnotations().stream()
-                    .filter(a -> a.getProperty().equals(in_taxon))
-                    .map(a -> a.getValue().asIRI().get())
-                    .collect(Collectors.toSet());
-            assertTrue(previousTaxonIRIs.contains(human));
-            assertTrue(previousTaxonIRIs.contains(boar));
-            m3.saveModel(model);
-            Set<IRI> newTaxonIRIs = model.getAboxOntology().getAnnotations().stream()
-                    .filter(a -> a.getProperty().equals(in_taxon))
-                    .map(a -> a.getValue().asIRI().get())
-                    .collect(Collectors.toSet());
-            assertTrue(newTaxonIRIs.contains(human));
-            assertFalse(newTaxonIRIs.contains(boar));
-        } finally {
-            m3.dispose();
-        }
-    }
-
-    @Test
     public void testRemoveImportsDuringImport() throws Exception {
         String sourceModelPath = "src/test/resources/dummy-noctua-modelwith-import.ttl";
         OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();

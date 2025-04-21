@@ -187,9 +187,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
         final OWLOntology ont = m.getAboxOntology();
         final OWLOntologyManager manager = ont.getOWLOntologyManager();
         synchronized (ont) {
-            // This handler is not in the preSaveFileHandler list, because changes by those
-            // handlers are rolled back after save.
-            new ModelTaxonSaveHandler().handle(ont);
             List<OWLOntologyChange> changes = preSaveFileHandler(ont);
             try {
                 this.writeModelToDatabase(ont, modelId);
@@ -268,38 +265,37 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
         }
     }
 
-    private final class ModelTaxonSaveHandler implements PreFileSaveHandler {
-
-        @Override
-        public List<OWLOntologyChange> handle(OWLOntology model) throws UnknownIdentifierException {
-            OWLDataFactory factory = OWLManager.getOWLDataFactory();
-            final Set<OWLAnnotation> existingTaxonAnnotations = model.getAnnotations().stream()
-                    .filter(ann -> ann.getProperty().equals(in_taxon))
-                    .collect(Collectors.toSet());
-            final Set<IRI> existingTaxa = existingTaxonAnnotations.stream()
-                    .map(OWLAnnotation::getValue)
-                    .filter(OWLObject::isIRI)
-                    .map(v -> v.asIRI().get())
-                    .collect(Collectors.toSet());
-            Set<IRI> taxa = getTaxaForModel(model);
-            final Set<OWLAnnotation> annotationsToRemove = existingTaxonAnnotations.stream()
-                    .filter(ann -> !taxa.contains(ann.getValue()))
-                    .collect(Collectors.toSet());
-            final Set<IRI> taxaToAdd = taxa.stream()
-                    .filter(t -> !existingTaxa.contains(t))
-                    .collect(Collectors.toSet());
-            final Set<OWLOntologyChange> removals = annotationsToRemove.stream()
-                    .map(ann -> new RemoveOntologyAnnotation(model, ann))
-                    .collect(Collectors.toSet());
-            final Set<OWLOntologyChange> additions = taxaToAdd.stream()
-                    .map(t -> new AddOntologyAnnotation(model, factory.getOWLAnnotation(in_taxon, t)))
-                    .collect(Collectors.toSet());
-            final List<OWLOntologyChange> changes = new ArrayList<>();
-            changes.addAll(removals);
-            changes.addAll(additions);
-            model.getOWLOntologyManager().applyChanges(changes);
-            return changes;
-        }
+    public void updateTaxonAnnotations(ModelContainer mc, METADATA metadata) {
+        System.out.println("RUNNING");
+        OWLOntology model = mc.getAboxOntology();
+        OWLDataFactory factory = OWLManager.getOWLDataFactory();
+        final Set<OWLAnnotation> existingTaxonAnnotations = model.getAnnotations().stream()
+                .filter(ann -> ann.getProperty().equals(in_taxon))
+                .collect(Collectors.toSet());
+        System.out.println(existingTaxonAnnotations);
+        final Set<IRI> existingTaxa = existingTaxonAnnotations.stream()
+                .map(OWLAnnotation::getValue)
+                .filter(OWLObject::isIRI)
+                .map(v -> v.asIRI().get())
+                .collect(Collectors.toSet());
+        Set<IRI> taxa = getTaxaForModel(model);
+        System.out.println(taxa);
+        final Set<OWLAnnotation> annotationsToRemove = existingTaxonAnnotations.stream()
+                .filter(ann -> !taxa.contains(ann.getValue()))
+                .collect(Collectors.toSet());
+        final Set<IRI> taxaToAdd = taxa.stream()
+                .filter(t -> !existingTaxa.contains(t))
+                .collect(Collectors.toSet());
+        final Set<OWLOntologyChange> removals = annotationsToRemove.stream()
+                .map(ann -> new RemoveOntologyAnnotation(model, ann))
+                .collect(Collectors.toSet());
+        final Set<OWLOntologyChange> additions = taxaToAdd.stream()
+                .map(t -> new AddOntologyAnnotation(model, factory.getOWLAnnotation(in_taxon, t)))
+                .collect(Collectors.toSet());
+        final List<OWLOntologyChange> changes = new ArrayList<>();
+        changes.addAll(removals);
+        changes.addAll(additions);
+        this.applyChanges(mc, changes, metadata);
     }
 
     /**
@@ -937,55 +933,22 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 
     @Nonnull
     public Set<IRI> getTaxaForModel(OWLOntology model) {
-        String modelID = model.getOntologyID().getOntologyIRI().get().toString();
-        Set<String> genes = getModelGenes(modelID);
-        if (genes.isEmpty()) {
+        Set<String> potentialGenes = model.getClassesInSignature().stream()
+                .map(c -> c.getIRI().toString())
+                .filter(id -> !id.startsWith("http://purl.obolibrary.org/obo/"))
+                .collect(Collectors.toSet());
+        System.out.println("GENES: " + potentialGenes);
+        if (potentialGenes.isEmpty()) {
             return Collections.emptySet();
         } else {
             try {
-                return this.getGolego_repo().getTaxaByGenes(genes);
+                return this.getGolego_repo().getTaxaByGenes(potentialGenes);
             } catch (IOException e) {
                 LOG.error("Error querying ontology Blazegraph", e);
                 return Collections.emptySet();
             }
         }
     }
-
-    public Set<String> getModelGenes(String model_id) {
-        Set<String> g = new HashSet<String>();
-        TupleQueryResult result;
-        String sparql = "SELECT ?type WHERE {\n" +
-                "  GRAPH <" + model_id + "> {  \n" +
-                " ?i rdf:type ?type .\n" +
-                "FILTER (?type != <http://www.w3.org/2002/07/owl#Axiom> \n" +
-                "        && ?type != <http://www.w3.org/2002/07/owl#NamedIndividual> \n" +
-                "        && ?type != <http://www.w3.org/2002/07/owl#Ontology> \n" +
-                "        && ?type != <http://www.w3.org/2002/07/owl#Class> \n" +
-                "        && ?type != <http://www.w3.org/2002/07/owl#ObjectProperty> \n" +
-                "        && ?type != <http://www.w3.org/2000/01/rdf-schema#Datatype> \n" +
-                "        && ?type != <http://www.w3.org/2002/07/owl#AnnotationProperty>) . \n" +
-                //this one cuts out all the reacto genes
-                //	"FILTER (!regex(str(?type), \"http://purl.obolibrary.org/obo/\" ) )    \n" +
-                //this will probably let a few past but the effect would only be a slight slow down when looking up taxa
-                "FILTER (!regex(str(?type), \"http://purl.obolibrary.org/obo/ECO_\" ) )  .   \n" +
-                "FILTER (!regex(str(?type), \"http://purl.obolibrary.org/obo/GO_\" ) ) " +
-                "    }\n" +
-                "  } \n" +
-                "  \n";
-        try {
-            result = (TupleQueryResult) executeSPARQLQueryWithoutPrefixManipulation(sparql, 10);
-
-            while (result.hasNext()) {
-                BindingSet bs = result.next();
-                String gene = bs.getBinding("type").getValue().stringValue();
-                g.add(gene);
-            }
-        } catch (MalformedQueryException | QueryEvaluationException | RepositoryException e) {
-            e.printStackTrace();
-        }
-        return g;
-    }
-
 
     public void addTaxonMetadata() throws IOException {
         Map<IRI, Set<String>> taxon_models = buildTaxonModelMap();
