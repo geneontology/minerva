@@ -57,6 +57,12 @@ public class ModelEditTest {
         InferenceProviderCreator ipc = null;
         handler = new JsonOrJsonpBatchHandler(models, "development", ipc,
                 Collections.<OWLObjectProperty>emptySet(), (ExternalLookupService) null);
+        StringWriter writer = new StringWriter();
+        IOUtils.copy(ModelEditTest.class.getResourceAsStream("/edit-test/5437882f00000024"), writer, "utf-8");
+        models.importModel(writer.toString());
+        StringWriter writer2 = new StringWriter();
+        IOUtils.copy(ModelEditTest.class.getResourceAsStream("/edit-test/test-model-taxon-annotations.ttl"), writer2, "utf-8");
+        models.importModel(writer2.toString());
     }
 
     @AfterClass
@@ -67,16 +73,6 @@ public class ModelEditTest {
         if (models != null) {
             models.dispose();
         }
-    }
-
-    @Before
-    public void before() throws Exception {
-        StringWriter writer = new StringWriter();
-        IOUtils.copy(this.getClass().getResourceAsStream("/edit-test/5437882f00000024"), writer, "utf-8");
-        models.importModel(writer.toString());
-        StringWriter writer2 = new StringWriter();
-        IOUtils.copy(this.getClass().getResourceAsStream("/edit-test/test-model-taxon-annotations.ttl"), writer2, "utf-8");
-        models.importModel(writer2.toString());
     }
 
     @Test
