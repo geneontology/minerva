@@ -248,6 +248,7 @@ abstract class ModelCreator {
             annotations.add(create(f, AnnotationShorthand.providedBy, provider));
             m3.addModelAnnotations(model, annotations, token);
         }
+        m3.updateTaxonAnnotations(model, token);
         m3.updateAnnotation(model, createDateAnnotation(f), token);
     }
 
