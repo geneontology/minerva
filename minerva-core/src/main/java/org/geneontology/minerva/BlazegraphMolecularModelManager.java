@@ -266,20 +266,17 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
     }
 
     public void updateTaxonAnnotations(ModelContainer mc, METADATA metadata) {
-        System.out.println("RUNNING");
         OWLOntology model = mc.getAboxOntology();
         OWLDataFactory factory = OWLManager.getOWLDataFactory();
         final Set<OWLAnnotation> existingTaxonAnnotations = model.getAnnotations().stream()
                 .filter(ann -> ann.getProperty().equals(in_taxon))
                 .collect(Collectors.toSet());
-        System.out.println(existingTaxonAnnotations);
         final Set<IRI> existingTaxa = existingTaxonAnnotations.stream()
                 .map(OWLAnnotation::getValue)
                 .filter(OWLObject::isIRI)
                 .map(v -> v.asIRI().get())
                 .collect(Collectors.toSet());
         Set<IRI> taxa = getTaxaForModel(model);
-        System.out.println(taxa);
         final Set<OWLAnnotation> annotationsToRemove = existingTaxonAnnotations.stream()
                 .filter(ann -> !taxa.contains(ann.getValue()))
                 .collect(Collectors.toSet());
@@ -937,7 +934,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
                 .map(c -> c.getIRI().toString())
                 .filter(id -> !id.startsWith("http://purl.obolibrary.org/obo/"))
                 .collect(Collectors.toSet());
-        System.out.println("GENES: " + potentialGenes);
         if (potentialGenes.isEmpty()) {
             return Collections.emptySet();
         } else {

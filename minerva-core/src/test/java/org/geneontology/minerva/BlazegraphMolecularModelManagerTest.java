@@ -23,9 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
-import static org.geneontology.minerva.BlazegraphOntologyManager.in_taxon;
 import static org.junit.Assert.*;
 
 public class BlazegraphMolecularModelManagerTest {
