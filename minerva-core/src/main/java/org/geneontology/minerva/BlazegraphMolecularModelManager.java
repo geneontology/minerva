@@ -930,8 +930,10 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 
     @Nonnull
     public Set<IRI> getTaxaForModel(OWLOntology model) {
-        Set<String> potentialGenes = model.getClassesInSignature().stream()
-                .map(c -> c.getIRI().toString())
+        Set<String> potentialGenes = model.getAxioms(AxiomType.CLASS_ASSERTION).stream()
+                .map(OWLClassAssertionAxiom::getClassExpression)
+                .filter(IsAnonymous::isNamed)
+                .map(ce -> ce.asOWLClass().getIRI().toString())
                 .filter(id -> !id.startsWith("http://purl.obolibrary.org/obo/"))
                 .collect(Collectors.toSet());
         if (potentialGenes.isEmpty()) {
