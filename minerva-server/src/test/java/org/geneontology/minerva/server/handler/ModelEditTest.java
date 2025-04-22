@@ -130,6 +130,7 @@ public class ModelEditTest {
         assertTrue(previousTaxonIRIs.contains(human));
         // there is a model annotation but no data about boar in the model
         assertTrue(previousTaxonIRIs.contains(boar));
+        assertEquals(2, previousTaxonIRIs.size());
         // make any sort of change: create new individual
         r = BatchTestTools.addIndividual(modelIRI.toString(), "GO:0003674");
         r.arguments.assignToVariable = "VAR1";
@@ -141,6 +142,8 @@ public class ModelEditTest {
                 .collect(Collectors.toSet());
         assertTrue(newTaxonIRIs.contains(human));
         assertFalse(newTaxonIRIs.contains(boar));
+        // We should not pick up the worm taxon from the unused class declaration
+        assertEquals(1, newTaxonIRIs.size());
     }
 
     @Test

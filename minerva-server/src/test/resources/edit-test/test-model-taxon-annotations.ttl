@@ -88,6 +88,9 @@
 #    Classes
 #################################################################
 
+### unused worm gene
+<http://identifiers.org/wormbase/WBGene00001455> rdf:type owl:Class .
+
 ###  http://identifiers.org/uniprot/Q8N6T7
 <http://identifiers.org/uniprot/Q8N6T7> rdf:type owl:Class .
 
