@@ -35,7 +35,7 @@
         "UniMod": "http://www.unimod.org/modifications_view.php?editid1=", 
         "UM-BBD_reactionID": "http://eawag-bbd.ethz.ch/servlets/pageservlet?ptype=r&reacID=", 
         "PubChem_Substance": "http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?CMD=search&DB=pcsubstance&term=", 
-        "EcoCyc": "http://biocyc.org/ECOLI/NEW-IMAGE?type=PATHWAY&object=", 
+        "EcoCyc": "https://ecocyc.org/gene?id=", 
         "Reactome": "http://identifiers.org/reactome/", 
         "InterPro": "http://identifiers.org/interpro/", 
         "UniRule": "http://www.uniprot.org/unirule/", 

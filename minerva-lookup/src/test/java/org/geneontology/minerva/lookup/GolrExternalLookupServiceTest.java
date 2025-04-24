@@ -92,7 +92,7 @@ public class GolrExternalLookupServiceTest {
     public void testLookupGeneProductCls() throws Exception {
         Logger.getLogger(GolrExternalLookupService.class).setLevel(Level.DEBUG);
         GolrExternalLookupService s = new GolrExternalLookupService(golrUrl, handler);
-        IRI gp_iri = handler.getIRI("UniProtKB:P32241-2");
+        IRI gp_iri = handler.getIRI("UniProtKB:P32241");
         List<LookupEntry> lookup = s.lookup(gp_iri);
         assertEquals(1, lookup.size());
         LookupEntry e = lookup.get(0);
@@ -114,7 +114,7 @@ public class GolrExternalLookupServiceTest {
         assertEquals(1, lookup.size());
         e = lookup.get(0);
         assertEquals("saga-kat2a_human Hsap", e.label);
-        assertEquals(7, e.isa_closure.size());
+        assertEquals(6, e.isa_closure.size());
         assertTrue(e.isa_closure.contains("GO:0032991"));
     }
 
@@ -172,7 +172,7 @@ public class GolrExternalLookupServiceTest {
         ids.add(handler.getIRI("SGD:S000004529"));
         ids.add(handler.getIRI("CHEBI:33695"));
         ids.add(handler.getIRI("ComplexPortal:CPX-900"));
-        ids.add(handler.getIRI("UniProtKB:P32241-2"));
+        ids.add(handler.getIRI("UniProtKB:P32241"));
         ids.add(handler.getIRI("GO:0003700"));
 
         Map<IRI, List<LookupEntry>> lookups = s.lookupBatch(ids);

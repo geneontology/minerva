@@ -1241,7 +1241,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
         }
     }
 
-    private void applyChanges(ModelContainer model, List<OWLOntologyChange> changes, METADATA metadata) {
+    protected void applyChanges(ModelContainer model, List<OWLOntologyChange> changes, METADATA metadata) {
         OWLOntology ont = model.getAboxOntology();
         synchronized (ont) {
             /*

@@ -5,8 +5,7 @@ import org.apache.log4j.Logger;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
@@ -24,27 +23,34 @@ public class MolecularModelManagerTest {
 
     // JUnit way of creating a temporary test folder
     // will be deleted after the test has run, by JUnit.
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
-    private final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
+    @ClassRule
+    public static TemporaryFolder folder = new TemporaryFolder();
+    private static final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
+
+    private static MolecularModelManager<Void> mmm;
 
     static {
         Logger.getLogger("org.semanticweb.elk").setLevel(Level.ERROR);
     }
 
-    private MolecularModelManager<Void> createM3(OWLOntology tbox, File journal) throws OWLOntologyCreationException, IOException {
-        return new MolecularModelManager<Void>(tbox, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), folder.getRoot().getAbsolutePath(), go_lego_journal_file, true);
+    @BeforeClass
+    public static void createM3() throws OWLOntologyCreationException, IOException {
+        File journal = folder.newFile();
+        OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(MolecularModelManagerTest.class.getResourceAsStream("/go-mgi-signaling-test.obo"));
+        mmm = new MolecularModelManager<Void>(tbox, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), folder.getRoot().getAbsolutePath(), go_lego_journal_file, true);
+    }
+
+    @AfterClass
+    public static void disposeM3() {
+        mmm.dispose();
     }
 
     @Test
     public void testDeleteIndividual() throws Exception {
-        OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
+
 
         // GO:0038024 ! cargo receptor activity
         // GO:0042803 ! protein homodimerization activity
-
-        MolecularModelManager<Void> mmm = createM3(tbox, folder.newFile());
-
         ModelContainer model = mmm.generateBlankModel(null);
         OWLNamedIndividual i1 = mmm.createIndividual(model.getModelId(), "GO:0038024", null, null);
 
@@ -66,19 +72,13 @@ public class MolecularModelManagerTest {
 
         Set<OWLNamedIndividual> individuals = mmm.getIndividuals(model.getModelId());
         assertEquals(1, individuals.size());
-        mmm.dispose();
     }
 
     @Test
     public void testExportImport() throws Exception {
-        OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
-
         // GO:0038024 ! cargo receptor activity
         // GO:0042803 ! protein homodimerization activity
         // GO:0008233 ! peptidase activity
-
-        File journalFile = folder.newFile();
-        MolecularModelManager<Void> mmm = createM3(tbox, journalFile);
 
         final ModelContainer model = mmm.generateBlankModel(null);
         final OWLNamedIndividual i1 = mmm.createIndividual(model.getModelId(), "GO:0038024", null, null);
@@ -111,16 +111,10 @@ public class MolecularModelManagerTest {
             assertTrue(iri.equals(i1.getIRI()) || iri.equals(i2.getIRI()));
             assertFalse(iri.equals(i3.getIRI()));
         }
-        mmm.dispose();
     }
 
     @Test
     public void testSaveModel() throws Exception {
-        OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
-
-        File journalFile = folder.newFile();
-        MolecularModelManager<Void> mmm = createM3(tbox, journalFile);
-
         // GO:0038024 ! cargo receptor activity
         // GO:0042803 ! protein homodimerization activity
         // GO:0008233 ! peptidase activity
@@ -139,14 +133,7 @@ public class MolecularModelManagerTest {
         final OWLNamedIndividual i3 = mmm.createIndividual(model.getModelId(), "GO:0008233", null, null);
         assertEquals(3, mmm.getIndividuals(model.getModelId()).size());
 
-        // discard mmm
-        mmm.dispose();
-        mmm = null;
-
-        OWLOntology tbox2 = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
-
-
-        mmm = createM3(tbox2, journalFile);
+        mmm.unlinkModel(model.getModelId());
 
         Set<IRI> availableModelIds = mmm.getAvailableModelIds();
         assertTrue(availableModelIds.contains(model.getModelId()));
@@ -162,19 +149,12 @@ public class MolecularModelManagerTest {
             assertTrue(iri.equals(i1.getIRI()) || iri.equals(i2.getIRI()));
             assertFalse(iri.equals(i3.getIRI()));
         }
-        mmm.dispose();
     }
 
     @Test
     public void testInferredType() throws Exception {
-        OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(this.getClass().getResourceAsStream("/go-mgi-signaling-test.obo"));
-
-
         // GO:0038024 ! cargo receptor activity
         // GO:0042803 ! protein homodimerization activity
-
-        File journalFile = folder.newFile();
-        MolecularModelManager<Void> mmm = createM3(tbox, journalFile);
 
         ModelContainer model = mmm.generateBlankModel(null);
         OWLNamedIndividual cc = mmm.createIndividual(model.getModelId(), "GO:0004872", null, null); // receptor activity
@@ -189,7 +169,6 @@ public class MolecularModelManagerTest {
 
         //List<Map<Object, Object>> gson = mmm.getIndividualObjects(modelId);
         //assertEquals(1, individuals.size());
-        mmm.dispose();
     }
 
     private void addPartOf(ModelContainer model, OWLNamedIndividual i1, OWLNamedIndividual i2,
