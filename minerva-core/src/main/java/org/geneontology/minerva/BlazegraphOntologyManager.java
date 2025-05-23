@@ -626,6 +626,7 @@ public class BlazegraphOntologyManager {
                 String query =
                         "select distinct ?taxon  \n" +
                                 "where { \n" + expansion +
+                                "  ?gene <https://w3id.org/biolink/vocab/category> <https://w3id.org/biolink/vocab/MacromolecularMachine> .\n" +
                                 "  ?gene rdfs:subClassOf ?taxon_restriction .\n" +
                                 "  ?taxon_restriction owl:onProperty <http://purl.obolibrary.org/obo/RO_0002162> .\n" +
                                 "  ?taxon_restriction owl:someValuesFrom ?taxon \n" +
