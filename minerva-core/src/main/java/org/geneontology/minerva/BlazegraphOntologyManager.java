@@ -68,20 +68,32 @@ public class BlazegraphOntologyManager {
         root_types.add("http://purl.obolibrary.org/obo/ECO_0000000"); //evidence root.
     }
 
-    public BlazegraphOntologyManager(String go_lego_repo_file, boolean downloadJournal) throws IOException {
-        if (!new File(go_lego_repo_file).exists() && downloadJournal) {
-            LOG.info("No blazegraph tbox journal found at " + go_lego_repo_file + " . Downloading from " + public_blazegraph_url + " and putting there.");
-            URL blazegraph_url = new URL(public_blazegraph_url);
-            File go_lego_repo_local = new File(go_lego_repo_file);
-            if (public_blazegraph_url.endsWith(".gz")) {
-                go_lego_repo_local = new File(go_lego_repo_file + ".gz");
-            }
-            org.apache.commons.io.FileUtils.copyURLToFile(blazegraph_url, go_lego_repo_local);
-            if (public_blazegraph_url.endsWith(".gz")) {
-                unGunzipFile(go_lego_repo_file + ".gz", go_lego_repo_file);
+    public BlazegraphOntologyManager(String go_lego_repo_file, boolean downloadJournal, OWLOntology tbox) throws IOException {
+        boolean loadOntologyIntoJournal = false;
+        if (!new File(go_lego_repo_file).exists()) {
+            if (downloadJournal) {
+                LOG.info("No blazegraph tbox journal found at " + go_lego_repo_file + " . Downloading from " + public_blazegraph_url + " and putting there.");
+                URL blazegraph_url = new URL(public_blazegraph_url);
+                File go_lego_repo_local = new File(go_lego_repo_file);
+                if (public_blazegraph_url.endsWith(".gz")) {
+                    go_lego_repo_local = new File(go_lego_repo_file + ".gz");
+                }
+                org.apache.commons.io.FileUtils.copyURLToFile(blazegraph_url, go_lego_repo_local);
+                if (public_blazegraph_url.endsWith(".gz")) {
+                    unGunzipFile(go_lego_repo_file + ".gz", go_lego_repo_file);
+                }
+            } else if (tbox != null) {
+                loadOntologyIntoJournal = true;
             }
         }
         go_lego_repo = initializeRepository(go_lego_repo_file);
+        if (loadOntologyIntoJournal) {
+            try {
+                this.loadRepositoryFromOntology(tbox, tbox.getOntologyID().getOntologyIRI().or(IRI.create("http://example.org/")).toString(), true);
+            } catch (OWLOntologyCreationException | RepositoryException | RDFParseException | RDFHandlerException e) {
+                throw new IOException(e);
+            }
+        }
         class_depth = buildClassDepthMap("http://purl.obolibrary.org/obo/GO_0003674");
         class_depth.putAll(buildClassDepthMap("http://purl.obolibrary.org/obo/GO_0008150"));
         class_depth.putAll(buildClassDepthMap("http://purl.obolibrary.org/obo/GO_0005575"));

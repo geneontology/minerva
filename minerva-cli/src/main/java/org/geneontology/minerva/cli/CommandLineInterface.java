@@ -690,7 +690,7 @@ public class CommandLineInterface {
             return;
         }
 
-        BlazegraphOntologyManager man = new BlazegraphOntologyManager(journalFilePath, false);
+        BlazegraphOntologyManager man = new BlazegraphOntologyManager(journalFilePath, false, null);
         String iri_for_ontology_graph = "http://geneontology.org/go-lego-graph";
         man.loadRepositoryFromOWLFile(new File(inputFile), iri_for_ontology_graph, reset);
     }
@@ -848,9 +848,6 @@ public class CommandLineInterface {
         CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
         boolean loadTboxIntoOntJournal = (!(new File(go_lego_journal_file)).exists());
         BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file, false);
-        if (loadTboxIntoOntJournal) {
-            m3.getGolego_repo().loadRepositoryFromOntology(ontology, "http://example.org/", true);
-        }
         final String immutableModelIdPrefix = modelIdPrefix;
         final String immutableGpadOutputFolder = gpadOutputFolder;
         m3.getAvailableModelIds().stream().parallel().forEach(modelIRI -> {

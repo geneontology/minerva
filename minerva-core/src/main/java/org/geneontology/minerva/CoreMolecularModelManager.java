@@ -165,7 +165,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
         initializeTboxShorthandIndex();
         initializeDoNotAnnotateSubset();
         if (go_lego_repo_file != null) {
-            this.go_lego_repo = new BlazegraphOntologyManager(go_lego_repo_file, downloadOntologyJournal);
+            this.go_lego_repo = new BlazegraphOntologyManager(go_lego_repo_file, downloadOntologyJournal, tbox);
         }
         init();
     }
