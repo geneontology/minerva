@@ -846,7 +846,6 @@ public class CommandLineInterface {
         OWLOntology ontology = ontman.loadOntology(IRI.create(ontologyIRI));
         CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
         CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-        boolean loadTboxIntoOntJournal = (!(new File(go_lego_journal_file)).exists());
         BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(ontology, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file, false);
         final String immutableModelIdPrefix = modelIdPrefix;
         final String immutableGpadOutputFolder = gpadOutputFolder;
