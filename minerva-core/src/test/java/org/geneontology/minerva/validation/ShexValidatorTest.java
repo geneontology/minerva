@@ -32,7 +32,7 @@ public class ShexValidatorTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        go_lego = new BlazegraphOntologyManager(go_lego_journal_file, true);
+        go_lego = new BlazegraphOntologyManager(go_lego_journal_file, true, null);
         CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
         shex = new ShexValidator(schemaFile, mainShapemapFile, go_lego, curieHandler);
         shexMeta = new ShexValidator(metadataSchemaFile, metadataShapemapFile, go_lego, curieHandler);

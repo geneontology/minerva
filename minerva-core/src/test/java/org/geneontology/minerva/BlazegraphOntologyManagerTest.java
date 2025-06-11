@@ -30,7 +30,7 @@ public class BlazegraphOntologyManagerTest {
      */
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        onto_repo = new BlazegraphOntologyManager(ontology_journal_file, true);
+        onto_repo = new BlazegraphOntologyManager(ontology_journal_file, true, null);
     }
 
     /**
