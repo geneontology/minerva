@@ -68,6 +68,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
     }
 
     final OWLOntology tbox;
+    final OWLOntology rulesOntology;
     //	final OWLReasonerFactory rf;
     //	final OWLReasoner tbox_reasoner;
     //replacing tbox_reasoner structural reasoner functionality with blazegraph queries over pre-inferred relations..
@@ -159,6 +160,7 @@ public abstract class CoreMolecularModelManager<METADATA> {
         super();
         this.tbox = tbox;
         tboxIRI = getTboxIRI(tbox);
+        this.rulesOntology = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(CoreMolecularModelManager.class.getResourceAsStream("ro-gpad.ofn"));
         this.ruleEngine = initializeRuleEngine();
         initializeLegacyRelationIndex();
         initializeTboxLabelIndex();
@@ -254,10 +256,14 @@ public abstract class CoreMolecularModelManager<METADATA> {
         return ruleEngine;
     }
 
+    private OWLOntology getRulesOntology() {
+        return this.rulesOntology;
+    }
+
     private RuleEngine initializeRuleEngine() {
         Set<Rule> rules = new HashSet<>();
-        rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(getOntology(), Imports.INCLUDED, true, true, true, true)).asJava());
-        rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.indirectRules(getOntology())).asJava());
+        rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.translate(getRulesOntology(), Imports.INCLUDED, true, true, true, true)).asJava());
+        rules.addAll(JavaConverters.setAsJavaSetConverter(OWLtoRules.indirectRules(getRulesOntology())).asJava());
         return new RuleEngine(Bridge.rulesFromJena(JavaConverters.asScalaSetConverter(rules).asScala()), true);
     }
 
