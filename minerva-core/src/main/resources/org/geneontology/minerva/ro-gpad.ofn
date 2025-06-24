@@ -10065,7 +10065,6 @@ SubObjectPropertyOf(ObjectPropertyChain(obo:RO_0002327 obo:RO_0002305) obo:RO_00
 SubObjectPropertyOf(ObjectPropertyChain(obo:RO_0002327 obo:RO_0002411) obo:RO_0002263)
 SubObjectPropertyOf(ObjectPropertyChain(obo:RO_0002327 obo:RO_0002411 obo:RO_0002233) obo:RO_0002566)
 SubObjectPropertyOf(ObjectPropertyChain(obo:RO_0002327 obo:RO_0002411 obo:RO_0002333) obo:RO_0002566)
-SubObjectPropertyOf(ObjectPropertyChain(obo:RO_0002327 obo:RO_0002418) obo:RO_0002264)
 SubObjectPropertyOf(ObjectPropertyChain(obo:RO_0002327 obo:RO_0002629 obo:RO_0002333) obo:RO_0002450)
 SubObjectPropertyOf(ObjectPropertyChain(obo:RO_0002327 obo:RO_0002630 obo:RO_0002333) obo:RO_0002449)
 SubObjectPropertyOf(ObjectPropertyChain(obo:RO_0002327 obo:RO_0004046) obo:RO_0004033)
