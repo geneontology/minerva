@@ -22,6 +22,7 @@ import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
+import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.parameters.Imports;
 import owltools.io.ParserWrapper;
@@ -995,7 +996,7 @@ public class BatchModelHandlerTest {
         assertNotNull(exportString);
     }
 
-    //FIXME @Test
+    @Test
     public void testUndoRedo() throws Exception {
         final String modelId = generateBlankModel();
 
@@ -1034,7 +1035,7 @@ public class BatchModelHandlerTest {
         final M3BatchResponse response2 = execute(r2, false);
         List<Object> undo2 = (List<Object>) response2.data.undo;
         List<Object> redo2 = (List<Object>) response2.data.redo;
-        assertTrue(undo2.size() > 1);
+        assertEquals(1, undo2.size());
         assertTrue(redo2.isEmpty());
 
         // delete
@@ -1064,8 +1065,10 @@ public class BatchModelHandlerTest {
         final M3BatchResponse response4 = execute(r4, false);
         List<Object> undo4 = (List<Object>) response4.data.undo;
         List<Object> redo4 = (List<Object>) response4.data.redo;
-        assertTrue(undo4.size() > 1);
+        assertEquals(2, undo4.size());
         assertTrue(redo4.isEmpty());
+        OWLOntology modelAbox = models.getModel(curieHandler.getIRI(modelId)).getAboxOntology();
+        assertEquals(4, modelAbox.getAnnotations().size());
 
         // undo
         final M3Request r5 = new M3Request();
@@ -1075,6 +1078,8 @@ public class BatchModelHandlerTest {
         r5.arguments.modelId = modelId;
 
         execute(r5, false);
+
+        assertEquals("Undoing the last change should not remove the contributor annotations, which were added earlier", 4, modelAbox.getAnnotations().size());
 
         // check undo redo list
         final M3Request r6 = new M3Request();
@@ -1086,9 +1091,8 @@ public class BatchModelHandlerTest {
         final M3BatchResponse response6 = execute(r6, false);
         List<Object> undo6 = (List<Object>) response6.data.undo;
         List<Object> redo6 = (List<Object>) response6.data.redo;
-        assertTrue(undo6.size() > 1);
-        assertTrue(redo6.size() == 1);
-
+        assertEquals(1, undo6.size());
+        assertEquals(1, redo6.size());
     }
 
     //FIXME @Test
