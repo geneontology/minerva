@@ -6,6 +6,7 @@ PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX BFO: <http://purl.obolibrary.org/obo/BFO_>
 PREFIX CHEBI: <http://purl.obolibrary.org/obo/CHEBI_>
 PREFIX PR: <http://purl.obolibrary.org/obo/PR_>
+PREFIX GO: <http://purl.obolibrary.org/obo/GO_>
 
 SELECT DISTINCT ?target ?extension_rel ?extension ?extension_type
 WHERE {
@@ -115,6 +116,6 @@ FILTER NOT EXISTS {
 FILTER NOT EXISTS {
     ?extension <http://arachne.geneontology.org/indirect_type> ?extension_type .
 }
-FILTER(isIRI(?extension_type) && (?extension_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040)))
+FILTER(isIRI(?extension_type) && (?extension_type NOT IN (rdfs:Resource, owl:Thing, owl:NamedIndividual, BFO:0000002, BFO:0000003, BFO:0000004, BFO:0000015, BFO:0000040, GO:0003674, GO:0008150, GO:0005575)))
 FILTER(!STRSTARTS(STR(?extension_type), "http://purl.obolibrary.org/obo/CARO_"))
 }
