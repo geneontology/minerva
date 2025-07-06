@@ -66,6 +66,7 @@ public class BlazegraphOntologyManager {
         root_types.add("http://purl.obolibrary.org/obo/PO_0009012"); // plant structure development stage
         root_types.add("http://purl.obolibrary.org/obo/GO_0044848"); // biological phase
         root_types.add("http://purl.obolibrary.org/obo/ECO_0000000"); //evidence root.
+        root_types.add("http://purl.obolibrary.org/obo/NCBITaxon_1"); //organism
     }
 
     public BlazegraphOntologyManager(String go_lego_repo_file, boolean downloadJournal, OWLOntology tbox) throws IOException {
