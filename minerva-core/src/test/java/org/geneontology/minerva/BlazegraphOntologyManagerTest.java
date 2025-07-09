@@ -8,6 +8,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -269,6 +270,14 @@ public class BlazegraphOntologyManagerTest {
         assertTrue("ComplexPortal_CPX-9 should be a protein-containing complex", supers.contains("http://purl.obolibrary.org/obo/GO_0032991"));
         supers = uri_roots.get(cp2);
         assertTrue("ComplexPortal_CPX-4082 should be a protein-containing complex", supers.contains("http://purl.obolibrary.org/obo/GO_0032991"));
+    }
+
+    @Test
+    public void testTaxonRootType() throws IOException {
+        String taxon = "http://purl.obolibrary.org/obo/NCBITaxon_575614";
+        String root = "http://purl.obolibrary.org/obo/NCBITaxon_1";
+        Map<String, Set<String>> map = onto_repo.getSuperCategoryMap(Collections.singleton(taxon));
+        assertTrue(map.get(taxon).contains(root));
     }
 
 }
