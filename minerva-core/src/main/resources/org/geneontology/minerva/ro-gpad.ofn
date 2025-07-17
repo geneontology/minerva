@@ -2743,7 +2743,6 @@ AnnotationAssertion(Annotation(terms:source <http://www.wikidata.org/entity/Q474
 
 DifferentIndividuals(obo:IAO_0000120 obo:IAO_0000121 obo:IAO_0000122 obo:IAO_0000123 obo:IAO_0000124 obo:IAO_0000125 obo:IAO_0000423 obo:IAO_0000428)
 SubObjectPropertyOf(ObjectPropertyChain(obo:BFO_0000050 obo:BFO_0000066) obo:BFO_0000066)
-SubObjectPropertyOf(ObjectPropertyChain(obo:BFO_0000050 obo:RO_0002327) obo:RO_0002326)
 SubObjectPropertyOf(ObjectPropertyChain(obo:BFO_0000051 obo:RO_0000057) obo:RO_0000057)
 SubObjectPropertyOf(ObjectPropertyChain(obo:BFO_0000066 obo:BFO_0000050) obo:BFO_0000066)
 SubObjectPropertyOf(ObjectPropertyChain(obo:RO_0001025 obo:BFO_0000050) obo:RO_0001025)
