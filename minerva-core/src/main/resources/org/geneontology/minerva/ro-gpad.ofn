@@ -2747,6 +2747,8 @@ SubObjectPropertyOf(ObjectPropertyChain(obo:BFO_0000050 obo:RO_0002327) obo:RO_0
 SubObjectPropertyOf(ObjectPropertyChain(obo:BFO_0000051 obo:RO_0000057) obo:RO_0000057)
 SubObjectPropertyOf(ObjectPropertyChain(obo:BFO_0000066 obo:BFO_0000050) obo:BFO_0000066)
 SubObjectPropertyOf(ObjectPropertyChain(obo:RO_0001025 obo:BFO_0000050) obo:RO_0001025)
+SubObjectPropertyOf(Annotation(obo:IAO_0000233 "https://github.com/geneontology/minerva/issues/568"^^xsd:anyURI) ObjectPropertyChain(obo:RO_0002326 obo:BFO_0000050) obo:RO_0002331)
+SubObjectPropertyOf(Annotation(obo:IAO_0000233 "https://github.com/geneontology/minerva/issues/568"^^xsd:anyURI) ObjectPropertyChain(obo:RO_0002326 obo:BFO_0000066) obo:RO_0002432)
 SubObjectPropertyOf(ObjectPropertyChain(obo:RO_0002327 obo:BFO_0000050) obo:RO_0002331)
 SubObjectPropertyOf(ObjectPropertyChain(obo:RO_0002327 obo:BFO_0000051) obo:RO_0002327)
 SubObjectPropertyOf(Annotation(obo:RO_0002581 "true"^^xsd:boolean) ObjectPropertyChain(obo:RO_0002327 obo:BFO_0000066) obo:RO_0002432)
