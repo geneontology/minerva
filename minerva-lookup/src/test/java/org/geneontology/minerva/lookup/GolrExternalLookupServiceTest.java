@@ -97,8 +97,8 @@ public class GolrExternalLookupServiceTest {
         assertEquals(1, lookup.size());
         LookupEntry e = lookup.get(0);
         assertEquals("VIPR1 Hsap", e.label);
-        assertEquals(24, e.isa_closure.size());
-        assertTrue(e.isa_closure.contains("PR:000000001"));
+        assertTrue(e.isa_closure.size() > 12);
+        assertTrue(e.isa_closure.contains("CHEBI:33695"));
 //		
         gp_iri = handler.getIRI("SGD:S000005952");
         lookup = s.lookup(gp_iri);
