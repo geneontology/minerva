@@ -206,6 +206,9 @@ public class BlazegraphOntologyManagerTest {
         String cc = "http://purl.obolibrary.org/obo/GO_0000776";
         String bp = "http://purl.obolibrary.org/obo/GO_0022607";
         String mf = "http://purl.obolibrary.org/obo/GO_0060090";
+        String obsoleteCC = "http://purl.obolibrary.org/obo/GO_0005810";
+        String obsoleteBP = "http://purl.obolibrary.org/obo/GO_2000803";
+        String obsoleteMF = "http://purl.obolibrary.org/obo/GO_0008529";
         String human_protein = "http://identifiers.org/uniprot/Q13253";
         String zfin_protein = "http://identifiers.org/zfin/ZDB-GENE-010410-3";
         String worm_gene = "http://identifiers.org/wormbase/WBGene00000275";
@@ -214,6 +217,9 @@ public class BlazegraphOntologyManagerTest {
         uris.add(cc);
         uris.add(bp);
         uris.add(mf);
+        uris.add(obsoleteCC);
+        uris.add(obsoleteBP);
+        uris.add(obsoleteMF);
         uris.add(human_protein);
         uris.add(zfin_protein);
         uris.add(worm_gene);
@@ -239,6 +245,15 @@ public class BlazegraphOntologyManagerTest {
         //molecular function
         supers = uri_roots.get(mf);
         assertTrue("GO_0060090 not subclass of molecular function GO_0003674", supers.contains("http://purl.obolibrary.org/obo/GO_0003674"));
+        // Obsolete biological process
+        supers = uri_roots.get(obsoleteBP);
+        assertTrue("GO_2000803 should be in namespace biological_process", supers.contains("http://purl.obolibrary.org/obo/GO_0008150"));
+        // Obsolete molecular function
+        supers = uri_roots.get(obsoleteMF);
+        assertTrue("GO_0008529 should be in namespace molecular_function", supers.contains("http://purl.obolibrary.org/obo/GO_0003674"));
+        // Obsolete cellular component
+        supers = uri_roots.get(obsoleteCC);
+        assertTrue("GO_0005810 should be in namespace molecular_function", supers.contains("http://purl.obolibrary.org/obo/GO_0005575"));
         //Gene products
         //uniprot
         supers = uri_roots.get(human_protein);
