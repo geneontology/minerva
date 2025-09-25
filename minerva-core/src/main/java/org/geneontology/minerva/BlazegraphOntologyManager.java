@@ -424,11 +424,25 @@ public class BlazegraphOntologyManager {
                 }
                 categories += "} . ";
                 String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
-                        "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
-                        + "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+                        "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> " +
+                        "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+                        "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> " +
+                        "PREFIX oboInOwl: <http://www.geneontology.org/formats/oboInOwl#> " +
                         "SELECT ?sub ?super " +
-                        "WHERE { " + q + categories
-                        + "?sub rdfs:subClassOf* ?super . " +
+                        "WHERE { " + q + categories +
+                        " { ?sub rdfs:subClassOf* ?super . } " +
+                        " UNION " +
+                        " { ?sub owl:deprecated true . " +
+                        " ?sub oboInOwl:hasOBONamespace ?namespace . " +
+                        " VALUES (?namespace ?super) { " +
+                        " ( \"biological_process\" <http://purl.obolibrary.org/obo/GO_0008150> ) " +
+                        " ( \"molecular_function\" <http://purl.obolibrary.org/obo/GO_0003674> ) " +
+                        " ( \"cellular_component\" <http://purl.obolibrary.org/obo/GO_0005575> ) " +
+                        " ( \"biological_process\"^^xsd:string <http://purl.obolibrary.org/obo/GO_0008150> ) " +
+                        " ( \"molecular_function\"^^xsd:string <http://purl.obolibrary.org/obo/GO_0003674> ) " +
+                        " ( \"cellular_component\"^^xsd:string <http://purl.obolibrary.org/obo/GO_0005575> ) " +
+                        "  } " +
+                        " } " +
                         "} ";
                 TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
                 TupleQueryResult result = tupleQuery.evaluate();
