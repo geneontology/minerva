@@ -128,6 +128,7 @@ Declaration(ObjectProperty(obo:RO_0004096))
 Declaration(ObjectProperty(obo:RO_0004097))
 Declaration(ObjectProperty(obo:RO_0012013))
 Declaration(ObjectProperty(obo:RO_0012014))
+Declaration(ObjectProperty(obo:RO_0019003))
 Declaration(DataProperty(obo:RO_0002029))
 Declaration(NamedIndividual(obo:IAO_0000002))
 Declaration(NamedIndividual(obo:IAO_0000120))
@@ -1670,6 +1671,15 @@ AnnotationAssertion(oboInOwl:hasExactSynonym obo:RO_0012014 "negatively regulate
 AnnotationAssertion(oboInOwl:inSubset obo:RO_0012014 obo:valid_for_go_ontology)
 AnnotationAssertion(rdfs:label obo:RO_0012014 "negatively regulates in another organism"@en)
 SubObjectPropertyOf(obo:RO_0012014 obo:RO_0002010)
+
+# Object Property: obo:RO_0019003 (has substitutable entity)
+
+AnnotationAssertion(obo:IAO_0000112 obo:RO_0019003 "Given individuals f, i, x, and y, where f is a 'molecular function', i is an 'information biomacromolecule', and x and y are instances of different types of gene products, if f 'enabled by' i within an OWL model of a biological pathway, and i 'has substitutable entity' both x and y, then either x or y are valid enablers of function f within the modeled biological context.")
+AnnotationAssertion(obo:IAO_0000115 obo:RO_0019003 "Relates one individual to another which is capable of standing in for the first individual in its other relations to other individuals.")
+AnnotationAssertion(obo:IAO_0000117 obo:RO_0019003 <https://orcid.org/0000-0002-8688-6599>)
+AnnotationAssertion(oboInOwl:inSubset obo:RO_0019003 obo:valid_for_gocam)
+AnnotationAssertion(rdfs:label obo:RO_0019003 "has substitutable entity"@en)
+IrreflexiveObjectProperty(obo:RO_0019003)
 
 
 ############################
