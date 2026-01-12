@@ -61,7 +61,7 @@ prefix GoMolecularEvent: <http://purl.obolibrary.org/obo/go/extensions/reacto.ow
 PREFIX GoTransporterActivity: <http://purl.obolibrary.org/obo/GO_0005215>
 PREFIX GoChemicalEntity: <http://purl.obolibrary.org/obo/CHEBI_24431>
 PREFIX GoEvidence: <http://purl.obolibrary.org/obo/ECO_0000000>
-PREFIX GoAnatomicalEntity: <http://purl.obolibrary.org/obo/CARO_0000000>
+PREFIX GoAnatomicalEntity: <http://purl.obolibrary.org/obo/UBERON_0001062>
 PREFIX GoCell: <http://purl.obolibrary.org/obo/CL_0000000>
 PREFIX GoOrganism: <http://purl.obolibrary.org/obo/NCBITaxon_1>
 PREFIX GoBiologicalPhase: <http://purl.obolibrary.org/obo/GO_0044848>
@@ -193,6 +193,8 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   part_of: @<BiologicalProcess> *;
   has_input: ( @<ChemicalEntity> OR @<AnatomicalEntity> OR @<ProteinContainingComplex> OR @<Organism> ) *;
   has_output: ( @<ChemicalEntity> OR @<AnatomicalEntity> OR @<ProteinContainingComplex> ) *;
+  has_primary_input: @<ChemicalEntity> *;
+  has_primary_output: @<ChemicalEntity> *;
   occurs_in: @<AnatomicalEntity> {0,1};
   transports_or_maintains_localization_of: ( @<InformationBiomacromolecule> OR @<ProteinContainingComplex> ) *;
   has_target_end_location: @<AnatomicalEntity> {0,1};
@@ -537,6 +539,7 @@ PREFIX results_in_remodeling_of: <http://purl.obolibrary.org/obo/RO_0002591>
   is_small_molecule_regulator_of: @<MolecularFunction> *;
   is_small_molecule_activator_of: @<MolecularFunction> *;
   is_small_molecule_inhibitor_of: @<MolecularFunction> *;
+  located_in: @<AnatomicalEntity> {0,1};
 }// rdfs:comment  "a molecular entity (a gene product, chemical, or complex typically)"
 
 <ChemicalEntityClass> IRI @<OwlClass> AND EXTRA rdfs:subClassOf  {

@@ -55,10 +55,11 @@ public class GPADSPARQLTest {
         Set<Triple> triples = model.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
         WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
         String gpad = exporter.exportGPAD(mem, IRI.create("http://test.org"));
-        int lines = gpad.split("\n", -1).length;
+        String[] lines = gpad.split("\n", -1);
+        Arrays.stream(lines).filter(l -> !l.startsWith("!") && !l.isEmpty()).forEach(l -> Assert.assertEquals("Each GPAD line should have 12 columns", 12, l.split("\t", -1).length));
         //TODO test contents of annotations; dumb test for now
         Assert.assertTrue(gpad.contains("model-state=production"));
-        Assert.assertTrue("Should produce annotations", lines > 2);
+        Assert.assertTrue("Should produce annotations", lines.length > 2);
     }
 
 

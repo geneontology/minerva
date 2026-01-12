@@ -39,16 +39,16 @@ public class GPADRenderer {
     public String render(GPADData data) {
         try {
             List<String> columns = new ArrayList<>();
-            columns.add(dbForObject(data.getObject()));
-            columns.add(localIDForObject(data.getObject()));
+            columns.add(clean(dbForObject(data.getObject())));
+            columns.add(clean(localIDForObject(data.getObject())));
             columns.add(symbolForRelation(data.getQualifier(), data.getOperator()));
             columns.add(curieHandler.getCuri(data.getOntologyClass()));
-            columns.add(data.getReference());
+            columns.add(clean(data.getReference()));
             columns.add(curieHandler.getCuri(data.getEvidence()));
-            columns.add(data.getWithOrFrom().orElse(""));
+            columns.add(clean(data.getWithOrFrom().orElse("")));
             columns.add(data.getInteractingTaxonID().map(taxonIRI -> {
                 if (taxonIRI.toString().startsWith(GPADSPARQLExport.TAXON_NAMESPACE)) {
-                    return taxonIRI.toString().replace(GPADSPARQLExport.TAXON_NAMESPACE, "taxon:");
+                    return clean(taxonIRI.toString().replace(GPADSPARQLExport.TAXON_NAMESPACE, "taxon:"));
                 } else return curieHandler.getCuri(taxonIRI);
             }).orElse(""));
             columns.add(formatDate(data.getModificationDate()));
@@ -132,6 +132,10 @@ public class GPADRenderer {
         String relation = symbolForRelation(ce.getRelation());
         String filler = curieHandler.getCuri(ce.getFiller());
         return relation + "(" + filler + ")";
+    }
+
+    private String clean(String text) {
+        return text.replaceAll("\\s", "");
     }
 
 }
