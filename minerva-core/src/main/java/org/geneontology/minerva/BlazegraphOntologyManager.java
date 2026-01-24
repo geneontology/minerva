@@ -3,26 +3,23 @@
  */
 package org.geneontology.minerva;
 
-import com.bigdata.journal.Options;
-import com.bigdata.rdf.sail.BigdataSail;
-import com.bigdata.rdf.sail.BigdataSailRepository;
-import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
-import org.openrdf.model.URI;
-import org.openrdf.model.Value;
-import org.openrdf.model.impl.URIImpl;
-import org.openrdf.query.*;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.RDFFormat;
-import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.RDFParseException;
-import org.openrdf.rio.helpers.StatementCollector;
+import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.query.*;
+import org.eclipse.rdf4j.repository.RepositoryException;
+import org.eclipse.rdf4j.repository.sail.SailRepository;
+import org.eclipse.rdf4j.repository.sail.SailRepositoryConnection;
+import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.RDFHandlerException;
+import org.eclipse.rdf4j.rio.RDFParseException;
+import org.eclipse.rdf4j.rio.helpers.StatementCollector;
+import org.eclipse.rdf4j.sail.nativerdf.NativeStore;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.rio.RioRenderer;
 import org.semanticweb.owlapi.search.EntitySearcher;
-
+import org.eclipse.rdf4j.model.util.Values;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -38,7 +35,7 @@ import java.util.zip.GZIPInputStream;
  */
 public class BlazegraphOntologyManager {
     private static Logger LOG = Logger.getLogger(BlazegraphOntologyManager.class);
-    private final BigdataSailRepository go_lego_repo;
+    private final SailRepository go_lego_repo;
     private final static String public_blazegraph_url = "http://skyhook.berkeleybop.org/blazegraph-go-lego-reacto-neo.jnl.gz";
     //TODO this should probably go somewhere else - like an ontology file - this was missing..
     public static String in_taxon_uri = "https://w3id.org/biolink/vocab/in_taxon";
@@ -105,7 +102,7 @@ public class BlazegraphOntologyManager {
         regulatorsToRegulated = buildRegulationMap();
     }
 
-    public BigdataSailRepository getGo_lego_repo() {
+    public SailRepository getGo_lego_repo() {
         return go_lego_repo;
     }
 
@@ -127,32 +124,25 @@ public class BlazegraphOntologyManager {
     }
 
 
-    private BigdataSailRepository initializeRepository(String pathToJournal) {
+    private SailRepository initializeRepository(String pathToJournal) {
+        String indexes = "spoc,posc,cosp"; //FIXME review for appropriate indexes
         try {
-            Properties properties = new Properties();
-            properties.load(this.getClass().getResourceAsStream("onto-blazegraph.properties"));
-            properties.setProperty(Options.FILE, pathToJournal);
-            BigdataSail sail = new BigdataSail(properties);
-            BigdataSailRepository repository = new BigdataSailRepository(sail);
-
-            repository.initialize();
+            SailRepository repository = new SailRepository(new NativeStore(new File(pathToJournal), indexes));
             return repository;
         } catch (RepositoryException e) {
-            LOG.fatal("Could not create Blazegraph sail", e);
-            return null;
-        } catch (IOException e) {
-            LOG.fatal("Could not create Blazegraph sail", e);
+            LOG.fatal("Could not create sail", e);
             return null;
         }
     }
 
     public void loadRepositoryFromOWLFile(File file, String iri, boolean reset) throws OWLOntologyCreationException, RepositoryException, IOException, RDFParseException, RDFHandlerException {
         synchronized (go_lego_repo) {
-            final BigdataSailRepositoryConnection connection = go_lego_repo.getUnisolatedConnection();
+            //FIXME is there a read-only connection like Blazegraph?
+            final SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 connection.begin();
                 try {
-                    URI graph = new URIImpl(iri);
+                    org.eclipse.rdf4j.model.IRI graph = Values.iri(iri);
                     if (reset) {
                         connection.clear(graph);
                     }
@@ -174,11 +164,12 @@ public class BlazegraphOntologyManager {
 
     public void loadRepositoryFromOntology(OWLOntology ontology, String iri, boolean reset) throws OWLOntologyCreationException, RepositoryException, IOException, RDFParseException, RDFHandlerException {
         synchronized (go_lego_repo) {
-            final BigdataSailRepositoryConnection connection = go_lego_repo.getUnisolatedConnection();
+            //FIXME is there a read-only connection like Blazegraph?
+            final SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 connection.begin();
                 try {
-                    URI graph = new URIImpl(iri);
+                    org.eclipse.rdf4j.model.IRI graph = Values.iri(iri);
                     if (reset) {
                         connection.clear(graph);
                     }
@@ -200,7 +191,7 @@ public class BlazegraphOntologyManager {
     public Set<String> getAllSuperClasses(String uri) throws IOException {
         Set<String> supers = new HashSet<String>();
         try {
-            BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
                         "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
@@ -215,14 +206,12 @@ public class BlazegraphOntologyManager {
                     BindingSet binding = result.next();
                     Value v = binding.getValue("super");
                     //ignore anonymous super classes
-                    if (v instanceof URI) {
+                    if (v instanceof org.eclipse.rdf4j.model.IRI) {
                         String superclass = binding.getValue("super").stringValue();
                         supers.add(superclass);
                     }
                 }
-            } catch (MalformedQueryException e) {
-                throw new IOException(e);
-            } catch (QueryEvaluationException e) {
+            } catch (MalformedQueryException | QueryEvaluationException e) {
                 throw new IOException(e);
             } finally {
                 connection.close();
@@ -236,7 +225,7 @@ public class BlazegraphOntologyManager {
     public Set<String> getAllSubClasses(String uri) throws IOException {
         Set<String> supers = new HashSet<String>();
         try {
-            BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
                         "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
@@ -251,14 +240,12 @@ public class BlazegraphOntologyManager {
                     BindingSet binding = result.next();
                     Value v = binding.getValue("sub");
                     //ignore anonymous sub classes
-                    if (v instanceof URI) {
+                    if (v instanceof org.eclipse.rdf4j.model.IRI) {
                         String superclass = binding.getValue("sub").stringValue();
                         supers.add(superclass);
                     }
                 }
-            } catch (MalformedQueryException e) {
-                throw new IOException(e);
-            } catch (QueryEvaluationException e) {
+            } catch (MalformedQueryException | QueryEvaluationException e) {
                 throw new IOException(e);
             } finally {
                 connection.close();
@@ -273,7 +260,7 @@ public class BlazegraphOntologyManager {
     public Map<String, Integer> buildClassDepthMap(String root_term) throws IOException {
         Map<String, Integer> class_depth = new HashMap<String, Integer>();
         try {
-            BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
                         "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
@@ -298,9 +285,7 @@ public class BlazegraphOntologyManager {
                         class_depth.put(c, depth);
                     }
                 }
-            } catch (MalformedQueryException e) {
-                throw new IOException(e);
-            } catch (QueryEvaluationException e) {
+            } catch (MalformedQueryException | QueryEvaluationException e) {
                 throw new IOException(e);
             } finally {
                 connection.close();
@@ -314,7 +299,7 @@ public class BlazegraphOntologyManager {
     public int getClassDepth(String term, String root_term) throws IOException {
         int depth = -1;
         try {
-            BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
                         "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
@@ -334,9 +319,7 @@ public class BlazegraphOntologyManager {
                     Value v = binding.getValue("depth");
                     depth = Integer.parseInt(v.stringValue());
                 }
-            } catch (MalformedQueryException e) {
-                throw new IOException(e);
-            } catch (QueryEvaluationException e) {
+            } catch (MalformedQueryException | QueryEvaluationException e) {
                 throw new IOException(e);
             } finally {
                 connection.close();
@@ -350,7 +333,7 @@ public class BlazegraphOntologyManager {
     private Map<IRI, Set<IRI>> buildRegulationMap() throws IOException {
         String regulationTargetsQuery = IOUtils.toString(BlazegraphOntologyManager.class.getResourceAsStream("regulation_targets.rq"), StandardCharsets.UTF_8);
         try {
-            BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, regulationTargetsQuery);
                 TupleQueryResult result = tupleQuery.evaluate();
@@ -365,9 +348,7 @@ public class BlazegraphOntologyManager {
                     regulators.get(regulator).add(regulated);
                 }
                 return regulators;
-            } catch (MalformedQueryException e) {
-                throw new IOException(e);
-            } catch (QueryEvaluationException e) {
+            } catch (MalformedQueryException | QueryEvaluationException e) {
                 throw new IOException(e);
             } finally {
                 connection.close();
@@ -408,7 +389,7 @@ public class BlazegraphOntologyManager {
     public Map<String, Set<String>> getSuperCategoryMap(Set<String> uris) throws IOException {
         Map<String, Set<String>> sub_supers = new HashMap<String, Set<String>>();
         try {
-            BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 String q = "VALUES ?sub {";
                 for (String uri : uris) {
@@ -452,7 +433,7 @@ public class BlazegraphOntologyManager {
                     Value child = binding.getValue("sub");
                     //System.out.println(child +" "+parent);
                     //ignore anonymous super classes
-                    if (parent instanceof URI && child instanceof URI) {
+                    if (parent instanceof org.eclipse.rdf4j.model.IRI && child instanceof org.eclipse.rdf4j.model.IRI) {
                         String superclass = binding.getValue("super").stringValue();
                         String subclass = binding.getValue("sub").stringValue();
                         Set<String> supers = sub_supers.get(subclass);
@@ -463,9 +444,7 @@ public class BlazegraphOntologyManager {
                         sub_supers.put(subclass, supers);
                     }
                 }
-            } catch (MalformedQueryException e) {
-                throw new IOException(e);
-            } catch (QueryEvaluationException e) {
+            } catch (MalformedQueryException | QueryEvaluationException e) {
                 throw new IOException(e);
             } finally {
                 connection.close();
@@ -509,7 +488,7 @@ public class BlazegraphOntologyManager {
     public Map<String, Set<String>> getSuperClassMap(Set<String> uris) throws IOException {
         Map<String, Set<String>> sub_supers = new HashMap<String, Set<String>>();
         try {
-            BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 String q = "VALUES ?sub {";
                 for (String uri : uris) {
@@ -531,7 +510,7 @@ public class BlazegraphOntologyManager {
                     Value child = binding.getValue("sub");
                     //System.out.println(child +" "+parent);
                     //ignore anonymous super classes
-                    if (parent instanceof URI && child instanceof URI) {
+                    if (parent instanceof org.eclipse.rdf4j.model.IRI && child instanceof org.eclipse.rdf4j.model.IRI) {
                         String superclass = binding.getValue("super").stringValue();
                         String subclass = binding.getValue("sub").stringValue();
                         Set<String> supers = sub_supers.get(subclass);
@@ -542,9 +521,7 @@ public class BlazegraphOntologyManager {
                         sub_supers.put(subclass, supers);
                     }
                 }
-            } catch (MalformedQueryException e) {
-                throw new IOException(e);
-            } catch (QueryEvaluationException e) {
+            } catch (MalformedQueryException | QueryEvaluationException e) {
                 throw new IOException(e);
             } finally {
                 connection.close();
@@ -559,7 +536,7 @@ public class BlazegraphOntologyManager {
     public Set<String> getGenesByTaxid(String ncbi_tax_id) throws IOException {
         Set<String> genes = new HashSet<String>();
         try {
-            BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 String query =
                         "select ?gene   \n" +
@@ -575,14 +552,12 @@ public class BlazegraphOntologyManager {
                     BindingSet binding = result.next();
                     Value v = binding.getValue("gene");
                     //ignore anonymous sub classes
-                    if (v instanceof URI) {
+                    if (v instanceof org.eclipse.rdf4j.model.IRI) {
                         String gene = binding.getValue("gene").stringValue();
                         genes.add(gene);
                     }
                 }
-            } catch (MalformedQueryException e) {
-                throw new IOException(e);
-            } catch (QueryEvaluationException e) {
+            } catch (MalformedQueryException | QueryEvaluationException e) {
                 throw new IOException(e);
             } finally {
                 connection.close();
@@ -596,7 +571,7 @@ public class BlazegraphOntologyManager {
     public Set<String> getAllTaxaWithGenes() throws IOException {
         Set<String> taxa = new HashSet<String>();
         try {
-            BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 String query =
                         "select distinct ?taxon  \n" +
@@ -613,14 +588,12 @@ public class BlazegraphOntologyManager {
                     BindingSet binding = result.next();
                     Value v = binding.getValue("taxon");
                     //ignore anonymous sub classes
-                    if (v instanceof URI) {
+                    if (v instanceof org.eclipse.rdf4j.model.IRI) {
                         String taxon = binding.getValue("taxon").stringValue();
                         taxa.add(taxon);
                     }
                 }
-            } catch (MalformedQueryException e) {
-                throw new IOException(e);
-            } catch (QueryEvaluationException e) {
+            } catch (MalformedQueryException | QueryEvaluationException e) {
                 throw new IOException(e);
             } finally {
                 connection.close();
@@ -648,7 +621,7 @@ public class BlazegraphOntologyManager {
         expansion += " } . \n";
         Set<IRI> taxa = new HashSet<>();
         try {
-            BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 String query =
                         "select distinct ?taxon  \n" +
@@ -666,7 +639,7 @@ public class BlazegraphOntologyManager {
                     BindingSet binding = result.next();
                     Value v = binding.getValue("taxon");
                     //ignore anonymous sub classes
-                    if (v instanceof URI) {
+                    if (v instanceof org.eclipse.rdf4j.model.IRI) {
                         IRI taxon = IRI.create(binding.getValue("taxon").stringValue());
                         taxa.add(taxon);
                     }
@@ -693,7 +666,7 @@ public class BlazegraphOntologyManager {
 
         String query = "select ?label where { <" + entity + "> rdfs:label ?label } limit 1";
         try {
-            BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
                 TupleQueryResult result = tupleQuery.evaluate();
@@ -702,9 +675,7 @@ public class BlazegraphOntologyManager {
                     Value v = binding.getValue("label");
                     label = v.stringValue();
                 }
-            } catch (MalformedQueryException e) {
-                throw new IOException(e);
-            } catch (QueryEvaluationException e) {
+            } catch (MalformedQueryException | QueryEvaluationException e) {
                 throw new IOException(e);
             } finally {
                 connection.close();
@@ -725,7 +696,7 @@ public class BlazegraphOntologyManager {
                 "{?s ?p <" + entity + "> . }" +
                 "} limit 1";
         try {
-            BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
                 TupleQueryResult result = tupleQuery.evaluate();
@@ -733,9 +704,7 @@ public class BlazegraphOntologyManager {
                     exists = true;
                     return exists;
                 }
-            } catch (MalformedQueryException e) {
-                throw new IOException(e);
-            } catch (QueryEvaluationException e) {
+            } catch (MalformedQueryException | QueryEvaluationException e) {
                 throw new IOException(e);
             } finally {
                 connection.close();
@@ -757,7 +726,7 @@ public class BlazegraphOntologyManager {
 
         String query = "select ?entity ?label where { " + values + " ?entity rdfs:label ?label }";
         try {
-            BigdataSailRepositoryConnection connection = go_lego_repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = go_lego_repo.getConnection();
             try {
                 TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
                 TupleQueryResult result = tupleQuery.evaluate();
@@ -769,9 +738,7 @@ public class BlazegraphOntologyManager {
                     String entity = ev.stringValue();
                     uri_label.put(entity, label);
                 }
-            } catch (MalformedQueryException e) {
-                throw new IOException(e);
-            } catch (QueryEvaluationException e) {
+            } catch (MalformedQueryException | QueryEvaluationException e) {
                 throw new IOException(e);
             } finally {
                 connection.close();

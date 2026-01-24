@@ -1,9 +1,5 @@
 package org.geneontology.minerva.cli;
 
-
-import com.bigdata.rdf.sail.BigdataSail;
-import com.bigdata.rdf.sail.BigdataSailRepository;
-import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.google.gson.Gson;
@@ -14,6 +10,10 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.eclipse.rdf4j.repository.sail.SailRepository;
+import org.eclipse.rdf4j.repository.sail.SailRepositoryConnection;
+import org.eclipse.rdf4j.sail.NotifyingSail;
+import org.eclipse.rdf4j.sail.nativerdf.NativeStore;
 import org.geneontology.minerva.*;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
@@ -31,23 +31,22 @@ import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.handler.OperationsTools;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
 import org.geneontology.minerva.server.validation.MinervaShexValidator;
-import org.geneontology.minerva.util.BlazegraphMutationCounter;
+import org.geneontology.minerva.util.SailMutationCounter;
 import org.geneontology.minerva.validation.ShexValidationReport;
 import org.geneontology.minerva.validation.ValidationResultSet;
 import org.geneontology.minerva.validation.Violation;
 import org.geneontology.minerva.validation.pipeline.BatchPipelineValidationReport;
 import org.geneontology.minerva.validation.pipeline.ErrorMessage;
 import org.obolibrary.robot.CatalogXmlIRIMapper;
-import org.openrdf.model.Statement;
-import org.openrdf.model.ValueFactory;
-import org.openrdf.model.impl.URIImpl;
-import org.openrdf.model.vocabulary.OWL;
-import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryLanguage;
-import org.openrdf.query.UpdateExecutionException;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.*;
+import org.eclipse.rdf4j.model.Statement;
+import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.vocabulary.OWL;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
+import org.eclipse.rdf4j.query.MalformedQueryException;
+import org.eclipse.rdf4j.query.QueryLanguage;
+import org.eclipse.rdf4j.query.UpdateExecutionException;
+import org.eclipse.rdf4j.repository.RepositoryException;
+import org.eclipse.rdf4j.rio.*;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
 import org.semanticweb.owlapi.io.IRIDocumentSource;
@@ -553,62 +552,31 @@ public class CommandLineInterface {
     public static void importOWLModels(String journalFilePath, String inputFolder) throws Exception {
         // minimal inputs
         if (journalFilePath == null) {
-            System.err.println("No journal file was configured.");
-            System.exit(-1);
+            LOGGER.fatal("No journal file was configured.");
+            System.exit(1);
             return;
         }
         if (inputFolder == null) {
-            System.err.println("No input folder was configured.");
-            System.exit(-1);
+            LOGGER.fatal("No input folder was configured.");
+            System.exit(1);
             return;
         }
-        int total_files = 0;
+        File repositoryDir = new File(journalFilePath);
+        if (repositoryDir.exists() && !repositoryDir.isDirectory()) {
+            LOGGER.fatal("Repository not a directory");
+            System.exit(1);
+            return;
+        }
+        if (repositoryDir.exists() && repositoryDir.listFiles().length > 0) {
+            LOGGER.warn("Repository already exists; note that bulk load does not check for previously loaded model IRIs and content may be merged.");
+        }
         OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
         String modelIdPrefix = "http://model.geneontology.org/"; // this will not be used for anything
         CurieHandler curieHandler = new MappedCurieHandler();
         BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null, null, false);
-        //in case of update rather than whole new journal
-        Set<IRI> stored = new HashSet<IRI>(m3.getStoredModelIds());
-        LOGGER.info("loading gocams from " + inputFolder);
-        //for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
         File i = new File(inputFolder);
-        if (i.exists()) {
-            if (i.isDirectory()) {
-                total_files = i.listFiles().length;
-                FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file -> {
-                    if (file.getName().endsWith("ttl")) {
-                        java.util.Optional<String> irio;
-                        try {
-                            irio = m3.scanForOntologyIRI(file);
-                            IRI iri = null;
-                            if (irio.isPresent()) {
-                                iri = IRI.create(irio.get());
-                            }
-                            //is it in there already?
-                            if (stored.contains(iri)) {
-                                LOGGER.error("Attempted to load gocam ttl file into database but gocam with that iri already exists, skipping " + file + " " + iri);
-                            } else {
-                                stored.add(iri);
-                                m3.importModelToDatabase(file, true);
-                            }
-                        } catch (RDFParseException | RDFHandlerException | IOException e1) {
-                            // TODO Auto-generated catch block
-                            e1.printStackTrace();
-                        } catch (OWLOntologyCreationException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        } catch (RepositoryException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
-                        }
-                    } else {
-                        LOGGER.info("Ignored for not ending with .ttl" + file);
-                    }
-                });
-            }
-        }
+        m3.importBulkModelsToDatabase(i, true);
         m3.dispose();
-        LOGGER.info("done loading gocams, loaded: " + stored.size() + " out of: " + total_files + " files");
     }
 
     /**
@@ -719,21 +687,16 @@ public class CommandLineInterface {
             System.exit(-1);
             return;
         }
-
         String update = FileUtils.readFileToString(new File(updateFile), StandardCharsets.UTF_8);
-        Properties properties = new Properties();
-        properties.load(CommandLineInterface.class.getResourceAsStream("/org/geneontology/minerva/blazegraph.properties"));
-        properties.setProperty(com.bigdata.journal.Options.FILE, journalFilePath);
-
-        BigdataSail sail = new BigdataSail(properties);
-        BigdataSailRepository repository = new BigdataSailRepository(sail);
-        repository.initialize();
-        BigdataSailRepositoryConnection conn = repository.getUnisolatedConnection();
-        BlazegraphMutationCounter counter = new BlazegraphMutationCounter();
-        conn.addChangeLog(counter);
+        String indexes = "spoc,posc,cosp"; //FIXME review for appropriate indexes
+        NotifyingSail sail = new NativeStore(new File(journalFilePath), indexes);
+        SailRepository repository = new SailRepository(sail);
+        SailRepositoryConnection conn = repository.getConnection();
+        SailMutationCounter counter = new SailMutationCounter();
+        sail.addSailChangedListener(counter);
         conn.prepareUpdate(QueryLanguage.SPARQL, update).execute();
         int changes = counter.mutationCount();
-        conn.removeChangeLog(counter);
+        sail.removeSailChangedListener(counter);
         System.out.println("\nApplied " + changes + " changes");
         conn.close();
     }

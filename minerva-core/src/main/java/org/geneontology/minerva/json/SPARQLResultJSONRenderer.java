@@ -5,14 +5,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.geneontology.minerva.curie.CurieHandler;
-import org.openrdf.query.GraphQueryResult;
-import org.openrdf.query.QueryEvaluationException;
-import org.openrdf.query.TupleQueryResult;
-import org.openrdf.query.TupleQueryResultHandlerException;
-import org.openrdf.query.resultio.QueryResultIO;
-import org.openrdf.query.resultio.TupleQueryResultFormat;
-import org.openrdf.rio.RDFFormat;
-import org.openrdf.rio.RDFHandlerException;
+import org.eclipse.rdf4j.query.GraphQueryResult;
+import org.eclipse.rdf4j.query.QueryEvaluationException;
+import org.eclipse.rdf4j.query.TupleQueryResult;
+import org.eclipse.rdf4j.query.TupleQueryResultHandlerException;
+import org.eclipse.rdf4j.query.resultio.QueryResultIO;
+import org.eclipse.rdf4j.query.resultio.TupleQueryResultFormat;
+import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.RDFHandlerException;
 import org.semanticweb.owlapi.model.IRI;
 
 import java.io.ByteArrayOutputStream;
@@ -29,7 +29,7 @@ public class SPARQLResultJSONRenderer {
 
     public JsonObject renderResults(TupleQueryResult sparqlResults) throws QueryEvaluationException, IOException, TupleQueryResultHandlerException {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        QueryResultIO.write(sparqlResults, TupleQueryResultFormat.JSON, stream);
+        QueryResultIO.writeTuple(sparqlResults, TupleQueryResultFormat.JSON, stream);
         String json = stream.toString("UTF-8");
         stream.close();
         JsonObject jsonObject = new Gson().fromJson(json, JsonObject.class);
@@ -49,7 +49,7 @@ public class SPARQLResultJSONRenderer {
 
     public JsonObject renderGraph(GraphQueryResult result) throws QueryEvaluationException, IOException, RDFHandlerException {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        QueryResultIO.write(result, RDFFormat.RDFJSON, stream);
+        QueryResultIO.writeGraph(result, RDFFormat.RDFJSON, stream);
         String json = stream.toString("UTF-8");
         stream.close();
         JsonObject jsonObject = new Gson().fromJson(json, JsonObject.class);

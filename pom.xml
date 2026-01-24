@@ -15,8 +15,7 @@
     </issueManagement>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <owlapi.version>4.5.15</owlapi.version>
-        <sesame.version>2.7.12</sesame.version> <!-- use same as Blazegraph  -->
+        <owlapi.version>4.5.29</owlapi.version>
         <jetty.version>9.2.3.v20140905
         </jetty.version> <!--  needs to be exactly 9.2.3.v20140905 - older or newer version of jetty will not work with text search api-->
         <jersey.version>2.29</jersey.version>
@@ -213,89 +212,6 @@
                 <version>3.2.2</version>
             </dependency>
             <dependency>
-                <groupId>com.blazegraph</groupId>
-                <artifactId>bigdata-core</artifactId>
-                <version>2.1.4</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>log4j</groupId>
-                        <artifactId>log4j</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <!-- 2.1.5-wmf.6 -->
-            <!-- Blazegraph 2.1.4 requires this exact version of Sesame (2.7.12) -->
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-model</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-runtime</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-rio-api</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-rio-languages</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-rio-datatypes</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-rio-binary</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-rio-n3</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-rio-nquads</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-rio-ntriples</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-rio-rdfjson</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-rio-rdfxml</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-rio-trix</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-rio-turtle</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openrdf.sesame</groupId>
-                <artifactId>sesame-rio-trig</artifactId>
-                <version>${sesame.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>2.7</version>
@@ -350,9 +266,14 @@
                 <version>${log4j.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-slf4j-impl</artifactId>
+                <version>${log4j.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.obolibrary.robot</groupId>
                 <artifactId>robot-core</artifactId>
-                <version>1.7.1</version>
+                <version>1.9.8</version>
                 <exclusions>
                     <exclusion>
                         <groupId>log4j</groupId>
@@ -360,21 +281,15 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+            <dependency>
+                <groupId>org.eclipse.rdf4j</groupId>
+                <artifactId>rdf4j-bom</artifactId>
+                <version>5.2.2</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <distributionManagement>
-        <repository>
-            <id>BBOPDeployRepository</id>
-            <name>BBOPDeployRepository</name>
-            <url>${bbopdeployrepository}</url>
-        </repository>
-        <snapshotRepository>
-            <id>BBOPSnapshotRepository</id>
-            <name>BBOPSnapshotRepository</name>
-            <url>${bbopsnapshotrepository}</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <modules>
         <module>minerva-core</module>

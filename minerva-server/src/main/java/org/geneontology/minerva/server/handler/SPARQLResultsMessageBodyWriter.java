@@ -1,10 +1,11 @@
 package org.geneontology.minerva.server.handler;
 
-import org.openrdf.query.QueryEvaluationException;
-import org.openrdf.query.TupleQueryResult;
-import org.openrdf.query.TupleQueryResultHandlerException;
-import org.openrdf.query.resultio.QueryResultIO;
-import org.openrdf.query.resultio.TupleQueryResultFormat;
+import org.eclipse.rdf4j.query.QueryEvaluationException;
+import org.eclipse.rdf4j.query.TupleQueryResult;
+import org.eclipse.rdf4j.query.TupleQueryResultHandlerException;
+import org.eclipse.rdf4j.query.resultio.QueryResultFormat;
+import org.eclipse.rdf4j.query.resultio.QueryResultIO;
+import org.eclipse.rdf4j.query.resultio.TupleQueryResultFormat;
 
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
@@ -16,6 +17,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
+import java.util.Optional;
 
 @Provider
 @Produces({
@@ -42,11 +44,17 @@ public class SPARQLResultsMessageBodyWriter implements MessageBodyWriter<TupleQu
 
     @Override
     public void writeTo(TupleQueryResult result, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType, MultivaluedMap<String, Object> httpHeaders, OutputStream entityStream) throws IOException, WebApplicationException {
-        TupleQueryResultFormat format = QueryResultIO.getWriterFormatForMIMEType(mediaType.toString(), TupleQueryResultFormat.JSON);
+        Optional<QueryResultFormat> format = QueryResultIO.getWriterFormatForMIMEType(mediaType.toString());
         try {
-            QueryResultIO.write(result, format, entityStream);
-            entityStream.flush();
-            result.close();
+            if (format.isPresent() && format.get() instanceof TupleQueryResultFormat) {
+                QueryResultIO.writeTuple(result, ((TupleQueryResultFormat)(format.get())), entityStream);
+                entityStream.flush();
+            } else throw new TupleQueryResultHandlerException("No format available");
+            try {
+                ((AutoCloseable)result).close();
+            } catch (Exception e) {
+                throw new QueryEvaluationException(e);
+            }
         } catch (TupleQueryResultHandlerException | QueryEvaluationException e) {
             throw new WebApplicationException(e);
         }

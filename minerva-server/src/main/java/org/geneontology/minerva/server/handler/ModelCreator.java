@@ -10,7 +10,7 @@ import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.json.JsonTools;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.util.AnnotationShorthand;
-import org.openrdf.repository.RepositoryException;
+import org.eclipse.rdf4j.repository.RepositoryException;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.model.parameters.Imports;
