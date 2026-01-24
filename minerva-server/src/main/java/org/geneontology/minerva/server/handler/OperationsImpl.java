@@ -1,10 +1,10 @@
 package org.geneontology.minerva.server.handler;
 
-import com.github.jsonldjava.sesame.SesameJSONLDWriterFactory;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
+import org.eclipse.rdf4j.rio.jsonld.JSONLDWriterFactory;
 import org.geneontology.minerva.CoreMolecularModelManager.DeleteInformation;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.MolecularModelManager;
@@ -25,11 +25,11 @@ import org.geneontology.minerva.server.validation.BeforeSaveModelValidator;
 import org.geneontology.rules.engine.WorkingMemory;
 import org.obolibrary.robot.DiffOperation;
 import org.obolibrary.robot.IOHelper;
-import org.openrdf.query.*;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.RDFWriter;
-import org.openrdf.rio.Rio;
+import org.eclipse.rdf4j.query.*;
+import org.eclipse.rdf4j.repository.RepositoryException;
+import org.eclipse.rdf4j.rio.RDFHandlerException;
+import org.eclipse.rdf4j.rio.RDFWriter;
+import org.eclipse.rdf4j.rio.Rio;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.model.parameters.OntologyCopy;
@@ -569,7 +569,7 @@ abstract class OperationsImpl extends ModelCreator {
             if (result instanceof GraphQueryResult) {
                 //RDFWriter writer = new RDFJSONWriterFactory().getWriter(stream);
                 ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                RDFWriter writer = new SesameJSONLDWriterFactory().getWriter(stream);
+                RDFWriter writer = new JSONLDWriterFactory().getWriter(stream);
                 writer.handleNamespace("gomodel", "http://model.geneontology.org/");
                 Rio.write(QueryResults.asModel((GraphQueryResult) result), writer);
                 String json = stream.toString("UTF-8");

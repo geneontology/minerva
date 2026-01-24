@@ -1,37 +1,41 @@
 package org.geneontology.minerva;
 
-import com.bigdata.journal.Options;
-import com.bigdata.rdf.sail.BigdataSail;
-import com.bigdata.rdf.sail.BigdataSailRepository;
-import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
-import info.aduna.iteration.Iterations;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.eclipse.rdf4j.common.transaction.IsolationLevels;
+import org.eclipse.rdf4j.model.*;
+import org.eclipse.rdf4j.model.util.Values;
+import org.eclipse.rdf4j.model.vocabulary.OWL;
+import org.eclipse.rdf4j.model.vocabulary.RDF;
+import org.eclipse.rdf4j.query.*;
+import org.eclipse.rdf4j.query.parser.QueryPrologLexer;
+import org.eclipse.rdf4j.repository.Repository;
+import org.eclipse.rdf4j.repository.RepositoryException;
+import org.eclipse.rdf4j.repository.RepositoryResult;
+import org.eclipse.rdf4j.repository.sail.SailRepository;
+import org.eclipse.rdf4j.repository.sail.SailRepositoryConnection;
+import org.eclipse.rdf4j.rio.*;
+import org.eclipse.rdf4j.rio.helpers.AbstractRDFHandler;
+import org.eclipse.rdf4j.rio.helpers.StatementCollector;
+import org.eclipse.rdf4j.sail.NotifyingSail;
+import org.eclipse.rdf4j.sail.Sail;
+import org.eclipse.rdf4j.sail.nativerdf.NativeStore;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.util.AnnotationShorthand;
-import org.geneontology.minerva.util.BlazegraphMutationCounter;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
-import org.openrdf.model.*;
-import org.openrdf.model.impl.URIImpl;
-import org.openrdf.model.vocabulary.OWL;
-import org.openrdf.model.vocabulary.RDF;
-import org.openrdf.query.*;
-import org.openrdf.query.parser.QueryPrologLexer;
-import org.openrdf.repository.RepositoryException;
-import org.openrdf.repository.RepositoryResult;
-import org.openrdf.rio.*;
-import org.openrdf.rio.helpers.RDFHandlerBase;
-import org.openrdf.rio.helpers.StatementCollector;
+import org.geneontology.minerva.util.SailMutationCounter;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.*;
 import org.semanticweb.owlapi.model.*;
+import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.rio.RioMemoryTripleSource;
 import org.semanticweb.owlapi.rio.RioRenderer;
 
 import javax.annotation.Nonnull;
 import java.io.*;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
@@ -47,7 +51,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
 
     final String pathToOWLStore;
     final String pathToExportFolder;
-    private final BigdataSailRepository repo;
+    private final SailRepository repo;
     private final CurieHandler curieHandler;
 
     private final String modelIdPrefix;
@@ -99,20 +103,12 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
         return curieHandler;
     }
 
-    private BigdataSailRepository initializeRepository(String pathToJournal) {
+    private SailRepository initializeRepository(String pathToJournal) {
+        String indexes = "spoc,posc,cosp"; //FIXME review for appropriate indexes
         try {
-            Properties properties = new Properties();
-            properties.load(this.getClass().getResourceAsStream("blazegraph.properties"));
-            properties.setProperty(Options.FILE, pathToJournal);
-            BigdataSail sail = new BigdataSail(properties);
-            BigdataSailRepository repository = new BigdataSailRepository(sail);
-
-            repository.initialize();
+            SailRepository repository = new SailRepository(new NativeStore(new File(pathToJournal), indexes));
             return repository;
         } catch (RepositoryException e) {
-            LOG.fatal("Could not create Blazegraph sail", e);
-            return null;
-        } catch (IOException e) {
             LOG.fatal("Could not create Blazegraph sail", e);
             return null;
         }
@@ -127,7 +123,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
      */
     public ModelContainer generateBlankModel(METADATA metadata)
             throws OWLOntologyCreationException {
-
         // Create an arbitrary unique ID and add it to the system.
         IRI modelId = generateId(modelIdPrefix);
         if (modelMap.containsKey(modelId)) {
@@ -210,26 +205,23 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
     }
 
     private void writeModelToDatabase(OWLOntology model, IRI modelId) throws RepositoryException, IOException {
-        // Only one thread at a time can use the unisolated connection.
-        synchronized (repo) {
-            final BigdataSailRepositoryConnection connection = repo.getUnisolatedConnection();
+        final SailRepositoryConnection connection = repo.getConnection();
+        try {
+            connection.begin(IsolationLevels.READ_COMMITTED);
             try {
-                connection.begin();
-                try {
-                    URI graph = new URIImpl(modelId.toString());
-                    connection.clear(graph);
-                    StatementCollector collector = new StatementCollector();
-                    RioRenderer renderer = new RioRenderer(model, collector, null);
-                    renderer.render();
-                    connection.add(collector.getStatements(), graph);
-                    connection.commit();
-                } catch (Exception e) {
-                    connection.rollback();
-                    throw e;
-                }
-            } finally {
-                connection.close();
+                org.eclipse.rdf4j.model.IRI graph = Values.iri(modelId.toString());
+                connection.clear(graph);
+                StatementCollector collector = new StatementCollector();
+                RioRenderer renderer = new RioRenderer(model, collector, null);
+                renderer.render();
+                connection.add(collector.getStatements(), graph);
+                connection.commit();
+            } catch (Exception e) {
+                connection.rollback();
+                throw e;
             }
+        } finally {
+            connection.close();
         }
     }
 
@@ -356,20 +348,18 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
      * @throws IOException
      */
     public Set<IRI> getStoredModelIds() throws IOException {
-        try {
-            BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
+        try (SailRepositoryConnection connection = repo.getConnection()) {
+            RepositoryResult<Resource> graphs = connection.getContextIDs();
             try {
-                RepositoryResult<Resource> graphs = connection.getContextIDs();
                 Set<IRI> modelIds = new HashSet<>();
                 while (graphs.hasNext()) {
                     modelIds.add(IRI.create(graphs.next().stringValue()));
                 }
-                graphs.close();
                 return Collections.unmodifiableSet(modelIds);
             } finally {
-                connection.close();
+                ((AutoCloseable) graphs).close();
             }
-        } catch (RepositoryException e) {
+        } catch (Exception e) {
             throw new IOException(e);
         }
     }
@@ -402,7 +392,7 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
         Map<IRI, Set<OWLAnnotation>> annotations = new HashMap<>();
         // First get annotations from all the stored ontologies
         try {
-            BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
+            SailRepositoryConnection connection = repo.getConnection();
             try {
                 String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
                         "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> " +
@@ -420,19 +410,17 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
                     Value model = binding.getValue("model");
                     Value predicate = binding.getValue("p");
                     String value = binding.getValue("o").stringValue();
-                    if ((model instanceof URI) && (predicate instanceof URI)) {
-                        IRI modelId = IRI.create(((URI) model).toString());
+                    if ((model instanceof org.eclipse.rdf4j.model.IRI) && (predicate instanceof org.eclipse.rdf4j.model.IRI)) {
+                        IRI modelId = IRI.create(((org.eclipse.rdf4j.model.IRI) model).toString());
                         OWLAnnotationProperty property = factory
-                                .getOWLAnnotationProperty(IRI.create(((URI) predicate).toString()));
+                                .getOWLAnnotationProperty(IRI.create(((org.eclipse.rdf4j.model.IRI) predicate).toString()));
                         OWLAnnotation annotation = factory.getOWLAnnotation(property, factory.getOWLLiteral(value));
                         Set<OWLAnnotation> modelAnnotations = annotations.getOrDefault(modelId, new HashSet<>());
                         modelAnnotations.add(annotation);
                         annotations.put(modelId, modelAnnotations);
                     }
                 }
-            } catch (MalformedQueryException e) {
-                throw new IOException(e);
-            } catch (QueryEvaluationException e) {
+            } catch (MalformedQueryException | QueryEvaluationException e) {
                 throw new IOException(e);
             } finally {
                 connection.close();
@@ -447,8 +435,9 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
         return annotations;
     }
 
-    public QueryResult executeSPARQLQuery(String queryText, int timeout) throws MalformedQueryException, QueryEvaluationException, RepositoryException {
-        BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
+    public QueryResult executeSPARQLQuery(String queryText, int timeout) throws
+            MalformedQueryException, QueryEvaluationException, RepositoryException {
+        SailRepositoryConnection connection = repo.getConnection();
         try {
             List<QueryPrologLexer.Token> tokens = QueryPrologLexer.lex(queryText);
             Set<String> declaredPrefixes = tokens.stream().filter(token -> token.getType().equals(QueryPrologLexer.TokenType.PREFIX)).map(token -> token.getStringValue()).collect(Collectors.toSet());
@@ -478,8 +467,9 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
         }
     }
 
-    public QueryResult executeSPARQLQueryWithoutPrefixManipulation(String queryText, int timeout) throws MalformedQueryException, QueryEvaluationException, RepositoryException {
-        BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
+    public QueryResult executeSPARQLQueryWithoutPrefixManipulation(String queryText, int timeout) throws
+            MalformedQueryException, QueryEvaluationException, RepositoryException {
+        SailRepositoryConnection connection = repo.getConnection();
         try {
             Query query = connection.prepareQuery(QueryLanguage.SPARQL, queryText.toString());
             query.setMaxQueryTime(timeout);
@@ -508,23 +498,22 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
             unlinkModel(modelId);
         }
         try {
-            BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
-            try {
+            try (SailRepositoryConnection connection = repo.getConnection()) {
                 RepositoryResult<Resource> graphs = connection.getContextIDs();
-                if (!Iterations.asSet(graphs).contains(new URIImpl(modelId.toString()))) {
+                if (graphs.stream().noneMatch(g -> g.equals(Values.iri(modelId.toString())))) {
                     throw new OWLOntologyCreationException("No such model in datastore: " + modelId);
                 }
-                graphs.close();
+                ((AutoCloseable) graphs).close();
                 RepositoryResult<Statement> statements =
-                        connection.getStatements(null, null, null, false, new URIImpl(modelId.toString()));
+                        connection.getStatements(null, null, null, false, Values.iri(modelId.toString()));
                 //setting minimal = false will load the abox with the tbox ontology manager, allowing for OWL understanding of tbox content
                 boolean minimal = false;
-                OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), minimal);
-                statements.close();
+                OWLOntology abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements.iterator()), minimal);
+                ((AutoCloseable) statements).close();
                 abox = postLoadFileFilter(abox);
                 ModelContainer model = addModel(modelId, abox);
-            } finally {
-                connection.close();
+            } catch (Exception e) {
+                throw new OWLOntologyCreationException(e);
             }
         } catch (RepositoryException e) {
             throw new OWLOntologyCreationException(e);
@@ -540,30 +529,28 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
     public OWLOntology loadModelABox(IRI modelId, OWLOntologyManager manager) throws OWLOntologyCreationException {
         LOG.info("Load model abox: " + modelId + " from database");
         try {
-            BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
-            try {
+            try (SailRepositoryConnection connection = repo.getConnection()) {
                 //TODO repeated code with loadModel
                 RepositoryResult<Resource> graphs = connection.getContextIDs();
-                if (!Iterations.asSet(graphs).contains(new URIImpl(modelId.toString()))) {
+                if (graphs.stream().noneMatch(g -> g.equals(Values.iri(modelId.toString())))) {
                     throw new OWLOntologyCreationException("No such model in datastore: " + modelId);
                 }
-                graphs.close();
+                ((AutoCloseable) graphs).close();
                 RepositoryResult<Statement> statements =
-                        connection.getStatements(null, null, null, false, new URIImpl(modelId.toString()));
+                        connection.getStatements(null, null, null, false, Values.iri(modelId.toString()));
                 //setting minimal to true will give an OWL abox with triples that won't be connected to the tbox, hence e.g. object properties might not be recognized.
                 boolean minimal = true;
                 OWLOntology abox;
                 if (manager == null) {
-                    abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), minimal);
+                    abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements.iterator()), minimal);
                 } else {
-                    abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements), minimal, manager);
+                    abox = loadOntologyDocumentSource(new RioMemoryTripleSource(statements.iterator()), minimal, manager);
                 }
-
-                statements.close();
+                ((AutoCloseable) statements).close();
                 abox = postLoadFileFilter(abox);
                 return abox;
-            } finally {
-                connection.close();
+            } catch (Exception e) {
+                throw new OWLOntologyCreationException(e);
             }
         } catch (RepositoryException e) {
             throw new OWLOntologyCreationException(e);
@@ -588,6 +575,47 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
         }
     }
 
+    public void importBulkModelsToDatabase(File folder, boolean skipMarkedDelete) throws IOException {
+        int totalFiles = 0;
+        int storedFiles = 0;
+        LOG.info("Loading gocams from " + folder);
+        if (folder.exists()) {
+            if (folder.isDirectory()) {
+                totalFiles = folder.listFiles().length;
+                try (SailRepositoryConnection connection = repo.getConnection()) {
+                    connection.begin(IsolationLevels.NONE);
+                    for (File file : FileUtils.listFiles(folder, null, true)) {
+                        if (file.getName().endsWith("ttl")) {
+                            if (skipMarkedDelete && scanForIsDelete(file)) {
+                                LOG.info("Skipping file marked for delete: " + file);
+                            } else {
+                                java.util.Optional<org.eclipse.rdf4j.model.IRI> ontIRIOpt = scanForOntologyIRI(file).map(id -> Values.iri(id));
+                                java.util.Optional<org.eclipse.rdf4j.model.IRI> importOpt = scanForImport(file).map(id -> Values.iri(id));
+                                if (importOpt.isPresent()) {
+                                    LOG.warn("Skipping file containing owl:imports statement: " + file);
+                                } else if (!ontIRIOpt.isPresent()) {
+                                    LOG.warn("Skipping file with unknown extension: " + file);
+                                } else {
+                                    org.eclipse.rdf4j.model.IRI graph = ontIRIOpt.get();
+                                    if (file.getName().endsWith(".ttl")) {
+                                        connection.add(file, "", RDFFormat.TURTLE, graph);
+                                        storedFiles++;
+                                    } else if (file.getName().endsWith(".owl")) {
+                                        connection.add(file, "", RDFFormat.RDFXML, graph);
+                                        storedFiles++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    connection.commit();
+                }
+            }
+            LOG.info("Done loading gocams, loaded: " + storedFiles + " out of: " + totalFiles + " files");
+        }
+
+    }
+
     /**
      * Imports ontology RDF directly to database. Will remove any import statements in the ontology (because GO-CAMs should not have any as of now)
      *
@@ -596,7 +624,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
      * @throws IOException
      * @throws RepositoryException
      */
-    public String importModelToDatabase(File file, boolean skipMarkedDelete) throws OWLOntologyCreationException, RepositoryException, IOException, RDFParseException, RDFHandlerException {
+    public String importModelToDatabase(File file, boolean skipMarkedDelete) throws
+            OWLOntologyCreationException, RepositoryException, IOException, RDFParseException, RDFHandlerException {
         final boolean delete;
         if (skipMarkedDelete) {
             delete = scanForIsDelete(file);
@@ -605,9 +634,9 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
         }
         String modeliri = null;
         if (!delete) {
-            java.util.Optional<URI> ontIRIOpt = scanForOntologyIRI(file).map(id -> new URIImpl(id));
+            java.util.Optional<org.eclipse.rdf4j.model.IRI> ontIRIOpt = scanForOntologyIRI(file).map(id -> Values.iri(id));
             if (ontIRIOpt.isPresent()) {
-                java.util.Optional<URI> importOpt = scanForImport(file).map(id -> new URIImpl(id));
+                java.util.Optional<org.eclipse.rdf4j.model.IRI> importOpt = scanForImport(file).map(id -> Values.iri(id));
                 if (importOpt.isPresent()) {
                     modeliri = ontIRIOpt.get().stringValue();
                     //need to remove the imports before loading.
@@ -623,28 +652,27 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
                     //write it
                     this.writeModelToDatabase(cam, IRI.create(ontIRIOpt.get().stringValue()));
                 } else { //otherwise just load it all up as rdf (faster because avoids owl api)
-                    synchronized (repo) {
-                        final BigdataSailRepositoryConnection connection = repo.getUnisolatedConnection();
+                    // assuming bulk load?
+                    final SailRepositoryConnection connection = repo.getConnection();
+                    try {
+                        connection.begin(IsolationLevels.READ_COMMITTED);
                         try {
-                            connection.begin();
-                            try {
-                                URI graph = ontIRIOpt.get();
-                                connection.clear(graph);
-                                //FIXME Turtle format is hard-coded here
-                                if (file.getName().endsWith(".ttl")) {
-                                    connection.add(file, "", RDFFormat.TURTLE, graph);
-                                } else if (file.getName().endsWith(".owl")) {
-                                    connection.add(file, "", RDFFormat.RDFXML, graph);
-                                }
-                                connection.commit();
-                                modeliri = graph.toString();
-                            } catch (Exception e) {
-                                connection.rollback();
-                                throw e;
+                            org.eclipse.rdf4j.model.IRI graph = ontIRIOpt.get();
+                            connection.clear(graph);
+                            //FIXME Turtle format is hard-coded here
+                            if (file.getName().endsWith(".ttl")) {
+                                connection.add(file, "", RDFFormat.TURTLE, graph);
+                            } else if (file.getName().endsWith(".owl")) {
+                                connection.add(file, "", RDFFormat.RDFXML, graph);
                             }
-                        } finally {
-                            connection.close();
+                            connection.commit();
+                            modeliri = graph.toString();
+                        } catch (Exception e) {
+                            connection.rollback();
+                            throw e;
                         }
+                    } finally {
+                        connection.close();
                     }
                 }
             } else {
@@ -666,8 +694,9 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
      * @throws RDFHandlerException
      * @throws IOException
      */
-    private java.util.Optional<String> scanForImport(File file) throws RDFParseException, RDFHandlerException, IOException {
-        RDFHandlerBase handler = new RDFHandlerBase() {
+    private java.util.Optional<String> scanForImport(File file) throws
+            RDFParseException, RDFHandlerException, IOException {
+        AbstractRDFHandler handler = new AbstractRDFHandler() {
             public void handleStatement(Statement statement) {
                 if (statement.getPredicate().stringValue().equals("http://www.w3.org/2002/07/owl#imports"))
                     throw new FoundTripleException(statement);
@@ -700,16 +729,16 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
      * @throws RDFHandlerException
      * @throws RDFParseException
      */
-    public java.util.Optional<String> scanForOntologyIRI(File file) throws RDFParseException, RDFHandlerException, IOException {
-        RDFHandlerBase handler = new RDFHandlerBase() {
+    public java.util.Optional<String> scanForOntologyIRI(File file) throws
+            RDFParseException, RDFHandlerException, IOException {
+        AbstractRDFHandler handler = new AbstractRDFHandler() {
             public void handleStatement(Statement statement) {
                 if (statement.getObject().stringValue().equals("http://www.w3.org/2002/07/owl#Ontology") &&
                         statement.getPredicate().stringValue().equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"))
                     throw new FoundTripleException(statement);
             }
         };
-        InputStream inputStream = new FileInputStream(file);
-        try {
+        try (InputStream inputStream = Files.newInputStream(file.toPath())) {
             //FIXME Turtle format is hard-coded here
             RDFParser parser = Rio.createParser(RDFFormat.RDFXML);
             if (file.getName().endsWith(".ttl")) {
@@ -719,30 +748,27 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
             parser.parse(inputStream, "");
             // If an ontology IRI triple is found, it will be thrown out
             // in an exception. Otherwise, return empty.
-            return java.util.Optional.empty();
+            return Optional.empty();
         } catch (FoundTripleException fte) {
             Statement statement = fte.getStatement();
             if (statement.getSubject() instanceof BNode) {
                 LOG.warn("Blank node subject for ontology triple: " + statement);
-                return java.util.Optional.empty();
+                return Optional.empty();
             } else {
-                return java.util.Optional.of(statement.getSubject().stringValue());
+                return Optional.of(statement.getSubject().stringValue());
             }
-        } finally {
-            inputStream.close();
         }
     }
 
     private boolean scanForIsDelete(File file) throws RDFParseException, RDFHandlerException, IOException {
-        RDFHandlerBase handler = new RDFHandlerBase() {
-
+        AbstractRDFHandler handler = new AbstractRDFHandler() {
             public void handleStatement(Statement statement) {
                 if (statement.getPredicate().stringValue().equals(AnnotationShorthand.modelstate.getAnnotationProperty().toString()) &&
-                        statement.getObject().stringValue().equals("delete")) throw new FoundTripleException(statement);
+                        statement.getObject().stringValue().equals("delete"))
+                    throw new FoundTripleException(statement);
             }
         };
-        InputStream inputStream = new FileInputStream(file);
-        try {
+        try (InputStream inputStream = Files.newInputStream(file.toPath())) {
             //FIXME Turtle format is hard-coded here
             RDFParser parser = Rio.createParser(RDFFormat.TURTLE);
             parser.setRDFHandler(handler);
@@ -752,8 +778,6 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
             return false;
         } catch (FoundTripleException fte) {
             return true;
-        } finally {
-            inputStream.close();
         }
     }
 
@@ -826,27 +850,20 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
             String prefix = modelId.toString(); // TODO escape
             tempFile = File.createTempFile(prefix, ".ttl");
             try {
-                BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
-                OutputStream out = new FileOutputStream(tempFile);
-                try {
+                try (SailRepositoryConnection connection = repo.getConnection(); OutputStream out = Files.newOutputStream(tempFile.toPath())) {
                     // Workaround for order dependence of RDF reading by OWL API
                     // Need to output ontology triple first until this bug is fixed:
                     // https://github.com/owlcs/owlapi/issues/574
                     ValueFactory factory = connection.getValueFactory();
-                    Statement ontologyDeclaration = factory.createStatement(factory.createURI(modelId.toString()), RDF.TYPE, OWL.ONTOLOGY);
+                    Statement ontologyDeclaration = factory.createStatement(factory.createIRI(modelId.toString()), RDF.TYPE, OWL.ONTOLOGY);
                     Rio.write(Collections.singleton(ontologyDeclaration), out, RDFFormat.TURTLE);
                     // end workaround
                     RDFWriter writer = Rio.createWriter(RDFFormat.TURTLE, out);
-                    connection.export(writer, new URIImpl(modelId.toString()));
+                    connection.export(writer, Values.iri(modelId.toString()));
                     // copy temp file to the finalFile
                     FileUtils.copyFile(tempFile, targetFile);
-                } finally {
-                    out.close();
-                    connection.close();
                 }
-            } catch (RepositoryException e) {
-                throw new IOException(e);
-            } catch (RDFHandlerException e) {
+            } catch (RepositoryException | RDFHandlerException e) {
                 throw new IOException(e);
             }
         } finally {
@@ -858,13 +875,10 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
     public void dispose() {
         super.dispose();
         try {
-            if (repo.getSail().isOpen()) {
-                repo.shutDown();
-            }
+            repo.getSail().shutDown();
+            repo.shutDown();
             if (this.getGolego_repo() != null) {
-                if (this.getGolego_repo().getGo_lego_repo().getSail().isOpen()) {
-                    getGolego_repo().dispose();
-                }
+                getGolego_repo().dispose();
             }
         } catch (RepositoryException e) {
             LOG.error("Failed to shutdown Blazegraph sail.", e);
@@ -959,10 +973,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
                 //addTaxonWithOWL(IRI.create(model), IRI.create(taxon));
                 try {
                     addTaxonToDatabaseWithSparql(IRI.create(model), taxon);
-                } catch (RepositoryException | UpdateExecutionException | MalformedQueryException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                } catch (InterruptedException e) {
+                } catch (RepositoryException | UpdateExecutionException | MalformedQueryException |
+                         InterruptedException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
@@ -971,7 +983,8 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
     }
 
     //now try with sparql insert
-    public int addTaxonToDatabaseWithSparql(IRI model_iri, IRI taxon_iri) throws RepositoryException, UpdateExecutionException, MalformedQueryException, InterruptedException {
+    public int addTaxonToDatabaseWithSparql(IRI model_iri, IRI taxon_iri) throws
+            RepositoryException, UpdateExecutionException, MalformedQueryException, InterruptedException {
         int changes = 0;
         String update =
                 "INSERT DATA\n" +
@@ -980,14 +993,27 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
                         "} }";
 
         synchronized (repo) {
-            final BigdataSailRepositoryConnection conn = repo.getUnisolatedConnection();
+            final SailRepositoryConnection conn = repo.getConnection();
+            final Repository repo = conn.getRepository();
+            NotifyingSail notifyingSail = null;
+            if (repo instanceof SailRepository) {
+                Sail sail = ((SailRepository) repo).getSail();
+                if (sail instanceof NotifyingSail) {
+                    notifyingSail = (NotifyingSail) sail;
+                }
+            }
+            conn.begin();
             try {
                 conn.begin();
-                BlazegraphMutationCounter counter = new BlazegraphMutationCounter();
-                conn.addChangeLog(counter);
+                SailMutationCounter counter = new SailMutationCounter();
+                if (notifyingSail != null) {
+                    notifyingSail.addSailChangedListener(counter);
+                }
                 conn.prepareUpdate(QueryLanguage.SPARQL, update).execute();
                 changes = counter.mutationCount();
-                conn.removeChangeLog(counter);
+                if (notifyingSail != null) {
+                    notifyingSail.removeSailChangedListener(counter);
+                }
                 conn.commit();
             } finally {
                 conn.close();

@@ -6,8 +6,8 @@ import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
-import org.openrdf.query.*;
-import org.openrdf.repository.RepositoryException;
+import org.eclipse.rdf4j.query.*;
+import org.eclipse.rdf4j.repository.RepositoryException;
 import org.semanticweb.owlapi.model.IRI;
 
 import javax.ws.rs.*;
@@ -570,8 +570,8 @@ public class ModelSearchHandler {
             r.models = new LinkedHashSet<ModelMeta>(id_model.values());
         }
         try {
-            result.close();
-        } catch (QueryEvaluationException e) {
+            ((AutoCloseable)result).close();
+        } catch (Exception e) {
             r.message = "Query Evaluation Problem - can't close result set";
             r.error = e.getMessage();
             e.printStackTrace();

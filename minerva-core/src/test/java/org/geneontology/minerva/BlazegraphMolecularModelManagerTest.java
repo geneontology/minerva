@@ -13,9 +13,9 @@ import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.openrdf.query.GraphQueryResult;
-import org.openrdf.query.QueryResult;
-import org.openrdf.query.TupleQueryResult;
+import org.eclipse.rdf4j.query.GraphQueryResult;
+import org.eclipse.rdf4j.query.QueryResult;
+import org.eclipse.rdf4j.query.TupleQueryResult;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 

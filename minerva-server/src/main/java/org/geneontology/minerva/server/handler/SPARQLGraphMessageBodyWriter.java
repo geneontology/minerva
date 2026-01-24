@@ -1,11 +1,11 @@
 package org.geneontology.minerva.server.handler;
 
-import org.openrdf.query.GraphQueryResult;
-import org.openrdf.query.QueryEvaluationException;
-import org.openrdf.query.resultio.QueryResultIO;
-import org.openrdf.rio.RDFFormat;
-import org.openrdf.rio.RDFHandlerException;
-import org.openrdf.rio.RDFWriterRegistry;
+import org.eclipse.rdf4j.query.GraphQueryResult;
+import org.eclipse.rdf4j.query.QueryEvaluationException;
+import org.eclipse.rdf4j.query.resultio.QueryResultIO;
+import org.eclipse.rdf4j.rio.RDFFormat;
+import org.eclipse.rdf4j.rio.RDFHandlerException;
+import org.eclipse.rdf4j.rio.RDFWriterRegistry;
 
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
+import java.util.Optional;
 
 @Provider
 @Produces({
@@ -46,14 +47,20 @@ public class SPARQLGraphMessageBodyWriter implements MessageBodyWriter<GraphQuer
 
     @Override
     public void writeTo(GraphQueryResult result, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType, MultivaluedMap<String, Object> httpHeaders, OutputStream entityStream) throws IOException, WebApplicationException {
-        RDFFormat format = RDFWriterRegistry.getInstance().getFileFormatForMIMEType(mediaType.toString(), RDFFormat.TURTLE);
+        Optional<RDFFormat> format = RDFWriterRegistry.getInstance().getFileFormatForMIMEType(mediaType.toString());
         try {
-            QueryResultIO.write(result, format, entityStream);
-            entityStream.flush();
-            result.close();
+            if (format.isPresent()) {
+                QueryResultIO.writeGraph(result, format.get(), entityStream);
+                entityStream.flush();
+            }
+            try {
+                ((AutoCloseable)result).close();
+            } catch (Exception e) {
+                throw new QueryEvaluationException(e);
+            }
         } catch (RDFHandlerException | QueryEvaluationException e) {
             throw new WebApplicationException(e);
         }
-
     }
+
 }
