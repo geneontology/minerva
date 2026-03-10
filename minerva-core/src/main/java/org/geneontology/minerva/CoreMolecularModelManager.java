@@ -1054,8 +1054,27 @@ public abstract class CoreMolecularModelManager<METADATA> {
 
     public void addFact(ModelContainer model, OWLObjectPropertyExpression p,
                         OWLIndividual i, OWLIndividual j, Set<OWLAnnotation> annotations, METADATA metadata) {
-        OWLObjectPropertyAssertionAxiom axiom = createFact(model.getOWLDataFactory(), p, i, j, annotations);
-        addAxiom(model, axiom, metadata);
+        OWLOntology ont = model.getAboxOntology();
+        synchronized (ont) {
+            // Check for an existing axiom with the same subject, property, and object.
+            // If found, merge the new annotations into it rather than creating a duplicate
+            // reified edge (OWL axiom). Without this check, concurrent or repeated add-edge
+            // requests with different evidence produce multiple reifications of the same
+            // object property assertion.
+            OWLObjectPropertyAssertionAxiom existing = null;
+            for (OWLObjectPropertyAssertionAxiom axiom : ont.getObjectPropertyAssertionAxioms(i)) {
+                if (p.equals(axiom.getProperty()) && j.equals(axiom.getObject())) {
+                    existing = axiom;
+                    break;
+                }
+            }
+            if (existing != null) {
+                addAnnotations(model, existing, annotations, metadata);
+            } else {
+                OWLObjectPropertyAssertionAxiom axiom = createFact(model.getOWLDataFactory(), p, i, j, annotations);
+                addAxiom(model, axiom, metadata);
+            }
+        }
     }
 
     /**
