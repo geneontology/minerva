@@ -114,7 +114,7 @@ public class GolrExternalLookupServiceTest {
         assertEquals(1, lookup.size());
         e = lookup.get(0);
         assertEquals("saga-kat2a_human Hsap", e.label);
-        assertEquals(6, e.isa_closure.size());
+        assertEquals(7, e.isa_closure.size());
         assertTrue(e.isa_closure.contains("GO:0032991"));
     }
 
