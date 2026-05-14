@@ -2191,6 +2191,51 @@ public class BatchModelHandlerTest {
         return response;
     }
 
+    @Test
+    public void testAddDuplicateEdgeRejected() throws Exception {
+        final String modelId = generateBlankModel();
+
+        // Create two individuals and an edge between them
+        final List<M3Request> batch1 = new ArrayList<M3Request>();
+        M3Request r = BatchTestTools.addIndividual(modelId, "GO:0003674");
+        r.arguments.assignToVariable = "mf";
+        batch1.add(r);
+
+        r = BatchTestTools.addIndividual(modelId, "GO:0008150");
+        r.arguments.assignToVariable = "bp";
+        batch1.add(r);
+
+        r = BatchTestTools.addEdge(modelId, "mf", "BFO:0000050", "bp");
+        batch1.add(r);
+
+        final M3BatchResponse response1 = executeBatch(batch1, false);
+        JsonOwlIndividual[] iObjs = BatchTestTools.responseIndividuals(response1);
+        assertEquals(2, iObjs.length);
+
+        // Find the created individual IDs
+        String mf = null;
+        String bp = null;
+        for (JsonOwlIndividual iObj : iObjs) {
+            String typeId = iObj.type[0].id;
+            if ("GO:0003674".equals(typeId)) {
+                mf = iObj.id;
+            } else if ("GO:0008150".equals(typeId)) {
+                bp = iObj.id;
+            }
+        }
+        assertNotNull(mf);
+        assertNotNull(bp);
+
+        // Try to add the same edge again — should be rejected
+        final List<M3Request> batch2 = new ArrayList<M3Request>();
+        r = BatchTestTools.addEdge(modelId, mf, "BFO:0000050", bp);
+        batch2.add(r);
+
+        M3BatchResponse response2 = handler.m3Batch(uid, providedBy, intention, packetId, batch2.toArray(new M3Request[batch2.size()]), false, true);
+        assertEquals(M3BatchResponse.MESSAGE_TYPE_ERROR, response2.messageType);
+        assertTrue(response2.message.contains("already exists"));
+    }
+
     /**
      * @return modelId
      */

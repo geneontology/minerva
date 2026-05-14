@@ -335,6 +335,17 @@ abstract class OperationsImpl extends ModelCreator {
 
         // add edge
         if (Operation.add == operation) {
+            // Reject if an edge with the same subject, property, and object already exists.
+            // Use addAnnotation to modify annotations on an existing edge.
+            OWLOntology ont = values.model.getAboxOntology();
+            for (OWLObjectPropertyAssertionAxiom existing : ont.getObjectPropertyAssertionAxioms(s)) {
+                if (p.equals(existing.getProperty()) && o.equals(existing.getObject())) {
+                    return "An edge already exists between " + s.getIRI().getShortForm()
+                        + " and " + o.getIRI().getShortForm()
+                        + " with property " + p.getIRI().getShortForm()
+                        + ". Use addAnnotation to add evidence to an existing edge.";
+                }
+            }
             // optional: values
             Set<OWLAnnotation> annotations = extract(request.arguments.values, userId, providerGroups, values, values.model);
             addDateAnnotation(annotations, values.model.getOWLDataFactory());
