@@ -108,11 +108,12 @@ public class GPADSPARQLTest {
         List<String> lines = FileUtils.readLines(new File("src/test/resources/59d1072300000074.gpad"), "UTF-8");
         /* The order of the rows in the GPAD file can be different, so we compare rows by rows */
         for (String gpadOutputRow : gpadOutputArr) {
-            /* Additionally check all rows's qualifier contains |NOT substring inside */
+            /* Additionally check all rows's qualifier starts with the NOT operator */
             String gpadRowArr[] = gpadOutputRow.split("\t");
-            /* Skip checking the header; all rows need to contain NOT in its qualifier */
+            /* Skip checking the header; all rows need to start with NOT in its qualifier */
             if (gpadRowArr.length > 2) {
-                Assert.assertTrue(gpadRowArr[2].contains("|NOT"));
+                Assert.assertTrue(gpadRowArr[2].startsWith("NOT|"));
+                Assert.assertFalse(gpadRowArr[2].endsWith("|NOT"));
             }
         }
     }
