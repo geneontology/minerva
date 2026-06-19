@@ -1,10 +1,10 @@
 package org.geneontology.minerva.server.handler;
 
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
-import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryEvaluationException;
-import org.openrdf.query.QueryResult;
-import org.openrdf.repository.RepositoryException;
+import org.eclipse.rdf4j.query.MalformedQueryException;
+import org.eclipse.rdf4j.query.QueryEvaluationException;
+import org.eclipse.rdf4j.query.QueryResult;
+import org.eclipse.rdf4j.repository.RepositoryException;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;

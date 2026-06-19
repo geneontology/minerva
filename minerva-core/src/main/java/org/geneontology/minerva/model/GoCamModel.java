@@ -3,11 +3,11 @@ package org.geneontology.minerva.model;
 import org.apache.log4j.Logger;
 import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.BlazegraphOntologyManager;
-import org.openrdf.query.BindingSet;
-import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryEvaluationException;
-import org.openrdf.query.TupleQueryResult;
-import org.openrdf.repository.RepositoryException;
+import org.eclipse.rdf4j.query.BindingSet;
+import org.eclipse.rdf4j.query.MalformedQueryException;
+import org.eclipse.rdf4j.query.QueryEvaluationException;
+import org.eclipse.rdf4j.query.TupleQueryResult;
+import org.eclipse.rdf4j.repository.RepositoryException;
 import org.semanticweb.owlapi.model.*;
 
 import java.io.IOException;
@@ -79,7 +79,11 @@ public class GoCamModel extends ProvenanceAnnotated {
             types.add(type);
             all_types.add(type);
         }
-        r.close();
+        try {
+            ((AutoCloseable)r).close();
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
         Map<String, Set<String>> type_roots = go_lego.getSuperCategoryMap(all_types);
         //set global
         ind_types = new HashMap<OWLNamedIndividual, Set<String>>();

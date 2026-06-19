@@ -1,28 +1,26 @@
 package org.geneontology.minerva.cli;
 
-import com.bigdata.rdf.changesets.IChangeLog;
-import com.bigdata.rdf.sail.BigdataSail;
-import com.bigdata.rdf.sail.BigdataSailRepository;
-import com.bigdata.rdf.sail.BigdataSailRepositoryConnection;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
+import org.eclipse.rdf4j.repository.Repository;
+import org.eclipse.rdf4j.repository.sail.SailRepository;
+import org.eclipse.rdf4j.repository.sail.SailRepositoryConnection;
+import org.eclipse.rdf4j.sail.NotifyingSail;
+import org.eclipse.rdf4j.sail.Sail;
+import org.eclipse.rdf4j.sail.nativerdf.NativeStore;
 import org.geneontology.minerva.MolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
-import org.geneontology.minerva.util.BlazegraphMutationCounter;
-import org.obolibrary.robot.CatalogXmlIRIMapper;
-import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.QueryLanguage;
-import org.openrdf.query.UpdateExecutionException;
-import org.openrdf.repository.RepositoryException;
-import org.semanticweb.owlapi.apibinding.OWLManager;
+import org.geneontology.minerva.util.SailMutationCounter;
+import org.eclipse.rdf4j.query.MalformedQueryException;
+import org.eclipse.rdf4j.query.QueryLanguage;
+import org.eclipse.rdf4j.query.UpdateExecutionException;
+import org.eclipse.rdf4j.repository.RepositoryException;
 import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLAnnotationValue;
-import org.semanticweb.owlapi.model.OWLLiteral;
-import org.semanticweb.owlapi.model.OWLOntologyManager;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -72,21 +70,14 @@ public class ReplaceTermsCommand {
         if (journalFilePath == null) {
             throw new FatalTermReplacementError("No journal file was configured.");
         }
-        Properties properties = new Properties();
+        String indexes = "spoc,posc,cosp"; //FIXME review for appropriate indexes
+        SailRepository repository;
         try {
-            properties.load(CommandLineInterface.class.getResourceAsStream("/org/geneontology/minerva/blazegraph.properties"));
-        } catch (IOException e) {
-            throw new FatalTermReplacementError("Could not read blazegraph properties resource from jar file.");
-        }
-        properties.setProperty(com.bigdata.journal.Options.FILE, journalFilePath);
-        BigdataSail sail = new BigdataSail(properties);
-        BigdataSailRepository repository = new BigdataSailRepository(sail);
-        try {
-            repository.initialize();
+            repository = new SailRepository(new NativeStore(new File(journalFilePath), indexes));
         } catch (RepositoryException e) {
             throw new FatalTermReplacementError("Could not initialize SAIL repository for database.", e);
         }
-        BlazegraphMutationCounter counter = new BlazegraphMutationCounter();
+        SailMutationCounter counter = new SailMutationCounter();
         String classReplacements = formatAsSPARQLValuesList(loadTermReplacementFromFile(replacementClassesPath));
         String objectPropertyReplacements = formatAsSPARQLValuesList(loadTermReplacementFromFile(replacementPropertiesPath));
         String classesSparqlUpdate = classReplacementUpdateTemplate.replace("%%%values%%%", classReplacements);
@@ -130,21 +121,38 @@ public class ReplaceTermsCommand {
                 .collect(Collectors.joining(" "));
     }
 
-    protected static void applySPARQLUpdate(BigdataSailRepository repository, String update, Optional<IChangeLog> changeLog) throws RepositoryException, UpdateExecutionException, MalformedQueryException {
-        BigdataSailRepositoryConnection connection = repository.getUnisolatedConnection();
-        changeLog.ifPresent(connection::addChangeLog);
-        try {
+    protected static void applySPARQLUpdate(SailRepository repository, String update, Optional<SailMutationCounter> counter) throws RepositoryException, UpdateExecutionException, MalformedQueryException {
+        try (SailRepositoryConnection connection = repository.getConnection()) {
+            final Repository repo = connection.getRepository();
+            NotifyingSail notifyingSail;
+            if (repo instanceof SailRepository) {
+                Sail sail = ((SailRepository) repo).getSail();
+                if (sail instanceof NotifyingSail) {
+                    notifyingSail = (NotifyingSail) sail;
+                } else {
+                    notifyingSail = null;
+                }
+            } else {
+                notifyingSail = null;
+            }
             connection.begin();
+            counter.ifPresent(c -> {
+                if (notifyingSail != null) {
+                    notifyingSail.addSailChangedListener(c);
+                }
+            });
             try {
                 connection.prepareUpdate(QueryLanguage.SPARQL, update).execute();
             } catch (UpdateExecutionException | RepositoryException | MalformedQueryException e) {
                 connection.rollback();
                 throw e;
             }
-        } finally {
-            connection.close();
+            counter.ifPresent(c -> {
+                if (notifyingSail != null) {
+                    notifyingSail.removeSailChangedListener(c);
+                }
+            });
         }
-        changeLog.ifPresent(connection::removeChangeLog);
     }
 
     private static Optional<IRI> curieToIRI(String curie) {

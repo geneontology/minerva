@@ -1,20 +1,21 @@
 package org.geneontology.minerva.cli;
 
-import com.bigdata.rdf.sail.BigdataSail;
-import com.bigdata.rdf.sail.BigdataSailRepository;
 import org.apache.log4j.Logger;
+import org.eclipse.rdf4j.repository.sail.SailRepository;
+import org.eclipse.rdf4j.sail.nativerdf.NativeStore;
 import org.geneontology.minerva.MolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
-import org.geneontology.minerva.util.BlazegraphMutationCounter;
+import org.geneontology.minerva.util.SailMutationCounter;
 import org.obolibrary.robot.CatalogXmlIRIMapper;
-import org.openrdf.query.MalformedQueryException;
-import org.openrdf.query.UpdateExecutionException;
-import org.openrdf.repository.RepositoryException;
+import org.eclipse.rdf4j.query.MalformedQueryException;
+import org.eclipse.rdf4j.query.UpdateExecutionException;
+import org.eclipse.rdf4j.repository.RepositoryException;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.model.parameters.Imports;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.Properties;
@@ -58,21 +59,14 @@ public class ReplaceObsoleteReferencesCommand {
         } catch (OWLOntologyCreationException e) {
             throw new FatalReplaceObsoleteReferencesError("Could not load tbox ontology from " + ontologyIRI, e);
         }
-        Properties properties = new Properties();
+        String indexes = "spoc,posc,cosp"; //FIXME review for appropriate indexes
+        SailRepository repository;
         try {
-            properties.load(CommandLineInterface.class.getResourceAsStream("/org/geneontology/minerva/blazegraph.properties"));
-        } catch (IOException e) {
-            throw new FatalReplaceObsoleteReferencesError("Could not read blazegraph properties resource from jar file.");
-        }
-        properties.setProperty(com.bigdata.journal.Options.FILE, journalFilePath);
-        BigdataSail sail = new BigdataSail(properties);
-        BigdataSailRepository repository = new BigdataSailRepository(sail);
-        try {
-            repository.initialize();
+            repository = new SailRepository(new NativeStore(new File(journalFilePath), indexes));
         } catch (RepositoryException e) {
             throw new FatalReplaceObsoleteReferencesError("Could not initialize SAIL repository for database.", e);
         }
-        BlazegraphMutationCounter counter = new BlazegraphMutationCounter();
+        SailMutationCounter counter = new SailMutationCounter();
         String replacements = createReplacementsValuesList(tbox);
         String sparqlUpdate = classReplacementUpdateTemplate.replace("%%%values%%%", replacements);
         String complementsSparqlUpdate = complementsUpdateTemplate.replace("%%%values%%%", replacements);
