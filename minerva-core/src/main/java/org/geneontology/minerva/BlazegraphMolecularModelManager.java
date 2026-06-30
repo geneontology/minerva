@@ -12,6 +12,7 @@ import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.geneontology.minerva.util.BlazegraphMutationCounter;
+import org.geneontology.minerva.util.DeterministicTurtleRenderer;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.openrdf.model.*;
 import org.openrdf.model.impl.URIImpl;
@@ -829,15 +830,12 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
                 BigdataSailRepositoryConnection connection = repo.getReadOnlyConnection();
                 OutputStream out = new FileOutputStream(tempFile);
                 try {
-                    // Workaround for order dependence of RDF reading by OWL API
-                    // Need to output ontology triple first until this bug is fixed:
-                    // https://github.com/owlcs/owlapi/issues/574
-                    ValueFactory factory = connection.getValueFactory();
-                    Statement ontologyDeclaration = factory.createStatement(factory.createURI(modelId.toString()), RDF.TYPE, OWL.ONTOLOGY);
-                    Rio.write(Collections.singleton(ontologyDeclaration), out, RDFFormat.TURTLE);
-                    // end workaround
-                    RDFWriter writer = Rio.createWriter(RDFFormat.TURTLE, out);
-                    connection.export(writer, new URIImpl(modelId.toString()));
+                    // Render the model deterministically so that the same RDF always
+                    // produces byte-identical Turtle, with anonymous blank nodes and a
+                    // consistent set of prefixes (see DeterministicTurtleRenderer).
+                    StatementCollector collector = new StatementCollector();
+                    connection.export(collector, new URIImpl(modelId.toString()));
+                    DeterministicTurtleRenderer.render(collector.getStatements(), modelId.toString(), out);
                     // copy temp file to the finalFile
                     FileUtils.copyFile(tempFile, targetFile);
                 } finally {
