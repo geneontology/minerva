@@ -835,9 +835,10 @@ public class BlazegraphMolecularModelManager<METADATA> extends CoreMolecularMode
                     // consistent set of prefixes (see DeterministicTurtleRenderer).
                     StatementCollector collector = new StatementCollector();
                     connection.export(collector, new URIImpl(modelId.toString()));
-                    DeterministicTurtleRenderer.render(collector.getStatements(), modelId.toString(), out);
-                    // copy temp file to the finalFile
-                    FileUtils.copyFile(tempFile, targetFile);
+DeterministicTurtleRenderer.render(collector.getStatements(), modelId.toString(), out);
+out.flush();
+// copy temp file to the finalFile
+FileUtils.copyFile(tempFile, targetFile);
                 } finally {
                     out.close();
                     connection.close();
