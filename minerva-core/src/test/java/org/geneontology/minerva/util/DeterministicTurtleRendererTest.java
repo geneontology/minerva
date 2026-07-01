@@ -5,19 +5,35 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.apache.jena.datatypes.TypeMapper;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
 import org.junit.Test;
+import org.openrdf.model.BNode;
+import org.openrdf.model.Literal;
 import org.openrdf.model.Statement;
+import org.openrdf.model.URI;
+import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.model.impl.ValueFactoryImpl;
 import org.openrdf.model.vocabulary.OWL;
 import org.openrdf.model.vocabulary.RDF;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.regex.Pattern;
 
 public class DeterministicTurtleRendererTest {
 
@@ -99,9 +115,12 @@ public class DeterministicTurtleRendererTest {
         String ttl = render(buildGraph("tttt", 7, null));
         // The triplestore-assigned identifiers must not appear in the output.
         assertFalse(ttl.contains("tttt"));
-        // Subject-only axiom nodes are rendered anonymously, so the only blank node
-        // labels that may appear belong to the shared node (referenced twice).
-        assertTrue("axiom nodes should be rendered as anonymous blank nodes", ttl.contains("owl:Axiom"));
+        // Subject-only axiom nodes must be rendered in anonymous blank node form
+        // ("[ a owl:Axiom"), not as labeled blank nodes ("_:b0 a owl:Axiom").
+        assertTrue("axiom nodes should be rendered as anonymous blank nodes",
+                Pattern.compile("\\[\\s+a\\s+owl:Axiom").matcher(ttl).find());
+        assertFalse("axiom nodes must not be rendered as labeled blank nodes",
+                Pattern.compile("_:\\S+\\s+a\\s+owl:Axiom").matcher(ttl).find());
     }
 
     @Test
@@ -133,5 +152,55 @@ public class DeterministicTurtleRendererTest {
         assertTrue(edited.contains("2099-12-31"));
         assertEquals("changing an axiom annotation must not reorder the output",
                 stripDateLines(base), stripDateLines(edited));
+    }
+
+    /**
+     * The renderer must be lossless: the rendered Turtle, parsed back, must contain
+     * exactly the input triples - nothing added, dropped, or altered - up to blank
+     * node identity (checked via graph isomorphism).
+     */
+    @Test
+    public void outputContainsExactlyTheInputTriples() throws Exception {
+        List<Statement> input = buildGraph("iso", 11, null);
+        Model inputModel = toJenaModel(input);
+
+        String ttl = render(input);
+        Model outputModel = ModelFactory.createDefaultModel();
+        RDFDataMgr.read(outputModel, new ByteArrayInputStream(ttl.getBytes("UTF-8")), MODEL + "/", Lang.TURTLE);
+
+        assertEquals("triple count must be preserved", inputModel.size(), outputModel.size());
+        assertTrue("rendered output must contain exactly the input triples (up to blank node identity)",
+                inputModel.isIsomorphicWith(outputModel));
+    }
+
+    /** Convert Sesame statements to a Jena model for graph comparison. */
+    private static Model toJenaModel(List<Statement> statements) {
+        Model model = ModelFactory.createDefaultModel();
+        Map<String, Resource> bnodes = new HashMap<>();
+        for (Statement s : statements) {
+            Resource subj = s.getSubject() instanceof BNode
+                    ? bnodes.computeIfAbsent(((BNode) s.getSubject()).getID(), k -> model.createResource())
+                    : model.createResource(s.getSubject().stringValue());
+            Property pred = model.createProperty(s.getPredicate().stringValue());
+            Value o = s.getObject();
+            RDFNode obj;
+            if (o instanceof BNode) {
+                obj = bnodes.computeIfAbsent(((BNode) o).getID(), k -> model.createResource());
+            } else if (o instanceof URI) {
+                obj = model.createResource(o.stringValue());
+            } else {
+                Literal lit = (Literal) o;
+                if (lit.getLanguage() != null) {
+                    obj = model.createLiteral(lit.getLabel(), lit.getLanguage());
+                } else if (lit.getDatatype() != null) {
+                    obj = model.createTypedLiteral(lit.getLabel(),
+                            TypeMapper.getInstance().getSafeTypeByName(lit.getDatatype().stringValue()));
+                } else {
+                    obj = model.createLiteral(lit.getLabel());
+                }
+            }
+            model.add(subj, pred, obj);
+        }
+        return model;
     }
 }
