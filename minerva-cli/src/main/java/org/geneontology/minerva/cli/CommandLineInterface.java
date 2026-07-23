@@ -38,16 +38,12 @@ import org.geneontology.minerva.validation.Violation;
 import org.geneontology.minerva.validation.pipeline.BatchPipelineValidationReport;
 import org.geneontology.minerva.validation.pipeline.ErrorMessage;
 import org.obolibrary.robot.CatalogXmlIRIMapper;
-import org.openrdf.model.Statement;
-import org.openrdf.model.ValueFactory;
-import org.openrdf.model.impl.URIImpl;
-import org.openrdf.model.vocabulary.OWL;
-import org.openrdf.model.vocabulary.RDF;
 import org.openrdf.query.MalformedQueryException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.UpdateExecutionException;
 import org.openrdf.repository.RepositoryException;
-import org.openrdf.rio.*;
+import org.openrdf.rio.RDFHandlerException;
+import org.openrdf.rio.RDFParseException;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.TurtleDocumentFormat;
 import org.semanticweb.owlapi.io.IRIDocumentSource;
@@ -66,8 +62,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.*;
-
-import static org.geneontology.minerva.server.handler.OperationsTools.createModelRenderer;
 
 
 public class CommandLineInterface {
@@ -253,11 +247,13 @@ public class CommandLineInterface {
                 Options sparql_options = new Options();
                 sparql_options.addOption(sparql);
                 sparql_options.addOption("j", "journal", true, "Sets the Blazegraph journal file for the database");
+                sparql_options.addOption("ontojournal", "ontojournal", true, "Specify a blazegraph journal file containing the merged, pre-reasoned tbox aka go-lego.owl");
                 sparql_options.addOption("f", "file", true, "Sets the file containing a SPARQL update");
                 cmd = parser.parse(sparql_options, args, false);
                 String journalFilePath = cmd.getOptionValue("j"); //--journal
+                String ontojournalFilePath = cmd.getOptionValue("ontojournal"); //--journal
                 String file = cmd.getOptionValue("f");
-                sparqlUpdate(journalFilePath, file);
+                sparqlUpdate(journalFilePath, ontojournalFilePath, file);
             } else if (cmd.hasOption("replace-obsolete")) {
                 Options replaceOptions = new Options();
                 replaceOptions.addOption(replaceObsolete);
@@ -707,10 +703,15 @@ public class CommandLineInterface {
      * @throws MalformedQueryException
      * @throws UpdateExecutionException
      */
-    public static void sparqlUpdate(String journalFilePath, String updateFile) throws OWLOntologyCreationException, IOException, RepositoryException, MalformedQueryException, UpdateExecutionException {
+    public static void sparqlUpdate(String journalFilePath, String ontoJournalFilePath, String updateFile) throws Exception {
         // minimal inputs
         if (journalFilePath == null) {
             System.err.println("No journal file was configured.");
+            System.exit(-1);
+            return;
+        }
+        if (ontoJournalFilePath == null) {
+            System.err.println("No ontology journal file was configured.");
             System.exit(-1);
             return;
         }
@@ -720,11 +721,18 @@ public class CommandLineInterface {
             return;
         }
 
+        Properties ontoJournalProperties = new Properties();
+        ontoJournalProperties.load(CommandLineInterface.class.getResourceAsStream("/org/geneontology/minerva/blazegraph.properties"));
+        ontoJournalProperties.setProperty(com.bigdata.journal.Options.FILE, ontoJournalFilePath);
+        BigdataSail ontoSail = new BigdataSail(ontoJournalProperties);
+        BigdataSailRepository ontRepository = new BigdataSailRepository(ontoSail);
+        ontRepository.initialize();
+        EmbeddedSparqlEndpoint endpoint = new EmbeddedSparqlEndpoint(ontRepository, 6666);
+        endpoint.start();
         String update = FileUtils.readFileToString(new File(updateFile), StandardCharsets.UTF_8);
         Properties properties = new Properties();
         properties.load(CommandLineInterface.class.getResourceAsStream("/org/geneontology/minerva/blazegraph.properties"));
         properties.setProperty(com.bigdata.journal.Options.FILE, journalFilePath);
-
         BigdataSail sail = new BigdataSail(properties);
         BigdataSailRepository repository = new BigdataSailRepository(sail);
         repository.initialize();
@@ -736,6 +744,10 @@ public class CommandLineInterface {
         conn.removeChangeLog(counter);
         System.out.println("\nApplied " + changes + " changes");
         conn.close();
+        endpoint.stop();
+        ontRepository.shutDown();
+        repository.shutDown();
+        System.exit(0); // needed since adding federated query machinery
     }
 
     /**
