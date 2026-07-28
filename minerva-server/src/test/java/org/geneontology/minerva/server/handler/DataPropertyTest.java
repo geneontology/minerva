@@ -10,6 +10,7 @@ import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.json.*;
 import org.geneontology.minerva.server.handler.M3BatchHandler.*;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
+import org.geneontology.minerva.test.TestOntology;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,11 +32,10 @@ public class DataPropertyTest {
     public TemporaryFolder folder = new TemporaryFolder();
 
     private final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
-    static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
-
     private UndoAwareMolecularModelManager createM3(OWLOntology tbox) throws OWLOntologyCreationException, IOException {
         UndoAwareMolecularModelManager mmm = new UndoAwareMolecularModelManager(tbox, curieHandler,
-                "http://model.geneontology.org/", folder.newFile().getAbsolutePath(), null, go_lego_journal_file, true);
+                "http://model.geneontology.org/", folder.newFile().getAbsolutePath(), null,
+                TestOntology.newJournalPath(folder.getRoot()), false);
         return mmm;
     }
 

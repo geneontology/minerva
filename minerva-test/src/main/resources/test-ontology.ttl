@@ -1,0 +1,291 @@
+@prefix obo: <http://purl.obolibrary.org/obo/> .
+@prefix reacto: <http://purl.obolibrary.org/obo/go/extensions/reacto.owl#> .
+@prefix zfin: <http://identifiers.org/zfin/> .
+@prefix uniprot: <http://identifiers.org/uniprot/> .
+@prefix wormbase: <http://identifiers.org/wormbase/> .
+@prefix sgd: <http://identifiers.org/sgd/> .
+@prefix complex: <https://www.ebi.ac.uk/complexportal/complex/> .
+@prefix biolink: <https://w3id.org/biolink/vocab/> .
+@prefix oboInOwl: <http://www.geneontology.org/formats/oboInOwl#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<http://purl.obolibrary.org/obo/go/extensions/go-lego.owl> a owl:Ontology ;
+    rdfs:comment "Focused ontology content used only by Minerva unit tests." .
+
+oboInOwl:shorthand a owl:AnnotationProperty .
+oboInOwl:hasOBONamespace a owl:AnnotationProperty .
+biolink:category a owl:AnnotationProperty .
+
+# Relations exercised by model loading, editing, reasoning, and validation tests.
+obo:BFO_0000050 a owl:ObjectProperty ; rdfs:label "part of" ; oboInOwl:shorthand "part_of" ; rdfs:subPropertyOf obo:LEGOREL_0000000 .
+obo:BFO_0000051 a owl:ObjectProperty ; rdfs:label "has part" ; oboInOwl:shorthand "has_part" ; rdfs:subPropertyOf obo:LEGOREL_0000000 .
+obo:BFO_0000066 a owl:ObjectProperty ; rdfs:label "occurs in" ; oboInOwl:shorthand "occurs_in" ; rdfs:subPropertyOf obo:LEGOREL_0000000 .
+obo:GOREL_0002006 a owl:ObjectProperty ; rdfs:label "results_in_organization_of" ; oboInOwl:shorthand "results_in_organization_of" .
+obo:IAO_0000136 a owl:ObjectProperty ; rdfs:label "is about" .
+obo:LEGOREL_0000000 a owl:ObjectProperty ; rdfs:label "lego relation" .
+obo:RO_0001015 a owl:ObjectProperty ; rdfs:label "location of" .
+obo:RO_0001025 a owl:ObjectProperty ; rdfs:label "located in" .
+obo:RO_0002092 a owl:ObjectProperty ; rdfs:label "happens during" .
+obo:RO_0002131 a owl:ObjectProperty ; rdfs:label "overlaps" .
+obo:RO_0002162 a owl:ObjectProperty ; rdfs:label "in taxon" .
+obo:RO_0002211 a owl:ObjectProperty ; rdfs:label "regulates" .
+obo:RO_0002212 a owl:ObjectProperty ; rdfs:label "negatively regulates" .
+obo:RO_0002213 a owl:ObjectProperty ; rdfs:label "positively regulates" .
+obo:RO_0002233 a owl:ObjectProperty ; rdfs:label "has input" .
+obo:RO_0002234 a owl:ObjectProperty ; rdfs:label "has output" .
+obo:RO_0002296 a owl:ObjectProperty ; rdfs:label "results in development of" .
+obo:RO_0002297 a owl:ObjectProperty ; rdfs:label "results in formation of" .
+obo:RO_0002298 a owl:ObjectProperty ; rdfs:label "results in morphogenesis of" .
+obo:RO_0002304 a owl:ObjectProperty ; rdfs:label "causally upstream of, positive effect" .
+obo:RO_0002305 a owl:ObjectProperty ; rdfs:label "causally upstream of, negative effect" .
+obo:RO_0002313 a owl:ObjectProperty ; rdfs:label "transports or maintains localization of" .
+obo:RO_0002315 a owl:ObjectProperty ; rdfs:label "results in acquisition of features of" .
+obo:RO_0002326 a owl:ObjectProperty ; rdfs:label "contributes to" .
+obo:RO_0002333 a owl:ObjectProperty ; rdfs:label "enabled by" ; rdfs:subPropertyOf obo:LEGOREL_0000000 .
+obo:RO_0002338 a owl:ObjectProperty ; rdfs:label "has target start location" .
+obo:RO_0002339 a owl:ObjectProperty ; rdfs:label "has target end location" .
+obo:RO_0002348 a owl:ObjectProperty ; rdfs:label "results in commitment to" .
+obo:RO_0002349 a owl:ObjectProperty ; rdfs:label "results in determination of" .
+obo:RO_0002356 a owl:ObjectProperty ; rdfs:label "results in specification of" .
+obo:RO_0002411 a owl:ObjectProperty ; rdfs:label "causally upstream of" .
+obo:RO_0002413 a owl:ObjectProperty ; rdfs:label "directly provides input for" .
+obo:RO_0002418 a owl:ObjectProperty ; rdfs:label "causally upstream of or within" .
+obo:RO_0002578 a owl:ObjectProperty ; rdfs:label "directly regulates" .
+obo:RO_0002588 a owl:ObjectProperty ; rdfs:label "results in assembly of" .
+obo:RO_0002590 a owl:ObjectProperty ; rdfs:label "results in disassembly of" .
+obo:RO_0002592 a owl:ObjectProperty ; rdfs:label "results in organization of" .
+obo:RO_0002629 a owl:ObjectProperty ; rdfs:label "directly positively regulates" .
+obo:RO_0002630 a owl:ObjectProperty ; rdfs:label "directly negatively regulates" .
+obo:RO_0004046 a owl:ObjectProperty ; rdfs:label "causally upstream of or within, negative effect" .
+obo:RO_0004047 a owl:ObjectProperty ; rdfs:label "causally upstream of or within, positive effect" .
+obo:SEPIO_0000124 a owl:ObjectProperty ; rdfs:label "has supporting reference" .
+
+# Semantic roots used by Minerva and the GO-CAM ShEx maps.
+obo:CHEBI_24431 a owl:Class ; rdfs:label "chemical entity" .
+obo:CHEBI_33695 a owl:Class ; rdfs:label "information biomacromolecule" ; rdfs:subClassOf obo:CHEBI_24431 .
+obo:CHEBI_36080 a owl:Class ; rdfs:label "protein" ; rdfs:subClassOf obo:CHEBI_33695 .
+obo:CARO_0000000 a owl:Class ; rdfs:label "anatomical entity" .
+obo:CL_0000003 a owl:Class ; rdfs:label "native cell" ; rdfs:subClassOf obo:CARO_0000000 .
+obo:CL_0000000 a owl:Class ; rdfs:label "cell" ; rdfs:subClassOf obo:CL_0000003, obo:UBERON_0001062 .
+obo:ECO_0000000 a owl:Class ; rdfs:label "evidence" .
+obo:GO_0003674 a owl:Class ; rdfs:label "molecular function" ; rdfs:subClassOf reacto:molecular_event .
+obo:GO_0003824 a owl:Class ; rdfs:label "catalytic activity" ; rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0005575 a owl:Class ; rdfs:label "cellular component" .
+obo:GO_0008150 a owl:Class ; rdfs:label "biological process" .
+obo:GO_0016043 a owl:Class ; rdfs:label "cellular component organization" ; rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0022607 a owl:Class ; rdfs:label "cellular component assembly" ; rdfs:subClassOf obo:GO_0016043 .
+obo:GO_0032991 a owl:Class ; rdfs:label "protein-containing complex" ; rdfs:subClassOf obo:GO_0005575 .
+obo:GO_0008152 a owl:Class ; rdfs:label "metabolic process" ; rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0009653 a owl:Class ; rdfs:label "anatomical structure morphogenesis" ; rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0001708 a owl:Class ; rdfs:label "cell fate specification" ; rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0001709 a owl:Class ; rdfs:label "cell fate determination" ; rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0030154 a owl:Class ; rdfs:label "cell differentiation" ; rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0045165 a owl:Class ; rdfs:label "cell fate commitment" ; rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0048646 a owl:Class ; rdfs:label "anatomical structure formation involved in morphogenesis" ; rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0048856 a owl:Class ; rdfs:label "anatomical structure development" ; rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0044848 a owl:Class ; rdfs:label "biological phase" .
+obo:NCBITaxon_1 a owl:Class ; rdfs:label "organism" .
+obo:PO_0009012 a owl:Class ; rdfs:label "plant structure development stage" .
+obo:UBERON_0000105 a owl:Class ; rdfs:label "life cycle stage" .
+obo:UBERON_0001062 a owl:Class ; rdfs:label "anatomical entity" ; rdfs:subClassOf obo:CARO_0000000 .
+reacto:molecular_event a owl:Class ; rdfs:label "molecular event" .
+
+# Molecular functions used by the checked-in model fixtures.
+obo:GO_0000981 rdfs:subClassOf obo:GO_0003700 .
+obo:GO_0003677 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0003678 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0003700 rdfs:subClassOf obo:GO_0140110 .
+obo:GO_0003713 rdfs:subClassOf obo:GO_0140110 .
+obo:GO_0003714 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0003730 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0003887 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0003972 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0004096 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0004197 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0004521 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0004674 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0004707 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0004708 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0004709 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0004713 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0004747 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0005085 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0005488 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0005515 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0009008 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0016308 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0016874 rdfs:subClassOf obo:GO_0003824 .
+obo:GO_0016887 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0017017 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0019887 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0019901 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0035591 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0042802 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0044183 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0048018 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0060090 rdfs:label "molecular function regulator activity" ; rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0061630 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0098632 rdfs:subClassOf obo:GO_0003674 .
+obo:GO_0140110 rdfs:label "transcription regulator activity" ; rdfs:subClassOf obo:GO_0060090 .
+
+# Biological processes used by the checked-in model fixtures.
+obo:GO_0002119 rdfs:subClassOf obo:GO_0048856 .
+obo:GO_0002225 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0006260 rdfs:subClassOf obo:GO_0008152 .
+obo:GO_0006261 rdfs:subClassOf obo:GO_0008152 .
+obo:GO_0006352 rdfs:subClassOf obo:GO_0008152 .
+obo:GO_0006366 rdfs:subClassOf obo:GO_0008152 .
+obo:GO_0009888 rdfs:subClassOf obo:GO_0048856 .
+obo:GO_0010498 rdfs:subClassOf obo:GO_0008152 .
+obo:GO_0016045 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0017148 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0018996 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0019303 rdfs:subClassOf obo:GO_0008152 .
+obo:GO_0030509 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0033137 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0034109 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0036498 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0043414 rdfs:subClassOf obo:GO_0008152 .
+obo:GO_0043524 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0050829 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0060415 rdfs:subClassOf obo:GO_0009653 .
+obo:GO_0060765 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0070054 rdfs:subClassOf obo:GO_0008152 .
+obo:GO_0070828 rdfs:subClassOf obo:GO_0016043 .
+obo:GO_0097325 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_1900181 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_1900425 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_1903895 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_2000767 rdfs:subClassOf obo:GO_0008150 .
+
+# Cellular components, anatomy, and complexes used by the fixtures.
+obo:GO_0000776 rdfs:subClassOf obo:GO_0005575, obo:GO_0110165 .
+obo:GO_0005634 rdfs:subClassOf obo:GO_0005575, obo:GO_0110165 .
+obo:GO_0005654 rdfs:subClassOf obo:GO_0005575, obo:GO_0110165 .
+obo:GO_0005737 rdfs:subClassOf obo:GO_0005575, obo:GO_0110165 .
+obo:GO_0005739 rdfs:subClassOf obo:GO_0005575, obo:GO_0110165 .
+obo:GO_0005783 rdfs:subClassOf obo:GO_0005575, obo:GO_0110165 .
+obo:GO_0005788 rdfs:subClassOf obo:GO_0005575, obo:GO_0110165 .
+obo:GO_0005789 rdfs:subClassOf obo:GO_0005575, obo:GO_0110165 .
+obo:GO_0005829 rdfs:subClassOf obo:GO_0005575, obo:GO_0110165 .
+obo:GO_0005886 rdfs:subClassOf obo:GO_0005575, obo:GO_0110165 .
+obo:GO_0009898 rdfs:subClassOf obo:GO_0005575, obo:GO_0110165 .
+obo:GO_0030430 rdfs:subClassOf obo:GO_0005575, obo:GO_0110165 .
+obo:GO_0032390 rdfs:subClassOf obo:GO_0032991 .
+obo:GO_0043853 rdfs:subClassOf obo:GO_0032991 .
+obo:GO_0110165 a owl:Class ; rdfs:label "cellular anatomical entity" ; rdfs:subClassOf obo:UBERON_0001062 .
+obo:CL_0000047 rdfs:subClassOf obo:CL_0000000 .
+obo:WBbt_0003672 rdfs:subClassOf obo:CL_0000000 .
+obo:WBbt_0003679 rdfs:subClassOf obo:CL_0000000 .
+obo:WBbt_0005733 rdfs:subClassOf obo:UBERON_0001062 .
+obo:WBbt_0005753 rdfs:subClassOf obo:CL_0000000 .
+obo:WBbt_0006748 rdfs:subClassOf obo:UBERON_0001062 .
+obo:WBbt_0006748 rdfs:subClassOf obo:WBbt_0008422 .
+obo:WBbt_0006808 rdfs:subClassOf obo:CL_0000000 .
+obo:WBbt_0008260 rdfs:subClassOf obo:CL_0000000 .
+obo:WBbt_0008422 rdfs:subClassOf obo:UBERON_0001062 .
+
+# Evidence classes and the one superclass walk used by FindGoCodesTest.
+obo:ECO_0000250 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000269 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000270 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000291 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000303 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000304 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000305 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000306 rdfs:subClassOf obo:ECO_0000305 .
+obo:ECO_0000307 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000313 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000314 rdfs:label "direct assay evidence" ; rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000315 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000316 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000318 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000353 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000363 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0000501 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0001273 rdfs:subClassOf obo:ECO_0000000 .
+obo:ECO_0005801 rdfs:subClassOf obo:ECO_0000000 .
+
+# Gene products and chemicals used by ShEx and statistics tests.
+uniprot:P15822 rdfs:subClassOf obo:CHEBI_33695 .
+sgd:S000000632 rdfs:subClassOf obo:CHEBI_33695 .
+uniprot:P15822-3 rdfs:subClassOf obo:CHEBI_33695 .
+uniprot:P41587 rdfs:subClassOf obo:CHEBI_36080 .
+uniprot:Q13253 rdfs:subClassOf obo:CHEBI_36080 .
+zfin:ZDB-GENE-010410-3 rdfs:label "test zebrafish gene" ; rdfs:subClassOf obo:CHEBI_33695 .
+zfin:ZDB-GENE-030131-514 rdfs:subClassOf obo:CHEBI_33695 .
+zfin:ZDB-GENE-980526-388 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:CE35836 rdfs:subClassOf obo:CHEBI_36080 .
+wormbase:WBGene00000223 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00000275 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00001345 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00001865 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00002007 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00002008 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00002147 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00002187 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00003228 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00003418 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00003421 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00003822 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00003912 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00004055 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00004077 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00004182 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00004310 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00004758 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00006575 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00006594 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00006599 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00006876 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00006923 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00006959 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00008877 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00010424 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00011345 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00011979 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00012019 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00015168 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00015939 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00017304 rdfs:subClassOf obo:CHEBI_33695 .
+wormbase:WBGene00017990 rdfs:subClassOf obo:CHEBI_33695 .
+obo:CHEBI_15414 rdfs:subClassOf obo:CHEBI_24431 .
+obo:CHEBI_16991 rdfs:subClassOf obo:CHEBI_33695 .
+obo:CHEBI_30623 rdfs:subClassOf obo:CHEBI_24431 .
+obo:CHEBI_4705 rdfs:subClassOf obo:CHEBI_33695 .
+obo:CHEBI_75962 rdfs:subClassOf obo:CHEBI_24431 .
+
+# Focused facts for ontology repository behavior.
+obo:NCBITaxon_44689 a owl:Class ; rdfs:label "Dictyostelium discoideum" ; rdfs:subClassOf obo:NCBITaxon_1 .
+obo:NCBITaxon_575614 rdfs:subClassOf obo:NCBITaxon_1 .
+obo:NCBITaxon_559292 rdfs:label "Saccharomyces cerevisiae S288C" ; rdfs:subClassOf obo:NCBITaxon_1 .
+obo:NCBITaxon_6239 rdfs:label "Caenorhabditis elegans" ; rdfs:subClassOf obo:NCBITaxon_1 .
+obo:NCBITaxon_7955 rdfs:subClassOf obo:NCBITaxon_1 .
+obo:NCBITaxon_9606 rdfs:subClassOf obo:NCBITaxon_1 .
+zfin:ZDB-GENE-010410-3 biolink:category biolink:MacromolecularMachine ;
+    rdfs:subClassOf [ a owl:Restriction ; owl:onProperty obo:RO_0002162 ; owl:someValuesFrom obo:NCBITaxon_7955 ] .
+wormbase:WBGene00001865 biolink:category biolink:MacromolecularMachine ; rdfs:subClassOf
+    [ a owl:Restriction ; owl:onProperty obo:RO_0002162 ; owl:someValuesFrom obo:NCBITaxon_6239 ] .
+sgd:S000000632 biolink:category biolink:MacromolecularMachine ; rdfs:subClassOf
+    [ a owl:Restriction ; owl:onProperty obo:RO_0002162 ; owl:someValuesFrom obo:NCBITaxon_559292 ] .
+uniprot:Q8N6T7 biolink:category biolink:MacromolecularMachine ; rdfs:subClassOf obo:CHEBI_36080,
+    [ a owl:Restriction ; owl:onProperty obo:RO_0002162 ; owl:someValuesFrom obo:NCBITaxon_9606 ] .
+uniprot:Q96EB6 biolink:category biolink:MacromolecularMachine ; rdfs:subClassOf obo:CHEBI_36080,
+    [ a owl:Restriction ; owl:onProperty obo:RO_0002162 ; owl:someValuesFrom obo:NCBITaxon_9606 ] .
+<http://example.org/test-gene/taxon-44689> rdfs:subClassOf
+    [ a owl:Restriction ; owl:onProperty obo:RO_0002162 ; owl:someValuesFrom obo:NCBITaxon_44689 ] .
+<http://example.org/test-gene/taxon-9606> rdfs:subClassOf
+    [ a owl:Restriction ; owl:onProperty obo:RO_0002162 ; owl:someValuesFrom obo:NCBITaxon_9606 ] .
+<http://purl.obolibrary.org/obo/ZFIN_ZDB-GENE-991124-7> rdfs:subClassOf
+    [ a owl:Restriction ; owl:onProperty obo:RO_0002162 ; owl:someValuesFrom obo:NCBITaxon_7955 ] .
+complex:CPX-9 rdfs:subClassOf obo:GO_0032991 .
+complex:CPX-4082 rdfs:subClassOf obo:GO_0032991 .
+obo:GO_0022607 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0005810 owl:deprecated true ; oboInOwl:hasOBONamespace "cellular_component" .
+obo:GO_0008529 owl:deprecated true ; oboInOwl:hasOBONamespace "molecular_function" .
+obo:GO_2000803 owl:deprecated true ; oboInOwl:hasOBONamespace "biological_process" .
+obo:GO_0030511 rdfs:subClassOf [ a owl:Restriction ; owl:onProperty obo:RO_0002211 ; owl:someValuesFrom obo:GO_0007179 ] .
+obo:GO_0007267 rdfs:subClassOf obo:GO_0008150 .
+obo:GO_0010737 rdfs:subClassOf obo:GO_0008150 .

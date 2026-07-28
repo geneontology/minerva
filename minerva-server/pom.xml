@@ -123,6 +123,12 @@
     <dependencies>
         <dependency>
             <groupId>org.geneontology</groupId>
+            <artifactId>minerva-test</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.geneontology</groupId>
             <artifactId>minerva-core</artifactId>
             <version>${project.parent.version}</version>
         </dependency>

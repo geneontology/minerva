@@ -16,6 +16,7 @@ import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.handler.M3BatchHandler.*;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
+import org.geneontology.minerva.test.TestOntology;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
@@ -43,7 +44,6 @@ public class BatchModelHandlerTest {
     private static UndoAwareMolecularModelManager models = null;
     private static Set<OWLObjectProperty> importantRelations = null;
     private final static DateGenerator dateGenerator = new DateGenerator();
-    static final String ontology_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
     static final String uid = "test-user";
     static final Set<String> providedBy = Collections.singleton("test-provider");
     static final String intention = "test-intention";
@@ -57,7 +57,7 @@ public class BatchModelHandlerTest {
     }
 
     static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException, UnknownIdentifierException {
-        final MinervaOWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl");
+        final MinervaOWLGraphWrapper graph = new MinervaOWLGraphWrapper(TestOntology.load());
         final OWLObjectProperty legorelParent = StartUpTool.getRelation("http://purl.obolibrary.org/obo/LEGOREL_0000000", graph);
         assertNotNull(legorelParent);
         importantRelations = StartUpTool.getAssertedSubProperties(legorelParent, graph);
@@ -68,7 +68,8 @@ public class BatchModelHandlerTest {
         final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
         curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
         InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false, null);
-        models = new UndoAwareMolecularModelManager(graph.getSourceOntology(), curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null, ontology_journal_file, true);
+        models = new UndoAwareMolecularModelManager(graph.getSourceOntology(), curieHandler, modelIdPrefix,
+                folder.newFile().getAbsolutePath(), null, TestOntology.newJournalPath(folder.getRoot()), false);
         lookupService = createTestProteins(curieHandler);
         handler = new JsonOrJsonpBatchHandler(models, "development", ipc, importantRelations, lookupService) {
 

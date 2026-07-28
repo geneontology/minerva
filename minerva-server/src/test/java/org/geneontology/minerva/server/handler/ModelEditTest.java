@@ -12,6 +12,7 @@ import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.*;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.MetaResponse;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
+import org.geneontology.minerva.test.TestOntology;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.apibinding.OWLManager;
@@ -37,7 +38,6 @@ public class ModelEditTest {
     private static CurieHandler curieHandler = null;
     private static JsonOrJsonpBatchHandler handler = null;
     private static UndoAwareMolecularModelManager models = null;
-    static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -45,15 +45,15 @@ public class ModelEditTest {
     }
 
     static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
-        //This includes only the needed terms for the test to pass
-        final OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(new File("src/test/resources/edit-test/go-lego-empty.owl")));
+        final OWLOntology tbox = TestOntology.load();
         // curie handler
         final String modelIdcurie = "gomodel";
         final String modelIdPrefix = "http://model.geneontology.org/";
         final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
         curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 
-        models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null, go_lego_journal_file, true);
+        models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix,
+                folder.newFile().getAbsolutePath(), null, TestOntology.newJournalPath(folder.getRoot()), false);
         InferenceProviderCreator ipc = null;
         handler = new JsonOrJsonpBatchHandler(models, "development", ipc,
                 Collections.<OWLObjectProperty>emptySet(), (ExternalLookupService) null);
