@@ -12,7 +12,6 @@ import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.*;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
-import org.geneontology.minerva.test.TestOntology;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
