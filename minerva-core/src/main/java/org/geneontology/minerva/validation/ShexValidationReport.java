@@ -119,6 +119,8 @@ public class ShexValidationReport extends ModelValidationReport {
             }
         }
 
+        // Java has no IdentityHashSet; these sets track the exact mutable report objects changed while filtering,
+        // independently of any value-based equality the report classes may define now or in the future.
         Set<ShexExplanation> changedExplanations = Collections.newSetFromMap(new IdentityHashMap<ShexExplanation, Boolean>());
         Set<ShexViolation> changedViolations = Collections.newSetFromMap(new IdentityHashMap<ShexViolation, Boolean>());
         for (Map.Entry<FailureKey, Set<ShexExplanation>> failure : failures.entrySet()) {
