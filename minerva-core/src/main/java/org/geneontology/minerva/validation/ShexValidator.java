@@ -181,6 +181,7 @@ public class ShexValidator {
             }
         }
         r.conformant = all_good;
+        r.suppressCascadingViolations();
         return r;
     }
 
@@ -341,6 +342,7 @@ public class ShexValidator {
         } else {
             r.conformant = false;
         }
+        r.suppressCascadingViolations();
         return r;
     }
 
