@@ -47,10 +47,15 @@ public class ShexValidationReport extends ModelValidationReport {
      * correctly part of that process also becomes nonconformant. The latter is useful validation
      * state, but it is a misleading user-facing diagnostic.
      *
-     * Cascades are matched conservatively by both object node and expected shape. Dependencies that
-     * participate in a cycle are retained because there is no downstream-most failure to report.
+     * Cascades are matched conservatively by both object node and expected shape. A failure under a
+     * more-specific shape can also match an expected ancestor shape. Dependencies that participate
+     * in a cycle are retained because there is no downstream-most failure to report.
      */
     void suppressCascadingViolations() {
+        suppressCascadingViolations(Collections.<String, Set<String>>emptyMap());
+    }
+
+    void suppressCascadingViolations(Map<String, Set<String>> shapeAncestors) {
         if (violations == null || violations.isEmpty()) {
             return;
         }
@@ -77,6 +82,17 @@ public class ShexValidationReport extends ModelValidationReport {
             }
         }
 
+        Map<FailureKey, Set<FailureKey>> failuresByAlias = new HashMap<FailureKey, Set<FailureKey>>();
+        for (FailureKey failure : failures.keySet()) {
+            addToSetMap(failuresByAlias, failure, failure);
+            Set<String> ancestors = shapeAncestors.get(failure.shape);
+            if (ancestors != null) {
+                for (String ancestor : ancestors) {
+                    addToSetMap(failuresByAlias, new FailureKey(failure.node, ancestor), failure);
+                }
+            }
+        }
+
         Map<FailureKey, Set<FailureKey>> dependencyGraph = new HashMap<FailureKey, Set<FailureKey>>();
         Map<ShexConstraint, Set<FailureKey>> constraintTargets = new IdentityHashMap<ShexConstraint, Set<FailureKey>>();
         for (Map.Entry<FailureKey, Set<ShexExplanation>> failure : failures.entrySet()) {
@@ -90,10 +106,13 @@ public class ShexValidationReport extends ModelValidationReport {
                         continue;
                     }
                     for (String expectedShape : constraint.getIntended_range_shapes()) {
-                        FailureKey target = new FailureKey(constraint.getObject(), expectedShape);
-                        if (failures.containsKey(target)) {
-                            addToSetMap(dependencyGraph, source, target);
-                            addToSetMap(constraintTargets, constraint, target);
+                        FailureKey targetAlias = new FailureKey(constraint.getObject(), expectedShape);
+                        Set<FailureKey> targets = failuresByAlias.get(targetAlias);
+                        if (targets != null) {
+                            for (FailureKey target : targets) {
+                                addToSetMap(dependencyGraph, source, target);
+                                addToSetMap(constraintTargets, constraint, target);
+                            }
                         }
                     }
                 }

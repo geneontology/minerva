@@ -50,6 +50,7 @@ public class ShexValidator {
     public Map<Label, Map<String, Set<String>>> shape_expected_property_ranges;
     public Map<Label, Map<String, Interval>> shape_expected_property_cardinality;
     Map<Label, Interval> tripexprlabel_cardinality;
+    private Map<String, Set<String>> shape_ancestors;
     public CurieHandler curieHandler;
     public RDF rdfFactory;
     public final int timeout_mill = 30000;
@@ -85,6 +86,7 @@ public class ShexValidator {
             Map<String, Set<String>> expected_property_ranges = getPropertyRangeMap(shape_label, rule, null);
             shape_expected_property_ranges.put(shape_label, expected_property_ranges);
         }
+        shape_ancestors = getShapeAncestorMap();
         LOGGER.info("shex validator ready");
     }
 
@@ -181,7 +183,7 @@ public class ShexValidator {
             }
         }
         r.conformant = all_good;
-        r.suppressCascadingViolations();
+        r.suppressCascadingViolations(shape_ancestors);
         return r;
     }
 
@@ -342,8 +344,39 @@ public class ShexValidator {
         } else {
             r.conformant = false;
         }
-        r.suppressCascadingViolations();
+        r.suppressCascadingViolations(shape_ancestors);
         return r;
+    }
+
+    private Map<String, Set<String>> getShapeAncestorMap() {
+        Map<String, Set<String>> ancestorsByShape = new HashMap<String, Set<String>>();
+        for (Map.Entry<Label, ShapeExpr> rule : schema.getRules().entrySet()) {
+            Set<String> ancestors = new HashSet<String>();
+            Set<Label> visited = new HashSet<Label>();
+            visited.add(rule.getKey());
+            collectShapeAncestors(rule.getValue(), ancestors, visited);
+            ancestorsByShape.put(getCurie(rule.getKey().stringValue()), ancestors);
+        }
+        return ancestorsByShape;
+    }
+
+    private void collectShapeAncestors(ShapeExpr expression, Set<String> ancestors, Set<Label> visited) {
+        if (expression instanceof ShapeExprRef) {
+            ShapeExprRef reference = (ShapeExprRef) expression;
+            Label ancestor = reference.getLabel();
+            if (visited.add(ancestor)) {
+                ancestors.add(getCurie(ancestor.stringValue()));
+                ShapeExpr ancestorDefinition = schema.getRules().get(ancestor);
+                if (ancestorDefinition != null) {
+                    collectShapeAncestors(ancestorDefinition, ancestors, visited);
+                }
+            }
+        } else if (expression instanceof ShapeAnd) {
+            ShapeAnd conjunction = (ShapeAnd) expression;
+            for (ShapeExpr subExpression : conjunction.getSubExpressions()) {
+                collectShapeAncestors(subExpression, ancestors, visited);
+            }
+        }
     }
 
     private Map<Resource, Set<String>> getShapesToTestForEachResource(Model test_model) {

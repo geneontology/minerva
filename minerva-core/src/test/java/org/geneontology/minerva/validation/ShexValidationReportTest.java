@@ -24,6 +24,7 @@ import static org.junit.Assert.assertFalse;
 public class ShexValidationReportTest {
 
     private static final String BIOLOGICAL_PROCESS_SHAPE = "obo:go/shapes/BiologicalProcess";
+    private static final String CELL_DIFFERENTIATION_SHAPE = "obo:go/shapes/CellDifferentiation";
     private static final String MOLECULAR_FUNCTION_SHAPE = "obo:go/shapes/MolecularFunction";
     private static final String CELLULAR_COMPONENT_SHAPE = "obo:go/shapes/CellularComponent";
     private static final String PART_OF = "http://purl.obolibrary.org/obo/BFO_0000050";
@@ -59,6 +60,37 @@ public class ShexValidationReportTest {
         ShexConstraint constraint = explanation.getConstraints().iterator().next();
         assertEquals(CC, constraint.getObject());
         assertEquals("BFO:0000050", constraint.getProperty());
+    }
+
+    @Test
+    public void suppressesCascadeThroughMoreSpecificShape() {
+        Model model = createBaseModel();
+        Resource bpClass = model.getResource("http://example.org/BPClass");
+        bpClass.addProperty(RDFS.subClassOf,
+                model.createResource("http://purl.obolibrary.org/obo/GO_0030154"));
+
+        Resource genericBpClass = model.createResource("http://example.org/GenericBPClass");
+        genericBpClass.addProperty(RDF.type, OWL.Class)
+                .addProperty(RDFS.subClassOf,
+                        model.createResource("http://purl.obolibrary.org/obo/GO_0008150"));
+        addEntityProperties(
+                model.createResource("http://example.org/generic-bp"),
+                genericBpClass,
+                model.getProperty("http://purl.org/dc/elements/1.1/contributor"),
+                model.getProperty("http://purl.org/dc/elements/1.1/date"),
+                model.createTypedLiteral("test", XSDDatatype.XSDstring));
+
+        model.getResource(MF).addProperty(model.getProperty(PART_OF), model.getResource(BP));
+        model.getResource(BP).addProperty(model.getProperty(PART_OF), model.getResource(CC));
+
+        ShexValidationReport report = validator.runShapeMapValidation(model);
+
+        assertFalse(report.isConformant());
+        assertEquals(1, report.getViolations().size());
+        ShexViolation violation = (ShexViolation) report.getViolations().iterator().next();
+        assertEquals(BP, violation.getNode());
+        assertEquals(CELL_DIFFERENTIATION_SHAPE,
+                violation.getExplanations().iterator().next().getShape());
     }
 
     @Test
