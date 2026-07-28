@@ -100,9 +100,9 @@ public class GPADRenderer {
             }
         } else {
             if (relationShorthandIndex.containsKey(iri)) {
-                return relationShorthandIndex.get(iri) + "|" + operator.name();
+                return operator.name() + "|" + relationShorthandIndex.get(iri);
             } else {
-                return curieHandler.getCuri(iri) + "|" + operator.name();
+                return operator.name() + "|" + curieHandler.getCuri(iri);
             }
         }
     }
