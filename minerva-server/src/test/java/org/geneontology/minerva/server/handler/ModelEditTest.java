@@ -1,7 +1,6 @@
 package org.geneontology.minerva.server.handler;
 
 import org.apache.commons.io.IOUtils;
-import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -18,9 +17,7 @@ import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.model.parameters.OntologyCopy;
-import owltools.io.ParserWrapper;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.*;
@@ -41,10 +38,10 @@ public class ModelEditTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        init(new ParserWrapper());
+        init();
     }
 
-    static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
+    static void init() throws OWLOntologyCreationException, IOException {
         final OWLOntology tbox = TestOntology.load();
         // curie handler
         final String modelIdcurie = "gomodel";

@@ -67,8 +67,11 @@ obo:CHEBI_24431 a owl:Class ; rdfs:label "chemical entity" .
 obo:CHEBI_33695 a owl:Class ; rdfs:label "information biomacromolecule" ; rdfs:subClassOf obo:CHEBI_24431 .
 obo:CHEBI_36080 a owl:Class ; rdfs:label "protein" ; rdfs:subClassOf obo:CHEBI_33695 .
 obo:CARO_0000000 a owl:Class ; rdfs:label "anatomical entity" .
-obo:CL_0000003 a owl:Class ; rdfs:label "native cell" ; rdfs:subClassOf obo:CARO_0000000 .
-obo:CL_0000000 a owl:Class ; rdfs:label "cell" ; rdfs:subClassOf obo:CL_0000003, obo:UBERON_0001062 .
+obo:CL_0000000 a owl:Class ; rdfs:label "cell" ; rdfs:subClassOf obo:UBERON_0001062 .
+# CL_0000003 "native cell" has since been obsoleted in CL, and go-cam-shapes.shex has moved to
+# CL_0000000. It is retained here only because minerva-server's pinned validate.shex still keys
+# its <NativeCell> shape off CL_0000003; drop it once that copy is refreshed from go-shapes.
+obo:CL_0000003 a owl:Class ; rdfs:label "native cell" ; rdfs:subClassOf obo:CL_0000000 .
 obo:ECO_0000000 a owl:Class ; rdfs:label "evidence" .
 obo:GO_0003674 a owl:Class ; rdfs:label "molecular function" ; rdfs:subClassOf reacto:molecular_event .
 obo:GO_0003824 a owl:Class ; rdfs:label "catalytic activity" ; rdfs:subClassOf obo:GO_0003674 .
@@ -176,15 +179,15 @@ obo:GO_0030430 rdfs:subClassOf obo:GO_0005575, obo:GO_0110165 .
 obo:GO_0032390 rdfs:subClassOf obo:GO_0032991 .
 obo:GO_0043853 rdfs:subClassOf obo:GO_0032991 .
 obo:GO_0110165 a owl:Class ; rdfs:label "cellular anatomical entity" ; rdfs:subClassOf obo:UBERON_0001062 .
-obo:CL_0000047 rdfs:subClassOf obo:CL_0000000 .
-obo:WBbt_0003672 rdfs:subClassOf obo:CL_0000000 .
-obo:WBbt_0003679 rdfs:subClassOf obo:CL_0000000 .
+obo:CL_0000047 rdfs:subClassOf obo:CL_0000003 .
+obo:WBbt_0003672 rdfs:subClassOf obo:CL_0000003 .
+obo:WBbt_0003679 rdfs:subClassOf obo:CL_0000003 .
 obo:WBbt_0005733 rdfs:subClassOf obo:UBERON_0001062 .
-obo:WBbt_0005753 rdfs:subClassOf obo:CL_0000000 .
+obo:WBbt_0005753 rdfs:subClassOf obo:CL_0000003 .
 obo:WBbt_0006748 rdfs:subClassOf obo:UBERON_0001062 .
 obo:WBbt_0006748 rdfs:subClassOf obo:WBbt_0008422 .
-obo:WBbt_0006808 rdfs:subClassOf obo:CL_0000000 .
-obo:WBbt_0008260 rdfs:subClassOf obo:CL_0000000 .
+obo:WBbt_0006808 rdfs:subClassOf obo:CL_0000003 .
+obo:WBbt_0008260 rdfs:subClassOf obo:CL_0000003 .
 obo:WBbt_0008422 rdfs:subClassOf obo:UBERON_0001062 .
 
 # Evidence classes and the one superclass walk used by FindGoCodesTest.

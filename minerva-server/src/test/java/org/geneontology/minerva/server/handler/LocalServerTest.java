@@ -10,7 +10,6 @@ import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
-import org.geneontology.minerva.test.TestOntology;
 import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.StartUpTool.MinervaStartUpConfig;
@@ -18,10 +17,7 @@ import org.geneontology.minerva.server.handler.M3BatchHandler.*;
 import org.geneontology.minerva.test.TestOntology;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
-import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntology;
-import owltools.io.ParserWrapper;
 
 import java.io.File;
 import java.net.HttpURLConnection;
@@ -46,7 +42,7 @@ public class LocalServerTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        init(new ParserWrapper());
+        init();
     }
 
     @AfterClass
@@ -60,7 +56,7 @@ public class LocalServerTest {
     public void after() {
     }
 
-    static void init(ParserWrapper pw) throws Exception {
+    static void init() throws Exception {
         final OWLOntology tbox = TestOntology.load();
         // curie handler
         final String modelIdcurie = "gomodel";

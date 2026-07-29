@@ -26,7 +26,6 @@ import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.parameters.Imports;
-import owltools.io.ParserWrapper;
 
 import java.io.IOException;
 import java.util.*;
@@ -53,10 +52,10 @@ public class BatchModelHandlerTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        init(new ParserWrapper());
+        init();
     }
 
-    static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException, UnknownIdentifierException {
+    static void init() throws OWLOntologyCreationException, IOException, UnknownIdentifierException {
         final MinervaOWLGraphWrapper graph = new MinervaOWLGraphWrapper(TestOntology.load());
         final OWLObjectProperty legorelParent = StartUpTool.getRelation("http://purl.obolibrary.org/obo/LEGOREL_0000000", graph);
         assertNotNull(legorelParent);

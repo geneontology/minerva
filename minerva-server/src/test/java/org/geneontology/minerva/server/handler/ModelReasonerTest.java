@@ -6,7 +6,6 @@ import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
-import org.geneontology.minerva.test.TestOntology;
 import org.geneontology.minerva.json.JsonOwlIndividual;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.*;
@@ -17,10 +16,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.rules.TemporaryFolder;
-import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;

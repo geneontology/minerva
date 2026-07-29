@@ -5,7 +5,6 @@ import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
-import org.geneontology.minerva.test.TestOntology;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.*;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
@@ -13,14 +12,10 @@ import org.geneontology.minerva.test.TestOntology;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.elk.owlapi.ElkReasonerFactory;
-import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
-import owltools.io.ParserWrapper;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,10 +37,10 @@ public class ParallelModelReasonerTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        init(new ParserWrapper());
+        init();
     }
 
-    static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
+    static void init() throws OWLOntologyCreationException, IOException {
         final OWLOntology tbox = TestOntology.load();
         // curie handler
         final String modelIdcurie = "gomodel";

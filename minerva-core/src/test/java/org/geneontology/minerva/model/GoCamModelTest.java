@@ -14,7 +14,9 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyManager;
 
 import java.io.File;
+import java.util.Set;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -54,27 +56,27 @@ public class GoCamModelTest {
         CurieHandler curieHandler = new MappedCurieHandler();
         String inputDB = folder.newFile().getAbsolutePath();
 //load it into a journal and launch an m3
-        UndoAwareMolecularModelManager m3 = null;
+        File f = new File(gocam_dir);
+        assertTrue("missing test model directory " + f.getAbsolutePath(), f.isDirectory());
+        //remove anything that existed from previous runs
+        File bgdb = new File(inputDB);
+        if (bgdb.exists()) {
+            bgdb.delete();
+        }
+        //set it up with empty db
+        UndoAwareMolecularModelManager m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler,
+                "gomodel", inputDB, null, TestOntology.newJournalPath(folder.getRoot()), false);
         try {
-            File f = new File(gocam_dir);
-            if (f.isDirectory()) {
-                //remove anything that existed from previous runs
-                File bgdb = new File(inputDB);
-                if (bgdb.exists()) {
-                    bgdb.delete();
-                }
-                //set it up with empty db
-                m3 = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, "gomodel", inputDB, null,
-                        TestOntology.newJournalPath(folder.getRoot()), false);
-                //load the db
-                for (File file : f.listFiles()) {
-                    if (file.getName().endsWith("ttl")) {
-                        m3.importModelToDatabase(file, true);
-                    }
+            //load the db
+            for (File file : f.listFiles()) {
+                if (file.getName().endsWith("ttl")) {
+                    m3.importModelToDatabase(file, true);
                 }
             }
-//read it back out and check on stats		
-            for (IRI modelIRI : m3.getAvailableModelIds()) {
+//read it back out and check on stats
+            Set<IRI> modelIRIs = m3.getAvailableModelIds();
+            assertEquals("wrong number of models loaded from " + gocam_dir, 4, modelIRIs.size());
+            for (IRI modelIRI : modelIRIs) {
                 ModelContainer mc = m3.getModel(modelIRI);
                 OWLOntology gocam_via_mc = mc.getAboxOntology();
                 GoCamModel g = new GoCamModel(gocam_via_mc, m3);
@@ -103,9 +105,7 @@ public class GoCamModelTest {
                 }
             }
         } finally {
-            if (m3 != null) {
-                m3.dispose();
-            }
+            m3.dispose();
         }
     }
 
