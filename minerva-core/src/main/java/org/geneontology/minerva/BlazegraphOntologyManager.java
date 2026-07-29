@@ -53,6 +53,7 @@ public class BlazegraphOntologyManager {
         root_types.add("http://purl.obolibrary.org/obo/GO_0003674"); //MF
         root_types.add("http://purl.obolibrary.org/obo/go/extensions/reacto.owl#molecular_event");//ME
         root_types.add("http://purl.obolibrary.org/obo/GO_0005575"); //CC
+        root_types.add("http://purl.obolibrary.org/obo/GO_0044423"); //virion component
         root_types.add("http://purl.obolibrary.org/obo/GO_0032991"); //Complex
         root_types.add("http://purl.obolibrary.org/obo/CHEBI_36080"); //protein
         root_types.add("http://purl.obolibrary.org/obo/CHEBI_33695"); //information biomacromolecule

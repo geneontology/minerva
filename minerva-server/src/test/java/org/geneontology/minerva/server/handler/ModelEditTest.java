@@ -1,7 +1,6 @@
 package org.geneontology.minerva.server.handler;
 
 import org.apache.commons.io.IOUtils;
-import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.ModelContainer;
 import org.geneontology.minerva.UndoAwareMolecularModelManager;
 import org.geneontology.minerva.curie.CurieHandler;
@@ -12,14 +11,13 @@ import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.handler.M3BatchHandler.*;
 import org.geneontology.minerva.server.handler.M3BatchHandler.M3BatchResponse.MetaResponse;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
+import org.geneontology.minerva.test.TestOntology;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.model.parameters.OntologyCopy;
-import owltools.io.ParserWrapper;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.*;
@@ -37,23 +35,22 @@ public class ModelEditTest {
     private static CurieHandler curieHandler = null;
     private static JsonOrJsonpBatchHandler handler = null;
     private static UndoAwareMolecularModelManager models = null;
-    static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        init(new ParserWrapper());
+        init();
     }
 
-    static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException {
-        //This includes only the needed terms for the test to pass
-        final OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(new File("src/test/resources/edit-test/go-lego-empty.owl")));
+    static void init() throws OWLOntologyCreationException, IOException {
+        final OWLOntology tbox = TestOntology.load();
         // curie handler
         final String modelIdcurie = "gomodel";
         final String modelIdPrefix = "http://model.geneontology.org/";
         final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
         curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
 
-        models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null, go_lego_journal_file, true);
+        models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix,
+                folder.newFile().getAbsolutePath(), null, TestOntology.newJournalPath(folder.getRoot()), false);
         InferenceProviderCreator ipc = null;
         handler = new JsonOrJsonpBatchHandler(models, "development", ipc,
                 Collections.<OWLObjectProperty>emptySet(), (ExternalLookupService) null);

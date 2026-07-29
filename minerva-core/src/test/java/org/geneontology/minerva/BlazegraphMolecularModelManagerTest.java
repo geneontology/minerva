@@ -9,6 +9,7 @@ import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
 import org.geneontology.minerva.json.SPARQLResultJSONRenderer;
+import org.geneontology.minerva.test.TestOntology;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.Rule;
 import org.junit.Test;
@@ -28,8 +29,6 @@ import static org.junit.Assert.*;
 
 public class BlazegraphMolecularModelManagerTest {
     private final CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
-    static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
-
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
@@ -306,7 +305,9 @@ public class BlazegraphMolecularModelManagerTest {
         prefixes.put("ex", "http://example.org/");
         prefixes.put("GO", "http://purl.obolibrary.org/obo/GO_");
         CurieHandler curieHandler = new MappedCurieHandler(prefixes);
-        BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(tbox, curieHandler, "http://model.geneontology.org/", journalPath, tempRootPath, go_lego_journal_file, true);
+        BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(tbox, curieHandler,
+                "http://model.geneontology.org/", journalPath, tempRootPath,
+                TestOntology.newJournalPath(folder.getRoot()), false);
         return m3;
     }
 

@@ -33,6 +33,7 @@ import org.geneontology.minerva.server.GsonMessageBodyHandler;
 import org.geneontology.minerva.server.RequireJsonpFilter;
 import org.geneontology.minerva.server.handler.M3BatchHandler.*;
 import org.geneontology.minerva.server.handler.ModelSearchHandler.ModelSearchResult;
+import org.geneontology.minerva.test.TestOntology;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.junit.*;
@@ -40,7 +41,6 @@ import org.junit.rules.TemporaryFolder;
 import org.openrdf.repository.RepositoryException;
 import org.openrdf.rio.RDFHandlerException;
 import org.openrdf.rio.RDFParseException;
-import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 
 import java.io.File;
@@ -64,11 +64,10 @@ import static org.junit.Assert.assertTrue;
 public class ModelSearchHandlerTest {
     private static final Logger LOGGER = Logger.getLogger(ModelSearchHandlerTest.class);
     static Server server;
-    static final String ontologyIRI = "http://purl.obolibrary.org/obo/go/extensions/go-lego.owl";
     static final String modelIdcurie = "http://model.geneontology.org/";
     static final String modelIdPrefix = "gomodel";
-    static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
     static OWLOntology tbox_ontology;
+    static String ontologyJournal;
     static CurieHandler curieHandler;
     static UndoAwareMolecularModelManager models;
     private static JsonOrJsonpBatchHandler handler;
@@ -89,11 +88,10 @@ public class ModelSearchHandlerTest {
         curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
         String valid_model_folder = "src/test/resources/models/should_pass/";
         String model_save = "src/test/resources/models/tmp/";
+        tbox_ontology = TestOntology.load();
+        ontologyJournal = TestOntology.newJournalPath(tmp.getRoot());
         String inputDB = makeBlazegraphJournal(valid_model_folder);
-        //leave tbox empty for now
-        OWLOntologyManager ontman = OWLManager.createOWLOntologyManager();
-        tbox_ontology = ontman.createOntology(IRI.create("http://example.org/dummy"));
-        models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, model_save, go_lego_journal_file, true);
+        models = new UndoAwareMolecularModelManager(tbox_ontology, curieHandler, modelIdPrefix, inputDB, model_save, ontologyJournal, false);
         models.addTaxonMetadata();
 
         LOGGER.info("Setup Jetty config.");
@@ -632,8 +630,7 @@ public class ModelSearchHandlerTest {
                 bgdb.delete();
             }
             //load everything into a bg journal
-            OWLOntology dummy = OWLManager.createOWLOntologyManager().createOntology(IRI.create("http://example.org/dummy"));
-            BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, inputDB, null, go_lego_journal_file, true);
+            BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(tbox_ontology, curieHandler, modelIdPrefix, inputDB, null, ontologyJournal, false);
             if (i.isDirectory()) {
                 FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file -> {
                     if (file.getName().endsWith(".ttl") || file.getName().endsWith("owl")) {
