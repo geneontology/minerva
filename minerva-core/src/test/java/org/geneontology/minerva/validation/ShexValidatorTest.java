@@ -7,9 +7,13 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.test.TestOntology;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.semanticweb.owlapi.model.OWLOntology;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,8 +24,6 @@ import static org.junit.Assert.assertTrue;
 
 public class ShexValidatorTest {
 
-    //TODO set up some kind of a configuration file that encapsulates these files
-    static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
     static final String schemaFile = "src/test/resources/validation/go-cam-shapes.shex";
     static final String metadataSchemaFile = "src/test/resources/validation/metadata-shapes.shex";
     static final String metadataShapemapFile = "src/test/resources/validation/metadata.shapemap";
@@ -30,9 +32,13 @@ public class ShexValidatorTest {
     static ShexValidator shexMeta;
     static BlazegraphOntologyManager go_lego;
 
+    @ClassRule
+    public static TemporaryFolder folder = new TemporaryFolder();
+
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        go_lego = new BlazegraphOntologyManager(go_lego_journal_file, true);
+        OWLOntology ontology = TestOntology.load();
+        go_lego = new BlazegraphOntologyManager(TestOntology.newJournalPath(folder.getRoot()), false, ontology);
         CurieHandler curieHandler = DefaultCurieHandler.getDefaultHandler();
         shex = new ShexValidator(schemaFile, mainShapemapFile, go_lego, curieHandler);
         shexMeta = new ShexValidator(metadataSchemaFile, metadataShapemapFile, go_lego, curieHandler);

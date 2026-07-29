@@ -16,15 +16,16 @@ import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.handler.M3BatchHandler.*;
 import org.geneontology.minerva.server.inferences.CachingInferenceProviderCreatorImpl;
 import org.geneontology.minerva.server.inferences.InferenceProviderCreator;
+import org.geneontology.minerva.test.TestOntology;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
+import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.parameters.Imports;
-import owltools.io.ParserWrapper;
 
 import java.io.IOException;
 import java.util.*;
@@ -42,7 +43,6 @@ public class BatchModelHandlerTest {
     private static UndoAwareMolecularModelManager models = null;
     private static Set<OWLObjectProperty> importantRelations = null;
     private final static DateGenerator dateGenerator = new DateGenerator();
-    static final String ontology_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
     static final String uid = "test-user";
     static final Set<String> providedBy = Collections.singleton("test-provider");
     static final String intention = "test-intention";
@@ -52,11 +52,11 @@ public class BatchModelHandlerTest {
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        init(new ParserWrapper());
+        init();
     }
 
-    static void init(ParserWrapper pw) throws OWLOntologyCreationException, IOException, UnknownIdentifierException {
-        final MinervaOWLGraphWrapper graph = pw.parseToOWLGraph("src/test/resources/go-lego-minimal.owl");
+    static void init() throws OWLOntologyCreationException, IOException, UnknownIdentifierException {
+        final MinervaOWLGraphWrapper graph = new MinervaOWLGraphWrapper(TestOntology.load());
         final OWLObjectProperty legorelParent = StartUpTool.getRelation("http://purl.obolibrary.org/obo/LEGOREL_0000000", graph);
         assertNotNull(legorelParent);
         importantRelations = StartUpTool.getAssertedSubProperties(legorelParent, graph);
@@ -67,7 +67,8 @@ public class BatchModelHandlerTest {
         final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
         curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
         InferenceProviderCreator ipc = CachingInferenceProviderCreatorImpl.createElk(false, null);
-        models = new UndoAwareMolecularModelManager(graph.getSourceOntology(), curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null, ontology_journal_file, true);
+        models = new UndoAwareMolecularModelManager(graph.getSourceOntology(), curieHandler, modelIdPrefix,
+                folder.newFile().getAbsolutePath(), null, TestOntology.newJournalPath(folder.getRoot()), false);
         lookupService = createTestProteins(curieHandler);
         handler = new JsonOrJsonpBatchHandler(models, "development", ipc, importantRelations, lookupService) {
 
@@ -995,7 +996,7 @@ public class BatchModelHandlerTest {
         assertNotNull(exportString);
     }
 
-    //FIXME @Test
+    @Test
     public void testUndoRedo() throws Exception {
         final String modelId = generateBlankModel();
 
@@ -1034,7 +1035,7 @@ public class BatchModelHandlerTest {
         final M3BatchResponse response2 = execute(r2, false);
         List<Object> undo2 = (List<Object>) response2.data.undo;
         List<Object> redo2 = (List<Object>) response2.data.redo;
-        assertTrue(undo2.size() > 1);
+        assertEquals(1, undo2.size());
         assertTrue(redo2.isEmpty());
 
         // delete
@@ -1064,8 +1065,10 @@ public class BatchModelHandlerTest {
         final M3BatchResponse response4 = execute(r4, false);
         List<Object> undo4 = (List<Object>) response4.data.undo;
         List<Object> redo4 = (List<Object>) response4.data.redo;
-        assertTrue(undo4.size() > 1);
+        assertEquals(2, undo4.size());
         assertTrue(redo4.isEmpty());
+        OWLOntology modelAbox = models.getModel(curieHandler.getIRI(modelId)).getAboxOntology();
+        assertEquals(4, modelAbox.getAnnotations().size());
 
         // undo
         final M3Request r5 = new M3Request();
@@ -1075,6 +1078,8 @@ public class BatchModelHandlerTest {
         r5.arguments.modelId = modelId;
 
         execute(r5, false);
+
+        assertEquals("Undoing the last change should not remove the contributor annotations, which were added earlier", 4, modelAbox.getAnnotations().size());
 
         // check undo redo list
         final M3Request r6 = new M3Request();
@@ -1086,9 +1091,8 @@ public class BatchModelHandlerTest {
         final M3BatchResponse response6 = execute(r6, false);
         List<Object> undo6 = (List<Object>) response6.data.undo;
         List<Object> redo6 = (List<Object>) response6.data.redo;
-        assertTrue(undo6.size() > 1);
-        assertTrue(redo6.size() == 1);
-
+        assertEquals(1, undo6.size());
+        assertEquals(1, redo6.size());
     }
 
     //FIXME @Test
@@ -2185,6 +2189,51 @@ public class BatchModelHandlerTest {
         assertEquals(intention, response.intention);
         assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
         return response;
+    }
+
+    @Test
+    public void testAddDuplicateEdgeRejected() throws Exception {
+        final String modelId = generateBlankModel();
+
+        // Create two individuals and an edge between them
+        final List<M3Request> batch1 = new ArrayList<M3Request>();
+        M3Request r = BatchTestTools.addIndividual(modelId, "GO:0003674");
+        r.arguments.assignToVariable = "mf";
+        batch1.add(r);
+
+        r = BatchTestTools.addIndividual(modelId, "GO:0008150");
+        r.arguments.assignToVariable = "bp";
+        batch1.add(r);
+
+        r = BatchTestTools.addEdge(modelId, "mf", "BFO:0000050", "bp");
+        batch1.add(r);
+
+        final M3BatchResponse response1 = executeBatch(batch1, false);
+        JsonOwlIndividual[] iObjs = BatchTestTools.responseIndividuals(response1);
+        assertEquals(2, iObjs.length);
+
+        // Find the created individual IDs
+        String mf = null;
+        String bp = null;
+        for (JsonOwlIndividual iObj : iObjs) {
+            String typeId = iObj.type[0].id;
+            if ("GO:0003674".equals(typeId)) {
+                mf = iObj.id;
+            } else if ("GO:0008150".equals(typeId)) {
+                bp = iObj.id;
+            }
+        }
+        assertNotNull(mf);
+        assertNotNull(bp);
+
+        // Try to add the same edge again — should be rejected
+        final List<M3Request> batch2 = new ArrayList<M3Request>();
+        r = BatchTestTools.addEdge(modelId, mf, "BFO:0000050", bp);
+        batch2.add(r);
+
+        M3BatchResponse response2 = handler.m3Batch(uid, providedBy, intention, packetId, batch2.toArray(new M3Request[batch2.size()]), false, true);
+        assertEquals(M3BatchResponse.MESSAGE_TYPE_ERROR, response2.messageType);
+        assertTrue(response2.message.contains("already exists"));
     }
 
     /**

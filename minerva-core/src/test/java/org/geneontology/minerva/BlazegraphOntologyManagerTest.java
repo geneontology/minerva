@@ -3,15 +3,22 @@
  */
 package org.geneontology.minerva;
 
+import org.geneontology.minerva.test.TestOntology;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.semanticweb.owlapi.model.OWLOntology;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -19,18 +26,18 @@ import static org.junit.Assert.assertTrue;
  *
  */
 public class BlazegraphOntologyManagerTest {
-    //if the file isn't there, it will try to download it from
-    //BlazegraphOntologyManager.http://skyhook.berkeleybop.org/issue-35-neo-test/products/blazegraph/blazegraph-go-lego.jnl.gz
-    //can override the download by providing the file at the specified location
-    static final String ontology_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
     static BlazegraphOntologyManager onto_repo;
+
+    @ClassRule
+    public static TemporaryFolder folder = new TemporaryFolder();
 
     /**
      * @throws java.lang.Exception
      */
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        onto_repo = new BlazegraphOntologyManager(ontology_journal_file, true);
+        OWLOntology ontology = TestOntology.load();
+        onto_repo = new BlazegraphOntologyManager(TestOntology.newJournalPath(folder.getRoot()), false, ontology);
     }
 
     /**
@@ -77,9 +84,13 @@ public class BlazegraphOntologyManagerTest {
     @Test
     public void testGetAllTaxaWithGenes() throws IOException {
         Set<String> taxa = onto_repo.getAllTaxaWithGenes();
-        assertTrue("taxa has more than a hundred entries", taxa.size() > 100);
-        assertTrue("taxa contains NCBITaxon_44689", taxa.contains("http://purl.obolibrary.org/obo/NCBITaxon_44689"));
-        assertTrue("taxa contains NCBITaxon_9606", taxa.contains("http://purl.obolibrary.org/obo/NCBITaxon_9606"));
+        Set<String> expected = new HashSet<>(Arrays.asList(
+                "http://purl.obolibrary.org/obo/NCBITaxon_44689",
+                "http://purl.obolibrary.org/obo/NCBITaxon_559292",
+                "http://purl.obolibrary.org/obo/NCBITaxon_6239",
+                "http://purl.obolibrary.org/obo/NCBITaxon_7955",
+                "http://purl.obolibrary.org/obo/NCBITaxon_9606"));
+        assertEquals("focused fixture taxa", expected, taxa);
     }
 
     /**
@@ -205,6 +216,9 @@ public class BlazegraphOntologyManagerTest {
         String cc = "http://purl.obolibrary.org/obo/GO_0000776";
         String bp = "http://purl.obolibrary.org/obo/GO_0022607";
         String mf = "http://purl.obolibrary.org/obo/GO_0060090";
+        String obsoleteCC = "http://purl.obolibrary.org/obo/GO_0005810";
+        String obsoleteBP = "http://purl.obolibrary.org/obo/GO_2000803";
+        String obsoleteMF = "http://purl.obolibrary.org/obo/GO_0008529";
         String human_protein = "http://identifiers.org/uniprot/Q13253";
         String zfin_protein = "http://identifiers.org/zfin/ZDB-GENE-010410-3";
         String worm_gene = "http://identifiers.org/wormbase/WBGene00000275";
@@ -213,6 +227,9 @@ public class BlazegraphOntologyManagerTest {
         uris.add(cc);
         uris.add(bp);
         uris.add(mf);
+        uris.add(obsoleteCC);
+        uris.add(obsoleteBP);
+        uris.add(obsoleteMF);
         uris.add(human_protein);
         uris.add(zfin_protein);
         uris.add(worm_gene);
@@ -238,6 +255,15 @@ public class BlazegraphOntologyManagerTest {
         //molecular function
         supers = uri_roots.get(mf);
         assertTrue("GO_0060090 not subclass of molecular function GO_0003674", supers.contains("http://purl.obolibrary.org/obo/GO_0003674"));
+        // Obsolete biological process
+        supers = uri_roots.get(obsoleteBP);
+        assertTrue("GO_2000803 should be in namespace biological_process", supers.contains("http://purl.obolibrary.org/obo/GO_0008150"));
+        // Obsolete molecular function
+        supers = uri_roots.get(obsoleteMF);
+        assertTrue("GO_0008529 should be in namespace molecular_function", supers.contains("http://purl.obolibrary.org/obo/GO_0003674"));
+        // Obsolete cellular component
+        supers = uri_roots.get(obsoleteCC);
+        assertTrue("GO_0005810 should be in namespace molecular_function", supers.contains("http://purl.obolibrary.org/obo/GO_0005575"));
         //Gene products
         //uniprot
         supers = uri_roots.get(human_protein);
@@ -269,6 +295,14 @@ public class BlazegraphOntologyManagerTest {
         assertTrue("ComplexPortal_CPX-9 should be a protein-containing complex", supers.contains("http://purl.obolibrary.org/obo/GO_0032991"));
         supers = uri_roots.get(cp2);
         assertTrue("ComplexPortal_CPX-4082 should be a protein-containing complex", supers.contains("http://purl.obolibrary.org/obo/GO_0032991"));
+    }
+
+    @Test
+    public void testTaxonRootType() throws IOException {
+        String taxon = "http://purl.obolibrary.org/obo/NCBITaxon_575614";
+        String root = "http://purl.obolibrary.org/obo/NCBITaxon_1";
+        Map<String, Set<String>> map = onto_repo.getSuperCategoryMap(Collections.singleton(taxon));
+        assertTrue(map.get(taxon).contains(root));
     }
 
 }

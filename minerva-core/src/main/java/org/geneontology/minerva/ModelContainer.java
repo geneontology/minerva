@@ -138,23 +138,31 @@ public class ModelContainer {
         }
     }
 
+    /**
+     * @param changes the changes to apply
+     * @return the changes that had an effect when applied
+     */
     public List<OWLOntologyChange> applyChanges(List<? extends OWLOntologyChange> changes) {
-        ChangeApplied applied = getOWLOntologyManager().applyChanges(changes);
-        if (applied == ChangeApplied.SUCCESSFULLY) {
-            List<OWLOntologyChange> relevantChanges = new ArrayList<>();
-            for (OWLOntologyChange change : changes) {
-                if (aboxOntology.equals(change.getOntology())) {
-                    aboxModified = true;
-                    relevantChanges.add(change);
-                }
-            }
-            if (relevantChanges.isEmpty() == false) {
-                for (ModelChangeListener listener : listeners) {
-                    listener.handleChange(relevantChanges);
-                }
+        // Some changes will add an axiom already in the ontology; these are no-ops and should
+        // not be added to the Undo stack
+        List<OWLOntologyChange> effectfulChanges = new ArrayList<>();
+        for (OWLOntologyChange change : changes) {
+            ChangeApplied applied = getOWLOntologyManager().applyChange(change);
+            if (applied == ChangeApplied.SUCCESSFULLY) effectfulChanges.add(change);
+        }
+        List<OWLOntologyChange> relevantChanges = new ArrayList<>();
+        for (OWLOntologyChange change : effectfulChanges) {
+            if (aboxOntology.equals(change.getOntology())) {
+                aboxModified = true;
+                relevantChanges.add(change);
             }
         }
-        return new ArrayList<OWLOntologyChange>(changes);
+        if (!relevantChanges.isEmpty()) {
+            for (ModelChangeListener listener : listeners) {
+                listener.handleChange(relevantChanges);
+            }
+        }
+        return new ArrayList<>(effectfulChanges);
     }
 
     public boolean isModified() {

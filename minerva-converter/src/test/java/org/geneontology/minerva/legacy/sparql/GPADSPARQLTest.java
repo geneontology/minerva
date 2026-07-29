@@ -55,10 +55,11 @@ public class GPADSPARQLTest {
         Set<Triple> triples = model.listStatements().toList().stream().map(s -> Bridge.tripleFromJena(s.asTriple())).collect(Collectors.toSet());
         WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
         String gpad = exporter.exportGPAD(mem, IRI.create("http://test.org"));
-        int lines = gpad.split("\n", -1).length;
+        String[] lines = gpad.split("\n", -1);
+        Arrays.stream(lines).filter(l -> !l.startsWith("!") && !l.isEmpty()).forEach(l -> Assert.assertEquals("Each GPAD line should have 12 columns", 12, l.split("\t", -1).length));
         //TODO test contents of annotations; dumb test for now
         Assert.assertTrue(gpad.contains("model-state=production"));
-        Assert.assertTrue("Should produce annotations", lines > 2);
+        Assert.assertTrue("Should produce annotations", lines.length > 2);
     }
 
 
@@ -107,11 +108,12 @@ public class GPADSPARQLTest {
         List<String> lines = FileUtils.readLines(new File("src/test/resources/59d1072300000074.gpad"), "UTF-8");
         /* The order of the rows in the GPAD file can be different, so we compare rows by rows */
         for (String gpadOutputRow : gpadOutputArr) {
-            /* Additionally check all rows's qualifier contains |NOT substring inside */
+            /* Additionally check all rows's qualifier starts with the NOT operator */
             String gpadRowArr[] = gpadOutputRow.split("\t");
-            /* Skip checking the header; all rows need to contain NOT in its qualifier */
+            /* Skip checking the header; all rows need to start with NOT in its qualifier */
             if (gpadRowArr.length > 2) {
-                Assert.assertTrue(gpadRowArr[2].contains("|NOT"));
+                Assert.assertTrue(gpadRowArr[2].startsWith("NOT|"));
+                Assert.assertFalse(gpadRowArr[2].endsWith("|NOT"));
             }
         }
     }

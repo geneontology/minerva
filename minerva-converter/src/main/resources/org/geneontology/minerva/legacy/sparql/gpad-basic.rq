@@ -109,6 +109,7 @@ WHERE {
 	} 
   
   # molecular function annotations must only use 'enables' or 'contributes to'
+  # FIXME this doesn't work when class hierarchy is not used in reasoning
   FILTER(!(
     (EXISTS { ?target rdf:type molecular_function: }) 
     && 

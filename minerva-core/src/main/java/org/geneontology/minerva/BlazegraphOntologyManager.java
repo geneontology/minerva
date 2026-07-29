@@ -53,6 +53,7 @@ public class BlazegraphOntologyManager {
         root_types.add("http://purl.obolibrary.org/obo/GO_0003674"); //MF
         root_types.add("http://purl.obolibrary.org/obo/go/extensions/reacto.owl#molecular_event");//ME
         root_types.add("http://purl.obolibrary.org/obo/GO_0005575"); //CC
+        root_types.add("http://purl.obolibrary.org/obo/GO_0044423"); //virion component
         root_types.add("http://purl.obolibrary.org/obo/GO_0032991"); //Complex
         root_types.add("http://purl.obolibrary.org/obo/CHEBI_36080"); //protein
         root_types.add("http://purl.obolibrary.org/obo/CHEBI_33695"); //information biomacromolecule
@@ -66,22 +67,35 @@ public class BlazegraphOntologyManager {
         root_types.add("http://purl.obolibrary.org/obo/PO_0009012"); // plant structure development stage
         root_types.add("http://purl.obolibrary.org/obo/GO_0044848"); // biological phase
         root_types.add("http://purl.obolibrary.org/obo/ECO_0000000"); //evidence root.
+        root_types.add("http://purl.obolibrary.org/obo/NCBITaxon_1"); //organism
     }
 
-    public BlazegraphOntologyManager(String go_lego_repo_file, boolean downloadJournal) throws IOException {
-        if (!new File(go_lego_repo_file).exists() && downloadJournal) {
-            LOG.info("No blazegraph tbox journal found at " + go_lego_repo_file + " . Downloading from " + public_blazegraph_url + " and putting there.");
-            URL blazegraph_url = new URL(public_blazegraph_url);
-            File go_lego_repo_local = new File(go_lego_repo_file);
-            if (public_blazegraph_url.endsWith(".gz")) {
-                go_lego_repo_local = new File(go_lego_repo_file + ".gz");
-            }
-            org.apache.commons.io.FileUtils.copyURLToFile(blazegraph_url, go_lego_repo_local);
-            if (public_blazegraph_url.endsWith(".gz")) {
-                unGunzipFile(go_lego_repo_file + ".gz", go_lego_repo_file);
+    public BlazegraphOntologyManager(String go_lego_repo_file, boolean downloadJournal, OWLOntology tbox) throws IOException {
+        boolean loadOntologyIntoJournal = false;
+        if (!new File(go_lego_repo_file).exists()) {
+            if (downloadJournal) {
+                LOG.info("No blazegraph tbox journal found at " + go_lego_repo_file + " . Downloading from " + public_blazegraph_url + " and putting there.");
+                URL blazegraph_url = new URL(public_blazegraph_url);
+                File go_lego_repo_local = new File(go_lego_repo_file);
+                if (public_blazegraph_url.endsWith(".gz")) {
+                    go_lego_repo_local = new File(go_lego_repo_file + ".gz");
+                }
+                org.apache.commons.io.FileUtils.copyURLToFile(blazegraph_url, go_lego_repo_local);
+                if (public_blazegraph_url.endsWith(".gz")) {
+                    unGunzipFile(go_lego_repo_file + ".gz", go_lego_repo_file);
+                }
+            } else if (tbox != null) {
+                loadOntologyIntoJournal = true;
             }
         }
         go_lego_repo = initializeRepository(go_lego_repo_file);
+        if (loadOntologyIntoJournal) {
+            try {
+                this.loadRepositoryFromOntology(tbox, tbox.getOntologyID().getOntologyIRI().or(IRI.create("http://example.org/")).toString(), true);
+            } catch (OWLOntologyCreationException | RepositoryException | RDFParseException | RDFHandlerException e) {
+                throw new IOException(e);
+            }
+        }
         class_depth = buildClassDepthMap("http://purl.obolibrary.org/obo/GO_0003674");
         class_depth.putAll(buildClassDepthMap("http://purl.obolibrary.org/obo/GO_0008150"));
         class_depth.putAll(buildClassDepthMap("http://purl.obolibrary.org/obo/GO_0005575"));
@@ -411,11 +425,25 @@ public class BlazegraphOntologyManager {
                 }
                 categories += "} . ";
                 String query = "PREFIX owl: <http://www.w3.org/2002/07/owl#> " +
-                        "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> "
-                        + "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+                        "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> " +
+                        "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+                        "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#> " +
+                        "PREFIX oboInOwl: <http://www.geneontology.org/formats/oboInOwl#> " +
                         "SELECT ?sub ?super " +
-                        "WHERE { " + q + categories
-                        + "?sub rdfs:subClassOf* ?super . " +
+                        "WHERE { " + q + categories +
+                        " { ?sub rdfs:subClassOf* ?super . } " +
+                        " UNION " +
+                        " { ?sub owl:deprecated true . " +
+                        " ?sub oboInOwl:hasOBONamespace ?namespace . " +
+                        " VALUES (?namespace ?super) { " +
+                        " ( \"biological_process\" <http://purl.obolibrary.org/obo/GO_0008150> ) " +
+                        " ( \"molecular_function\" <http://purl.obolibrary.org/obo/GO_0003674> ) " +
+                        " ( \"cellular_component\" <http://purl.obolibrary.org/obo/GO_0005575> ) " +
+                        " ( \"biological_process\"^^xsd:string <http://purl.obolibrary.org/obo/GO_0008150> ) " +
+                        " ( \"molecular_function\"^^xsd:string <http://purl.obolibrary.org/obo/GO_0003674> ) " +
+                        " ( \"cellular_component\"^^xsd:string <http://purl.obolibrary.org/obo/GO_0005575> ) " +
+                        "  } " +
+                        " } " +
                         "} ";
                 TupleQuery tupleQuery = connection.prepareTupleQuery(QueryLanguage.SPARQL, query);
                 TupleQueryResult result = tupleQuery.evaluate();
@@ -626,6 +654,7 @@ public class BlazegraphOntologyManager {
                 String query =
                         "select distinct ?taxon  \n" +
                                 "where { \n" + expansion +
+                                "  ?gene <https://w3id.org/biolink/vocab/category> <https://w3id.org/biolink/vocab/MacromolecularMachine> .\n" +
                                 "  ?gene rdfs:subClassOf ?taxon_restriction .\n" +
                                 "  ?taxon_restriction owl:onProperty <http://purl.obolibrary.org/obo/RO_0002162> .\n" +
                                 "  ?taxon_restriction owl:someValuesFrom ?taxon \n" +

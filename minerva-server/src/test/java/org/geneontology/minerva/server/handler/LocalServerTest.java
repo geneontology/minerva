@@ -14,12 +14,10 @@ import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.StartUpTool.MinervaStartUpConfig;
 import org.geneontology.minerva.server.handler.M3BatchHandler.*;
+import org.geneontology.minerva.test.TestOntology;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
-import org.semanticweb.owlapi.apibinding.OWLManager;
-import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntology;
-import owltools.io.ParserWrapper;
 
 import java.io.File;
 import java.net.HttpURLConnection;
@@ -40,12 +38,11 @@ public class LocalServerTest {
     private static UndoAwareMolecularModelManager models = null;
     private static Server server = null;
     private static String urlPrefix;
-    static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
 
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        init(new ParserWrapper());
+        init();
     }
 
     @AfterClass
@@ -59,14 +56,15 @@ public class LocalServerTest {
     public void after() {
     }
 
-    static void init(ParserWrapper pw) throws Exception {
-        final OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntology(IRI.create(new File("src/test/resources/go-lego-minimal.owl")));
+    static void init() throws Exception {
+        final OWLOntology tbox = TestOntology.load();
         // curie handler
         final String modelIdcurie = "gomodel";
         final String modelIdPrefix = "http://model.geneontology.org/";
         final CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
         curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-        models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix, folder.newFile().getAbsolutePath(), null, go_lego_journal_file, true);
+        models = new UndoAwareMolecularModelManager(tbox, curieHandler, modelIdPrefix,
+                folder.newFile().getAbsolutePath(), null, TestOntology.newJournalPath(folder.getRoot()), false);
 
         MinervaStartUpConfig conf = new MinervaStartUpConfig();
         conf.reasonerOpt = "elk";

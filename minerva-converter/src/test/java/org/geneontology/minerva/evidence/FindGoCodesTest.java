@@ -4,12 +4,12 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.test.TestOntology;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLOntology;
-import owltools.io.ParserWrapper;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -24,8 +24,7 @@ public class FindGoCodesTest {
     public static void beforeClass() throws Exception {
         curieHandler = DefaultCurieHandler.getDefaultHandler();
         codes = new FindGoCodes(curieHandler);
-        ParserWrapper pw = new ParserWrapper();
-        eco = pw.parseOWL(IRI.create("http://purl.obolibrary.org/obo/eco.owl"));
+        eco = TestOntology.load();
     }
 
     @Test

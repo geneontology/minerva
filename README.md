@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/geneontology/minerva.svg?branch=master)](https://travis-ci.org/geneontology/minerva)
-
 A server for [Noctua](https://github.com/geneontology/noctua/)
 
 ## Usage

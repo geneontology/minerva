@@ -5,6 +5,7 @@ import org.apache.log4j.Logger;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.test.TestOntology;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.apibinding.OWLManager;
@@ -19,8 +20,6 @@ import java.util.Set;
 import static org.junit.Assert.*;
 
 public class MolecularModelManagerTest {
-    static final String go_lego_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
-
     // JUnit way of creating a temporary test folder
     // will be deleted after the test has run, by JUnit.
     @ClassRule
@@ -37,7 +36,9 @@ public class MolecularModelManagerTest {
     public static void createM3() throws OWLOntologyCreationException, IOException {
         File journal = folder.newFile();
         OWLOntology tbox = OWLManager.createOWLOntologyManager().loadOntologyFromOntologyDocument(MolecularModelManagerTest.class.getResourceAsStream("/go-mgi-signaling-test.obo"));
-        mmm = new MolecularModelManager<Void>(tbox, curieHandler, "http://testmodel.geneontology.org/", journal.getAbsolutePath(), folder.getRoot().getAbsolutePath(), go_lego_journal_file, true);
+        mmm = new MolecularModelManager<Void>(tbox, curieHandler, "http://testmodel.geneontology.org/",
+                journal.getAbsolutePath(), folder.getRoot().getAbsolutePath(),
+                TestOntology.newJournalPath(folder.getRoot()), false);
     }
 
     @AfterClass
