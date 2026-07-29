@@ -14,6 +14,7 @@ import org.geneontology.minerva.json.MolecularModelJsonRenderer;
 import org.geneontology.minerva.server.StartUpTool;
 import org.geneontology.minerva.server.StartUpTool.MinervaStartUpConfig;
 import org.geneontology.minerva.server.handler.M3BatchHandler.*;
+import org.geneontology.minerva.test.TestOntology;
 import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 import org.semanticweb.owlapi.model.OWLOntology;
