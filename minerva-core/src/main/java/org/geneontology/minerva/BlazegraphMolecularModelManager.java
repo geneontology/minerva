@@ -18,8 +18,8 @@ import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.util.AnnotationShorthand;
 import org.geneontology.minerva.util.BlazegraphMutationCounter;
-import org.geneontology.minerva.util.JenaOwlTool;
 import org.geneontology.minerva.util.DeterministicTurtleRenderer;
+import org.geneontology.minerva.util.JenaOwlTool;
 import org.geneontology.minerva.util.ReverseChangeGenerator;
 import org.openrdf.model.*;
 import org.openrdf.model.impl.URIImpl;

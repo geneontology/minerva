@@ -2,12 +2,13 @@ package org.geneontology.minerva.taxon;
 
 import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
+import org.geneontology.minerva.test.TestOntology;
 import org.junit.BeforeClass;
+import org.junit.Test;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLDataFactory;
 import org.semanticweb.owlapi.model.OWLOntology;
-import owltools.io.ParserWrapper;
 
 import static org.junit.Assert.assertNotNull;
 
@@ -18,12 +19,11 @@ public class FindTaxonToolTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        ParserWrapper pw = new ParserWrapper();
-        NEO = pw.parse("http://purl.obolibrary.org/obo/go/noctua/neo.owl");
+        NEO = TestOntology.load();
         curieHandler = DefaultCurieHandler.getDefaultHandler();
     }
 
-    //FIXME @Test //loads all of neo... make reduced copy
+    @Test
     public void test1() throws Exception {
         OWLDataFactory df = NEO.getOWLOntologyManager().getOWLDataFactory();
         FindTaxonTool tool = new FindTaxonTool(curieHandler, df);
@@ -32,7 +32,7 @@ public class FindTaxonToolTest {
         assertNotNull(taxon1);
     }
 
-    //FIXME @Test //loads all of neo... make reduced copy
+    @Test
     public void test2() throws Exception {
         OWLDataFactory df = NEO.getOWLOntologyManager().getOWLDataFactory();
         FindTaxonTool tool = new FindTaxonTool(curieHandler, df);
