@@ -3,16 +3,22 @@
  */
 package org.geneontology.minerva;
 
+import org.geneontology.minerva.test.TestOntology;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.semanticweb.owlapi.model.OWLOntology;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -20,18 +26,18 @@ import static org.junit.Assert.assertTrue;
  *
  */
 public class BlazegraphOntologyManagerTest {
-    //if the file isn't there, it will try to download it from
-    //BlazegraphOntologyManager.http://skyhook.berkeleybop.org/issue-35-neo-test/products/blazegraph/blazegraph-go-lego.jnl.gz
-    //can override the download by providing the file at the specified location
-    static final String ontology_journal_file = "/tmp/test-go-lego-blazegraph.jnl";
     static BlazegraphOntologyManager onto_repo;
+
+    @ClassRule
+    public static TemporaryFolder folder = new TemporaryFolder();
 
     /**
      * @throws java.lang.Exception
      */
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        onto_repo = new BlazegraphOntologyManager(ontology_journal_file, true, null);
+        OWLOntology ontology = TestOntology.load();
+        onto_repo = new BlazegraphOntologyManager(TestOntology.newJournalPath(folder.getRoot()), false, ontology);
     }
 
     /**
@@ -78,9 +84,13 @@ public class BlazegraphOntologyManagerTest {
     @Test
     public void testGetAllTaxaWithGenes() throws IOException {
         Set<String> taxa = onto_repo.getAllTaxaWithGenes();
-        assertTrue("taxa has more than a hundred entries", taxa.size() > 100);
-        assertTrue("taxa contains NCBITaxon_44689", taxa.contains("http://purl.obolibrary.org/obo/NCBITaxon_44689"));
-        assertTrue("taxa contains NCBITaxon_9606", taxa.contains("http://purl.obolibrary.org/obo/NCBITaxon_9606"));
+        Set<String> expected = new HashSet<>(Arrays.asList(
+                "http://purl.obolibrary.org/obo/NCBITaxon_44689",
+                "http://purl.obolibrary.org/obo/NCBITaxon_559292",
+                "http://purl.obolibrary.org/obo/NCBITaxon_6239",
+                "http://purl.obolibrary.org/obo/NCBITaxon_7955",
+                "http://purl.obolibrary.org/obo/NCBITaxon_9606"));
+        assertEquals("focused fixture taxa", expected, taxa);
     }
 
     /**
