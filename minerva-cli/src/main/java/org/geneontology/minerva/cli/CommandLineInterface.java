@@ -66,6 +66,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import static org.geneontology.minerva.server.handler.OperationsTools.createModelRenderer;
 
@@ -568,7 +570,8 @@ public class CommandLineInterface {
         CurieHandler curieHandler = new MappedCurieHandler();
         BlazegraphMolecularModelManager<Void> m3 = new BlazegraphMolecularModelManager<>(dummy, curieHandler, modelIdPrefix, journalFilePath, null, null, false);
         //in case of update rather than whole new journal
-        Set<IRI> stored = new HashSet<IRI>(m3.getStoredModelIds());
+        Set<IRI> stored = ConcurrentHashMap.newKeySet();
+        stored.addAll(m3.getStoredModelIds());
         LOGGER.info("loading gocams from " + inputFolder);
         //for (File file : FileUtils.listFiles(new File(inputFolder), null, true)) {
         File i = new File(inputFolder);
@@ -580,15 +583,14 @@ public class CommandLineInterface {
                         java.util.Optional<String> irio;
                         try {
                             irio = m3.scanForOntologyIRI(file);
-                            IRI iri = null;
-                            if (irio.isPresent()) {
-                                iri = IRI.create(irio.get());
+                            if (!irio.isPresent()) {
+                                throw new OWLOntologyCreationException("Detected anonymous ontology; must have IRI: " + file);
                             }
+                            IRI iri = IRI.create(irio.get());
                             //is it in there already?
-                            if (stored.contains(iri)) {
+                            if (!stored.add(iri)) {
                                 LOGGER.error("Attempted to load gocam ttl file into database but gocam with that iri already exists, skipping " + file + " " + iri);
                             } else {
-                                stored.add(iri);
                                 m3.importModelToDatabase(file, true);
                             }
                         } catch (RDFParseException | RDFHandlerException | IOException e1) {
@@ -896,7 +898,7 @@ public class CommandLineInterface {
         String goshapemapFileUrl = "https://raw.githubusercontent.com/geneontology/go-shapes/master/shapes/go-cam-shapes.shapeMap";
         CurieMappings localMappings = new CurieMappings.SimpleCurieMappings(Collections.singletonMap(modelIdcurie, modelIdPrefix));
         CurieHandler curieHandler = new MappedCurieHandler(DefaultCurieHandler.loadDefaultMappings(), localMappings);
-        Map<String, String> modelid_filename = new HashMap<String, String>();
+        ConcurrentMap<String, String> modelid_filename = new ConcurrentHashMap<String, String>();
 
         if (outputFolder == null) {
             LOGGER.error("please specify an output folder with -r ");
@@ -954,17 +956,17 @@ public class CommandLineInterface {
         if (i.exists() && !input.endsWith(".jnl")) {
             if (i.isDirectory()) {
                 LOGGER.info("Loading models from " + i.getAbsolutePath());
-                Set<String> model_iris = new HashSet<String>();
                 FileUtils.listFiles(i, null, true).parallelStream().parallel().forEach(file -> {
                     if (file.getName().endsWith(".ttl") || file.getName().endsWith("owl")) {
                         try {
                             String modeluri = m3.importModelToDatabase(file, true);
                             if (modeluri == null) {
                                 LOGGER.error("Null model IRI: " + modeluri + " file: " + file);
-                            } else if (!model_iris.add(modeluri)) {
-                                LOGGER.error("Multiple models with same IRI: " + modeluri + " file: " + file + " file: " + modelid_filename.get(modeluri));
                             } else {
-                                modelid_filename.put(modeluri, file.getName());
+                                String existingFile = modelid_filename.putIfAbsent(modeluri, file.getName());
+                                if (existingFile != null) {
+                                    LOGGER.error("Multiple models with same IRI: " + modeluri + " file: " + file + " file: " + existingFile);
+                                }
                             }
                         } catch (OWLOntologyCreationException | RepositoryException | RDFParseException
                                  | RDFHandlerException | IOException e) {
