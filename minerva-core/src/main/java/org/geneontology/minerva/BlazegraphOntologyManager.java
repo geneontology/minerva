@@ -39,7 +39,7 @@ import java.util.zip.GZIPInputStream;
 public class BlazegraphOntologyManager {
     private static Logger LOG = Logger.getLogger(BlazegraphOntologyManager.class);
     private final BigdataSailRepository go_lego_repo;
-    private final static String public_blazegraph_url = "http://skyhook.berkeleybop.org/blazegraph-go-lego-reacto-neo.jnl.gz";
+    private final static String public_blazegraph_url = "https://skyhook.berkeleybop.org/blazegraph-go-lego-reacto-neo.jnl.gz";
     //TODO this should probably go somewhere else - like an ontology file - this was missing..
     public static String in_taxon_uri = "https://w3id.org/biolink/vocab/in_taxon";
     public static OWLAnnotationProperty in_taxon = OWLManager.getOWLDataFactory().getOWLAnnotationProperty(IRI.create(in_taxon_uri));
@@ -110,20 +110,16 @@ public class BlazegraphOntologyManager {
         return go_lego_repo;
     }
 
-    public void unGunzipFile(String compressedFile, String decompressedFile) {
+    // IOException here is deliberately never caught: it rides declared throws to each entry point (JVM-fatal in minerva-server, exit(-1) in the CLI) rather than starting on a bad artifact.
+    public void unGunzipFile(String compressedFile, String decompressedFile) throws IOException {
         byte[] buffer = new byte[1024];
-        try {
-            FileInputStream fileIn = new FileInputStream(compressedFile);
-            GZIPInputStream gZIPInputStream = new GZIPInputStream(fileIn);
-            FileOutputStream fileOutputStream = new FileOutputStream(decompressedFile);
+        try (FileInputStream fileIn = new FileInputStream(compressedFile);
+             GZIPInputStream gZIPInputStream = new GZIPInputStream(fileIn);
+             FileOutputStream fileOutputStream = new FileOutputStream(decompressedFile)) {
             int bytes_read;
             while ((bytes_read = gZIPInputStream.read(buffer)) > 0) {
                 fileOutputStream.write(buffer, 0, bytes_read);
             }
-            gZIPInputStream.close();
-            fileOutputStream.close();
-        } catch (IOException ex) {
-            ex.printStackTrace();
         }
     }
 
