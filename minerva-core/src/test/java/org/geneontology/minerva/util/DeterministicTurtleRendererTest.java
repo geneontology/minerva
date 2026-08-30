@@ -115,12 +115,13 @@ public class DeterministicTurtleRendererTest {
         String ttl = render(buildGraph("tttt", 7, null));
         // The triplestore-assigned identifiers must not appear in the output.
         assertFalse(ttl.contains("tttt"));
-        // Subject-only axiom nodes must be rendered in anonymous blank node form
-        // ("[ a owl:Axiom"), not as labeled blank nodes ("_:b0 a owl:Axiom").
+        // Subject-only axiom nodes must be rendered in anonymous blank node form,
+        // not as labeled blank nodes. Jena 3 writes the rdf:type predicate as "a",
+        // while Jena 4 writes it as "rdf:type".
         assertTrue("axiom nodes should be rendered as anonymous blank nodes",
-                Pattern.compile("\\[\\s+a\\s+owl:Axiom").matcher(ttl).find());
+                Pattern.compile("\\[\\s+(?:a|rdf:type)\\s+owl:Axiom").matcher(ttl).find());
         assertFalse("axiom nodes must not be rendered as labeled blank nodes",
-                Pattern.compile("_:\\S+\\s+a\\s+owl:Axiom").matcher(ttl).find());
+                Pattern.compile("_:\\S+\\s+(?:a|rdf:type)\\s+owl:Axiom").matcher(ttl).find());
     }
 
     @Test
