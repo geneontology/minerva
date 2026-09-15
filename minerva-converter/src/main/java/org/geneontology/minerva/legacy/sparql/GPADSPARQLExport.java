@@ -143,7 +143,7 @@ public class GPADSPARQLExport {
         /* The bindings of ?pr_type, ?rel, ?target_type are candidate mappings or values for the final GPAD records
          * (i.e. not every mapping is used for building the final records of GPAD file; many of them are filtered out later).
          * The mappings are
-         * 		?pr_type: DB Object ID (2nd in GPAD), ?rel: Qualifier(3rd), ?target_type: GO ID(4th)
+         * 		?pr_type: DB Object ID (1st in GPAD), ?rel: Relation (3rd), ?target_type: GO ID (4th)
          * The rest of fields in GPAD are then constructed by joining the candidate mappings with mappings describing evidences and so on.
          * If the output of this exporter (i.e. GPAD files) does not contain the values you expect,
          * dump the above "QuerySolution qs" variable and see whether they are included in the dump. */
@@ -268,7 +268,7 @@ public class GPADSPARQLExport {
                 Optional<String> with = Optional.ofNullable(eqs.getLiteral("with")).map(Literal::getLexicalForm);
                 Set<Pair<String, String>> annotationAnnotations = new HashSet<>();
                 annotationAnnotations.add(Pair.of("noctua-model-id", modelID));
-                annotationAnnotations.addAll(getContributors(eqs).stream().map(c -> Pair.of("contributor", c)).collect(toSet()));
+                annotationAnnotations.addAll(getContributors(eqs).stream().map(c -> Pair.of("contributor-id", c)).collect(toSet()));
                 String modificationDate = eqs.getLiteral("modification_date").getLexicalForm();
                 Optional<String> creationDate = Optional.ofNullable(eqs.getLiteral("creation_date")).map(Literal::getLexicalForm);
                 // Add this back after announced to consortium; also re-enable tests
