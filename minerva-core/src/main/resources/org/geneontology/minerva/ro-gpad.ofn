@@ -97,6 +97,7 @@ Declaration(ObjectProperty(obo:RO_0001018))
 Declaration(ObjectProperty(obo:RO_0001019))
 Declaration(ObjectProperty(obo:RO_0001025))
 Declaration(ObjectProperty(obo:RO_0002010))
+Declaration(ObjectProperty(obo:RO_0002180))
 Declaration(ObjectProperty(obo:RO_0002217))
 Declaration(ObjectProperty(obo:RO_0002218))
 Declaration(ObjectProperty(obo:RO_0002233))
@@ -129,6 +130,12 @@ Declaration(ObjectProperty(obo:RO_0004097))
 Declaration(ObjectProperty(obo:RO_0012013))
 Declaration(ObjectProperty(obo:RO_0012014))
 Declaration(ObjectProperty(obo:RO_0019003))
+Declaration(ObjectProperty(obo:RO_0019004))
+Declaration(ObjectProperty(obo:RO_0019005))
+Declaration(ObjectProperty(obo:RO_0019006))
+Declaration(ObjectProperty(obo:RO_0019007))
+Declaration(ObjectProperty(obo:RO_0019008))
+Declaration(ObjectProperty(obo:RO_0019009))
 Declaration(DataProperty(obo:RO_0002029))
 Declaration(NamedIndividual(obo:IAO_0000002))
 Declaration(NamedIndividual(obo:IAO_0000120))
@@ -1347,6 +1354,19 @@ SubObjectPropertyOf(obo:RO_0002010 obo:RO_0002418)
 ObjectPropertyDomain(obo:RO_0002010 obo:BFO_0000015)
 ObjectPropertyRange(obo:RO_0002010 obo:BFO_0000015)
 
+# Object Property: obo:RO_0002180 (has component)
+
+AnnotationAssertion(obo:IAO_0000114 obo:RO_0002180 obo:IAO_0000125)
+AnnotationAssertion(obo:IAO_0000115 obo:RO_0002180 "w 'has component' p if w 'has part' p and w is such that it can be directly disassembled into into n parts p, p2, p3, ..., pn, where these parts are of similar type.")
+AnnotationAssertion(obo:IAO_0000116 obo:RO_0002180 "The definition of 'has component' is still under discussion. The challenge is in providing a definition that does not imply transitivity.")
+AnnotationAssertion(obo:IAO_0000232 obo:RO_0002180 "For use in recording has_part with a cardinality constraint, because OWL does not permit cardinality constraints to be used in combination with transitive object properties. In situations where you would want to say something like 'has part exactly 5 digit, you would instead use has_component exactly 5 digit."@en)
+AnnotationAssertion(obo:RO_0001900 obo:RO_0002180 obo:RO_0001901)
+AnnotationAssertion(oboInOwl:inSubset obo:RO_0002180 subsets:ro-eco)
+AnnotationAssertion(rdfs:label obo:RO_0002180 "has component"@en)
+AnnotationAssertion(rdfs:seeAlso obo:RO_0002180 <http://ontologydesignpatterns.org/wiki/Submissions:Componency>)
+SubObjectPropertyOf(obo:RO_0002180 obo:BFO_0000051)
+InverseObjectProperties(obo:RO_0002180 obo:RO_0019009)
+
 # Object Property: obo:RO_0002217 (obsolete actively participates in)
 
 AnnotationAssertion(obo:IAO_0000115 obo:RO_0002217 "OBSOLETE x actively participates in y if and only if x participates in y and x realizes some active role")
@@ -1680,6 +1700,60 @@ AnnotationAssertion(obo:IAO_0000117 obo:RO_0019003 <https://orcid.org/0000-0002-
 AnnotationAssertion(oboInOwl:inSubset obo:RO_0019003 obo:valid_for_gocam)
 AnnotationAssertion(rdfs:label obo:RO_0019003 "has substitutable entity"@en)
 IrreflexiveObjectProperty(obo:RO_0019003)
+
+# Object Property: obo:RO_0019004 (immediately constitutively upstream of)
+
+AnnotationAssertion(obo:IAO_0000112 obo:RO_0019004 "An 'acyl carrier activity' is 'immediately constitutively upstream of' some '[acyl-carrier-protein] S-acetyltransferase activity'.")
+AnnotationAssertion(obo:IAO_0000115 obo:RO_0019004 "p is immediately constitutively upstream of q iff p is immediately causally upstream of q, p is required for execution of q or a part of q, and the execution of p is approximately constant.")
+AnnotationAssertion(terms:contributor obo:RO_0019004 <https://orcid.org/0000-0002-8688-6599>)
+AnnotationAssertion(oboInOwl:inSubset obo:RO_0019004 obo:valid_for_gocam)
+AnnotationAssertion(rdfs:label obo:RO_0019004 "immediately constitutively upstream of")
+SubObjectPropertyOf(obo:RO_0019004 obo:RO_0002418)
+
+# Object Property: obo:RO_0019005 (has active component)
+
+AnnotationAssertion(obo:IAO_0000112 obo:RO_0019005 "A 'proteasome core complex' 'has active component' some 'PSMB5 protein'.")
+AnnotationAssertion(obo:IAO_0000115 obo:RO_0019005 "A relation that holds between a collection of items, x, and one of its constituent members, y, such that execution of the primary activity associated with x is attributable to the activity of y.")
+AnnotationAssertion(terms:contributor obo:RO_0019005 <https://orcid.org/0000-0002-8688-6599>)
+AnnotationAssertion(oboInOwl:inSubset obo:RO_0019005 obo:valid_for_gocam)
+AnnotationAssertion(rdfs:label obo:RO_0019005 "has active component")
+SubObjectPropertyOf(obo:RO_0019005 obo:RO_0002180)
+InverseObjectProperties(obo:RO_0019005 obo:RO_0019007)
+
+# Object Property: obo:RO_0019006 (has accessory component)
+
+AnnotationAssertion(obo:IAO_0000112 obo:RO_0019006 "A 'proteasome core complex' 'has accessory component' some 'PSMA7 protein'.")
+AnnotationAssertion(obo:IAO_0000115 obo:RO_0019006 "A relation that holds between a collection of items, x, and one of its constituent members, y, such that the activity of y is necessary for execution of the primary activity associated with x but y does not execute the primary activity itself.")
+AnnotationAssertion(terms:contributor obo:RO_0019006 <https://orcid.org/0000-0002-8688-6599>)
+AnnotationAssertion(oboInOwl:inSubset obo:RO_0019006 obo:valid_for_gocam)
+AnnotationAssertion(rdfs:label obo:RO_0019006 "has accessory component")
+SubObjectPropertyOf(obo:RO_0019006 obo:RO_0002180)
+InverseObjectProperties(obo:RO_0019006 obo:RO_0019008)
+
+# Object Property: obo:RO_0019007 (is active component of)
+
+AnnotationAssertion(obo:IAO_0000112 obo:RO_0019007 "A 'PSMB5 protein' 'is active component of' some 'proteasome core complex'.")
+AnnotationAssertion(obo:IAO_0000115 obo:RO_0019007 "A relation that holds between y, a constituent member of a collection of items, x, such that the activity of y is responsible for execution of the primary activity attributed to x.")
+AnnotationAssertion(terms:contributor obo:RO_0019007 <https://orcid.org/0000-0002-8688-6599>)
+AnnotationAssertion(oboInOwl:inSubset obo:RO_0019007 obo:valid_for_gocam)
+AnnotationAssertion(rdfs:label obo:RO_0019007 "is active component of")
+SubObjectPropertyOf(obo:RO_0019007 obo:RO_0019009)
+
+# Object Property: obo:RO_0019008 (is accessory component of)
+
+AnnotationAssertion(obo:IAO_0000112 obo:RO_0019008 "A 'PSMA7 protein' 'is active component of' some 'proteasome core complex'.")
+AnnotationAssertion(obo:IAO_0000115 obo:RO_0019008 "A relation that holds between y, a constituent member of a collection of items, x, such that the activity of y is necessary for the primary activity attributed to x but y does not execute the primary activity itself.")
+AnnotationAssertion(terms:contributor obo:RO_0019008 <https://orcid.org/0000-0002-8688-6599>)
+AnnotationAssertion(oboInOwl:inSubset obo:RO_0019008 obo:valid_for_gocam)
+AnnotationAssertion(rdfs:label obo:RO_0019008 "is accessory component of")
+SubObjectPropertyOf(obo:RO_0019008 obo:RO_0019009)
+
+# Object Property: obo:RO_0019009 (component of)
+
+AnnotationAssertion(obo:IAO_0000115 obo:RO_0019009 "Inverse of 'has component'.")
+AnnotationAssertion(terms:contributor obo:RO_0019009 <https://orcid.org/0000-0002-8688-6599>)
+AnnotationAssertion(rdfs:label obo:RO_0019009 "component of")
+SubObjectPropertyOf(obo:RO_0019009 obo:BFO_0000050)
 
 
 ############################
@@ -3081,5 +3155,5 @@ AnnotationAssertion(obo:IAO_0000112 obo:OMO_0004000 "A serial number such as \"1
 AnnotationAssertion(obo:IAO_0000115 obo:OMO_0004000 "An information content entity that is a mark(s) or character(s) used as a conventional representation of another entity.")
 AnnotationAssertion(terms:contributor obo:OMO_0004000 <https://orcid.org/0000-0002-6523-4866>)
 AnnotationAssertion(rdfs:label obo:OMO_0004000 "has symbol")
-AnnotationAssertion(rdfs:seeAlso _:genid2147483648 <https://github.com/oborel/obo-relations/issues/259>)
+AnnotationAssertion(rdfs:seeAlso _:genid2147483654 <https://github.com/oborel/obo-relations/issues/259>)
 )
