@@ -1,6 +1,5 @@
 package org.geneontology.minerva.legacy.sparql;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
@@ -24,7 +23,6 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 import org.semanticweb.owlapi.model.parameters.Imports;
 import scala.collection.JavaConverters;
 
-import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -56,10 +54,16 @@ public class GPADSPARQLTest {
         WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
         String gpad = exporter.exportGPAD(mem, IRI.create("http://test.org"));
         String[] lines = gpad.split("\n", -1);
-        Arrays.stream(lines).filter(l -> !l.startsWith("!") && !l.isEmpty()).forEach(l -> Assert.assertEquals("Each GPAD line should have 12 columns", 12, l.split("\t", -1).length));
+        Assert.assertEquals("!gpad-version: 2.0", lines[0]);
+        Assert.assertEquals("!generated-by: GO_Noctua", lines[1]);
+        Assert.assertTrue(lines[2].matches("!date-generated: \\d{4}-\\d{2}-\\d{2}"));
+        List<String> annotationLines = Arrays.stream(lines)
+                .filter(l -> !l.startsWith("!") && !l.isEmpty())
+                .collect(Collectors.toList());
+        annotationLines.forEach(l -> Assert.assertEquals("Each GPAD line should have 12 columns", 12, l.split("\t", -1).length));
         //TODO test contents of annotations; dumb test for now
         Assert.assertTrue(gpad.contains("model-state=production"));
-        Assert.assertTrue("Should produce annotations", lines.length > 2);
+        Assert.assertFalse("Should produce annotations", annotationLines.isEmpty());
     }
 
 
@@ -86,8 +90,8 @@ public class GPADSPARQLTest {
      * Note on the GPAD file format and its contents:
      * 1. the number of entries in the GPAD output from this owl dump should be 6, not 7 (although there are 7 individuals/boxes)
      * because the edge/relationship "molecular_function" is a trivial one, which is supposed to be removed from the output.
-     * 2. the 4th columns, which consists of the list of GO IDs attributed to the DB object ID (These should be GO:0005634, GO:0007267, GO:0007507, GO:0016301)
-     * 3. the 2nd columns: the rest of entities in the noctua screen, i.e.  S000028630 (YFR032C-B Scer) or S000004724(SHH3 Scer)
+     * 2. the 4th column contains the GO IDs attributed to the DB object ID (GO:0005634, GO:0007267, GO:0007507, GO:0016301)
+     * 3. the 1st column contains the entities in the Noctua screen, i.e. SGD:S000028630 (YFR032C-B Scer) or SGD:S000004724 (SHH3 Scer)
      *
      * @throws Exception
      */
@@ -99,22 +103,16 @@ public class GPADSPARQLTest {
         WorkingMemory mem = arachne.processTriples(JavaConverters.asScalaSetConverter(triples).asScala());
         String gpad = exporter.exportGPAD(mem, IRI.create("http://test.org"));
 
-        /* Check the number of rows in GPAD output */
-        String gpadOutputArr[] = gpad.split("\n", -1);
-        /* 1 for header and 6 for the rest of the rows. the length should be  7 or 8.*/
-        Assert.assertTrue("Should produce annotations", gpadOutputArr.length >= 1 + 6);
+        List<String> annotationLines = Arrays.stream(gpad.split("\n", -1))
+                .filter(l -> !l.startsWith("!") && !l.isEmpty())
+                .collect(Collectors.toList());
+        Assert.assertEquals("Should produce six annotations", 6, annotationLines.size());
 
-        /* Compare the output with the GPAD file that contains sample answers */
-        List<String> lines = FileUtils.readLines(new File("src/test/resources/59d1072300000074.gpad"), "UTF-8");
-        /* The order of the rows in the GPAD file can be different, so we compare rows by rows */
-        for (String gpadOutputRow : gpadOutputArr) {
-            /* Additionally check all rows's qualifier starts with the NOT operator */
+        for (String gpadOutputRow : annotationLines) {
+            /* All annotation rows have negation in column 2, separate from the relation ID. */
             String gpadRowArr[] = gpadOutputRow.split("\t");
-            /* Skip checking the header; all rows need to start with NOT in its qualifier */
-            if (gpadRowArr.length > 2) {
-                Assert.assertTrue(gpadRowArr[2].startsWith("NOT|"));
-                Assert.assertFalse(gpadRowArr[2].endsWith("|NOT"));
-            }
+            Assert.assertEquals("NOT", gpadRowArr[1]);
+            Assert.assertTrue(gpadRowArr[2].matches("(?:BFO|RO):\\d+"));
         }
     }
 
@@ -197,6 +195,16 @@ public class GPADSPARQLTest {
                         a.getInteractingTaxonID().get().equals(interactingTaxon)));
         Assert.assertTrue(annotations.stream().noneMatch(a ->
                 a.getAnnotationExtensions().stream().anyMatch(ce -> ce.getFiller().equals(interactingTaxon))));
+        GPADData annotation = annotations.stream()
+                .filter(a -> a.getObject().equals(gene) &&
+                        a.getInteractingTaxonID().isPresent() &&
+                        a.getInteractingTaxonID().get().equals(interactingTaxon))
+                .findFirst()
+                .get();
+        String[] columns = new GPADRenderer(DefaultCurieHandler.getDefaultHandler(), Collections.emptyMap())
+                .render(annotation)
+                .split("\t", -1);
+        Assert.assertEquals("NCBITaxon:196620", columns[7]);
     }
 
 }
