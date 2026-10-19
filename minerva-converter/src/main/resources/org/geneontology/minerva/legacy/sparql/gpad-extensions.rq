@@ -16,90 +16,83 @@ WHERE {
 # Link between annotation target and connected individual
 # seeded with someValuesFrom relations used in go-plus
 VALUES ?extension_rel {
-<http://purl.obolibrary.org/obo/BFO_0000050>
-<http://purl.obolibrary.org/obo/BFO_0000066>
+<http://purl.obolibrary.org/obo/BFO_0000050> # part of
+<http://purl.obolibrary.org/obo/BFO_0000066> # occurs in
 <http://purl.obolibrary.org/obo/GOCHEREL_0000001>
 <http://purl.obolibrary.org/obo/GOCHEREL_0000002>
 <http://purl.obolibrary.org/obo/GOCHEREL_0000003>
 <http://purl.obolibrary.org/obo/GOCHEREL_0000004>
-<http://purl.obolibrary.org/obo/GOREL_0000040>
-<http://purl.obolibrary.org/obo/GOREL_0001004>
-<http://purl.obolibrary.org/obo/GOREL_0001006>
-<http://purl.obolibrary.org/obo/GOREL_0001007>
-<http://purl.obolibrary.org/obo/GOREL_0002001>
-<http://purl.obolibrary.org/obo/GOREL_0002002>
-<http://purl.obolibrary.org/obo/GOREL_0002003>
-<http://purl.obolibrary.org/obo/GOREL_0002004>
-<http://purl.obolibrary.org/obo/GOREL_0002005>
-<http://purl.obolibrary.org/obo/GOREL_0002006>
-<http://purl.obolibrary.org/obo/GOREL_0002007>
-<http://purl.obolibrary.org/obo/GOREL_0002008>
-<http://purl.obolibrary.org/obo/GOREL_0012006>
-<http://purl.obolibrary.org/obo/RO_0002490>
-<http://purl.obolibrary.org/obo/RO_0002491>
-<http://purl.obolibrary.org/obo/RO_0000053>
-<http://purl.obolibrary.org/obo/RO_0000087>
-<http://purl.obolibrary.org/obo/RO_0001025>
-<http://purl.obolibrary.org/obo/RO_0002007>
-<http://purl.obolibrary.org/obo/RO_0002008>
-<http://purl.obolibrary.org/obo/RO_0002011>
-<http://purl.obolibrary.org/obo/RO_0002087>
-<http://purl.obolibrary.org/obo/RO_0002090>
-<http://purl.obolibrary.org/obo/RO_0002092>
-<http://purl.obolibrary.org/obo/RO_0002093>
-<http://purl.obolibrary.org/obo/RO_0002160>
-<http://purl.obolibrary.org/obo/RO_0002162>
-<http://purl.obolibrary.org/obo/RO_0002202>
-<http://purl.obolibrary.org/obo/RO_0002211>
-<http://purl.obolibrary.org/obo/RO_0002212>
-<http://purl.obolibrary.org/obo/RO_0002213>
-<http://purl.obolibrary.org/obo/RO_0002215>
-<http://purl.obolibrary.org/obo/RO_0002216>
-<http://purl.obolibrary.org/obo/RO_0002220>
-<http://purl.obolibrary.org/obo/RO_0002223>
-<http://purl.obolibrary.org/obo/RO_0002224>
-<http://purl.obolibrary.org/obo/RO_0002230>
-<http://purl.obolibrary.org/obo/RO_0002231>
-<http://purl.obolibrary.org/obo/RO_0002232>
-<http://purl.obolibrary.org/obo/RO_0002233>
-<http://purl.obolibrary.org/obo/RO_0002234>
-<http://purl.obolibrary.org/obo/RO_0002263>
-<http://purl.obolibrary.org/obo/RO_0002264>
-<http://purl.obolibrary.org/obo/RO_0002295>
-<http://purl.obolibrary.org/obo/RO_0002296>
-<http://purl.obolibrary.org/obo/RO_0002297>
-<http://purl.obolibrary.org/obo/RO_0002298>
-<http://purl.obolibrary.org/obo/RO_0002299>
-<http://purl.obolibrary.org/obo/RO_0002313>
-<http://purl.obolibrary.org/obo/RO_0002315>
-<http://purl.obolibrary.org/obo/RO_0002327>
-<http://purl.obolibrary.org/obo/RO_0002332>
-<http://purl.obolibrary.org/obo/RO_0002334>
-<http://purl.obolibrary.org/obo/RO_0002338>
-<http://purl.obolibrary.org/obo/RO_0002339>
-<http://purl.obolibrary.org/obo/RO_0002340>
-<http://purl.obolibrary.org/obo/RO_0002341>
-<http://purl.obolibrary.org/obo/RO_0002342>
-<http://purl.obolibrary.org/obo/RO_0002343>
-<http://purl.obolibrary.org/obo/RO_0002344>
-<http://purl.obolibrary.org/obo/RO_0002345>
-<http://purl.obolibrary.org/obo/RO_0002348>
-<http://purl.obolibrary.org/obo/RO_0002349>
-<http://purl.obolibrary.org/obo/RO_0002355>
-<http://purl.obolibrary.org/obo/RO_0002356>
-<http://purl.obolibrary.org/obo/RO_0002412>
-<http://purl.obolibrary.org/obo/RO_0002428>
-<http://purl.obolibrary.org/obo/RO_0002429>
-<http://purl.obolibrary.org/obo/RO_0002430>
-<http://purl.obolibrary.org/obo/RO_0002431>
-<http://purl.obolibrary.org/obo/RO_0002491>
-<http://purl.obolibrary.org/obo/RO_0002495>
-<http://purl.obolibrary.org/obo/RO_0002565>
-<http://purl.obolibrary.org/obo/RO_0002578>
-<http://purl.obolibrary.org/obo/RO_0002629>
-<http://purl.obolibrary.org/obo/RO_0002630>
-<http://purl.obolibrary.org/obo/RO_0004008>
-<http://purl.obolibrary.org/obo/RO_0004009>
+<http://purl.obolibrary.org/obo/GOREL_0000040> # results in
+<http://purl.obolibrary.org/obo/GOREL_0001004> # regulates process that occurs in
+<http://purl.obolibrary.org/obo/GOREL_0001006> # acts on population of
+<http://purl.obolibrary.org/obo/GOREL_0002003> # results in distribution of
+<http://purl.obolibrary.org/obo/GOREL_0002004> # results in fission of
+<http://purl.obolibrary.org/obo/GOREL_0002005> # results in fusion of
+<http://purl.obolibrary.org/obo/GOREL_0012006> # results in maintenance of
+<http://purl.obolibrary.org/obo/RO_0002490> # existence overlaps
+<http://purl.obolibrary.org/obo/RO_0002491> # existence starts and ends during
+<http://purl.obolibrary.org/obo/RO_0000053> # has characteristic
+<http://purl.obolibrary.org/obo/RO_0000087> # has role
+<http://purl.obolibrary.org/obo/RO_0001025> # located in
+<http://purl.obolibrary.org/obo/RO_0002007> # bounding layer of
+<http://purl.obolibrary.org/obo/RO_0002008> # coincident with
+<http://purl.obolibrary.org/obo/RO_0002011> # regulates transport of
+<http://purl.obolibrary.org/obo/RO_0002087> # immediately preceded by
+<http://purl.obolibrary.org/obo/RO_0002090> # immediately precedes
+<http://purl.obolibrary.org/obo/RO_0002092> # happens during
+<http://purl.obolibrary.org/obo/RO_0002093> # ends during
+<http://purl.obolibrary.org/obo/RO_0002162> # in taxon
+<http://purl.obolibrary.org/obo/RO_0002202> # develops from
+<http://purl.obolibrary.org/obo/RO_0002211> # regulates
+<http://purl.obolibrary.org/obo/RO_0002212> # negatively regulates
+<http://purl.obolibrary.org/obo/RO_0002213> # positively regulates
+<http://purl.obolibrary.org/obo/RO_0002215> # capable of
+<http://purl.obolibrary.org/obo/RO_0002216> # capable of part of
+<http://purl.obolibrary.org/obo/RO_0002220> # adjacent to
+<http://purl.obolibrary.org/obo/RO_0002223> # starts
+<http://purl.obolibrary.org/obo/RO_0002224> # starts with
+<http://purl.obolibrary.org/obo/RO_0002230> # ends with
+<http://purl.obolibrary.org/obo/RO_0002231> # has start location
+<http://purl.obolibrary.org/obo/RO_0002232> # has end location
+<http://purl.obolibrary.org/obo/RO_0002233> # has input
+<http://purl.obolibrary.org/obo/RO_0002234> # has output
+<http://purl.obolibrary.org/obo/RO_0002263> # acts upstream of
+<http://purl.obolibrary.org/obo/RO_0002264> # acts upstream of or within
+<http://purl.obolibrary.org/obo/RO_0002295> # results in developmental progression of
+<http://purl.obolibrary.org/obo/RO_0002296> # results in development of
+<http://purl.obolibrary.org/obo/RO_0002297> # results in formation of anatomical entity
+<http://purl.obolibrary.org/obo/RO_0002298> # results in morphogenesis of
+<http://purl.obolibrary.org/obo/RO_0002299> # results in maturation of
+<http://purl.obolibrary.org/obo/RO_0002313> # transports or maintains localization of
+<http://purl.obolibrary.org/obo/RO_0002315> # results in acquisition of features of
+<http://purl.obolibrary.org/obo/RO_0002327> # enables
+<http://purl.obolibrary.org/obo/RO_0002332> # regulates levels of
+<http://purl.obolibrary.org/obo/RO_0002334> # regulated by
+<http://purl.obolibrary.org/obo/RO_0002338> # has target start location
+<http://purl.obolibrary.org/obo/RO_0002339> # has target end location
+<http://purl.obolibrary.org/obo/RO_0002340> # imports
+<http://purl.obolibrary.org/obo/RO_0002341> # results in transport along
+<http://purl.obolibrary.org/obo/RO_0002342> # results in transport across
+<http://purl.obolibrary.org/obo/RO_0002343> # results in growth of
+<http://purl.obolibrary.org/obo/RO_0002344> # results in transport to from or in
+<http://purl.obolibrary.org/obo/RO_0002345> # exports
+<http://purl.obolibrary.org/obo/RO_0002348> # results in commitment to
+<http://purl.obolibrary.org/obo/RO_0002349> # results in determination of
+<http://purl.obolibrary.org/obo/RO_0002355> # results in structural organization of
+<http://purl.obolibrary.org/obo/RO_0002356> # results in specification of
+<http://purl.obolibrary.org/obo/RO_0002412> # immediately causally upstream of
+<http://purl.obolibrary.org/obo/RO_0002428> # involved in regulation of
+<http://purl.obolibrary.org/obo/RO_0002429> # involved in positive regulation of
+<http://purl.obolibrary.org/obo/RO_0002430> # involved in negative regulation of
+<http://purl.obolibrary.org/obo/RO_0002431> # involved in or involved in regulation of
+<http://purl.obolibrary.org/obo/RO_0002491> # existence starts and ends during
+<http://purl.obolibrary.org/obo/RO_0002495> # immediate transformation of
+<http://purl.obolibrary.org/obo/RO_0002565> # results in movement of
+<http://purl.obolibrary.org/obo/RO_0002578> # directly regulates
+<http://purl.obolibrary.org/obo/RO_0002629> # directly positively regulates
+<http://purl.obolibrary.org/obo/RO_0002630> # directly negatively regulates
+<http://purl.obolibrary.org/obo/RO_0004008> # has primary output
+<http://purl.obolibrary.org/obo/RO_0004009> # has primary input
 }
 
 ?target ?extension_rel ?extension . 
