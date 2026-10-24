@@ -39,7 +39,7 @@ import java.util.zip.GZIPInputStream;
 public class BlazegraphOntologyManager {
     private static Logger LOG = Logger.getLogger(BlazegraphOntologyManager.class);
     private final BigdataSailRepository go_lego_repo;
-    private final static String public_blazegraph_url = "http://skyhook.berkeleybop.org/blazegraph-go-lego-reacto-neo.jnl.gz";
+    private final static String public_blazegraph_url = "https://skyhook.berkeleybop.org/blazegraph-go-lego-reacto-neo.jnl.gz";
     //TODO this should probably go somewhere else - like an ontology file - this was missing..
     public static String in_taxon_uri = "https://w3id.org/biolink/vocab/in_taxon";
     public static OWLAnnotationProperty in_taxon = OWLManager.getOWLDataFactory().getOWLAnnotationProperty(IRI.create(in_taxon_uri));
@@ -59,10 +59,10 @@ public class BlazegraphOntologyManager {
         root_types.add("http://purl.obolibrary.org/obo/CHEBI_33695"); //information biomacromolecule
         root_types.add("http://purl.obolibrary.org/obo/CHEBI_50906");  //chemical role
         root_types.add("http://purl.obolibrary.org/obo/CHEBI_24431"); //chemical entity
+        root_types.add("http://purl.obolibrary.org/obo/PR_000000001"); //protein
         root_types.add("http://purl.obolibrary.org/obo/UBERON_0001062"); //anatomical entity
         root_types.add("http://purl.obolibrary.org/obo/GO_0110165"); //cellular anatomical entity
         root_types.add("http://purl.obolibrary.org/obo/CARO_0000000"); // root root anatomical entity
-        root_types.add("http://purl.obolibrary.org/obo/UBERON_0001062"); // anatomical entity
         root_types.add("http://purl.obolibrary.org/obo/UBERON_0000105"); // life cycle stage
         root_types.add("http://purl.obolibrary.org/obo/PO_0009012"); // plant structure development stage
         root_types.add("http://purl.obolibrary.org/obo/GO_0044848"); // biological phase
@@ -110,20 +110,16 @@ public class BlazegraphOntologyManager {
         return go_lego_repo;
     }
 
-    public void unGunzipFile(String compressedFile, String decompressedFile) {
+    // IOException here is deliberately never caught: it rides declared throws to each entry point (JVM-fatal in minerva-server, exit(-1) in the CLI) rather than starting on a bad artifact.
+    public void unGunzipFile(String compressedFile, String decompressedFile) throws IOException {
         byte[] buffer = new byte[1024];
-        try {
-            FileInputStream fileIn = new FileInputStream(compressedFile);
-            GZIPInputStream gZIPInputStream = new GZIPInputStream(fileIn);
-            FileOutputStream fileOutputStream = new FileOutputStream(decompressedFile);
+        try (FileInputStream fileIn = new FileInputStream(compressedFile);
+             GZIPInputStream gZIPInputStream = new GZIPInputStream(fileIn);
+             FileOutputStream fileOutputStream = new FileOutputStream(decompressedFile)) {
             int bytes_read;
             while ((bytes_read = gZIPInputStream.read(buffer)) > 0) {
                 fileOutputStream.write(buffer, 0, bytes_read);
             }
-            gZIPInputStream.close();
-            fileOutputStream.close();
-        } catch (IOException ex) {
-            ex.printStackTrace();
         }
     }
 
