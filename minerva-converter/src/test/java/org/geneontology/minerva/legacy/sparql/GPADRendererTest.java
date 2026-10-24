@@ -69,4 +69,38 @@ public class GPADRendererTest {
         data.setOperator(GPADOperatorStatus.NONE);
         Assert.assertEquals("", renderer.render(data).split("\\t", -1)[1]);
     }
+
+    @Test
+    public void compactsAndTrimsPersonIDs() {
+        IRI relation = IRI.create("http://purl.obolibrary.org/obo/RO_0002264");
+        GPADRenderer renderer = new GPADRenderer(DefaultCurieHandler.getDefaultHandler(), new HashMap<>(),
+                Clock.fixed(Instant.parse("2026-07-30T12:00:00Z"), ZoneOffset.UTC));
+
+        Set<Pair<String, String>> properties = new HashSet<>(Arrays.asList(
+                // Leading whitespace occurs in the curation data.
+                Pair.of("contributor", " https://orcid.org/0000-0002-8546-7798"),
+                Pair.of("contributor", "GOC:Julie_Park"),
+                // The data also carries ORCIDs under http, while the prefix is https.
+                Pair.of("contributor", "http://orcid.org/0000-0003-0855-3059"),
+                Pair.of("reviewer-id", "orcid:0000-0001-5472-917X")));
+        DefaultGPADData data = new DefaultGPADData(
+                IRI.create("http://identifiers.org/mgi/MGI:123"),
+                relation,
+                IRI.create("http://purl.obolibrary.org/obo/GO_0008150"),
+                Collections.emptySet(),
+                "PMID:12345",
+                IRI.create("http://purl.obolibrary.org/obo/ECO_0000314"),
+                Optional.empty(),
+                Optional.empty(),
+                "20260729",
+                "SGD",
+                properties);
+
+        Assert.assertEquals(
+                "contributor-id=goc:Julie_Park" +
+                        "|contributor-id=orcid:0000-0002-8546-7798" +
+                        "|contributor-id=orcid:0000-0003-0855-3059" +
+                        "|reviewer-id=orcid:0000-0001-5472-917X",
+                renderer.render(data).split("\\t", -1)[11]);
+    }
 }

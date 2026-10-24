@@ -22,6 +22,8 @@ public class GPADRenderer {
 
     public static final String HEADER = "!gpad-version: 2.0";
     public static final String GENERATED_BY = "GO_Noctua";
+    private static final String HTTP = "http://";
+    private static final String HTTPS = "https://";
     public static final String ATTRIBUTE = "!DB_Object_ID\tNegation\tRelation\tOntology_Class_ID\tReference\tEvidence_Type\tWith_Or_From\tInteracting_Taxon_ID\tAnnotation_Date\tAssigned_By\tAnnotation_Extensions\tAnnotation_Properties";
 
     public GPADRenderer(CurieHandler handler, Map<IRI, String> shorthandIndex) {
@@ -114,8 +116,26 @@ public class GPADRenderer {
     }
 
     private String formatPersonID(String id) {
-        return id.replaceFirst("(?i)^https?://orcid\\.org/", "orcid:")
-                .replaceFirst("(?i)^orcid:", "orcid:")
+        String trimmed = id.trim();
+        String lowered = trimmed.toLowerCase();
+        if (lowered.startsWith(HTTP) || lowered.startsWith(HTTPS)) {
+            String curie = curieHandler.getCuri(IRI.create(trimmed));
+            if (curie.equals(trimmed)) {
+                // Prefixes are registered under one scheme, but the curation data
+                // uses both, so retry under the other one before giving up.
+                String flipped = lowered.startsWith(HTTP)
+                        ? HTTPS + trimmed.substring(HTTP.length())
+                        : HTTP + trimmed.substring(HTTPS.length());
+                String flippedCurie = curieHandler.getCuri(IRI.create(flipped));
+                if (!flippedCurie.equals(flipped)) {
+                    return flippedCurie;
+                }
+            }
+            return curie;
+        }
+        // Already a CURIE, e.g. GOC:Julie_Park. The CURIE handler maps IRIs, so
+        // these only need their prefix case normalized.
+        return trimmed.replaceFirst("(?i)^orcid:", "orcid:")
                 .replaceFirst("(?i)^goc:", "goc:");
     }
 
