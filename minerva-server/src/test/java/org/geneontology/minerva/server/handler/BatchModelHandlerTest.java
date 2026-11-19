@@ -375,6 +375,132 @@ public class BatchModelHandlerTest {
     }
 
     @Test
+    public void testModelAnnotationsAnnotationEditorSae() throws Exception {
+        // create a model tagged as made in the Standard Annotations Editor,
+        // as the Noctua landing page does when the SAE creates a model
+        final M3Request r1 = new M3Request();
+        r1.entity = Entity.model;
+        r1.operation = Operation.add;
+        r1.arguments = new M3Argument();
+        r1.arguments.values = new JsonAnnotation[1];
+        r1.arguments.values[0] = new JsonAnnotation();
+        r1.arguments.values[0].key = AnnotationShorthand.annotationEditorSae.getShorthand();
+        r1.arguments.values[0].value = Boolean.TRUE.toString();
+        r1.arguments.values[0].valueType = "xsd:boolean";
+
+        final M3BatchResponse response1 = execute(r1, false);
+        final String modelId = BatchTestTools.responseId(response1);
+
+        final JsonAnnotation[] annotations1 = getModelAnnotations(modelId);
+        assertNotNull(annotations1);
+        JsonAnnotation found = null;
+        for (JsonAnnotation annotation : annotations1) {
+            if (AnnotationShorthand.annotationEditorSae.getShorthand().equals(annotation.key)) {
+                assertNull("Only one editor tag is allowed", found);
+                found = annotation;
+            }
+        }
+        assertNotNull("Model should be tagged with " + AnnotationShorthand.annotationEditorSae.getShorthand(), found);
+        assertEquals(Boolean.TRUE.toString(), found.value);
+        assertEquals("xsd:boolean", found.valueType);
+
+        // adding the same tag again must not produce a second one
+        final M3Request r2 = new M3Request();
+        r2.entity = Entity.model;
+        r2.operation = Operation.addAnnotation;
+        r2.arguments = new M3Argument();
+        r2.arguments.modelId = modelId;
+        r2.arguments.values = new JsonAnnotation[1];
+        r2.arguments.values[0] = new JsonAnnotation();
+        r2.arguments.values[0].key = AnnotationShorthand.annotationEditorSae.getShorthand();
+        r2.arguments.values[0].value = Boolean.TRUE.toString();
+        r2.arguments.values[0].valueType = "xsd:boolean";
+
+        execute(r2, false);
+
+        final JsonAnnotation[] annotations2 = getModelAnnotations(modelId);
+        assertNotNull(annotations2);
+        int count = 0;
+        for (JsonAnnotation annotation : annotations2) {
+            if (AnnotationShorthand.annotationEditorSae.getShorthand().equals(annotation.key)) {
+                count += 1;
+            }
+        }
+        assertEquals(1, count);
+
+        // the tag can be removed again
+        final M3Request r3 = new M3Request();
+        r3.entity = Entity.model;
+        r3.operation = Operation.removeAnnotation;
+        r3.arguments = new M3Argument();
+        r3.arguments.modelId = modelId;
+        r3.arguments.values = new JsonAnnotation[1];
+        r3.arguments.values[0] = new JsonAnnotation();
+        r3.arguments.values[0].key = AnnotationShorthand.annotationEditorSae.getShorthand();
+        r3.arguments.values[0].value = Boolean.TRUE.toString();
+        r3.arguments.values[0].valueType = "xsd:boolean";
+
+        execute(r3, false);
+
+        for (JsonAnnotation annotation : getModelAnnotations(modelId)) {
+            assertFalse(AnnotationShorthand.annotationEditorSae.getShorthand().equals(annotation.key));
+        }
+    }
+
+    @Test
+    public void testModelCopyWithAnnotationEditorSae() throws Exception {
+        // a client which wants a copy to keep the editor tag can ask for it in the copy request,
+        // the same way Noctua passes the new title
+        final String sourceModelId = generateBlankModel();
+        M3Request setup = BatchTestTools.addIndividual(sourceModelId, "GO:0003674");
+        execute(setup, false);
+
+        final M3Request copy = new M3Request();
+        copy.entity = Entity.model;
+        copy.operation = Operation.copy;
+        copy.arguments = new M3Argument();
+        copy.arguments.modelId = sourceModelId;
+        copy.arguments.preserveEvidence = false;
+        copy.arguments.values = new JsonAnnotation[2];
+        copy.arguments.values[0] = JsonTools.create(AnnotationShorthand.title, "copy with editor tag", null);
+        copy.arguments.values[1] = new JsonAnnotation();
+        copy.arguments.values[1].key = AnnotationShorthand.annotationEditorSae.getShorthand();
+        copy.arguments.values[1].value = Boolean.TRUE.toString();
+        copy.arguments.values[1].valueType = "xsd:boolean";
+
+        final M3BatchResponse response = execute(copy, false);
+
+        JsonAnnotation found = null;
+        for (JsonAnnotation annotation : response.data.annotations) {
+            if (AnnotationShorthand.annotationEditorSae.getShorthand().equals(annotation.key)) {
+                assertNull("Only one editor tag is allowed", found);
+                found = annotation;
+            }
+        }
+        assertNotNull("The copy should carry the tag requested for it", found);
+        assertEquals(Boolean.TRUE.toString(), found.value);
+        assertEquals("xsd:boolean", found.valueType);
+
+        // without it in the request, the copy is not tagged even when the source is
+        final M3Request taggedSource = new M3Request();
+        taggedSource.entity = Entity.model;
+        taggedSource.operation = Operation.addAnnotation;
+        taggedSource.arguments = new M3Argument();
+        taggedSource.arguments.modelId = sourceModelId;
+        taggedSource.arguments.values = new JsonAnnotation[1];
+        taggedSource.arguments.values[0] = new JsonAnnotation();
+        taggedSource.arguments.values[0].key = AnnotationShorthand.annotationEditorSae.getShorthand();
+        taggedSource.arguments.values[0].value = Boolean.TRUE.toString();
+        taggedSource.arguments.values[0].valueType = "xsd:boolean";
+        execute(taggedSource, false);
+
+        final M3BatchResponse plainCopy = execute(BatchTestTools.copyModel(sourceModelId, "untagged copy", false), false);
+        for (JsonAnnotation annotation : plainCopy.data.annotations) {
+            assertFalse(AnnotationShorthand.annotationEditorSae.getShorthand().equals(annotation.key));
+        }
+    }
+
+    @Test
     public void testMultipleMeta() throws Exception {
         //models.dispose();
 

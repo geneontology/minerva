@@ -21,11 +21,13 @@ GRAPH ?id {
 <http://purl.org/dc/elements/1.1/contributor> ?contributor ;
 optional{?id <http://purl.org/pav/providedBy> ?group } .
 optional{?id lego:modelstate ?state } .
+optional{?id <http://geneontology.org/lego/annotation-editor-sae> ?annotation_editor_sae } .
 <types>
 <state_constraint>
 <contributor_constraint>
 <group_constraint>
 <date_constraint>
+<annotation_editor_sae_constraint>
 <pmid_constraints>
 <title_constraint>
 <taxa_constraint>

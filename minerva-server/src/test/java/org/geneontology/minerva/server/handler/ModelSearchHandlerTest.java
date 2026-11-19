@@ -28,12 +28,14 @@ import org.geneontology.minerva.curie.CurieHandler;
 import org.geneontology.minerva.curie.CurieMappings;
 import org.geneontology.minerva.curie.DefaultCurieHandler;
 import org.geneontology.minerva.curie.MappedCurieHandler;
+import org.geneontology.minerva.json.JsonAnnotation;
 import org.geneontology.minerva.lookup.ExternalLookupService;
 import org.geneontology.minerva.server.GsonMessageBodyHandler;
 import org.geneontology.minerva.server.RequireJsonpFilter;
 import org.geneontology.minerva.server.handler.M3BatchHandler.*;
 import org.geneontology.minerva.server.handler.ModelSearchHandler.ModelSearchResult;
 import org.geneontology.minerva.test.TestOntology;
+import org.geneontology.minerva.util.AnnotationShorthand;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 import org.junit.*;
@@ -54,7 +56,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -218,6 +222,81 @@ public class ModelSearchHandlerTest {
             assertFalse(mm.isModified());
         }
         //don't need to undo changes as the database is rebuilt each time from files and never flushed to file here.
+    }
+
+    @Test
+    public final void testSearchAnnotationEditorSae() throws URISyntaxException, IOException {
+        String mid = "568b0f9600000284";
+        final String modelId = "http://model.geneontology.org/" + mid;
+        final String modelCurie = "gomodel:" + mid;
+
+        // untagged models report no value for the tag at all
+        assertNull(searchById(modelCurie).getModels().iterator().next().getAnnotationEditorSae());
+        assertFalse("tag should be left out of the JSON when not set",
+                searchJsonById(modelCurie).contains(ModelSearchHandler.ANNOTATION_EDITOR_SAE_KEY));
+        // ... and are not returned when filtering for tagged models
+        assertFalse(containsModel(searchByAnnotationEditorSae("true"), modelCurie));
+        assertTrue(containsModel(searchByAnnotationEditorSae("false"), modelCurie));
+
+        // tag the model as created in the Standard Annotations Editor and save it to the journal
+        M3Request add = new M3Request();
+        add.entity = Entity.model;
+        add.operation = Operation.addAnnotation;
+        add.arguments = new M3Argument();
+        add.arguments.modelId = modelId;
+        add.arguments.values = new JsonAnnotation[1];
+        add.arguments.values[0] = new JsonAnnotation();
+        add.arguments.values[0].key = AnnotationShorthand.annotationEditorSae.getShorthand();
+        add.arguments.values[0].value = Boolean.TRUE.toString();
+        add.arguments.values[0].valueType = "xsd:boolean";
+        M3Request store = new M3Request();
+        store.entity = Entity.model;
+        store.operation = Operation.storeModel;
+        store.arguments = new M3Argument();
+        store.arguments.modelId = modelId;
+        M3Request[] batch = new M3Request[]{add, store};
+        M3BatchResponse response = handler.m3Batch("test-user", Collections.emptySet(), "test-intention", "foo-packet-id",
+                batch, false, true);
+        assertEquals(response.message, M3BatchResponse.MESSAGE_TYPE_SUCCESS, response.messageType);
+
+        // the search response now reports the tag, and the filter finds the model
+        assertEquals(Boolean.TRUE, searchById(modelCurie).getModels().iterator().next().getAnnotationEditorSae());
+        assertTrue(searchJsonById(modelCurie).contains(ModelSearchHandler.ANNOTATION_EDITOR_SAE_KEY));
+        assertTrue(containsModel(searchByAnnotationEditorSae("true"), modelCurie));
+        assertFalse(containsModel(searchByAnnotationEditorSae("false"), modelCurie));
+
+        // other models are unaffected
+        assertNull(searchById("gomodel:5d29218800000021").getModels().iterator().next().getAnnotationEditorSae());
+    }
+
+    private ModelSearchResult searchById(String modelCurie) throws URISyntaxException, IOException {
+        ModelSearchResult result = new Gson().fromJson(searchJsonById(modelCurie), ModelSearchResult.class);
+        assertTrue("expected to find " + modelCurie, result.getN() == 1);
+        return result;
+    }
+
+    private String searchJsonById(String modelCurie) throws URISyntaxException, IOException {
+        URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
+        builder.addParameter("id", modelCurie);
+        return getJsonStringFromUri(builder.build());
+    }
+
+    private ModelSearchResult searchByAnnotationEditorSae(String value) throws URISyntaxException, IOException {
+        URIBuilder builder = new URIBuilder("http://127.0.0.1:6800/search/models/");
+        builder.addParameter(ModelSearchHandler.ANNOTATION_EDITOR_SAE_KEY, value);
+        return new Gson().fromJson(getJsonStringFromUri(builder.build()), ModelSearchResult.class);
+    }
+
+    private boolean containsModel(ModelSearchResult result, String modelCurie) {
+        if (result.getModels() == null) {
+            return false;
+        }
+        for (ModelSearchHandler.ModelMeta mm : result.getModels()) {
+            if (modelCurie.equals(mm.getId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Test
