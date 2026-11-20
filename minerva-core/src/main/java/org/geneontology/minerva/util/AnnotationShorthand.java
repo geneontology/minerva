@@ -30,6 +30,8 @@ public enum AnnotationShorthand {
     deprecated(OWLRDFVocabulary.OWL_DEPRECATED.getIRI()), // model annotation to indicate deprecated models
     templatestate(IRI.create("http://geneontology.org/lego/templatestate"), "template"), // designate a model as a template
     modelstate(IRI.create("http://geneontology.org/lego/modelstate"), "state"),
+    // designate a model as created by the Standard Annotations Editor; boolean, at most one per model
+    annotationEditorSae(IRI.create("http://geneontology.org/lego/annotation-editor-sae"), "annotation-editor-sae"),
     wasDerivedFrom(IRI.create("http://www.w3.org/ns/prov#wasDerivedFrom"), "wasDerivedFrom");
 
 

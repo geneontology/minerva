@@ -6,6 +6,7 @@ import org.geneontology.minerva.BlazegraphMolecularModelManager;
 import org.geneontology.minerva.BlazegraphOntologyManager;
 import org.geneontology.minerva.MolecularModelManager.UnknownIdentifierException;
 import org.geneontology.minerva.curie.CurieHandler;
+import org.geneontology.minerva.util.AnnotationShorthand;
 import org.openrdf.query.*;
 import org.openrdf.repository.RepositoryException;
 import org.semanticweb.owlapi.model.IRI;
@@ -22,6 +23,11 @@ import java.util.*;
  */
 @Path("/search/models")
 public class ModelSearchHandler {
+
+    /**
+     * JSON key and query parameter name for the 'created in the Standard Annotations Editor' model tag.
+     */
+    public static final String ANNOTATION_EDITOR_SAE_KEY = "annotation-editor-sae";
 
     private final BlazegraphMolecularModelManager<?> m3;
     private final BlazegraphOntologyManager go_lego;
@@ -96,7 +102,17 @@ public class ModelSearchHandler {
         @SerializedName("modified-p")
         private boolean modified;
 
+        /**
+         * Null, and left out of the JSON, for models which are not tagged with this property.
+         */
+        @SerializedName(ANNOTATION_EDITOR_SAE_KEY)
+        private Boolean annotationEditorSae;
+
         public ModelMeta(String id, String date, String title, String state, Set<String> contributors, Set<String> groups, boolean modified) {
+            this(id, date, title, state, contributors, groups, modified, null);
+        }
+
+        public ModelMeta(String id, String date, String title, String state, Set<String> contributors, Set<String> groups, boolean modified, Boolean annotationEditorSae) {
             this.id = id;
             this.date = date;
             this.title = title;
@@ -104,7 +120,16 @@ public class ModelSearchHandler {
             this.contributors = contributors;
             this.groups = groups;
             this.modified = modified;
+            this.annotationEditorSae = annotationEditorSae;
             query_match = new HashMap<String, Set<String>>();
+        }
+
+        public Boolean getAnnotationEditorSae() {
+            return annotationEditorSae;
+        }
+
+        public void setAnnotationEditorSae(Boolean annotationEditorSae) {
+            this.annotationEditorSae = annotationEditorSae;
         }
 
 
@@ -197,10 +222,11 @@ public class ModelSearchHandler {
             @QueryParam("limit") int limit,
             @QueryParam("count") String count,
             @QueryParam("debug") String debug,
-            @QueryParam("id") Set<String> id
+            @QueryParam("id") Set<String> id,
+            @QueryParam(ANNOTATION_EDITOR_SAE_KEY) String annotation_editor_sae
     ) {
         ModelSearchResult result = new ModelSearchResult();
-        result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug, id);
+        result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug, id, annotation_editor_sae);
         return result;
     }
 
@@ -222,7 +248,8 @@ public class ModelSearchHandler {
                                     Set<String> gene_product_ids, Set<String> terms, String expand, Set<String> pmids,
                                     String title_search, Set<String> state_search, Set<String> contributor_search, Set<String> group_search,
                                     String exactdate, String date_search, String datend,
-                                    int offset, int limit, String count, String debug, Set<String> id) {
+                                    int offset, int limit, String count, String debug, Set<String> id,
+                                    String annotation_editor_sae_search) {
         ModelSearchResult r = new ModelSearchResult();
         Set<String> go_type_ids = new HashSet<String>();
         Set<String> gene_type_ids = new HashSet<String>();
@@ -429,6 +456,19 @@ public class ModelSearchHandler {
             group_search_constraint = " ?id <http://purl.org/pav/providedBy> ?test_group . \n"
                     + "FILTER (?test_group IN (" + allowed_group + ")) . \n";
         }
+        String annotation_editor_sae_constraint = "";
+        if (annotation_editor_sae_search != null && !annotation_editor_sae_search.isEmpty()) {
+            String sae_property = "<" + AnnotationShorthand.annotationEditorSae.getAnnotationProperty().toString() + ">";
+            if (Boolean.parseBoolean(annotation_editor_sae_search)) {
+                annotation_editor_sae_constraint =
+                        " ?id " + sae_property + " ?test_annotation_editor_sae . \n"
+                                + " FILTER (STR(?test_annotation_editor_sae) = \"true\") . \n";
+            } else {
+                annotation_editor_sae_constraint =
+                        " FILTER NOT EXISTS { ?id " + sae_property + " ?test_annotation_editor_sae . "
+                                + " FILTER (STR(?test_annotation_editor_sae) = \"true\") } . \n";
+            }
+        }
         String date_constraint = "";
         if (exactdate != null && exactdate.length() == 10) {
             date_constraint = "FILTER (?date = '" + exactdate + "') \n";
@@ -454,7 +494,7 @@ public class ModelSearchHandler {
         String group_by_constraint = "GROUP BY ?id";
         //default return block
         //TODO investigate need to add DISTINCT to GROUP_CONCAT here
-        String return_block = "?id (MIN(?date) AS ?mindate) (MIN(?title) AS ?mintitle) (MIN(?state) AS ?minstate) <ind_return_list> (GROUP_CONCAT(DISTINCT ?contributor;separator=\";\") AS ?contributors) (GROUP_CONCAT(DISTINCT ?group;separator=\";\") AS ?groups)";
+        String return_block = "?id (MIN(?date) AS ?mindate) (MIN(?title) AS ?mintitle) (MIN(?state) AS ?minstate) (MIN(STR(?annotation_editor_sae)) AS ?min_annotation_editor_sae) <ind_return_list> (GROUP_CONCAT(DISTINCT ?contributor;separator=\";\") AS ?contributors) (GROUP_CONCAT(DISTINCT ?group;separator=\";\") AS ?groups)";
         if (count != null) {
             return_block = "(count(distinct ?id) as ?count)";
             limit_constraint = "";
@@ -472,6 +512,7 @@ public class ModelSearchHandler {
         sparql = sparql.replaceAll("<contributor_constraint>", contributor_search_constraint);
         sparql = sparql.replaceAll("<group_constraint>", group_search_constraint);
         sparql = sparql.replaceAll("<date_constraint>", date_constraint);
+        sparql = sparql.replaceAll("<annotation_editor_sae_constraint>", annotation_editor_sae_constraint);
         sparql = sparql.replaceAll("<limit_constraint>", limit_constraint);
         sparql = sparql.replaceAll("<offset_constraint>", offset_constraint);
         sparql = sparql.replaceAll("<taxa_constraint>", taxa_constraint);
@@ -525,6 +566,12 @@ public class ModelSearchHandler {
                     if (state_binding != null) {
                         state = state_binding.getValue().stringValue();
                     }
+                    //left null for models without this annotation, so that it is left out of the response
+                    Binding sae_binding = bs.getBinding("min_annotation_editor_sae");
+                    Boolean annotation_editor_sae = null;
+                    if (sae_binding != null) {
+                        annotation_editor_sae = Boolean.valueOf(sae_binding.getValue().stringValue());
+                    }
                     Binding group_binding = bs.getBinding("groups");
                     String groups_ = "";
                     if (group_binding != null) {
@@ -539,7 +586,7 @@ public class ModelSearchHandler {
                     if (mm == null) {
                         //look up model in in-memory cache to check edit state
                         boolean is_modified = m3.isModelModified(model_iri);
-                        mm = new ModelMeta(model_curie, date, title, state, contributors, groups, is_modified);
+                        mm = new ModelMeta(model_curie, date, title, state, contributors, groups, is_modified, annotation_editor_sae);
                     }
                     //matching
                     for (String ind : ind_return.keySet()) {
@@ -603,9 +650,10 @@ public class ModelSearchHandler {
             @FormParam("limit") int limit,
             @FormParam("count") String count,
             @FormParam("debug") String debug,
-            @FormParam("debug") Set<String> id) {
+            @FormParam("debug") Set<String> id,
+            @FormParam(ANNOTATION_EDITOR_SAE_KEY) String annotation_editor_sae) {
         ModelSearchResult result = new ModelSearchResult();
-        result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug, id);
+        result = search(taxa, gene_product_class_uris, terms, expand, pmids, title, state, contributor, group, exactdate, date, datend, offset, limit, count, debug, id, annotation_editor_sae);
         return result;
     }
 
